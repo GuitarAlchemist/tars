@@ -79,8 +79,28 @@ The core unproven mechanic was proven end-to-end before committing to implementa
 is the result source. Build-failure (uncompilable variant) is a distinct gate outcome
 from test-failure — both map to `Rollback`.
 
+## v1 vertical slice — implemented (2026-06-21)
+
+`Tars.Evolution/SelfHostingGate.fs` — single-shot (N=1) hermetic gate:
+
+- **Pure decision logic (unit-tested, 14 tests):** `isTestFile` (hermetic boundary),
+  `parseTrx` (VSTest TRX → testName/outcome map), `decide` (per-test accept/reject).
+  `decide` is the per-test refinement of `Selection.evaluate`'s zero-regression idea —
+  it can express "target flipped to pass" and "test set unchanged", which the coarse
+  `Performance`-based evaluate cannot. Anti-gaming rejections all covered: regression,
+  dropped/skipped test (set changed), no-improvement, target-still-failing, build-fail.
+- **IO orchestration (`runGate`):** detached worktree at HEAD → baseline `dotnet test`
+  (TRX) → apply edit (single-occurrence `Replace`, rejects test-file targets) → variant
+  `dotnet test` → `decide` → on Accept `checkout -b self-improve/<id>` + commit in the
+  worktree; worktree dir always removed (branch ref survives). Mechanic spiked in §above.
+
+**Not yet built (next increments):** LLM generation of the edit (wire `analyzeAndPropose`),
+best-of-N parallel (D5), a CLI entry + the curated `(test,file)` seed list. A *live*
+Accept needs a genuinely-failing-at-HEAD test (the seed list) — by design the gate
+rejects fixing a test that already passes, so the Accept path can't be demoed without one.
+
 ## Open items to resolve in implementation
 
-- Exact `(test, file)` seed list (which skipped/`xfail` tests first).
-- `Target.SourceFile` representation + how the orchestrator selects the target test.
-- TRX result-diffing helper (baseline vs variant) feeding `Selection.Performance`.
+- Exact `(test, file)` seed list (which skipped/`xfail` tests first) — unblocks a live Accept.
+- LLM-driven generation + best-of-N parallel worktrees (D5) on top of `runGate`.
+- CLI entry (`tars self-improve …`) and where the loop is scheduled.

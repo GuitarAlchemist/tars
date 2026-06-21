@@ -1,0 +1,217 @@
+namespace Tars.Evolution
+
+open System
+open System.Diagnostics
+open System.IO
+open System.Text
+open System.Xml.Linq
+
+/// Self-hosting recursive improvement (ADR 0002): TARS improving its own F#
+/// source, gated by its own test suite.
+///
+/// A `GateTask` proposes editing one non-test source file to make a target test
+/// pass. The gate builds + tests the edit inside an isolated git worktree
+/// (never the live tree), then accepts iff the hermetic invariants hold: the
+/// target test flipped to passing, no other test regressed, and the test set is
+/// unchanged. Accepted edits are committed to a fresh `self-improve/*` branch.
+///
+/// The decision logic (parseTrx / isTestFile / decide) is pure and unit-tested;
+/// the worktree+dotnet orchestration is the mechanic spiked in ADR 0002.
+module SelfHostingGate =
+
+    // ── Domain ────────────────────────────────────────────────────────────────
+
+    /// One self-improvement task: make `TargetTest` pass by replacing `OldText`
+    /// with `NewText` in `TargetFile` (repo-relative, must be a non-test source).
+    type GateTask =
+        { TargetTest: string
+          TargetFile: string
+          OldText: string
+          NewText: string
+          Rationale: string }
+
+    /// The hermetic gate's verdict on a variant (pure; branch assigned by the runner).
+    type GateDecision =
+        | Accept of rationale: string
+        | Reject of reason: string
+
+    /// Outcome of running the full gate, including the promotion branch on accept.
+    type GateVerdict =
+        | Promoted of branch: string * rationale: string
+        | Rejected of reason: string
+
+    // ── Pure logic (no git / no dotnet — unit-tested) ─────────────────────────
+
+    /// Hermetic boundary: a variant may never edit a test file. True for paths
+    /// under a `tests/` dir or whose filename ends in `Tests`.
+    let isTestFile (path: string) : bool =
+        let p = path.Replace('\\', '/').ToLowerInvariant()
+        p.Contains("/tests/")
+        || p.StartsWith("tests/")
+        || Path.GetFileNameWithoutExtension(p).EndsWith("tests")
+
+    /// Parse a VSTest TRX document into testName → outcome ("Passed"/"Failed"/…).
+    let parseTrx (trxXml: string) : Map<string, string> =
+        try
+            let doc = XDocument.Parse(trxXml)
+            let ns = doc.Root.Name.Namespace
+            doc.Descendants(ns + "UnitTestResult")
+            |> Seq.choose (fun e ->
+                match e.Attribute(XName.Get "testName"), e.Attribute(XName.Get "outcome") with
+                | null, _
+                | _, null -> None
+                | n, o -> Some(n.Value, o.Value))
+            |> Map.ofSeq
+        with _ ->
+            Map.empty
+
+    let private isPass (o: string) = o = "Passed"
+
+    /// The hermetic gate decision over baseline vs variant test outcomes.
+    /// Accept iff: the test set is unchanged (no add/drop/Skip-gaming), no test
+    /// regressed (Passed → non-Passed), and the target test was failing at
+    /// baseline and now passes.
+    let decide
+        (targetTest: string)
+        (baseline: Map<string, string>)
+        (variant: Map<string, string>)
+        : GateDecision =
+        let baseNames = baseline |> Map.toSeq |> Seq.map fst |> Set.ofSeq
+        let varNames = variant |> Map.toSeq |> Seq.map fst |> Set.ofSeq
+
+        if baseNames.IsEmpty || varNames.IsEmpty then
+            Reject "no test results parsed (build or run failure)"
+        elif baseNames <> varNames then
+            Reject(
+                sprintf
+                    "test set changed (%d → %d): hermetic violation"
+                    baseNames.Count
+                    varNames.Count)
+        else
+            let regressions =
+                baseline
+                |> Map.toSeq
+                |> Seq.filter (fun (n, o) ->
+                    isPass o
+                    && (variant |> Map.tryFind n |> Option.map (isPass >> not) |> Option.defaultValue true))
+                |> Seq.map fst
+                |> Seq.toList
+
+            if not (List.isEmpty regressions) then
+                Reject(
+                    sprintf
+                        "%d regression(s): %s"
+                        regressions.Length
+                        (String.Join(", ", regressions |> List.truncate 3)))
+            else
+                let matches = varNames |> Set.filter (fun n -> n.Contains targetTest) |> Set.toList
+                match matches with
+                | [] -> Reject(sprintf "target test '%s' not found" targetTest)
+                | _ ->
+                    let allPass =
+                        matches
+                        |> List.forall (fun n -> variant |> Map.tryFind n |> Option.map isPass |> Option.defaultValue false)
+                    let wasFailing =
+                        matches
+                        |> List.exists (fun n ->
+                            baseline |> Map.tryFind n |> Option.map (isPass >> not) |> Option.defaultValue false)
+                    if not allPass then
+                        Reject(sprintf "target test '%s' does not pass in the variant" targetTest)
+                    elif not wasFailing then
+                        Reject(sprintf "target test '%s' already passed at baseline (no improvement)" targetTest)
+                    else
+                        Accept(
+                            sprintf
+                                "target '%s' now passes; 0 regressions; %d tests unchanged"
+                                targetTest
+                                varNames.Count)
+
+    // ── IO orchestration (thin; mechanic spiked in ADR 0002) ──────────────────
+
+    /// Run a process, draining both pipes, returning (exitCode, stdout, stderr).
+    let private run (workdir: string) (fileName: string) (args: string) : int * string * string =
+        let psi = ProcessStartInfo()
+        psi.FileName <- fileName
+        psi.Arguments <- args
+        psi.WorkingDirectory <- workdir
+        psi.UseShellExecute <- false
+        psi.RedirectStandardOutput <- true
+        psi.RedirectStandardError <- true
+        psi.CreateNoWindow <- true
+        use proc = new Process()
+        proc.StartInfo <- psi
+        proc.Start() |> ignore
+        let outT = proc.StandardOutput.ReadToEndAsync()
+        let errT = proc.StandardError.ReadToEndAsync()
+        proc.WaitForExit()
+        proc.ExitCode, outT.Result, errT.Result
+
+    /// Run the test project in `workdir`, emitting a TRX, and return parsed
+    /// outcomes. An empty map signals a build/run failure (a Reject signal).
+    let private runTests (workdir: string) (testProject: string) (trxName: string) : Map<string, string> =
+        let _, _, _ =
+            run
+                workdir
+                "dotnet"
+                (sprintf
+                    "test \"%s\" -p:NuGetAudit=false --logger \"trx;LogFileName=%s\""
+                    testProject
+                    trxName)
+        // TRX lands under <testProjectDir>/TestResults/<trxName>
+        let trxPath =
+            Path.Combine(workdir, Path.GetDirectoryName(testProject), "TestResults", trxName)
+        if File.Exists trxPath then parseTrx (File.ReadAllText trxPath) else Map.empty
+
+    /// Apply the task's edit to a file under `root`. Returns false if `OldText`
+    /// is absent or ambiguous (a precondition for a clean, reviewable mutation).
+    let private applyEdit (root: string) (task: GateTask) : bool =
+        let full = Path.Combine(root, task.TargetFile)
+        if not (File.Exists full) then
+            false
+        else
+            let content = File.ReadAllText full
+            let occurrences = (content.Length - content.Replace(task.OldText, "").Length) / max 1 task.OldText.Length
+            if String.IsNullOrEmpty task.OldText || not (content.Contains task.OldText) || occurrences <> 1 then
+                false
+            else
+                File.WriteAllText(full, content.Replace(task.OldText, task.NewText))
+                true
+
+    /// Run the full hermetic gate for `task` against `repoRoot`. Creates a
+    /// detached worktree at HEAD, captures baseline outcomes, applies the edit,
+    /// captures variant outcomes, decides, and on Accept commits the edit to a
+    /// fresh `self-improve/<id>` branch (the worktree's own branch). The worktree
+    /// directory is always removed; an accepted branch ref survives.
+    let runGate (repoRoot: string) (testProject: string) (task: GateTask) : GateVerdict =
+        if isTestFile task.TargetFile then
+            Rejected "target is a test file (hermetic boundary)"
+        else
+            let id = Guid.NewGuid().ToString("n").Substring(0, 8)
+            let branch = sprintf "self-improve/%s" id
+            let wt = Path.Combine(Path.GetTempPath(), sprintf "tars_selfheal_%s" id)
+            let git args =
+                let code, _, err = run repoRoot "git" args
+                if code <> 0 then failwithf "git %s failed: %s" args (err.Trim())
+            try
+                try
+                    git (sprintf "worktree add --detach \"%s\" HEAD" wt)
+                    let baseline = runTests wt testProject (sprintf "base_%s.trx" id)
+                    if not (applyEdit wt task) then
+                        Rejected "edit precondition failed (OldText missing or not unique)"
+                    else
+                        let variant = runTests wt testProject (sprintf "var_%s.trx" id)
+                        match decide task.TargetTest baseline variant with
+                        | Reject reason -> Rejected reason
+                        | Accept rationale ->
+                            // Promote: turn the verified worktree into a branch commit.
+                            let gitWt a =
+                                let code, _, err = run wt "git" a
+                                if code <> 0 then failwithf "git %s failed: %s" a (err.Trim())
+                            gitWt (sprintf "checkout -b %s" branch)
+                            gitWt (sprintf "add \"%s\"" task.TargetFile)
+                            gitWt (sprintf "commit -m \"self-improve: %s\"" (task.Rationale.Replace("\"", "'")))
+                            Promoted(branch, rationale)
+                with ex ->
+                    Rejected(sprintf "gate error: %s" ex.Message)
+            finally
+                try run repoRoot "git" (sprintf "worktree remove --force \"%s\"" wt) |> ignore with _ -> ()

@@ -63,6 +63,7 @@
     <Compile Include="InsightExporter.fs" />
     <Compile Include="McpGaTraceBridge.fs" />
     <Compile Include="ChatbotClaimsBridge.fs" />
+    <Compile Include="SelfHostingGate.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 
