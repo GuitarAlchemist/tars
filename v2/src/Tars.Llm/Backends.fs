@@ -63,8 +63,8 @@ module Backends =
         let svc = LlamaSharpFactory.getService cfg apiKey modelPath
 
         { new ILlmBackend with
-            member _.Complete req = (svc :> ILlmService).CompleteAsync req
-            member _.Stream(req, onToken) = (svc :> ILlmService).CompleteStreamAsync(req, onToken) }
+            member _.Complete req = svc.CompleteAsync req
+            member _.Stream(req, onToken) = svc.CompleteStreamAsync(req, onToken) }
 
     /// The single provider-dispatch match: a routed backend becomes its adapter.
     let resolve (cfg: LlmServiceConfig) (http: HttpClient) (routed: RoutedBackend) : ILlmBackend =
