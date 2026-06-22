@@ -6,6 +6,7 @@ open System.IO
 open System.Text
 open System.Text.Json
 open System.Xml.Linq
+open Tars.Llm
 
 /// Self-hosting recursive improvement (ADR 0002): TARS improving its own F#
 /// source, gated by its own test suite.
@@ -126,6 +127,46 @@ module SelfHostingGate =
                                 "target '%s' now passes; 0 regressions; %d tests unchanged"
                                 targetTest
                                 varNames.Count)
+
+    // ── Generation (LLM proposes the edit — makes the loop self-driving) ──────
+
+    /// Prompt the model to fix a failing test by editing one source file.
+    let buildProposePrompt (targetTest: string) (targetFile: string) (fileContent: string) : string =
+        sprintf
+            "A test is failing. Edit the source file to make it pass without breaking other tests.\n\n\
+             FAILING TEST: %s\n\n\
+             SOURCE FILE (%s):\n%s\n\n\
+             Output ONLY a JSON object:\n\
+             {\"rationale\": \"one sentence\", \"old_text\": \"exact text to replace\", \"new_text\": \"replacement\"}\n\
+             The old_text must appear EXACTLY ONCE in the file."
+            targetTest
+            targetFile
+            fileContent
+
+    /// Parse the model's JSON mutation response into (rationale, oldText, newText).
+    /// Robust to prose around the JSON (extracts the first {...} block). Pure.
+    let parseProposal (response: string) : Result<string * string * string, string> =
+        try
+            let t = response.Trim()
+            let i = t.IndexOf '{'
+            let j = t.LastIndexOf '}'
+            if i < 0 || j <= i then
+                Result.Error "no JSON object in response"
+            else
+                use doc = JsonDocument.Parse(t.Substring(i, j - i + 1))
+                let root = doc.RootElement
+                let get (names: string list) =
+                    names
+                    |> List.tryPick (fun n ->
+                        match root.TryGetProperty n with
+                        | true, v when v.ValueKind = JsonValueKind.String -> Some(v.GetString())
+                        | _ -> None)
+                match get [ "old_text"; "old" ], get [ "new_text"; "new" ] with
+                | Some o, Some n when o <> "" ->
+                    Result.Ok(get [ "rationale" ] |> Option.defaultValue "self-improvement", o, n)
+                | _ -> Result.Error "missing old_text/new_text"
+        with ex ->
+            Result.Error(sprintf "parse error: %s" ex.Message)
 
     // ── SFT coupling (ADR 0003): verified wins become training data ───────────
 
@@ -264,3 +305,51 @@ module SelfHostingGate =
                     Rejected(sprintf "gate error: %s" ex.Message)
             finally
                 try run repoRoot "git" (sprintf "worktree remove --force \"%s\"" wt) |> ignore with _ -> ()
+
+    /// Self-driving gate: the LLM proposes the edit for a failing test, then it
+    /// runs through the hermetic gate (generation + verification, ADR 0002/0003).
+    /// This is what makes the loop autonomous — the edit is no longer supplied.
+    let runGateGenerated
+        (llm: ILlmService)
+        (repoRoot: string)
+        (testProject: string)
+        (targetTest: string)
+        (targetFile: string)
+        : Async<GateVerdict> =
+        async {
+            let full = Path.Combine(repoRoot, targetFile)
+            if isTestFile targetFile then
+                return Rejected "target is a test file (hermetic boundary)"
+            elif not (File.Exists full) then
+                return Rejected(sprintf "target file not found: %s" targetFile)
+            else
+                let content = File.ReadAllText full
+                let req =
+                    { ModelHint = None
+                      Model = None
+                      SystemPrompt = Some selfHostSystemPrompt
+                      MaxTokens = Some 2000
+                      Temperature = Some 0.0
+                      Stop = []
+                      Messages =
+                        [ { Role = Role.User
+                            Content = buildProposePrompt targetTest targetFile content } ]
+                      Tools = []
+                      ToolChoice = None
+                      ResponseFormat = None
+                      Stream = false
+                      JsonMode = false
+                      Seed = None
+                      ContextWindow = None }
+                let! resp = llm.CompleteAsync req |> Async.AwaitTask
+                match parseProposal resp.Text with
+                | Result.Error e -> return Rejected(sprintf "proposal parse failed: %s" e)
+                | Result.Ok(rationale, oldText, newText) ->
+                    let task =
+                        { TargetTest = targetTest
+                          TargetFile = targetFile
+                          OldText = oldText
+                          NewText = newText
+                          Rationale = rationale }
+                    return runGate repoRoot testProject task
+        }

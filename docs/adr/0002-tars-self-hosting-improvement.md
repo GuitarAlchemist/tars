@@ -101,9 +101,15 @@ tests unchanged")`. Confirmed the fix landed on the `self-improve/*` branch, the
 worktree was cleaned up, and **master kept the bug** (promotion never touched main —
 D4). The full loop closes: failing test → worktree → fix → verify → branch commit.
 
-**Not yet built (next increments):** LLM generation of the edit (wire `analyzeAndPropose`),
-best-of-N parallel (D5), a CLI entry + the curated `(test,file)` seed list of real
-in-repo failing/skipped tests.
+**Generation wired (2026-06-22):** `runGateGenerated llm repoRoot testProject targetTest
+targetFile` makes the loop self-driving — the LLM proposes the edit (`buildProposePrompt`
++ `parseProposal`, both pure/unit-tested) which then runs through `runGate`. On Accept it
+records the SFT win (ADR 0003). Rather than reusing `analyzeAndPropose` (which also
+*applies* a variant as a side effect), the gate has its own propose+parse so generation
+and worktree-application stay cleanly separated.
+
+**Not yet built (next increments):** best-of-N parallel (D5), a CLI entry, and the curated
+`(test,file)` seed list of real in-repo failing/skipped tests (unblocks a live self-driving Accept).
 
 ## Open items to resolve in implementation
 

@@ -119,3 +119,42 @@ module SelfHostingGateTests =
             (msgs.EnumerateArray() |> Seq.last).GetProperty("content").GetString()
         Assert.Contains("new_text", assistant)
         Assert.Contains("answer () = 42", assistant)
+
+    // ── parseProposal (LLM generation; self-driving) ──────────────────────────
+
+    [<Fact>]
+    let ``parseProposal extracts a clean mutation`` () =
+        let r = parseProposal """{"rationale":"fix","old_text":"a","new_text":"b"}"""
+        match r with
+        | Ok(rat, o, n) ->
+            Assert.Equal("fix", rat)
+            Assert.Equal("a", o)
+            Assert.Equal("b", n)
+        | Error e -> failwithf "expected Ok, got %s" e
+
+    [<Fact>]
+    let ``parseProposal tolerates prose around the JSON and old/new fallback keys`` () =
+        let r = parseProposal "Sure! Here is the fix:\n{\"old\":\"x\",\"new\":\"y\"}\nDone."
+        match r with
+        | Ok(_, o, n) ->
+            Assert.Equal("x", o)
+            Assert.Equal("y", n)
+        | Error e -> failwithf "expected Ok, got %s" e
+
+    [<Fact>]
+    let ``parseProposal errors on missing fields and on no JSON`` () =
+        Assert.True(
+            (match parseProposal """{"rationale":"x"}""" with
+             | Error _ -> true
+             | Ok _ -> false))
+        Assert.True(
+            (match parseProposal "no json here" with
+             | Error _ -> true
+             | Ok _ -> false))
+
+    [<Fact>]
+    let ``buildProposePrompt includes the test, file, and source`` () =
+        let p = buildProposePrompt "MyTest" "Lib.fs" "let x = 1"
+        Assert.Contains("MyTest", p)
+        Assert.Contains("Lib.fs", p)
+        Assert.Contains("let x = 1", p)
