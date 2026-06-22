@@ -108,8 +108,16 @@ records the SFT win (ADR 0003). Rather than reusing `analyzeAndPropose` (which a
 *applies* a variant as a side effect), the gate has its own propose+parse so generation
 and worktree-application stay cleanly separated.
 
-**Not yet built (next increments):** best-of-N parallel (D5), a CLI entry, and the curated
-`(test,file)` seed list of real in-repo failing/skipped tests (unblocks a live self-driving Accept).
+**Live autonomous Accept achieved (2026-06-22):** `tars self-improve --test … --file …
+--project … --repo … --model qwen2.5-coder:7b` ran the *full* loop against a throwaway
+repo with a genuinely-failing test. The local model proposed the fix
+(markdown-wrapped JSON, parsed fine), the hermetic gate verified it, and it
+`PROMOTED → self-improve/1b3bff5a` with 0 regressions — and the SFT win was recorded
+(ADR 0003 coupling fired on a real Accept). End-to-end, no human in the edit loop.
+
+**Not yet built (next increments):** best-of-N parallel (D5); the curated `(test,file)`
+seed list of real in-repo failing/skipped tests (TARS has no naturally-failing test —
+the suite is green — so a live Accept on TARS *itself* needs a red test authored first).
 
 ## Open items to resolve in implementation
 

@@ -65,6 +65,7 @@
     <Compile Include="Commands\GrammarCommand.fs" />
     <Compile Include="Commands\CrossRepoDemo.fs" />
     <Compile Include="Commands\SelfTrainCommand.fs" />
+    <Compile Include="Commands\SelfImprove.fs" />
     <Compile Include="HealthCommand.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

@@ -401,6 +401,8 @@ let main argv =
 
             return! Evolve.run logger options
         | [| "experiment" |] -> return! Experiment.run logger
+        | args when args.Length > 0 && args.[0] = "self-improve" ->
+            return SelfImprove.run logger (args |> Array.skip 1)
         | args when args.Length > 0 && args.[0] = "run" ->
             if args.Length < 2 then
                 printfn "Usage: tars run <workflow.json> [--optimize]"
