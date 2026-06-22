@@ -27,10 +27,12 @@ module SelfTrainCommand =
         let stats = SelfTrain.exportDataset out filter
 
         AnsiConsole.MarkupLine("[bold]Self-train dataset export[/]")
-        if stats.VerifiedExamples = 0 then
+        if stats.VerifiedExamples = 0 && stats.SelfHostingExamples = 0 then
             AnsiConsole.MarkupLine("  [yellow]No verified examples found.[/] Run [bold]tars benchmark code run[/] first to generate PASS-verified solutions.")
         else
             AnsiConsole.MarkupLine($"  Verified examples: [bold green]{stats.VerifiedExamples}[/]  (from {stats.TotalAttempts} attempts)")
+            if stats.SelfHostingExamples > 0 then
+                AnsiConsole.MarkupLine($"  Self-hosting wins: [bold green]{stats.SelfHostingExamples}[/]  (test-verified source fixes, ADR 0003)")
             AnsiConsole.MarkupLine($"  Unique problems:   [bold]{stats.UniqueProblems}[/]")
             if stats.FastestSelected > 0 then
                 AnsiConsole.MarkupLine($"  Fastest-variant:   [bold]{stats.FastestSelected}[/] timed problem(s) (kept the quickest verified solution)")

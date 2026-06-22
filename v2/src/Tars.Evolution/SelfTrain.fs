@@ -32,6 +32,8 @@ module SelfTrain =
           ByCategory: (string * int) list
           /// Number of problems where a single fastest (timed) variant was chosen.
           FastestSelected: int
+          /// Verified self-hosting wins merged in from self_host_wins.jsonl (ADR 0003).
+          SelfHostingExamples: int
           OutputPath: string
           ModelfilePath: string }
 
@@ -96,6 +98,28 @@ module SelfTrain =
         let sb = StringBuilder()
         for (_, _, _, ex) in examples do
             sb.AppendLine(JsonSerializer.Serialize(ex, opts)) |> ignore
+
+        // Merge verified self-hosting wins (ADR 0003): test-verified source fixes,
+        // already in the `{messages}` shape, appended to the same dataset. These are
+        // gate-Accept'd only, so the verified-only invariant holds across both sources.
+        let selfHostLines =
+            try
+                let p =
+                    Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        ".tars",
+                        "self_host_wins.jsonl")
+                if File.Exists p then
+                    File.ReadAllLines p
+                    |> Array.filter (fun l -> not (String.IsNullOrWhiteSpace l))
+                    |> Array.toList
+                else
+                    []
+            with _ ->
+                []
+        for line in selfHostLines do
+            sb.AppendLine(line) |> ignore
+
         File.WriteAllText(outPath, sb.ToString())
 
         // Drop an Ollama Modelfile template next to the dataset so step 3 of the
@@ -124,5 +148,6 @@ module SelfTrain =
             |> List.countBy (fun (_, c, _, _) -> sprintf "%A" c)
             |> List.sortByDescending snd
           FastestSelected = fastestSelected
+          SelfHostingExamples = selfHostLines.Length
           OutputPath = outPath
           ModelfilePath = modelfilePath }

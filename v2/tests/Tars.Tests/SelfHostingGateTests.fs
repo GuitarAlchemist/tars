@@ -94,3 +94,28 @@ module SelfHostingGateTests =
         match decide "T.target" Map.empty Map.empty with
         | Reject r -> Assert.Contains("no test results", r)
         | Accept _ -> failwith "expected Reject (no results)"
+
+    // ── buildSftExample (ADR 0003 coupling) ───────────────────────────────────
+
+    [<Fact>]
+    let ``buildSftExample emits a valid messages line with the verified edit as target`` () =
+        let task =
+            { TargetTest = "answer is 42"
+              TargetFile = "Lib.fs"
+              OldText = "answer () = 0"
+              NewText = "answer () = 42"
+              Rationale = "fix answer" }
+        let line = buildSftExample task
+        use doc = System.Text.Json.JsonDocument.Parse(line)
+        let msgs = doc.RootElement.GetProperty("messages")
+        Assert.Equal(3, msgs.GetArrayLength())
+        let roles = [ for m in msgs.EnumerateArray() -> m.GetProperty("role").GetString() ]
+        Assert.Equal("system", List.item 0 roles)
+        Assert.Equal("user", List.item 1 roles)
+        Assert.Equal("assistant", List.item 2 roles)
+        // The assistant target is the mutation JSON carrying the verified new_text —
+        // the exact thing the generator must learn to emit (ADR 0003 D2).
+        let assistant =
+            (msgs.EnumerateArray() |> Seq.last).GetProperty("content").GetString()
+        Assert.Contains("new_text", assistant)
+        Assert.Contains("answer () = 42", assistant)

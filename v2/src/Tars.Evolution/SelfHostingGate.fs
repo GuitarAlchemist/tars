@@ -4,6 +4,7 @@ open System
 open System.Diagnostics
 open System.IO
 open System.Text
+open System.Text.Json
 open System.Xml.Linq
 
 /// Self-hosting recursive improvement (ADR 0002): TARS improving its own F#
@@ -126,6 +127,52 @@ module SelfHostingGate =
                                 targetTest
                                 varNames.Count)
 
+    // ── SFT coupling (ADR 0003): verified wins become training data ───────────
+
+    /// System prompt the self-improvement generator is trained to answer.
+    let selfHostSystemPrompt =
+        "You are the TARS self-improvement engine. A test is failing. Propose a single "
+        + "JSON mutation {rationale, old_text, new_text} that makes it pass without "
+        + "breaking other tests."
+
+    /// Distill a verified (Accept'd) gate run into one SFT JSONL line, in the same
+    /// `{messages:[system,user,assistant]}` shape as SelfTrain's benchmark dataset
+    /// so the two merge. The assistant target is the mutation JSON — the exact thing
+    /// the generator must emit at run time (ADR 0003 D2). Pure.
+    let buildSftExample (task: GateTask) : string =
+        let userContent =
+            sprintf
+                "Make the failing test `%s` pass by editing %s. Output a single JSON mutation."
+                task.TargetTest
+                task.TargetFile
+        let assistantContent =
+            JsonSerializer.Serialize(
+                {| rationale = task.Rationale
+                   old_text = task.OldText
+                   new_text = task.NewText |})
+        let ex =
+            {| messages =
+                [ {| role = "system"; content = selfHostSystemPrompt |}
+                  {| role = "user"; content = userContent |}
+                  {| role = "assistant"; content = assistantContent |} ] |}
+        JsonSerializer.Serialize ex
+
+    let private winsPath () =
+        let dir =
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tars")
+        if not (Directory.Exists dir) then
+            Directory.CreateDirectory dir |> ignore
+        Path.Combine(dir, "self_host_wins.jsonl")
+
+    /// Append a verified self-hosting win as an SFT example (best-effort; never
+    /// blocks the gate). Only Accept'd diffs reach here, so the dataset stays
+    /// verified-only — the anti-collapse invariant (ADR 0003 D1/D4).
+    let recordWin (task: GateTask) : unit =
+        try
+            File.AppendAllText(winsPath (), buildSftExample task + "\n")
+        with _ ->
+            ()
+
     // ── IO orchestration (thin; mechanic spiked in ADR 0002) ──────────────────
 
     /// Run a process, draining both pipes, returning (exitCode, stdout, stderr).
@@ -210,6 +257,8 @@ module SelfHostingGate =
                             gitWt (sprintf "checkout -b %s" branch)
                             gitWt (sprintf "add \"%s\"" task.TargetFile)
                             gitWt (sprintf "commit -m \"self-improve: %s\"" (task.Rationale.Replace("\"", "'")))
+                            // Verified win → SFT training data (ADR 0003).
+                            recordWin task
                             Promoted(branch, rationale)
                 with ex ->
                     Rejected(sprintf "gate error: %s" ex.Message)
