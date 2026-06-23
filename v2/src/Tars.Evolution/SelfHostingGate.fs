@@ -147,18 +147,54 @@ module SelfHostingGate =
             let occurrences = (content.Length - content.Replace(o, "").Length) / max 1 o.Length
             if occurrences <> 1 then None else Some(content.Replace(o, n))
 
+    /// Extract an xUnit F# test's source by its display name — the backtick-quoted
+    /// `let` binding plus any leading attributes (`[<Fact>]`/`[<Theory>]`), up to
+    /// the next test or EOF (capped). Gives the model the contract to satisfy, not
+    /// just the test name. Pure; None when the name isn't found.
+    let extractTestSource (fileContent: string) (testName: string) : string option =
+        let lines = fileContent.Replace("\r\n", "\n").Split('\n')
+        let isAttr (l: string) = l.TrimStart().StartsWith "[<"
+        let declIdx =
+            lines
+            |> Array.tryFindIndex (fun l -> l.TrimStart().StartsWith "let " && l.Contains testName)
+            |> Option.orElseWith (fun () -> lines |> Array.tryFindIndex (fun l -> l.Contains testName))
+        match declIdx with
+        | None -> None
+        | Some i ->
+            let mutable s = i
+            while s > 0 && isAttr lines.[s - 1] do
+                s <- s - 1
+            let maxLen = 80
+            let mutable e = i + 1
+            while e < lines.Length && e - s < maxLen && not (isAttr lines.[e]) do
+                e <- e + 1
+            Some(lines.[s .. e - 1] |> String.concat "\n" |> fun x -> x.Trim())
+
     // ── Generation (LLM proposes the edit — makes the loop self-driving) ──────
 
-    /// Prompt the model to fix a failing test by editing one source file.
-    let buildProposePrompt (targetTest: string) (targetFile: string) (fileContent: string) : string =
+    /// Prompt the model to fix a failing test by editing one source file. When the
+    /// test's own source is available it's included as the contract — the name
+    /// alone underspecifies the fix (a self-descriptive name can be enough, but a
+    /// terse one isn't).
+    let buildProposePrompt
+        (targetTest: string)
+        (testSource: string option)
+        (targetFile: string)
+        (fileContent: string)
+        : string =
+        let testBlock =
+            match testSource with
+            | Some src -> sprintf "TEST SOURCE (the contract to satisfy):\n%s\n\n" src
+            | None -> ""
         sprintf
             "A test is failing. Edit the source file to make it pass without breaking other tests.\n\n\
              FAILING TEST: %s\n\n\
-             SOURCE FILE (%s):\n%s\n\n\
+             %sSOURCE FILE (%s):\n%s\n\n\
              Output ONLY a JSON object:\n\
              {\"rationale\": \"one sentence\", \"old_text\": \"exact text to replace\", \"new_text\": \"replacement\"}\n\
              The old_text must appear EXACTLY ONCE in the file."
             targetTest
+            testBlock
             targetFile
             fileContent
 
@@ -323,6 +359,22 @@ module SelfHostingGate =
             finally
                 try run repoRoot "git" (sprintf "worktree remove --force \"%s\"" wt) |> ignore with _ -> ()
 
+    /// Locate the source of `targetTest` by scanning the test project's directory
+    /// (skipping bin/obj) for the file that declares it, then extracting the test.
+    /// Best-effort: None on any IO error or if no file declares the test.
+    let private findTestSource (repoRoot: string) (testProject: string) (targetTest: string) : string option =
+        try
+            let dir = Path.GetDirectoryName(Path.Combine(repoRoot, testProject))
+            Directory.GetFiles(dir, "*.fs", SearchOption.AllDirectories)
+            |> Array.filter (fun f ->
+                let p = f.Replace('\\', '/')
+                not (p.Contains "/bin/" || p.Contains "/obj/"))
+            |> Array.tryPick (fun f ->
+                let content = File.ReadAllText f
+                if content.Contains targetTest then extractTestSource content targetTest else None)
+        with _ ->
+            None
+
     /// Self-driving gate: the LLM proposes the edit for a failing test, then it
     /// runs through the hermetic gate (generation + verification, ADR 0002/0003).
     /// This is what makes the loop autonomous — the edit is no longer supplied.
@@ -341,6 +393,7 @@ module SelfHostingGate =
                 return Rejected(sprintf "target file not found: %s" targetFile)
             else
                 let content = File.ReadAllText full
+                let testSource = findTestSource repoRoot testProject targetTest
                 let req =
                     { ModelHint = None
                       Model = None
@@ -350,7 +403,7 @@ module SelfHostingGate =
                       Stop = []
                       Messages =
                         [ { Role = Role.User
-                            Content = buildProposePrompt targetTest targetFile content } ]
+                            Content = buildProposePrompt targetTest testSource targetFile content } ]
                       Tools = []
                       ToolChoice = None
                       ResponseFormat = None

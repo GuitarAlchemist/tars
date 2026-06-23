@@ -183,7 +183,39 @@ module SelfHostingGateTests =
 
     [<Fact>]
     let ``buildProposePrompt includes the test, file, and source`` () =
-        let p = buildProposePrompt "MyTest" "Lib.fs" "let x = 1"
+        let p = buildProposePrompt "MyTest" None "Lib.fs" "let x = 1"
         Assert.Contains("MyTest", p)
         Assert.Contains("Lib.fs", p)
         Assert.Contains("let x = 1", p)
+
+    [<Fact>]
+    let ``buildProposePrompt weaves in the test source when supplied`` () =
+        let p =
+            buildProposePrompt
+                "MyTest"
+                (Some "let ``MyTest`` () = Assert.Equal(42, answer ())")
+                "Lib.fs"
+                "let answer () = 0"
+        Assert.Contains("TEST SOURCE", p)
+        Assert.Contains("Assert.Equal(42, answer ())", p)
+
+    // ── extractTestSource (the contract the model is shown) ───────────────────
+
+    let private sampleTests =
+        "module M\n\nopen Xunit\n\n\
+         [<Fact>]\nlet ``alpha works`` () =\n    Assert.True(true)\n\n\
+         [<Fact>]\nlet ``beta works`` () =\n    Assert.False(false)\n"
+
+    [<Fact>]
+    let ``extractTestSource pulls the named test with its attribute`` () =
+        match extractTestSource sampleTests "alpha works" with
+        | Some s ->
+            Assert.Contains("[<Fact>]", s)
+            Assert.Contains("``alpha works``", s)
+            Assert.Contains("Assert.True(true)", s)
+            Assert.DoesNotContain("beta works", s)
+        | None -> failwith "expected to find alpha"
+
+    [<Fact>]
+    let ``extractTestSource returns None when absent`` () =
+        Assert.True((extractTestSource sampleTests "gamma").IsNone)
