@@ -1,0 +1,37 @@
+[
+  {
+    "id": "search",
+    "target_test": "Search is a first-class agent skill",
+    "target_file": "v2/src/Tars.Core/AgentDefinition.fs",
+    "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
+    "rationale": "GapDetection measures 'search'/'search-code'/'search-files' as domains with dedicated remedies, but capabilities:[search] falls through to AgentSkill.Custom, so routing can't match what meta-cognition measures. Add a Search union case + parse arm."
+  },
+  {
+    "id": "routing",
+    "target_test": "Routing is a first-class agent skill",
+    "target_file": "v2/src/Tars.Core/AgentDefinition.fs",
+    "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
+    "rationale": "GapDetection tags 'route' -> 'routing' and AgentOrchestrator routes by capability, but capabilities:[routing] parses to AgentSkill.Custom. Add a Routing union case + parse arm."
+  },
+  {
+    "id": "refactoring",
+    "target_test": "Refactoring is a first-class agent skill",
+    "target_file": "v2/src/Tars.Core/AgentDefinition.fs",
+    "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
+    "rationale": "GapDetection tags 'refactor' -> 'refactoring', a measured coding sub-domain, but capabilities:[refactoring] parses to AgentSkill.Custom. Add a Refactoring union case + parse arm."
+  },
+  {
+    "id": "debugging",
+    "target_test": "Debugging is a first-class agent skill",
+    "target_file": "v2/src/Tars.Core/AgentDefinition.fs",
+    "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
+    "rationale": "GapDetection tags 'debug' -> 'debugging', a measured coding sub-domain, but capabilities:[debugging] parses to AgentSkill.Custom. Add a Debugging union case + parse arm."
+  },
+  {
+    "id": "testing",
+    "target_test": "Testing is a first-class agent skill",
+    "target_file": "v2/src/Tars.Core/AgentDefinition.fs",
+    "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
+    "rationale": "GapDetection tags 'test' -> 'testing', a measured coding sub-domain, but capabilities:[testing] parses to AgentSkill.Custom. Add a Testing union case + parse arm."
+  }
+]

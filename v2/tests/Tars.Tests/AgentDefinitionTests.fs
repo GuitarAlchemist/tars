@@ -79,33 +79,52 @@ Prompt.
         | other -> Assert.Fail($"Expected Custom 'music-theory', got {other}")
     | Result.Error e -> Assert.Fail($"Parse failed: {e}")
 
-[<Fact>]
-let ``Search is a first-class agent skill, not Custom`` () =
-    // The MetaCognition gap detector (GapDetection.fs) already classifies
-    // "search" / "search-code" / "search-files" failures as their own domain,
-    // but the AgentSkill model can't express a search skill: parsing
-    // `capabilities: [search]` falls through to AgentSkill.Custom "search".
-    // A search-capable agent should declare search as a dedicated skill so
-    // routing can match what the gap detector measures.
-    let md = """---
-id: searcher
-name: Searcher
-role: Searcher
-description: A search-capable agent
-capabilities: [search]
----
-
-You find things.
-"""
-    let result = AgentDefinitionParser.parse md None
-    match result with
+// ── Self-improve backlog: measured-domain gaps lacking a first-class AgentSkill ──
+// GapDetection.extractDomainTags (MetaCognition) measures these domains — and gives
+// some of them dedicated remedies — but parseCapability sends each to
+// AgentSkill.Custom, so capability routing can't match what the gap detector
+// measures. Each test below is a RED (intentionally failing) entry in
+// self-improve-backlog.json that the self-hosting loop closes with a 2-edit fix
+// (union case + parse arm). They are tagged `Category=SelfImproveBacklog` so CI can
+// exclude the deliberate backlog from regression gating. ADR 0002 D5.
+let private assertFirstClassSkill (token: string) =
+    let md =
+        sprintf
+            "---\nid: %s-agent\nname: %s Agent\nrole: %s Agent\ndescription: A %s-capable agent\ncapabilities: [%s]\n---\n\nYou handle %s.\n"
+            token
+            token
+            token
+            token
+            token
+            token
+    match AgentDefinitionParser.parse md None with
     | Result.Ok def ->
         Assert.Single(def.Capabilities) |> ignore
         match def.Capabilities.[0] with
         | AgentSkill.Custom _ ->
-            Assert.Fail("'search' should parse to a dedicated AgentSkill, not Custom")
+            Assert.Fail(sprintf "'%s' should parse to a dedicated AgentSkill, not AgentSkill.Custom" token)
         | _ -> ()  // any dedicated (non-Custom) skill satisfies the contract
     | Result.Error e -> Assert.Fail($"Parse failed: {e}")
+
+[<Fact>]
+[<Trait("Category", "SelfImproveBacklog")>]
+let ``Search is a first-class agent skill, not Custom`` () = assertFirstClassSkill "search"
+
+[<Fact>]
+[<Trait("Category", "SelfImproveBacklog")>]
+let ``Routing is a first-class agent skill, not Custom`` () = assertFirstClassSkill "routing"
+
+[<Fact>]
+[<Trait("Category", "SelfImproveBacklog")>]
+let ``Refactoring is a first-class agent skill, not Custom`` () = assertFirstClassSkill "refactoring"
+
+[<Fact>]
+[<Trait("Category", "SelfImproveBacklog")>]
+let ``Debugging is a first-class agent skill, not Custom`` () = assertFirstClassSkill "debugging"
+
+[<Fact>]
+[<Trait("Category", "SelfImproveBacklog")>]
+let ``Testing is a first-class agent skill, not Custom`` () = assertFirstClassSkill "testing"
 
 [<Fact>]
 let ``Parse fails without frontmatter`` () =

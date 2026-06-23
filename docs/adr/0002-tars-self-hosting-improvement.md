@@ -129,9 +129,16 @@ expresses fixes that span locations — a DU case **and** its parse arm — whic
 contiguous replacement cannot. The proposal/repair prompts ask for an `edits` array;
 `parseProposal` stays backward-compatible with the historical single-pair shape.
 
-**Not yet built (next increments):** the curated `(test,file)`
-seed list of real in-repo failing/skipped tests (TARS has no naturally-failing test —
-the suite is green — so a live Accept on TARS *itself* needs a red test authored first).
+**Curated capability-gap backlog built (D5):** `v2/self-improve-backlog.json` is the
+loop's input supply — one `(target_test, target_file, test_project)` entry per genuine
+gap. The seeded class is *measured domains lacking a first-class `AgentSkill`*:
+`GapDetection.extractDomainTags` tracks `search`/`routing`/`refactoring`/`debugging`/
+`testing` (some with dedicated remedies), but `parseCapability` sends each to
+`AgentSkill.Custom`, so routing can't match what meta-cognition measures. Each has a RED
+test (`AgentDefinitionTests`, tagged `Category=SelfImproveBacklog` so CI excludes the
+deliberate backlog) closeable by a 2-edit multi-edit fix (union case + parse arm).
+`SelfImproveBacklog` (pure loader, unit-tested) + `tars self-improve backlog [--run]`
+list/drive the entries through the same hermetic gate.
 
 ## Open items to resolve in implementation
 

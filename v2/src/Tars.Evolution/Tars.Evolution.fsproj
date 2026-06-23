@@ -64,6 +64,7 @@
     <Compile Include="McpGaTraceBridge.fs" />
     <Compile Include="ChatbotClaimsBridge.fs" />
     <Compile Include="SelfHostingGate.fs" />
+    <Compile Include="SelfImproveBacklog.fs" />
     <Compile Include="Engine.fs" />
   </ItemGroup>
 
