@@ -23,10 +23,14 @@ let run (logger: ILogger) (args: string array) : int =
     | Some test, Some file, Some proj ->
         let repo =
             flag "--repo" |> Option.defaultValue (System.IO.Directory.GetCurrentDirectory())
+        // A capable coder model is required: the gate needs an exact, applicable
+        // mutation. Weaker defaults (deepseek-r1:1.5b, qwen2.5-coder:7b) failed
+        // live; qwen3-coder:30b landed the first autonomous Accept on TARS.
+        let defaultModel = "qwen3-coder:30b"
         let llm =
             match flag "--model" with
             | Some m -> LlmFactory.createWithModel logger m
-            | None -> LlmFactory.create logger
+            | None -> LlmFactory.createWithModel logger defaultModel
 
         AnsiConsole.MarkupLine(
             "[bold]Self-improvement gate[/]: LLM proposes → hermetic test gate (isolated worktree)…")
@@ -46,5 +50,5 @@ let run (logger: ILogger) (args: string array) : int =
             1
     | _ ->
         AnsiConsole.MarkupLine(
-            "Usage: tars self-improve --test <name> --file <relpath> --project <testproj.fsproj> [--repo <root>] [--model <name>]")
+            "Usage: tars self-improve --test <name> --file <relpath> --project <testproj.fsproj> [--repo <root>] [--model <name>=qwen3-coder:30b]")
         1
