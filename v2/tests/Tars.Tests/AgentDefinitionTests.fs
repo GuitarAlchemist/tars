@@ -80,6 +80,34 @@ Prompt.
     | Result.Error e -> Assert.Fail($"Parse failed: {e}")
 
 [<Fact>]
+let ``Search is a first-class agent skill, not Custom`` () =
+    // The MetaCognition gap detector (GapDetection.fs) already classifies
+    // "search" / "search-code" / "search-files" failures as their own domain,
+    // but the AgentSkill model can't express a search skill: parsing
+    // `capabilities: [search]` falls through to AgentSkill.Custom "search".
+    // A search-capable agent should declare search as a dedicated skill so
+    // routing can match what the gap detector measures.
+    let md = """---
+id: searcher
+name: Searcher
+role: Searcher
+description: A search-capable agent
+capabilities: [search]
+---
+
+You find things.
+"""
+    let result = AgentDefinitionParser.parse md None
+    match result with
+    | Result.Ok def ->
+        Assert.Single(def.Capabilities) |> ignore
+        match def.Capabilities.[0] with
+        | AgentSkill.Custom _ ->
+            Assert.Fail("'search' should parse to a dedicated AgentSkill, not Custom")
+        | _ -> ()  // any dedicated (non-Custom) skill satisfies the contract
+    | Result.Error e -> Assert.Fail($"Parse failed: {e}")
+
+[<Fact>]
 let ``Parse fails without frontmatter`` () =
     let md = "Just a plain markdown file."
     let result = AgentDefinitionParser.parse md None
