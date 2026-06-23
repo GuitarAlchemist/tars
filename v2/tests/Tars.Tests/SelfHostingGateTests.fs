@@ -95,6 +95,35 @@ module SelfHostingGateTests =
         | Reject r -> Assert.Contains("no test results", r)
         | Accept _ -> failwith "expected Reject (no results)"
 
+    // ── applyEditPure (EOL reconciliation — the Windows CRLF guard) ───────────
+
+    [<Fact>]
+    let ``applyEditPure lands an LF edit into a CRLF file`` () =
+        // The model emits LF in old_text; the file is CRLF. Without EOL
+        // reconciliation this misses entirely (the live self-improve bug).
+        let content = "let a = 1\r\nlet b = 2\r\nlet c = 3\r\n"
+        let result = applyEditPure content "let a = 1\nlet b = 2" "let a = 1\nlet b = 20"
+        match result with
+        | Some updated ->
+            Assert.Equal("let a = 1\r\nlet b = 20\r\nlet c = 3\r\n", updated)
+        | None -> failwith "expected the LF edit to apply to the CRLF file"
+
+    [<Fact>]
+    let ``applyEditPure preserves LF when the file is LF`` () =
+        let content = "let a = 1\nlet b = 2\n"
+        match applyEditPure content "let b = 2" "let b = 22" with
+        | Some updated -> Assert.Equal("let a = 1\nlet b = 22\n", updated)
+        | None -> failwith "expected the edit to apply"
+
+    [<Fact>]
+    let ``applyEditPure refuses a non-unique match`` () =
+        let content = "x\r\nx\r\n"
+        Assert.True((applyEditPure content "x" "y").IsNone)
+
+    [<Fact>]
+    let ``applyEditPure refuses a missing match`` () =
+        Assert.True((applyEditPure "let a = 1\r\n" "let z = 9" "let z = 0").IsNone)
+
     // ── buildSftExample (ADR 0003 coupling) ───────────────────────────────────
 
     [<Fact>]

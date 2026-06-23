@@ -128,6 +128,25 @@ module SelfHostingGate =
                                 targetTest
                                 varNames.Count)
 
+    /// Reconcile an edit's line endings to the target content's EOL style, then
+    /// apply it iff `oldText` occurs exactly once. Pure (no IO).
+    ///
+    /// Models routinely normalize multi-line `old_text` to LF, but Windows source
+    /// files are CRLF, so an exact match would always miss. We coerce the needle
+    /// (and replacement) to the file's EOL style before matching. Returns the new
+    /// content on a clean single-occurrence replacement, else None.
+    let applyEditPure (content: string) (oldText: string) (newText: string) : string option =
+        let toContentEol (s: string) =
+            let lf = s.Replace("\r\n", "\n")
+            if content.Contains "\r\n" then lf.Replace("\n", "\r\n") else lf
+        let o = toContentEol oldText
+        let n = toContentEol newText
+        if String.IsNullOrEmpty o || not (content.Contains o) then
+            None
+        else
+            let occurrences = (content.Length - content.Replace(o, "").Length) / max 1 o.Length
+            if occurrences <> 1 then None else Some(content.Replace(o, n))
+
     // ── Generation (LLM proposes the edit — makes the loop self-driving) ──────
 
     /// Prompt the model to fix a failing test by editing one source file.
@@ -257,13 +276,11 @@ module SelfHostingGate =
         if not (File.Exists full) then
             false
         else
-            let content = File.ReadAllText full
-            let occurrences = (content.Length - content.Replace(task.OldText, "").Length) / max 1 task.OldText.Length
-            if String.IsNullOrEmpty task.OldText || not (content.Contains task.OldText) || occurrences <> 1 then
-                false
-            else
-                File.WriteAllText(full, content.Replace(task.OldText, task.NewText))
+            match applyEditPure (File.ReadAllText full) task.OldText task.NewText with
+            | Some updated ->
+                File.WriteAllText(full, updated)
                 true
+            | None -> false
 
     /// Run the full hermetic gate for `task` against `repoRoot`. Creates a
     /// detached worktree at HEAD, captures baseline outcomes, applies the edit,
