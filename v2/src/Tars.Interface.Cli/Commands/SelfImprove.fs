@@ -32,13 +32,19 @@ let run (logger: ILogger) (args: string array) : int =
             | Some m -> LlmFactory.createWithModel logger m
             | None -> LlmFactory.createWithModel logger defaultModel
 
+        // Best-of-N (ADR 0002 D5): N diverse proposals, accept the first that
+        // passes the gate. `--parallel` bounds concurrent dotnet-test runs (default
+        // 2 — N full suites at once thrashes a single machine).
+        let n = flag "--n" |> Option.bind (fun s -> match System.Int32.TryParse s with true, v -> Some v | _ -> None) |> Option.defaultValue 4
+        let parallelism = flag "--parallel" |> Option.bind (fun s -> match System.Int32.TryParse s with true, v -> Some v | _ -> None) |> Option.defaultValue 2
+
         AnsiConsole.MarkupLine(
-            "[bold]Self-improvement gate[/]: LLM proposes → hermetic test gate (isolated worktree)…")
+            "[bold]Self-improvement gate[/]: best-of-N LLM proposals → hermetic test gate (isolated worktrees)…")
         AnsiConsole.MarkupLine(
-            $"  test: [bold]{Markup.Escape test}[/]   file: [bold]{Markup.Escape file}[/]")
+            $"  test: [bold]{Markup.Escape test}[/]   file: [bold]{Markup.Escape file}[/]   N={n} parallel={parallelism}")
 
         let verdict =
-            SelfHostingGate.runGateGenerated llm repo proj test file |> Async.RunSynchronously
+            SelfHostingGate.runGateBestOfN llm repo proj test file n parallelism |> Async.RunSynchronously
 
         match verdict with
         | SelfHostingGate.Promoted(branch, rationale) ->
@@ -50,5 +56,5 @@ let run (logger: ILogger) (args: string array) : int =
             1
     | _ ->
         AnsiConsole.MarkupLine(
-            "Usage: tars self-improve --test <name> --file <relpath> --project <testproj.fsproj> [--repo <root>] [--model <name>=qwen3-coder:30b]")
+            "Usage: tars self-improve --test <name> --file <relpath> --project <testproj.fsproj> [--repo <root>] [--model <name>=qwen3-coder:30b] [--n 4] [--parallel 2]")
         1

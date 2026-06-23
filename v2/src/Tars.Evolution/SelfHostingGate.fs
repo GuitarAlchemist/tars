@@ -147,6 +147,15 @@ module SelfHostingGate =
             let occurrences = (content.Length - content.Replace(o, "").Length) / max 1 o.Length
             if occurrences <> 1 then None else Some(content.Replace(o, n))
 
+    /// Winnow best-of-N proposals before spending any gate cycles: keep only those
+    /// whose edit actually applies to `content` (the most common failure is an
+    /// inapplicable/hallucinated old_text — caught here for free), de-duplicated by
+    /// (oldText, newText) with order preserved. Pure. ADR 0002 D5.
+    let viableProposals (content: string) (proposals: GateTask list) : GateTask list =
+        proposals
+        |> List.filter (fun t -> (applyEditPure content t.OldText t.NewText).IsSome)
+        |> List.distinctBy (fun t -> t.OldText, t.NewText)
+
     // ── Generation (LLM proposes the edit — makes the loop self-driving) ──────
 
     /// Prompt the model to fix a failing test by editing one source file.
@@ -282,6 +291,71 @@ module SelfHostingGate =
                 true
             | None -> false
 
+    /// Serializes `git worktree add/remove` across threads. The metadata under
+    /// `.git/worktrees` is race-prone, so only these ops are locked — the heavy
+    /// `dotnet test` inside each worktree still runs in parallel.
+    let private gitWorktreeLock = obj ()
+
+    /// Create a detached worktree at HEAD, run `f` with its path, then always
+    /// remove it (an accepted branch ref created inside `f` survives removal).
+    let private withWorktree (repoRoot: string) (f: string -> 'a) : 'a =
+        let id = Guid.NewGuid().ToString("n").Substring(0, 8)
+        let wt = Path.Combine(Path.GetTempPath(), sprintf "tars_selfheal_%s" id)
+        lock gitWorktreeLock (fun () ->
+            let code, _, err = run repoRoot "git" (sprintf "worktree add --detach \"%s\" HEAD" wt)
+            if code <> 0 then failwithf "git worktree add failed: %s" (err.Trim()))
+        try
+            f wt
+        finally
+            try
+                lock gitWorktreeLock (fun () ->
+                    run repoRoot "git" (sprintf "worktree remove --force \"%s\"" wt) |> ignore)
+            with _ ->
+                ()
+
+    /// Baseline outcomes at HEAD — identical for every proposal, so compute once
+    /// and share across the best-of-N evaluations (ADR 0002 D5).
+    let private computeBaseline (repoRoot: string) (testProject: string) : Map<string, string> =
+        withWorktree repoRoot (fun wt -> runTests wt testProject "base.trx")
+
+    /// Evaluate one proposal against a shared baseline in its own worktree:
+    /// apply → variant `dotnet test` → `decide`. No promotion (the caller promotes
+    /// the chosen winner). Pure-by-result; the worktree is always cleaned up.
+    let private evaluateVariant
+        (repoRoot: string)
+        (testProject: string)
+        (baseline: Map<string, string>)
+        (task: GateTask)
+        : GateDecision =
+        if isTestFile task.TargetFile then
+            Reject "target is a test file (hermetic boundary)"
+        else
+            withWorktree repoRoot (fun wt ->
+                if not (applyEdit wt task) then
+                    Reject "edit precondition failed (OldText missing or not unique)"
+                else
+                    let trx = sprintf "var_%s.trx" (Path.GetFileName wt)
+                    let variant = runTests wt testProject trx
+                    decide task.TargetTest baseline variant)
+
+    /// Promote a verified task: apply it in a fresh worktree, commit to a new
+    /// `self-improve/<id>` branch, and record the SFT win (ADR 0003). The branch
+    /// ref survives worktree removal.
+    let private promoteTask (repoRoot: string) (task: GateTask) (rationale: string) : GateVerdict =
+        let branch = sprintf "self-improve/%s" (Guid.NewGuid().ToString("n").Substring(0, 8))
+        withWorktree repoRoot (fun wt ->
+            if not (applyEdit wt task) then
+                Rejected "edit precondition failed at promote (concurrent change?)"
+            else
+                let gitWt a =
+                    let code, _, err = run wt "git" a
+                    if code <> 0 then failwithf "git %s failed: %s" a (err.Trim())
+                gitWt (sprintf "checkout -b %s" branch)
+                gitWt (sprintf "add \"%s\"" task.TargetFile)
+                gitWt (sprintf "commit -m \"self-improve: %s\"" (task.Rationale.Replace("\"", "'")))
+                recordWin task
+                Promoted(branch, rationale))
+
     /// Run the full hermetic gate for `task` against `repoRoot`. Creates a
     /// detached worktree at HEAD, captures baseline outcomes, applies the edit,
     /// captures variant outcomes, decides, and on Accept commits the edit to a
@@ -323,15 +397,61 @@ module SelfHostingGate =
             finally
                 try run repoRoot "git" (sprintf "worktree remove --force \"%s\"" wt) |> ignore with _ -> ()
 
-    /// Self-driving gate: the LLM proposes the edit for a failing test, then it
-    /// runs through the hermetic gate (generation + verification, ADR 0002/0003).
-    /// This is what makes the loop autonomous — the edit is no longer supplied.
-    let runGateGenerated
+    /// Generate up to `n` candidate edits for the failing test. Proposal 0 is
+    /// greedy (temperature 0 — the model's best single guess); the rest are sampled
+    /// (temperature 0.6, distinct seeds) for diversity (ADR 0002 D5). Parse failures
+    /// are dropped. Sequential — the local model serves one request at a time.
+    let private generateProposals
+        (llm: ILlmService)
+        (targetTest: string)
+        (targetFile: string)
+        (content: string)
+        (n: int)
+        : Async<GateTask list> =
+        async {
+            let prompt = buildProposePrompt targetTest targetFile content
+            let mkReq i =
+                { ModelHint = None
+                  Model = None
+                  SystemPrompt = Some selfHostSystemPrompt
+                  MaxTokens = Some 2000
+                  Temperature = Some(if i = 0 then 0.0 else 0.6)
+                  Stop = []
+                  Messages = [ { Role = Role.User; Content = prompt } ]
+                  Tools = []
+                  ToolChoice = None
+                  ResponseFormat = None
+                  Stream = false
+                  JsonMode = false
+                  Seed = Some i
+                  ContextWindow = None }
+            let tasks = ResizeArray<GateTask>()
+            for i in 0 .. (max 1 n) - 1 do
+                let! resp = llm.CompleteAsync(mkReq i) |> Async.AwaitTask
+                match parseProposal resp.Text with
+                | Result.Ok(rationale, oldText, newText) ->
+                    tasks.Add
+                        { TargetTest = targetTest
+                          TargetFile = targetFile
+                          OldText = oldText
+                          NewText = newText
+                          Rationale = rationale }
+                | Result.Error _ -> ()
+            return List.ofSeq tasks
+        }
+
+    /// Best-of-N self-driving gate (ADR 0002 D5): generate N diverse proposals,
+    /// keep the ones whose edit applies (cheap pure pre-filter), evaluate them
+    /// against a shared HEAD baseline with up to `maxConcurrency` parallel
+    /// `dotnet test` runs, and promote the first that passes the hermetic gate.
+    let runGateBestOfN
         (llm: ILlmService)
         (repoRoot: string)
         (testProject: string)
         (targetTest: string)
         (targetFile: string)
+        (n: int)
+        (maxConcurrency: int)
         : Async<GateVerdict> =
         async {
             let full = Path.Combine(repoRoot, targetFile)
@@ -341,32 +461,56 @@ module SelfHostingGate =
                 return Rejected(sprintf "target file not found: %s" targetFile)
             else
                 let content = File.ReadAllText full
-                let req =
-                    { ModelHint = None
-                      Model = None
-                      SystemPrompt = Some selfHostSystemPrompt
-                      MaxTokens = Some 2000
-                      Temperature = Some 0.0
-                      Stop = []
-                      Messages =
-                        [ { Role = Role.User
-                            Content = buildProposePrompt targetTest targetFile content } ]
-                      Tools = []
-                      ToolChoice = None
-                      ResponseFormat = None
-                      Stream = false
-                      JsonMode = false
-                      Seed = None
-                      ContextWindow = None }
-                let! resp = llm.CompleteAsync req |> Async.AwaitTask
-                match parseProposal resp.Text with
-                | Result.Error e -> return Rejected(sprintf "proposal parse failed: %s" e)
-                | Result.Ok(rationale, oldText, newText) ->
-                    let task =
-                        { TargetTest = targetTest
-                          TargetFile = targetFile
-                          OldText = oldText
-                          NewText = newText
-                          Rationale = rationale }
-                    return runGate repoRoot testProject task
+                let! proposals = generateProposals llm targetTest targetFile content n
+                let viable = viableProposals content proposals
+                if List.isEmpty viable then
+                    return Rejected(sprintf "no applicable proposal from %d generation(s)" (List.length proposals))
+                else
+                    let baseline = computeBaseline repoRoot testProject
+                    if Map.isEmpty baseline then
+                        return Rejected "baseline build/run produced no tests (build failure)"
+                    else
+                        let arr = List.toArray viable
+                        let conc = max 1 maxConcurrency
+                        let mutable winner = None
+                        let mutable rejects = []
+                        let mutable i = 0
+                        // Evaluate in chunks; accept the first green and stop.
+                        while Option.isNone winner && i < arr.Length do
+                            let chunk = arr.[i .. min (i + conc - 1) (arr.Length - 1)]
+                            let! decisions =
+                                chunk
+                                |> Array.map (fun t ->
+                                    async {
+                                        do! Async.SwitchToThreadPool()
+                                        return (t, evaluateVariant repoRoot testProject baseline t)
+                                    })
+                                |> Async.Parallel
+                            match decisions |> Array.tryPick (fun (t, d) -> match d with | Accept r -> Some(t, r) | _ -> None) with
+                            | Some hit -> winner <- Some hit
+                            | None ->
+                                rejects <-
+                                    rejects
+                                    @ (decisions
+                                       |> Array.choose (fun (_, d) -> match d with | Reject r -> Some r | _ -> None)
+                                       |> Array.toList)
+                            i <- i + conc
+                        match winner with
+                        | Some(task, rationale) -> return promoteTask repoRoot task rationale
+                        | None ->
+                            let reason = rejects |> List.tryHead |> Option.defaultValue "no proposal passed the gate"
+                            return
+                                Rejected(
+                                    sprintf "best-of-%d: none passed; first reason: %s" arr.Length reason)
         }
+
+    /// Self-driving gate (single-shot): the LLM proposes one edit for a failing
+    /// test, verified by the hermetic gate. Thin wrapper over best-of-N with N=1.
+    let runGateGenerated
+        (llm: ILlmService)
+        (repoRoot: string)
+        (testProject: string)
+        (targetTest: string)
+        (targetFile: string)
+        : Async<GateVerdict> =
+        runGateBestOfN llm repoRoot testProject targetTest targetFile 1 1

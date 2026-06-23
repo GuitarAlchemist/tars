@@ -124,6 +124,29 @@ module SelfHostingGateTests =
     let ``applyEditPure refuses a missing match`` () =
         Assert.True((applyEditPure "let a = 1\r\n" "let z = 9" "let z = 0").IsNone)
 
+    // ── viableProposals (best-of-N pre-filter, ADR 0002 D5) ───────────────────
+
+    let private mkTask old new' =
+        { TargetTest = "t"; TargetFile = "Lib.fs"; OldText = old; NewText = new'; Rationale = "r" }
+
+    [<Fact>]
+    let ``viableProposals keeps only applicable, de-duplicated edits in order`` () =
+        let content = "let a = 1\r\nlet b = 2\r\nlet c = 3\r\n"
+        let proposals =
+            [ mkTask "let b = 2" "let b = 20" // applies
+              mkTask "let z = 9" "let z = 0" // missing -> dropped
+              mkTask "let b = 2" "let b = 20" // duplicate -> dropped
+              mkTask "let c = 3" "let c = 30" ] // applies
+        let viable = viableProposals content proposals
+        Assert.Equal(2, List.length viable)
+        Assert.Equal("let b = 2", viable.[0].OldText)
+        Assert.Equal("let c = 3", viable.[1].OldText)
+
+    [<Fact>]
+    let ``viableProposals returns empty when nothing applies`` () =
+        let content = "let a = 1\r\n"
+        Assert.Empty(viableProposals content [ mkTask "nope" "x"; mkTask "also nope" "y" ])
+
     // ── buildSftExample (ADR 0003 coupling) ───────────────────────────────────
 
     [<Fact>]
