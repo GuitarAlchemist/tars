@@ -23,13 +23,18 @@ module SelfHostingGate =
 
     // ── Domain ────────────────────────────────────────────────────────────────
 
-    /// One self-improvement task: make `TargetTest` pass by replacing `OldText`
-    /// with `NewText` in `TargetFile` (repo-relative, must be a non-test source).
+    /// One contiguous replacement: swap `OldText` (which must occur exactly once
+    /// in the current file content) for `NewText`.
+    type Edit = { OldText: string; NewText: string }
+
+    /// One self-improvement task: make `TargetTest` pass by applying `Edits` in
+    /// order to `TargetFile` (repo-relative, must be a non-test source). Multiple
+    /// edits compose a single fix that spans locations — e.g. a DU case *and* its
+    /// parse arm — which one contiguous replacement cannot express (ADR 0002 D5).
     type GateTask =
         { TargetTest: string
           TargetFile: string
-          OldText: string
-          NewText: string
+          Edits: Edit list
           Rationale: string }
 
     /// The hermetic gate's verdict on a variant (pure; branch assigned by the runner).
@@ -147,26 +152,40 @@ module SelfHostingGate =
             let occurrences = (content.Length - content.Replace(o, "").Length) / max 1 o.Length
             if occurrences <> 1 then None else Some(content.Replace(o, n))
 
+    /// Apply a sequence of edits left-to-right, each against the result of the
+    /// previous one (so a later edit can target text an earlier edit produced, and
+    /// each `OldText` must still match exactly once at its turn). Empty list or any
+    /// non-applying edit yields None. Pure. ADR 0002 D5 (multi-edit).
+    let applyEditsPure (content: string) (edits: Edit list) : string option =
+        if List.isEmpty edits then
+            None
+        else
+            (Some content, edits)
+            ||> List.fold (fun acc e -> acc |> Option.bind (fun c -> applyEditPure c e.OldText e.NewText))
+
     /// Winnow best-of-N proposals before spending any gate cycles: keep only those
-    /// whose edit actually applies to `content` (the most common failure is an
+    /// whose edits actually apply to `content` (the most common failure is an
     /// inapplicable/hallucinated old_text — caught here for free), de-duplicated by
-    /// (oldText, newText) with order preserved. Pure. ADR 0002 D5.
+    /// their edit list with order preserved. Pure. ADR 0002 D5.
     let viableProposals (content: string) (proposals: GateTask list) : GateTask list =
         proposals
-        |> List.filter (fun t -> (applyEditPure content t.OldText t.NewText).IsSome)
-        |> List.distinctBy (fun t -> t.OldText, t.NewText)
+        |> List.filter (fun t -> (applyEditsPure content t.Edits).IsSome)
+        |> List.distinctBy (fun t -> t.Edits)
 
     // ── Generation (LLM proposes the edit — makes the loop self-driving) ──────
 
-    /// Prompt the model to fix a failing test by editing one source file.
+    /// Prompt the model to fix a failing test by editing one source file. Asks for
+    /// an `edits` array so a fix can span locations (e.g. a DU case and its parse
+    /// arm) — not just one contiguous replacement (ADR 0002 D5).
     let buildProposePrompt (targetTest: string) (targetFile: string) (fileContent: string) : string =
         sprintf
             "A test is failing. Edit the source file to make it pass without breaking other tests.\n\n\
              FAILING TEST: %s\n\n\
              SOURCE FILE (%s):\n%s\n\n\
-             Output ONLY a JSON object:\n\
-             {\"rationale\": \"one sentence\", \"old_text\": \"exact text to replace\", \"new_text\": \"replacement\"}\n\
-             The old_text must appear EXACTLY ONCE in the file."
+             Output ONLY a JSON object with one or more edits:\n\
+             {\"rationale\": \"one sentence\", \"edits\": [{\"old_text\": \"exact text to replace\", \"new_text\": \"replacement\"}]}\n\
+             Each old_text must appear EXACTLY ONCE in the file. Use multiple edits when the \
+             fix touches more than one location (e.g. a union case AND its parse arm)."
             targetTest
             targetFile
             fileContent
@@ -182,20 +201,22 @@ module SelfHostingGate =
         (failedEdit: GateTask)
         (error: string)
         : string =
+        let prevEdits =
+            failedEdit.Edits
+            |> List.mapi (fun k e -> sprintf "  [%d] old_text:\n%s\n      new_text:\n%s" (k + 1) e.OldText e.NewText)
+            |> String.concat "\n"
         sprintf
             "A previous attempt to fix a failing test was REJECTED by the hermetic gate. \
-             Study the rejection and propose a CORRECTED edit — do not repeat the rejected one.\n\n\
+             Study the rejection and propose a CORRECTED set of edits — do not repeat the rejected one.\n\n\
              FAILING TEST: %s\n\n\
-             PREVIOUS old_text:\n%s\n\n\
-             PREVIOUS new_text:\n%s\n\n\
+             PREVIOUS edits:\n%s\n\n\
              GATE REJECTION: %s\n\n\
              SOURCE FILE (%s):\n%s\n\n\
-             Output ONLY a JSON object:\n\
-             {\"rationale\": \"one sentence\", \"old_text\": \"exact text to replace\", \"new_text\": \"replacement\"}\n\
-             The old_text must appear EXACTLY ONCE in the file."
+             Output ONLY a JSON object with one or more edits:\n\
+             {\"rationale\": \"one sentence\", \"edits\": [{\"old_text\": \"exact text to replace\", \"new_text\": \"replacement\"}]}\n\
+             Each old_text must appear EXACTLY ONCE in the file."
             targetTest
-            failedEdit.OldText
-            failedEdit.NewText
+            prevEdits
             error
             targetFile
             fileContent
@@ -211,9 +232,11 @@ module SelfHostingGate =
         elif r.Contains "test set changed" then 1
         else 0
 
-    /// Parse the model's JSON mutation response into (rationale, oldText, newText).
-    /// Robust to prose around the JSON (extracts the first {...} block). Pure.
-    let parseProposal (response: string) : Result<string * string * string, string> =
+    /// Parse the model's JSON mutation response into (rationale, edits). Prefers an
+    /// `edits` array; falls back to a single top-level old_text/new_text pair so the
+    /// historical single-edit shape (and its SFT data) still parses. Robust to prose
+    /// around the JSON (extracts the first {...} block). Pure.
+    let parseProposal (response: string) : Result<string * Edit list, string> =
         try
             let t = response.Trim()
             let i = t.IndexOf '{'
@@ -223,16 +246,25 @@ module SelfHostingGate =
             else
                 use doc = JsonDocument.Parse(t.Substring(i, j - i + 1))
                 let root = doc.RootElement
-                let get (names: string list) =
+                let getStr (el: JsonElement) (names: string list) =
                     names
                     |> List.tryPick (fun n ->
-                        match root.TryGetProperty n with
+                        match el.TryGetProperty n with
                         | true, v when v.ValueKind = JsonValueKind.String -> Some(v.GetString())
                         | _ -> None)
-                match get [ "old_text"; "old" ], get [ "new_text"; "new" ] with
-                | Some o, Some n when o <> "" ->
-                    Result.Ok(get [ "rationale" ] |> Option.defaultValue "self-improvement", o, n)
-                | _ -> Result.Error "missing old_text/new_text"
+                let editOf (el: JsonElement) =
+                    match getStr el [ "old_text"; "old" ], getStr el [ "new_text"; "new" ] with
+                    | Some o, Some n when o <> "" -> Some { OldText = o; NewText = n }
+                    | _ -> None
+                let edits =
+                    match root.TryGetProperty "edits" with
+                    | true, arr when arr.ValueKind = JsonValueKind.Array ->
+                        arr.EnumerateArray() |> Seq.choose editOf |> Seq.toList
+                    | _ -> editOf root |> Option.toList
+                if List.isEmpty edits then
+                    Result.Error "missing edits/old_text/new_text"
+                else
+                    Result.Ok(getStr root [ "rationale" ] |> Option.defaultValue "self-improvement", edits)
         with ex ->
             Result.Error(sprintf "parse error: %s" ex.Message)
 
@@ -257,8 +289,9 @@ module SelfHostingGate =
         let assistantContent =
             JsonSerializer.Serialize(
                 {| rationale = task.Rationale
-                   old_text = task.OldText
-                   new_text = task.NewText |})
+                   edits =
+                    task.Edits
+                    |> List.map (fun e -> {| old_text = e.OldText; new_text = e.NewText |}) |})
         let ex =
             {| messages =
                 [ {| role = "system"; content = selfHostSystemPrompt |}
@@ -318,14 +351,15 @@ module SelfHostingGate =
             Path.Combine(workdir, Path.GetDirectoryName(testProject), "TestResults", trxName)
         if File.Exists trxPath then parseTrx (File.ReadAllText trxPath) else Map.empty
 
-    /// Apply the task's edit to a file under `root`. Returns false if `OldText`
-    /// is absent or ambiguous (a precondition for a clean, reviewable mutation).
+    /// Apply the task's edits to a file under `root`. Returns false if any edit's
+    /// `OldText` is absent or ambiguous (a precondition for a clean, reviewable
+    /// mutation), applying nothing in that case.
     let private applyEdit (root: string) (task: GateTask) : bool =
         let full = Path.Combine(root, task.TargetFile)
         if not (File.Exists full) then
             false
         else
-            match applyEditPure (File.ReadAllText full) task.OldText task.NewText with
+            match applyEditsPure (File.ReadAllText full) task.Edits with
             | Some updated ->
                 File.WriteAllText(full, updated)
                 true
@@ -469,12 +503,11 @@ module SelfHostingGate =
             for i in 0 .. (max 1 n) - 1 do
                 let! resp = llm.CompleteAsync(mkReq i) |> Async.AwaitTask
                 match parseProposal resp.Text with
-                | Result.Ok(rationale, oldText, newText) ->
+                | Result.Ok(rationale, edits) ->
                     tasks.Add
                         { TargetTest = targetTest
                           TargetFile = targetFile
-                          OldText = oldText
-                          NewText = newText
+                          Edits = edits
                           Rationale = rationale }
                 | Result.Error _ -> ()
             return List.ofSeq tasks
@@ -507,13 +540,12 @@ module SelfHostingGate =
                   ContextWindow = None }
             let! resp = llm.CompleteAsync(req) |> Async.AwaitTask
             match parseProposal resp.Text with
-            | Result.Ok(rationale, oldText, newText) ->
+            | Result.Ok(rationale, edits) ->
                 return
                     Some
                         { TargetTest = targetTest
                           TargetFile = targetFile
-                          OldText = oldText
-                          NewText = newText
+                          Edits = edits
                           Rationale = rationale }
             | Result.Error _ -> return None
         }
@@ -587,7 +619,7 @@ module SelfHostingGate =
                                 let! repaired = generateRepair llm targetTest targetFile prompt
                                 match
                                     repaired
-                                    |> Option.filter (fun t -> (applyEditPure content t.OldText t.NewText).IsSome)
+                                    |> Option.filter (fun t -> (applyEditsPure content t.Edits).IsSome)
                                 with
                                 | Some t ->
                                     match evaluateVariant repoRoot testProject baseline t with

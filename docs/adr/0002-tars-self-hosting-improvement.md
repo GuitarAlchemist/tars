@@ -90,7 +90,7 @@ from test-failure — both map to `Rollback`.
   `Performance`-based evaluate cannot. Anti-gaming rejections all covered: regression,
   dropped/skipped test (set changed), no-improvement, target-still-failing, build-fail.
 - **IO orchestration (`runGate`):** detached worktree at HEAD → baseline `dotnet test`
-  (TRX) → apply edit (single-occurrence `Replace`, rejects test-file targets) → variant
+  (TRX) → apply edits (a sequence of single-occurrence `Replace`s, rejects test-file targets) → variant
   `dotnet test` → `decide` → on Accept `checkout -b self-improve/<id>` + commit in the
   worktree; worktree dir always removed (branch ref survives). Mechanic spiked in §above.
 
@@ -121,6 +121,13 @@ baseline under bounded parallelism, and accepts the first green. When none pass,
 error-fed repair round (`buildRepairPrompt` seeded by the highest-`repairRank` rejection →
 `generateRepair` → single re-evaluation) runs before `Rejected`. `runGateGenerated` is now
 an N=1 wrapper.
+
+**Multi-edit proposals (D5):** a `GateTask` carries `Edits: Edit list` (was a single
+old_text/new_text), applied left-to-right by `applyEditsPure` (each `OldText` must still
+match exactly once at its turn; the whole set is atomic — any miss writes nothing). This
+expresses fixes that span locations — a DU case **and** its parse arm — which one
+contiguous replacement cannot. The proposal/repair prompts ask for an `edits` array;
+`parseProposal` stays backward-compatible with the historical single-pair shape.
 
 **Not yet built (next increments):** the curated `(test,file)`
 seed list of real in-repo failing/skipped tests (TARS has no naturally-failing test —
