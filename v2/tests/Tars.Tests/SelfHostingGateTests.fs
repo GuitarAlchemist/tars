@@ -210,3 +210,28 @@ module SelfHostingGateTests =
         Assert.Contains("MyTest", p)
         Assert.Contains("Lib.fs", p)
         Assert.Contains("let x = 1", p)
+
+    // ── buildRepairPrompt (D5 repair tail) ────────────────────────────────────
+
+    [<Fact>]
+    let ``buildRepairPrompt carries the failing variant's error and prior edit`` () =
+        let failed =
+            { TargetTest = "MyTest"
+              TargetFile = "Lib.fs"
+              OldText = "let x = 1"
+              NewText = "let x = 2"
+              Rationale = "bump x" }
+        let error = "1 regression(s): T.other"
+        let p = buildRepairPrompt "MyTest" "Lib.fs" "let x = 1\nlet y = 9" failed error
+        // The rejection reason is the signal that makes this a repair, not a re-roll.
+        Assert.Contains(error, p)
+        // The model also sees the edit it tried, so it can correct rather than repeat.
+        Assert.Contains("let x = 1", p)
+        Assert.Contains("let x = 2", p)
+        Assert.Contains("MyTest", p)
+
+    [<Fact>]
+    let ``repairRank ranks build/run failures above apply/build failures`` () =
+        // A variant that ran and regressed teaches more than one that never ran.
+        Assert.True(repairRank "1 regression(s): T.other" > repairRank "no test results parsed (build or run failure)")
+        Assert.True(repairRank "target test 'T' does not pass in the variant" > repairRank "edit precondition failed")

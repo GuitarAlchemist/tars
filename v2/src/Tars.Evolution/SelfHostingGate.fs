@@ -171,6 +171,46 @@ module SelfHostingGate =
             targetFile
             fileContent
 
+    /// Prompt the model to *repair* a rejected edit: show it the edit it tried and
+    /// the hermetic gate's rejection so it can correct course, not start over. The
+    /// rejection reason is the signal that makes this a repair and not a re-roll.
+    /// Pure. ADR 0002 D5 (repair tail).
+    let buildRepairPrompt
+        (targetTest: string)
+        (targetFile: string)
+        (fileContent: string)
+        (failedEdit: GateTask)
+        (error: string)
+        : string =
+        sprintf
+            "A previous attempt to fix a failing test was REJECTED by the hermetic gate. \
+             Study the rejection and propose a CORRECTED edit — do not repeat the rejected one.\n\n\
+             FAILING TEST: %s\n\n\
+             PREVIOUS old_text:\n%s\n\n\
+             PREVIOUS new_text:\n%s\n\n\
+             GATE REJECTION: %s\n\n\
+             SOURCE FILE (%s):\n%s\n\n\
+             Output ONLY a JSON object:\n\
+             {\"rationale\": \"one sentence\", \"old_text\": \"exact text to replace\", \"new_text\": \"replacement\"}\n\
+             The old_text must appear EXACTLY ONCE in the file."
+            targetTest
+            failedEdit.OldText
+            failedEdit.NewText
+            error
+            targetFile
+            fileContent
+
+    /// Rank a reject reason by how close the variant got to passing — higher is
+    /// closer, so the repair round seeds from the most informative failure. A
+    /// variant that built and ran (regression / target-didn't-pass) carries more
+    /// repair signal than one that failed to build, drop tests, or even apply. Pure.
+    let repairRank (reason: string) : int =
+        let r = reason.ToLowerInvariant()
+        if r.Contains "regression" then 3
+        elif r.Contains "does not pass" then 2
+        elif r.Contains "test set changed" then 1
+        else 0
+
     /// Parse the model's JSON mutation response into (rationale, oldText, newText).
     /// Robust to prose around the JSON (extracts the first {...} block). Pure.
     let parseProposal (response: string) : Result<string * string * string, string> =
@@ -440,10 +480,51 @@ module SelfHostingGate =
             return List.ofSeq tasks
         }
 
+    /// Generate one greedy (temperature 0) repair edit from a repair prompt that
+    /// already carries the prior failed edit and the gate's rejection. ADR 0002 D5.
+    /// Returns None on generation/parse failure.
+    let private generateRepair
+        (llm: ILlmService)
+        (targetTest: string)
+        (targetFile: string)
+        (prompt: string)
+        : Async<GateTask option> =
+        async {
+            let req =
+                { ModelHint = None
+                  Model = None
+                  SystemPrompt = Some selfHostSystemPrompt
+                  MaxTokens = Some 2000
+                  Temperature = Some 0.0
+                  Stop = []
+                  Messages = [ { Role = Role.User; Content = prompt } ]
+                  Tools = []
+                  ToolChoice = None
+                  ResponseFormat = None
+                  Stream = false
+                  JsonMode = false
+                  Seed = Some 0
+                  ContextWindow = None }
+            let! resp = llm.CompleteAsync(req) |> Async.AwaitTask
+            match parseProposal resp.Text with
+            | Result.Ok(rationale, oldText, newText) ->
+                return
+                    Some
+                        { TargetTest = targetTest
+                          TargetFile = targetFile
+                          OldText = oldText
+                          NewText = newText
+                          Rationale = rationale }
+            | Result.Error _ -> return None
+        }
+
     /// Best-of-N self-driving gate (ADR 0002 D5): generate N diverse proposals,
     /// keep the ones whose edit applies (cheap pure pre-filter), evaluate them
     /// against a shared HEAD baseline with up to `maxConcurrency` parallel
     /// `dotnet test` runs, and promote the first that passes the hermetic gate.
+    /// If none pass, a single error-fed *repair* round (D5 tail) feeds the most
+    /// informative rejection back to the model for one corrected attempt before
+    /// returning Rejected.
     let runGateBestOfN
         (llm: ILlmService)
         (repoRoot: string)
@@ -492,16 +573,44 @@ module SelfHostingGate =
                                 rejects <-
                                     rejects
                                     @ (decisions
-                                       |> Array.choose (fun (_, d) -> match d with | Reject r -> Some r | _ -> None)
+                                       |> Array.choose (fun (t, d) -> match d with | Reject r -> Some(t, r) | _ -> None)
                                        |> Array.toList)
                             i <- i + conc
                         match winner with
                         | Some(task, rationale) -> return promoteTask repoRoot task rationale
                         | None ->
-                            let reason = rejects |> List.tryHead |> Option.defaultValue "no proposal passed the gate"
-                            return
-                                Rejected(
-                                    sprintf "best-of-%d: none passed; first reason: %s" arr.Length reason)
+                            // D5 repair tail: seed one corrected attempt from the most
+                            // informative rejection (the variant that got closest to green).
+                            match rejects |> List.sortByDescending (snd >> repairRank) with
+                            | (failedTask, error) :: _ ->
+                                let prompt = buildRepairPrompt targetTest targetFile content failedTask error
+                                let! repaired = generateRepair llm targetTest targetFile prompt
+                                match
+                                    repaired
+                                    |> Option.filter (fun t -> (applyEditPure content t.OldText t.NewText).IsSome)
+                                with
+                                | Some t ->
+                                    match evaluateVariant repoRoot testProject baseline t with
+                                    | Accept r -> return promoteTask repoRoot t r
+                                    | Reject rr ->
+                                        return
+                                            Rejected(
+                                                sprintf
+                                                    "best-of-%d + repair: none passed; repair: %s; first: %s"
+                                                    arr.Length
+                                                    rr
+                                                    error)
+                                | None ->
+                                    return
+                                        Rejected(
+                                            sprintf
+                                                "best-of-%d: none passed; repair did not apply; first: %s"
+                                                arr.Length
+                                                error)
+                            | [] ->
+                                return
+                                    Rejected(
+                                        sprintf "best-of-%d: none passed (no reject reasons captured)" arr.Length)
         }
 
     /// Self-driving gate (single-shot): the LLM proposes one edit for a failing

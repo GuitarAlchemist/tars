@@ -34,7 +34,7 @@ own source code. Investigation established the existing machinery and its gaps:
 | D2 | **Isolation = git worktree per variant.** `git worktree add` from HEAD → apply → build+test → `worktree remove` on rollback / commit on promote. | Full isolation (a broken build never reaches the live tree); reuses `executeGit`; keeps the working tree clean. Docker is fragile here and overkill for first-party code. |
 | D3 | **Scope = explicit `(test, file)` pairs** (curated seed list). | Sidesteps fault localization (hard, error-prone) for v1; deterministic and surgical; `Mutation` already takes a target file. Heuristic localization is the Phase-2 unlock. |
 | D4 | **Autonomy = commit verified variants to an isolated `self-improve/*` branch; human reviews + merges to main.** | Loop closes autonomously (branch + diff + rationale is its artifact) while main stays human-gated. Respects the standing "don't commit to main unless asked" preference. |
-| D5 | **Loop = best-of-N parallel + one repair round.** N diverse proposals (~4) in concurrent worktrees, accept first green; if none pass, one error-fed repair via `analyzeAndPropose`. | The parallel recursion *boost*; reuses the worktree-isolation + parallel patterns from ADR 0001 and the existing failure→propose code. N bounded (concurrent `dotnet test` is heavy). |
+| D5 | **Loop = best-of-N parallel + one repair round.** N diverse proposals (~4) in concurrent worktrees, accept first green; if none pass, one error-fed repair seeded by `buildRepairPrompt` (the most informative rejection, ranked by `repairRank`) → `generateRepair` → single re-evaluation. | The parallel recursion *boost*; reuses the worktree-isolation + parallel patterns from ADR 0001 and the existing failure→propose code. N bounded (concurrent `dotnet test` is heavy). |
 | D6 | **Hermetic gate.** Test files immutable from HEAD; variant edits only the one designated non-test source file; gate asserts test-count unchanged + zero regressions + target passes. | Closes the Goodhart cheats (edit the spec, drop tests, break the untested). Without it, parallel best-of-N just finds the exploit faster. |
 
 ## Consequences
@@ -115,7 +115,14 @@ repo with a genuinely-failing test. The local model proposed the fix
 `PROMOTED → self-improve/1b3bff5a` with 0 regressions — and the SFT win was recorded
 (ADR 0003 coupling fired on a real Accept). End-to-end, no human in the edit loop.
 
-**Not yet built (next increments):** best-of-N parallel (D5); the curated `(test,file)`
+**Best-of-N parallel + repair tail built (D5):** `runGateBestOfN` generates N diverse
+proposals, pure-prefilters with `viableProposals`, evaluates them against one shared HEAD
+baseline under bounded parallelism, and accepts the first green. When none pass, one
+error-fed repair round (`buildRepairPrompt` seeded by the highest-`repairRank` rejection →
+`generateRepair` → single re-evaluation) runs before `Rejected`. `runGateGenerated` is now
+an N=1 wrapper.
+
+**Not yet built (next increments):** the curated `(test,file)`
 seed list of real in-repo failing/skipped tests (TARS has no naturally-failing test —
 the suite is green — so a live Accept on TARS *itself* needs a red test authored first).
 
