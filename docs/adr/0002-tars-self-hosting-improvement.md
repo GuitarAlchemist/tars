@@ -147,8 +147,11 @@ the proper **2-edit** fix (`Search`/`Routing`/`Refactoring`/`Testing` = union ca
 parse arm — structurally impossible under the pre-multi-edit gate); the fifth took a
 legitimate 1-edit shortcut (`"debugging" -> AgentSkill.Coding`, allowed by the
 "any non-Custom skill" contract). The five verified fragments were consolidated into one
-commit (with a dedicated `Debugging` case for uniformity); the backlog is now empty and
-the former red tests stand as green regression guards (the `Category` CI filter removed).
+commit (with a dedicated `Debugging` case for uniformity); the closed entries' former red
+tests stand as green regression guards. The backlog is a *living queue*: the
+`Category=SelfImproveBacklog` trait marks in-flight deliberate-red seeds and a standing
+`dotnet.yml` CI filter excludes them; closing a gap removes its trait, rejoining gating.
+Round 2 re-seeded the agent-orchestration cluster (`composition`/`delegation`/`orchestration`).
 
 ## Open items to resolve in implementation
 

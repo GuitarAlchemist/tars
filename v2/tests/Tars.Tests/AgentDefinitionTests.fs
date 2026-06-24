@@ -119,6 +119,24 @@ let ``Debugging is a first-class agent skill, not Custom`` () = assertFirstClass
 [<Fact>]
 let ``Testing is a first-class agent skill, not Custom`` () = assertFirstClassSkill "testing"
 
+// ── Round 2: open self-improve backlog seeds (orchestration cluster) ──────────
+// Pending RED gaps for the self-hosting loop to close — measured agent-orchestration
+// domains (GapDetection tags compose→composition, delegate→delegation,
+// orchestrat→orchestration; AgentOrchestrator performs all three) that still parse to
+// AgentSkill.Custom. Tagged `Category=SelfImproveBacklog` so CI excludes in-flight
+// seeds; the trait is removed once the loop closes each. ADR 0002 D5.
+[<Fact>]
+[<Trait("Category", "SelfImproveBacklog")>]
+let ``Composition is a first-class agent skill, not Custom`` () = assertFirstClassSkill "composition"
+
+[<Fact>]
+[<Trait("Category", "SelfImproveBacklog")>]
+let ``Delegation is a first-class agent skill, not Custom`` () = assertFirstClassSkill "delegation"
+
+[<Fact>]
+[<Trait("Category", "SelfImproveBacklog")>]
+let ``Orchestration is a first-class agent skill, not Custom`` () = assertFirstClassSkill "orchestration"
+
 [<Fact>]
 let ``Parse fails without frontmatter`` () =
     let md = "Just a plain markdown file."
