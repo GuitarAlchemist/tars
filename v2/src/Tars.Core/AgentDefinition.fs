@@ -20,6 +20,9 @@ type AgentSkill =
     | Refactoring
     | Debugging
     | Testing
+    | Composition
+    | Delegation
+    | Orchestration
     | Custom of string
 
 /// Parsed agent definition from a .md file.
@@ -69,6 +72,9 @@ module AgentDefinitionParser =
         | "refactoring" -> AgentSkill.Refactoring
         | "debugging" -> AgentSkill.Debugging
         | "testing" -> AgentSkill.Testing
+        | "composition" -> AgentSkill.Composition
+        | "delegation" -> AgentSkill.Delegation
+        | "orchestration" -> AgentSkill.Orchestration
         | other -> AgentSkill.Custom other
 
     /// Parse inline YAML list: [item1, item2, item3]

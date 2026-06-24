@@ -83,8 +83,9 @@ Prompt.
 // GapDetection.extractDomainTags (MetaCognition) measures these domains; each must
 // parse to a dedicated AgentSkill, not AgentSkill.Custom, so capability routing can
 // match what the gap detector measures. These were RED capability-gap seeds that the
-// self-hosting loop closed autonomously (5/5 PROMOTED, 2026-06-23) with union-case +
-// parse-arm fixes in AgentDefinition.fs; they now stand as regression guards. ADR 0002 D5.
+// self-hosting loop closed autonomously (8/8 PROMOTED across two rounds, 2026-06-23) with
+// union-case + parse-arm fixes in AgentDefinition.fs; they now stand as regression guards.
+// ADR 0002 D5.
 let private assertFirstClassSkill (token: string) =
     let md =
         sprintf
@@ -119,22 +120,14 @@ let ``Debugging is a first-class agent skill, not Custom`` () = assertFirstClass
 [<Fact>]
 let ``Testing is a first-class agent skill, not Custom`` () = assertFirstClassSkill "testing"
 
-// ── Round 2: open self-improve backlog seeds (orchestration cluster) ──────────
-// Pending RED gaps for the self-hosting loop to close — measured agent-orchestration
-// domains (GapDetection tags compose→composition, delegate→delegation,
-// orchestrat→orchestration; AgentOrchestrator performs all three) that still parse to
-// AgentSkill.Custom. Tagged `Category=SelfImproveBacklog` so CI excludes in-flight
-// seeds; the trait is removed once the loop closes each. ADR 0002 D5.
+// Round 2 (orchestration cluster) — closed autonomously by the loop, 3/3 PROMOTED.
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``Composition is a first-class agent skill, not Custom`` () = assertFirstClassSkill "composition"
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``Delegation is a first-class agent skill, not Custom`` () = assertFirstClassSkill "delegation"
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``Orchestration is a first-class agent skill, not Custom`` () = assertFirstClassSkill "orchestration"
 
 [<Fact>]

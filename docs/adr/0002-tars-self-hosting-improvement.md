@@ -151,7 +151,10 @@ commit (with a dedicated `Debugging` case for uniformity); the closed entries' f
 tests stand as green regression guards. The backlog is a *living queue*: the
 `Category=SelfImproveBacklog` trait marks in-flight deliberate-red seeds and a standing
 `dotnet.yml` CI filter excludes them; closing a gap removes its trait, rejoining gating.
-Round 2 re-seeded the agent-orchestration cluster (`composition`/`delegation`/`orchestration`).
+**Round 2 (2026-06-23)** closed the agent-orchestration cluster
+(`composition`/`delegation`/`orchestration`) — **3/3 PROMOTED**, all the proper 2-edit fix,
+consolidated likewise. Total across both rounds: **8/8 gaps closed autonomously**, 7 proper
+multi-edit + 1 legitimate 1-edit shortcut.
 
 ## Open items to resolve in implementation
 
