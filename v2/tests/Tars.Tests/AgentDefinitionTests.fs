@@ -79,14 +79,12 @@ Prompt.
         | other -> Assert.Fail($"Expected Custom 'music-theory', got {other}")
     | Result.Error e -> Assert.Fail($"Parse failed: {e}")
 
-// ── Self-improve backlog: measured-domain gaps lacking a first-class AgentSkill ──
-// GapDetection.extractDomainTags (MetaCognition) measures these domains — and gives
-// some of them dedicated remedies — but parseCapability sends each to
-// AgentSkill.Custom, so capability routing can't match what the gap detector
-// measures. Each test below is a RED (intentionally failing) entry in
-// self-improve-backlog.json that the self-hosting loop closes with a 2-edit fix
-// (union case + parse arm). They are tagged `Category=SelfImproveBacklog` so CI can
-// exclude the deliberate backlog from regression gating. ADR 0002 D5.
+// ── Measured domains are first-class agent skills (closed self-improve backlog) ──
+// GapDetection.extractDomainTags (MetaCognition) measures these domains; each must
+// parse to a dedicated AgentSkill, not AgentSkill.Custom, so capability routing can
+// match what the gap detector measures. These were RED capability-gap seeds that the
+// self-hosting loop closed autonomously (5/5 PROMOTED, 2026-06-23) with union-case +
+// parse-arm fixes in AgentDefinition.fs; they now stand as regression guards. ADR 0002 D5.
 let private assertFirstClassSkill (token: string) =
     let md =
         sprintf
@@ -107,23 +105,18 @@ let private assertFirstClassSkill (token: string) =
     | Result.Error e -> Assert.Fail($"Parse failed: {e}")
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``Search is a first-class agent skill, not Custom`` () = assertFirstClassSkill "search"
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``Routing is a first-class agent skill, not Custom`` () = assertFirstClassSkill "routing"
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``Refactoring is a first-class agent skill, not Custom`` () = assertFirstClassSkill "refactoring"
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``Debugging is a first-class agent skill, not Custom`` () = assertFirstClassSkill "debugging"
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``Testing is a first-class agent skill, not Custom`` () = assertFirstClassSkill "testing"
 
 [<Fact>]

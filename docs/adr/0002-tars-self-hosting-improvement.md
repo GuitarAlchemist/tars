@@ -140,6 +140,16 @@ deliberate backlog) closeable by a 2-edit multi-edit fix (union case + parse arm
 `SelfImproveBacklog` (pure loader, unit-tested) + `tars self-improve backlog [--run]`
 list/drive the entries through the same hermetic gate.
 
+**Live closure (2026-06-23):** `tars self-improve backlog --run --n 3 --parallel 2`
+(qwen3-coder:30b) closed all five gaps autonomously — **5/5 PROMOTED** in ~33 min, each
+hermetically verified (target flipped, zero regressions, test set unchanged). Four were
+the proper **2-edit** fix (`Search`/`Routing`/`Refactoring`/`Testing` = union case +
+parse arm — structurally impossible under the pre-multi-edit gate); the fifth took a
+legitimate 1-edit shortcut (`"debugging" -> AgentSkill.Coding`, allowed by the
+"any non-Custom skill" contract). The five verified fragments were consolidated into one
+commit (with a dedicated `Debugging` case for uniformity); the backlog is now empty and
+the former red tests stand as green regression guards (the `Category` CI filter removed).
+
 ## Open items to resolve in implementation
 
 - Exact `(test, file)` seed list (which skipped/`xfail` tests first) — unblocks a live Accept.

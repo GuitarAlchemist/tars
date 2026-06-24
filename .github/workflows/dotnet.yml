@@ -27,8 +27,5 @@ jobs:
       run: dotnet build --no-restore
       working-directory: v2
     - name: Test
-      # Exclude the deliberate self-improve backlog (ADR 0002 D5): those tests are
-      # intentionally RED capability-gap seeds for the self-hosting loop to close,
-      # not regressions. See v2/self-improve-backlog.json.
-      run: dotnet test --no-build --verbosity normal --filter "Category!=SelfImproveBacklog"
+      run: dotnet test --no-build --verbosity normal
       working-directory: v2
