@@ -143,6 +143,12 @@ TARS discovers patterns from Guitar Alchemist orchestrator traces (`~/.ga/traces
 
 ---
 
+## AI agent integrations
+
+This repository supports autonomous issue resolution via AI agents. You can delegate issues to Codex by mentioning `@codex` in a comment, or to Jules by adding the `jules` label to the issue.
+
+---
+
 ## Self-Improvement Loop
 
 TARS has a closed self-improvement loop:
