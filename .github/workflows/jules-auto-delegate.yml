@@ -1,0 +1,35 @@
+name: Auto-delegate to Jules
+
+# Review-gated AFK automation. When a maintainer triages an issue with the
+# `ready-for-agent` label, this adds the `jules` label so Google Jules picks
+# it up and opens a PR. The PR still waits for human review before merge —
+# Jules opens PRs, it never merges to main, so review-gating holds by default.
+#
+# Security: GitHub only lets users with write/triage access apply labels, so
+# applying `ready-for-agent` is collaborator-gated even though this repo is
+# public. A stranger opening an issue cannot trigger this — they can't label.
+#
+# Takes effect only once this file is on the default branch (main); `issues`
+# events always run the workflow version from the default branch.
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  delegate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    if: ${{ github.event.label.name == 'ready-for-agent' }}
+    steps:
+      - name: Add jules label to delegate the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          gh issue edit "$ISSUE" --repo "$REPO" --add-label jules
+          echo "Delegated issue #${ISSUE} to Jules (ready-for-agent -> jules)"
