@@ -38,11 +38,23 @@ Two governance facts shaped the design:
    constitution (reversibility, escalation, observability), an un-haltable
    autonomous loop is exactly what governance must prevent.
 
+3. **A bot-applied `jules` label does not trigger Jules.** The first design had
+   the workflow add the `jules` label (Jules' normal trigger). Smoke test on
+   issue #58 disproved it: the label applied by `github-actions[bot]` produced
+   **no** Jules response over a 15-min watch, while the *same label* re-applied by
+   a human user was picked up in ~75s. Jules ignores label events authored by a
+   bot, so a workflow-applied label silently dead-ends.
+
 ## Decision
 
-- **Trigger seam:** `ready-for-agent` (triage label) → workflow adds `jules`.
-  Decoupling the triage label from the agent trigger keeps the human triage
-  vocabulary stable and centralizes the governance gate in one workflow.
+- **Trigger seam:** `ready-for-agent` (triage label) → workflow **invokes Jules
+  via the API** (the official `google-labs-code/jules-action@v1.0.0`, authed with
+  a `JULES_API_KEY` secret), feeding the issue title + body as the prompt. We do
+  **not** apply the `jules` label from the workflow, because (fact 3) Jules
+  ignores bot-applied labels. Decoupling the triage label (`ready-for-agent`)
+  from the invocation keeps the human triage vocabulary stable and centralizes
+  the governance gate in one workflow. The `jules` label remains available for
+  manual (human) delegation.
 - **Review gate:** Jules only *opens* PRs; merge requires the `build` status
   check (branch protection on `main`) plus a human. Review-gating holds by
   default — nothing reaches `main` unattended.
@@ -91,5 +103,8 @@ Mirrors the Demerzel HALT-ALL marker. All fields optional except by convention:
 - **Security:** label application is restricted to write/triage collaborators, so
   the trigger is gated even on this public repo. The `@codex` comment path is
   *not* label-gated (anyone can comment) and is out of scope here.
+- **Operational dependency:** requires a `JULES_API_KEY` Actions secret. If it is
+  absent the workflow no-ops with an explanatory issue comment rather than
+  failing silently.
 - **Follow-up:** a resume-replay mechanism, and bringing the `@codex` comment
   path under the same marker if it is adopted for AFK use.

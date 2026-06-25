@@ -1,9 +1,15 @@
 name: Auto-delegate to Jules
 
 # Review-gated AFK automation. When a maintainer triages an issue with the
-# `ready-for-agent` label, this adds the `jules` label so Google Jules picks
-# it up and opens a PR. The PR still waits for human review before merge —
-# Jules opens PRs, it never merges to main, so review-gating holds by default.
+# `ready-for-agent` label, this invokes Google Jules (via the official
+# jules-action + Jules API) to work the issue and open a PR. The PR still waits
+# for human review before merge — Jules opens PRs, it never merges to main, so
+# review-gating holds by default.
+#
+# Why the API, not the `jules` label: Jules ignores label events applied by a
+# bot (github-actions[bot]). A workflow adding the `jules` label therefore never
+# triggers Jules — verified on issue #58 (bot-applied label: no response;
+# user-applied: picked up in ~75s). So we invoke Jules directly via the API.
 #
 # Security: GitHub only lets users with write/triage access apply labels, so
 # applying `ready-for-agent` is collaborator-gated even though this repo is
@@ -16,8 +22,9 @@ name: Auto-delegate to Jules
 # paused (the `ready-for-agent` label is kept, and the issue gets a comment).
 # Absent => the loop runs. See docs/adr/0004-afk-agent-delegation-loop.md.
 #
-# Takes effect only once this file is on the default branch (main); `issues`
-# events always run the workflow version from the default branch.
+# Requires the JULES_API_KEY secret (generate at jules.google). Takes effect
+# only once this file is on the default branch (main); `issues` events always
+# run the workflow version from the default branch.
 
 on:
   issues:
@@ -30,17 +37,19 @@ permissions:
 jobs:
   delegate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     if: ${{ github.event.label.name == 'ready-for-agent' }}
     steps:
       - name: Checkout (read the governance halt marker)
         uses: actions/checkout@v4
 
-      - name: Delegate to Jules unless governance has halted the loop
+      - name: Governance halt-gate + preflight
+        id: gate
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number }}
+          HAS_KEY: ${{ secrets.JULES_API_KEY != '' }}
         run: |
           MARKER="governance/state/afk-halt.json"
           if [ -f "$MARKER" ]; then
@@ -60,8 +69,42 @@ jobs:
               BY=$(jq -r '.halted_by // "Demerzel"' "$MARKER" 2>/dev/null || echo "Demerzel")
               gh issue comment "$ISSUE" --repo "$REPO" --body "⏸️ AFK delegation is **halted by governance** (\`$MARKER\`, by $BY): $REASON. The \`ready-for-agent\` label is kept; re-apply it after resume to delegate."
               echo "::notice::AFK delegation halted by governance marker — skipping issue #${ISSUE}"
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           fi
-          gh issue edit "$ISSUE" --repo "$REPO" --add-label jules
-          echo "Delegated issue #${ISSUE} to Jules (ready-for-agent -> jules)"
+          if [ "$HAS_KEY" != "true" ]; then
+            gh issue comment "$ISSUE" --repo "$REPO" --body "⚠️ AFK delegation is configured but the \`JULES_API_KEY\` secret is not set, so Jules was not invoked. Add the secret (Settings → Secrets and variables → Actions) and re-apply the \`ready-for-agent\` label."
+            echo "::warning::JULES_API_KEY not configured — skipping issue #${ISSUE}"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "proceed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Build Jules prompt from the issue
+        if: steps.gate.outputs.proceed == 'true'
+        id: prompt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          TITLE=$(gh issue view "$ISSUE" --repo "$REPO" --json title --jq '.title')
+          BODY=$(gh issue view "$ISSUE" --repo "$REPO" --json body --jq '.body')
+          {
+            echo "text<<JULES_EOF"
+            echo "Implement GitHub issue #${ISSUE}: ${TITLE}"
+            echo ""
+            echo "$BODY"
+            echo ""
+            echo "Open a pull request targeting main with the change. Keep it minimal and scoped to the issue. Ensure the build and tests pass before opening the PR."
+            echo "JULES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Delegate to Jules
+        if: steps.gate.outputs.proceed == 'true'
+        uses: google-labs-code/jules-action@v1.0.0
+        with:
+          prompt: ${{ steps.prompt.outputs.text }}
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          starting_branch: main
