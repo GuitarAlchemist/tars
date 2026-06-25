@@ -158,6 +158,12 @@ Patterns climb: *Implementation → Helper → Builder → DslClause → Grammar
 
 ---
 
+## AI agent integrations
+
+Issues labeled `ready-for-agent` are automatically delegated to Jules via `.github/workflows/jules-auto-delegate.yml`.
+
+---
+
 ## AI discipline (Karpathy + Cherny)
 
 Every code-touching turn applies four rules: **think before coding · simplicity first · surgical changes · goal-driven execution**. Session continuity uses the Cherny pattern:

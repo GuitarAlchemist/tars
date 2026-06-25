@@ -1,0 +1,10 @@
+{
+  "Servers": [
+    {
+      "Name": "github",
+      "Command": "npx",
+      "Arguments": ["-y", "@modelcontextprotocol/server-github"],
+      "Environment": {}
+    }
+  ]
+}
