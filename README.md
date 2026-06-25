@@ -143,6 +143,12 @@ TARS discovers patterns from Guitar Alchemist orchestrator traces (`~/.ga/traces
 
 ---
 
+## AI agent integrations
+
+Autonomous issue delegation is governed by a halt marker at `governance/state/afk-halt.json`.
+
+---
+
 ## Self-Improvement Loop
 
 TARS has a closed self-improvement loop:
