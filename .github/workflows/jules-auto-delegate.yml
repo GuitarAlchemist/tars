@@ -9,6 +9,13 @@ name: Auto-delegate to Jules
 # applying `ready-for-agent` is collaborator-gated even though this repo is
 # public. A stranger opening an issue cannot trigger this — they can't label.
 #
+# Governance (Demerzel): delegation is gated on a cloud-readable halt marker,
+# `governance/state/afk-halt.json`. Demerzel's local `~/.demerzel/HALT-ALL`
+# marker can't reach a GitHub-hosted workflow, so this repo-committed marker is
+# the AFK loop's equivalent kill switch. Present + unexpired => delegation is
+# paused (the `ready-for-agent` label is kept, and the issue gets a comment).
+# Absent => the loop runs. See docs/adr/0004-afk-agent-delegation-loop.md.
+#
 # Takes effect only once this file is on the default branch (main); `issues`
 # events always run the workflow version from the default branch.
 
@@ -17,19 +24,44 @@ on:
     types: [labeled]
 
 permissions:
+  contents: read
   issues: write
 
 jobs:
   delegate:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     if: ${{ github.event.label.name == 'ready-for-agent' }}
     steps:
-      - name: Add jules label to delegate the issue
+      - name: Checkout (read the governance halt marker)
+        uses: actions/checkout@v4
+
+      - name: Delegate to Jules unless governance has halted the loop
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number }}
         run: |
+          MARKER="governance/state/afk-halt.json"
+          if [ -f "$MARKER" ]; then
+            # Honor an optional expires_at (RFC3339); absent => indefinite halt.
+            EXPIRES=$(jq -r '.expires_at // empty' "$MARKER" 2>/dev/null || true)
+            HALTED=true
+            if [ -n "$EXPIRES" ]; then
+              NOW=$(date -u +%s)
+              EXP=$(date -u -d "$EXPIRES" +%s 2>/dev/null || echo 0)
+              if [ "$EXP" -gt 0 ] && [ "$NOW" -ge "$EXP" ]; then
+                HALTED=false
+                echo "::notice::afk-halt marker present but expired ($EXPIRES) — proceeding"
+              fi
+            fi
+            if [ "$HALTED" = "true" ]; then
+              REASON=$(jq -r '.reason // "no reason given"' "$MARKER" 2>/dev/null || echo "no reason given")
+              BY=$(jq -r '.halted_by // "Demerzel"' "$MARKER" 2>/dev/null || echo "Demerzel")
+              gh issue comment "$ISSUE" --repo "$REPO" --body "⏸️ AFK delegation is **halted by governance** (\`$MARKER\`, by $BY): $REASON. The \`ready-for-agent\` label is kept; re-apply it after resume to delegate."
+              echo "::notice::AFK delegation halted by governance marker — skipping issue #${ISSUE}"
+              exit 0
+            fi
+          fi
           gh issue edit "$ISSUE" --repo "$REPO" --add-label jules
           echo "Delegated issue #${ISSUE} to Jules (ready-for-agent -> jules)"
