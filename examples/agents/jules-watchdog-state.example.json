@@ -1,0 +1,35 @@
+{
+  "watchdog_version": "1.0.0",
+  "repository": "GuitarAlchemist/tars",
+  "pull_request": 129,
+  "source": "jules-pr-watchdog",
+  "previous_state": "jules-waiting",
+  "current_state": "needs-agent-revision",
+  "state_changed": true,
+  "observed_at": "2026-06-28T13:45:00Z",
+  "signals": {
+    "is_jules_pr": true,
+    "head_sha_changed": false,
+    "checks_state": "missing",
+    "mergeable": false,
+    "known_targeted_check_failed": true,
+    "stale_window_exceeded": false
+  },
+  "detected_issue": {
+    "kind": "skill_suffix_mismatch",
+    "expected_path_shape": "docs/agents/skills/name.skill.md",
+    "observed_path_shape": "docs/agents/skills/name.md",
+    "next_state": "needs-agent-revision"
+  },
+  "labels_removed": [
+    "jules-waiting"
+  ],
+  "labels_added": [
+    "needs-agent-revision"
+  ],
+  "comment_policy": "comment-only-on-state-change",
+  "review_gate": {
+    "merge_by_watchdog": false,
+    "human_review_required": true
+  }
+}
