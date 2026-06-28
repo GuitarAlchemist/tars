@@ -1,0 +1,38 @@
+{
+  "jsonrpc": "2.0",
+  "id": "1",
+  "result": {
+    "status": "success",
+    "scope_queried": "ga-traces",
+    "results_count": 2,
+    "limit_applied": 5,
+    "results": [
+      {
+        "memory_id": "mem-7f3b-4c8d-9a1e",
+        "type": "SemanticClaim",
+        "content": "The GA orchestrator experiences a 15% latency increase when routing to models with context > 64k tokens.",
+        "confidence": 0.88,
+        "is_stale": false,
+        "provenance": {
+          "source_hash": "sha256:d8a4f9b2...",
+          "digester_id": "tars-researcher-v1",
+          "timestamp": "2026-06-25T14:30:00Z"
+        },
+        "privacy_level": "internal"
+      },
+      {
+        "memory_id": "mem-1a2b-3c4d-5e6f",
+        "type": "DecisionRecord",
+        "content": "Disabled fallback routing to local models due to OOM errors on concurrent requests.",
+        "confidence": 1.0,
+        "is_stale": true,
+        "provenance": {
+          "source_hash": "sha256:b1c2d3e4...",
+          "digester_id": "tars-orchestrator",
+          "timestamp": "2026-05-10T09:15:00Z"
+        },
+        "privacy_level": "public"
+      }
+    ]
+  }
+}
