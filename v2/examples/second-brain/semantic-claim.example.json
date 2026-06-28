@@ -1,0 +1,30 @@
+{
+  "id": "7b2d5f1a-3c4d-4e5f-a6b7-c8d9e0f1a2b3",
+  "kind": "SemanticClaim",
+  "created_at": "2025-06-15T15:00:00Z",
+  "observed_at": "2025-06-15T14:55:00Z",
+  "extracted_by": "tars-knowledge-extractor",
+  "confidence": 0.98,
+  "staleness": {
+    "ttl_seconds": 0,
+    "last_verified_at": "2025-06-15T15:00:00Z"
+  },
+  "privacy_level": "public",
+  "provenance": {
+    "source_uri": "file://v2/src/Tars.Knowledge/Types.fs",
+    "source_repo": "GuitarAlchemist/tars",
+    "source_path": "v2/src/Tars.Knowledge/Types.fs",
+    "evidence_chain": [
+      "ev-99887766"
+    ]
+  },
+  "semantic_summary": "TARS knowledge system represents beliefs as subject-predicate-object triples with provenance.",
+  "structured_payload": {
+    "subject": "Belief",
+    "predicate": "has_property",
+    "object": "Provenance"
+  },
+  "grammar_id": "tars-belief-v1",
+  "ix_score_ref": "ix:eval:445566",
+  "links": []
+}
