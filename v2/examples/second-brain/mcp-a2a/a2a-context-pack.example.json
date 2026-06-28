@@ -1,0 +1,22 @@
+{
+  "artifact_type": "ContextPack",
+  "version": "1.0",
+  "topic_summary": "Context routing optimizations and constraints",
+  "relevance_threshold": 0.8,
+  "bundle_size_tokens": 1450,
+  "items": [
+    {
+      "memory_id": "mem-7f3b-4c8d-9a1e",
+      "summary": "Large context models increase routing latency by 15%.",
+      "actionable": true,
+      "link": "mcp://resources/memory/mem-7f3b-4c8d-9a1e"
+    },
+    {
+      "memory_id": "mem-99zz-88yy-77xx",
+      "summary": "Caching token embeddings reduces MCTS evaluation time in IX.",
+      "actionable": true,
+      "link": "mcp://resources/memory/mem-99zz-88yy-77xx"
+    }
+  ],
+  "disclaimer": "These items are context candidates. Verify staleness before applying to production logic."
+}
