@@ -6,6 +6,7 @@ Cloud agents cannot access local TARS skills or local MCP state. However, they c
 
 ## Available Skills
 
+- **Anti-Ball-of-Mud** (`anti-ball-of-mud.skill.md`): Used to detect architecture entropy, propose narrow seams, and prevent agent-driven architectural degradation.
 - **Docs-Only Contract** (`docs-only-contract.skill.md`): Used for documentation-only updates, enforcing that no runtime behavior is changed.
 - **Evidence Bundle** (`evidence-bundle.skill.md`): Used for grounding claims and design decisions in explicitly referenced source material.
 - **Governed Delegation** (`governed-delegation.skill.md`): Used for navigating the Demerzel governance constraints and respecting AFK halt markers.

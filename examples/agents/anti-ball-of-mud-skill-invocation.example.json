@@ -1,0 +1,16 @@
+{
+  "skill_invocation": "anti-ball-of-mud-guard",
+  "trigger": "Model-invoked candidate detected architecture entropy signals",
+  "context": {
+    "issue_id": "#832",
+    "requested_change": "Add GitHub issue fetching logic directly into the CoreOrchestrator to populate second-brain context.",
+    "files_touched": [
+      "v2/src/Core/Orchestrator.fs"
+    ]
+  },
+  "entropy_signals_detected": [
+    "feature logic mixed with orchestration, IO, provider SDK calls, or UI concerns",
+    "direct dependency on GitHub/LLM/filesystem/network from core runtime code"
+  ],
+  "action_taken": "Halt implementation and generate entropy report for review."
+}

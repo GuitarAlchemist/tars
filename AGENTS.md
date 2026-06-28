@@ -40,6 +40,12 @@ The loop is allowed to *propose* but not *self-certify*. Independence is enforce
 - **Cross-vendor review.** Risk decisions on contested PRs may be re-run through a cross-vendor / multi-model / multi-LLM panel (Gemini, Codex peer, Demerzel tribunal). This is the same pattern documented in the cross-repo `docs/contracts/qa-verdict.contract.md` family.
 - **Rewrite budget.** Autonomous edits respect a line budget (max lines / lines-per-fix / diff budget) to keep blast radius small. Larger changes must be split into multiple PRs so each one stays under the rewrite budget.
 
+## Agent Skills and Guards
+
+Cloud agents working AFK should consult `docs/agents/skills/` for required behavior patterns.
+
+Specifically, agents **must** invoke the `anti-ball-of-mud-guard` skill (defined in `docs/agents/skills/anti-ball-of-mud.skill.md`) when they encounter architecture entropy during a task (e.g., touching many unrelated files, mixing orchestration with IO/provider calls, or lacking a proper interface boundary). When triggered, the agent should stop, document the friction, and propose a narrow seam rather than proceeding with a muddy implementation.
+
 ## Cross-repo
 
 - **ga** (`../ga/`, C# + F# DSL): music-theory domain. Sends theory claims via `~/.ga/traces/` for tars to validate cross-model.
