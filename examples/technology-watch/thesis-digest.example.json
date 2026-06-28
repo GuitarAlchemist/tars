@@ -1,0 +1,71 @@
+{
+  "id": "td-a1b2c3d4",
+  "title": "Neuro-Symbolic Approaches to Compositional Generalization",
+  "authors": ["Jane Doe"],
+  "source_uri": "https://university.edu/thesis/12345",
+  "publication_date": "2025-05-15",
+  "source_type": "thesis",
+  "research_area": "Neuro-Symbolic AI",
+  "summary": "This thesis explores how combining neural networks with symbolic logic engines can significantly improve an AI system's ability to generalize compositionally. It details an architecture where a neural parser maps natural language into a DSL, and a symbolic engine evaluates the DSL.",
+  "key_claims": [
+    {
+      "id": "claim-t01",
+      "claim": "Constraining neural generation using an EBNF grammar reduces syntactically invalid DSL generations by 98%.",
+      "evidence": [
+        {
+          "id": "ev-t01",
+          "description": "Empirical results from Chapter 4, Table 4.2.",
+          "uri": "https://university.edu/thesis/12345#page=55"
+        }
+      ]
+    },
+    {
+      "id": "claim-t02",
+      "claim": "Bayesian updating of grammar weights based on successful traces enables zero-shot domain adaptation.",
+      "evidence": [
+        {
+          "id": "ev-t02",
+          "description": "Experiments detailed in Chapter 5.",
+          "uri": "https://university.edu/thesis/12345#page=72"
+        }
+      ]
+    }
+  ],
+  "methods": [
+    {
+      "name": "Bayesian EBNF Weighting",
+      "description": "A method to dynamically adjust the probabilities of grammar rules based on the success/failure of past parses."
+    }
+  ],
+  "datasets": [
+    {
+      "name": "SCAN",
+      "uri": "https://github.com/brendenlake/SCAN"
+    }
+  ],
+  "benchmarks": [
+    {
+      "name": "Compositional Generalization Accuracy",
+      "metric": "Exact Match"
+    }
+  ],
+  "limitations": [
+    "The Bayesian updating mechanism assumes a relatively stable underlying grammar structure.",
+    "Evaluation was primarily on synthetic datasets (SCAN)."
+  ],
+  "applicability_to_tars": "High. The Bayesian EBNF weighting perfectly validates the current approach in Tars.Evolution where probabilistic grammars are updated.",
+  "applicability_to_ix": "Medium. The symbolic evaluator component could potentially map to IX skill execution.",
+  "applicability_to_demerzel": "Low.",
+  "applicability_to_ga": "Medium. Could improve music-theory hypothesis translation.",
+  "confidence": 0.95,
+  "novelty_score": 0.75,
+  "implementation_risk": "low",
+  "suggested_followups": [
+    {
+      "title": "Cross-reference thesis Bayesian EBNF weights with Tars.Evolution implementation",
+      "description": "Review Chapter 5 of the thesis to see if their weight-update formula can improve our PromotionIndex logic.",
+      "labels": ["research", "tars", "evolution"]
+    }
+  ],
+  "provenance": "Ingested via tech-watch semantic sweep run #842."
+}
