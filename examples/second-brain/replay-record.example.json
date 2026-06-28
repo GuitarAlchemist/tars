@@ -1,0 +1,29 @@
+{
+  "id": "replay-record-20260710-001",
+  "closure_contract_id": "closure-contract-auth-test-v1",
+  "baseline_run_id": "closure-run-20260709-105",
+  "replay_run_id": "closure-run-20260710-001",
+  "timestamp": "2026-07-10T14:30:00Z",
+  "comparison": {
+    "execution_time_delta_ms": -120,
+    "token_usage_delta": 450,
+    "drift_detected": false,
+    "improvements_detected": true
+  },
+  "ix_scoring": {
+    "baseline_score": 0.88,
+    "replay_score": 0.95,
+    "confidence": 0.92,
+    "advisory_notes": "Replay run shows improved reasoning trace depth and slightly faster execution."
+  },
+  "artifacts": {
+    "baseline_trace": "s3://tars-artifacts/traces/trace-events-20260709-105.jsonl",
+    "replay_trace": "s3://tars-artifacts/traces/trace-events-20260710-001.jsonl",
+    "ix_report": "s3://tars-artifacts/reports/ix-analysis-report-20260710-001.json"
+  },
+  "status": "accepted",
+  "governance": {
+    "approved_by": "demerzel-auto-policy-v2",
+    "approval_timestamp": "2026-07-10T14:31:05Z"
+  }
+}
