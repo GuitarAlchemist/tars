@@ -1,0 +1,10 @@
+{
+  "target_component": "tars",
+  "description": "Integrate a 'Reasoning-Trace' visualization component into the TARS dashboard.",
+  "rationale": "Research paper 'Visualizing Internal Monologues' (arXiv:2406.1234) shows that human-in-the-loop trust increases by 60% when reasoning traces are visible.",
+  "issue_draft": {
+    "title": "[TARS] Reasoning-Trace Visualization Dashboard",
+    "body": "Implement a UI component to display the internal monologue and reasoning steps of TARS agents during task execution.\n\n### Tasks\n- [ ] Extend `Tars.Interface.Web` with a new reasoning tab\n- [ ] Stream reasoning tokens from `Tars.Cortex` to the UI\n- [ ] Implement folding/unfolding of sub-tasks\n\n### Reference\nBased on digest-2024-003 (Visualizing Internal Monologues).",
+    "labels": ["feature", "ui", "ux"]
+  }
+}
