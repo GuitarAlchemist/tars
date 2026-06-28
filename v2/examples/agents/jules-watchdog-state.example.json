@@ -1,0 +1,27 @@
+{
+  "pr_number": 129,
+  "issue_number": 132,
+  "agent": "jules",
+  "current_state": "needs-human-review",
+  "previous_state": "jules-updated",
+  "last_updated": "2026-06-28T14:30:00Z",
+  "triggers": [
+    {
+      "event": "pull_request.synchronize",
+      "timestamp": "2026-06-28T14:15:00Z",
+      "action": "Jules pushed new commits"
+    },
+    {
+      "event": "workflow_run.completed",
+      "timestamp": "2026-06-28T14:30:00Z",
+      "action": "CI pipeline succeeded, moving to needs-human-review"
+    }
+  ],
+  "ci_status": "success",
+  "mergeable": true,
+  "labels": [
+    "needs-human-review",
+    "cloud-agent"
+  ],
+  "governance_halted": false
+}
