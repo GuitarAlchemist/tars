@@ -63,11 +63,7 @@ type RouterTests(output: ITestOutputHelper) =
 
             // Act 1
             do! bus.PublishAsync(msg1)
-
-            let mutable retries1 = 50
-            while not received1 && retries1 > 0 do
-                do! Task.Delay(100)
-                retries1 <- retries1 - 1
+            do! Task.Delay(500) // Allow processing
 
             // Assert 1
             Assert.True(received1, "Agent 1 should have received the message")
@@ -88,11 +84,7 @@ type RouterTests(output: ITestOutputHelper) =
 
             // Act 2
             do! bus.PublishAsync(msg2)
-
-            let mutable retries2 = 50
-            while not received2 && retries2 > 0 do
-                do! Task.Delay(100)
-                retries2 <- retries2 - 1
+            do! Task.Delay(500)
 
             // Assert 2
             Assert.False(received1, "Agent 1 should NOT have received the message")
@@ -150,11 +142,7 @@ type RouterTests(output: ITestOutputHelper) =
 
             // Act
             do! bus.PublishAsync(msg)
-
-            let mutable retriesIntent = 50
-            while not received && retriesIntent > 0 do
-                do! Task.Delay(100)
-                retriesIntent <- retriesIntent - 1
+            do! Task.Delay(500)
 
             // Assert
             Assert.True(received, "Agent should have received the message via Intent routing")
