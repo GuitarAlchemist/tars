@@ -1,0 +1,54 @@
+{
+  "id": "thesis-2024-002",
+  "title": "Autonomous Governance in Multi-Agent Systems",
+  "authors": ["Charlie Brown"],
+  "institution": "University of Tech",
+  "degree": "PhD",
+  "advisor": "Dr. Lucy Van Pelt",
+  "source_uri": "https://uni-tech.edu/theses/cb-2024",
+  "publication_date": "2024-05-20T09:00:00Z",
+  "source_type": "paper",
+  "research_area": "Governance",
+  "summary": "A comprehensive framework for defining and enforcing constitutional constraints in autonomous agent swarms.",
+  "key_claims": [
+    {
+      "claim": "Static policy analysis can prevent 90% of unintended agent escalations.",
+      "evidence_score": 0.9,
+      "actionable": true
+    }
+  ],
+  "methods": [
+    {
+      "name": "Constitutional Static Checker",
+      "description": "Formal verification of agent plans against a set of invariant rules.",
+      "complexity": "high"
+    }
+  ],
+  "datasets": [],
+  "benchmarks": [],
+  "limitations": "Formal verification is computationally expensive for complex plans.",
+  "applicability_to_tars": 0.5,
+  "applicability_to_ix": 0.2,
+  "applicability_to_demerzel": 1.0,
+  "applicability_to_ga": 0.1,
+  "confidence": 0.88,
+  "novelty_score": 0.8,
+  "implementation_risk": "high",
+  "suggested_followups": [
+    {
+      "target_component": "demerzel",
+      "description": "Adopt static checking for TARS agent plans.",
+      "rationale": "Directly applicable to Demerzel's mission of governance.",
+      "issue_draft": {
+        "title": "[Demerzel] Implement Static Plan Verification",
+        "body": "Integrate the formal verification methods from Charlie Brown's thesis to improve safety.\n\n- [ ] Define plan grammar for verification\n- [ ] Implement invariant checker\n- [ ] Add to TARS pre-execution hook",
+        "labels": ["security", "governance"]
+      }
+    }
+  ],
+  "provenance": {
+    "digester_id": "tars-researcher-v1",
+    "digestion_timestamp": "2024-06-25T15:00:00Z",
+    "source_hash": "sha256:5d41402abc4b2a76b9719d911017c592abbd1c3b6d9006456993130282928509"
+  }
+}
