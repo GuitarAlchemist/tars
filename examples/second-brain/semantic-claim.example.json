@@ -1,0 +1,38 @@
+{
+  "id": "claim-b2c3d4e5-f6g7-8901",
+  "kind": "SemanticClaim",
+  "source_uri": "https://github.com/GuitarAlchemist/tars/issues/91",
+  "source_repo": "GuitarAlchemist/tars",
+  "source_path": "",
+  "source_issue": "91",
+  "created_at": "2026-06-28T09:10:00Z",
+  "observed_at": "2026-06-28T09:15:00Z",
+  "extracted_by": "Tars.Evolution.Pipeline",
+  "confidence": 0.99,
+  "staleness": {
+    "expires_at": "2028-06-28T09:00:00Z",
+    "review_required": false,
+    "decay_factor_per_day": 0.0
+  },
+  "privacy_level": "public",
+  "provenance": {
+    "derived_from": ["mem-a1b2c3d4-e5f6-7890"],
+    "extraction_method": "Tars.Evolution.Pipeline.FactExtractor",
+    "prompt_hash": "c3d4e5f6g7h8",
+    "grounding_sources": [
+      "https://github.com/GuitarAlchemist/tars/issues/91"
+    ]
+  },
+  "semantic_summary": "Memory objects in the TARS system must be structured and include provenance.",
+  "structured_payload": {
+    "claim_type": "architectural_constraint",
+    "subject": "TARS Memory Objects",
+    "predicate": "must_include",
+    "object": "provenance"
+  },
+  "schema_id": "schema-semantic-claim-v1",
+  "grammar_id": "grammar-semantic-claim-v1",
+  "embedding_ref": "emb-qwe-456",
+  "ix_score_ref": "ix-score-9988",
+  "links": ["mem-a1b2c3d4-e5f6-7890"]
+}

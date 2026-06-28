@@ -1,0 +1,44 @@
+{
+  "id": "dec-c3d4e5f6-g7h8-9012",
+  "kind": "DecisionRecord",
+  "source_uri": "https://github.com/GuitarAlchemist/tars/pull/95",
+  "source_repo": "GuitarAlchemist/tars",
+  "source_path": "docs/contracts/second-brain-memory-objects.md",
+  "source_issue": "91",
+  "created_at": "2026-06-28T10:00:00Z",
+  "observed_at": "2026-06-28T10:05:00Z",
+  "extracted_by": "JulesAgent",
+  "confidence": 1.0,
+  "staleness": {
+    "expires_at": "2099-12-31T23:59:59Z",
+    "review_required": false,
+    "decay_factor_per_day": 0.0
+  },
+  "privacy_level": "public",
+  "provenance": {
+    "derived_from": ["claim-b2c3d4e5-f6g7-8901"],
+    "extraction_method": "Manual",
+    "prompt_hash": null,
+    "grounding_sources": [
+      "https://github.com/GuitarAlchemist/tars/issues/91"
+    ]
+  },
+  "semantic_summary": "Decided to use a JSON-first approach for memory objects without requiring a cloud vector database.",
+  "structured_payload": {
+    "decision": "Use JSON/JSONL for memory object storage locally.",
+    "context": "Need a simple, future-proof storage model that supports provenance without cloud overhead.",
+    "alternatives_considered": [
+      "Require a cloud vector database from day 1.",
+      "Use unstructured Markdown notes exclusively."
+    ],
+    "consequences": [
+      "Easy local inspection and debugging.",
+      "Vector indexing can be added later as an optional, regenerable layer."
+    ]
+  },
+  "schema_id": "schema-decision-record-v1",
+  "grammar_id": null,
+  "embedding_ref": null,
+  "ix_score_ref": null,
+  "links": ["claim-b2c3d4e5-f6g7-8901"]
+}
