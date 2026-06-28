@@ -1,0 +1,21 @@
+[
+  {
+    "id": "rq-2024-001",
+    "question": "What are the accepted patterns for F# functional-first error handling across the TARS and Demerzel ecosystems?",
+    "context": "We are designing a new Metascript engine and need to ensure our error-handling strategy aligns with previously established ecosystem norms.",
+    "constraints": [
+      "Only consider learnings from the 'Tars.Core' and 'Demerzel.Governance' departments.",
+      "Ignore older C#-based legacy patterns.",
+      "Look specifically for mentions of the 'Result<T, E>' type."
+    ]
+  },
+  {
+    "id": "rq-2024-002",
+    "question": "Does DuckDB support GPU-accelerated vector indexing for similarity search?",
+    "context": "We are looking to optimize Streeling Registrar queries and want to evaluate if GPU-accelerated DuckDB queries are feasible.",
+    "constraints": [
+      "Focus on recent releases (2024 and onwards).",
+      "Look for official extensions or community-supported CUDA integrations."
+    ]
+  }
+]
