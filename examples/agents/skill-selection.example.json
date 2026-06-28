@@ -1,0 +1,18 @@
+{
+  "request_id": "req-987654",
+  "issue_number": 114,
+  "selected_skill": "docs-only-contract",
+  "justification": "The issue explicitly requests creating a documentation-only cloud-agent skill library without modifying runtime code. The docs-only-contract skill strictly enforces these boundaries and ensures no executable files are touched.",
+  "execution_plan": [
+    "Read the issue description to understand the required skills.",
+    "Draft the README.md to list available skills.",
+    "Create the individual skill markdown files following the required structure.",
+    "Create a skill-selection example JSON file.",
+    "Review changes against the docs-only-contract constraints before submitting."
+  ],
+  "governance_bounds": {
+    "risk_level": "low",
+    "requires_tests": false,
+    "max_runtime_minutes": 10
+  }
+}
