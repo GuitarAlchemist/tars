@@ -1,0 +1,14 @@
+{
+  "issue_meta": {
+    "level": "task",
+    "agent_skills": [
+      "docs-only-contract",
+      "evidence-bundle"
+    ]
+  },
+  "labels": [
+    "skill:docs-only-contract",
+    "skill:evidence-bundle",
+    "ready-for-agent"
+  ]
+}

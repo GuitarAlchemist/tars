@@ -90,7 +90,43 @@ jobs:
           ISSUE: ${{ github.event.issue.number }}
         run: |
           TITLE=$(gh issue view "$ISSUE" --repo "$REPO" --json title --jq '.title')
-          BODY=$(gh issue view "$ISSUE" --repo "$REPO" --json body --jq '.body')
+          BODY=$(gh issue view "$ISSUE" --repo "$REPO" --json body --jq '.body' | tr -d '\r')
+          LABELS=$(gh issue view "$ISSUE" --repo "$REPO" --json labels --jq '.labels')
+
+          # Extract skills from issue body YAML (allowing agent_skills to be indented)
+          BODY_SKILLS=$(echo "$BODY" | awk '
+            BEGIN { in_yaml=0; in_skills=0 }
+            /^```yaml/ { in_yaml=1; next }
+            /^```/ { in_yaml=0; in_skills=0; next }
+            in_yaml && /^[ 	]*agent_skills:/ { in_skills=1; next }
+            in_yaml && /^[ 	]*[a-zA-Z_-]+:/ && !/^[ 	]*agent_skills:/ { in_skills=0; next }
+            in_skills && /^[ 	]+-[ 	]+/ {
+              sub(/^[ 	]+-[ 	]+/, "")
+              print $0
+            }
+          ')
+
+          # Extract skills from labels
+          LABEL_SKILLS=$(echo "$LABELS" | jq -r '.[].name | select(startswith("skill:")) | sub("^skill:"; "")')
+
+          # Combine and unique
+          ALL_SKILLS=$(echo -e "${BODY_SKILLS}\n${LABEL_SKILLS}" | grep -v '^$' | sort -u || true)
+
+          ALLOWED_SKILLS_DOCS=""
+          for skill in $ALL_SKILLS; do
+            clean_skill=$(echo "$skill" | tr -cd 'a-zA-Z0-9-')
+            if [ -n "$clean_skill" ] && [ "$clean_skill" = "$skill" ]; then
+              skill_file="docs/agents/skills/${clean_skill}.md"
+              if [ -f "$skill_file" ]; then
+                ALLOWED_SKILLS_DOCS="${ALLOWED_SKILLS_DOCS}
+
+--- Skill: ${skill} ---
+$(cat "$skill_file")
+"
+              fi
+            fi
+          done
+
           {
             echo "text<<JULES_EOF"
             echo "Implement GitHub issue #${ISSUE}: ${TITLE}"
@@ -103,6 +139,11 @@ jobs:
             echo "- LLM access always goes through LlmFactory.create(logger) — never instantiate DefaultLlmService directly."
             echo "- Warnings are errors (TreatWarningsAsErrors); code must compile clean."
             echo "- Tests live in tests/Tars.Tests/ (xUnit). Build and test from v2/: dotnet build && dotnet test."
+            if [ -n "$ALLOWED_SKILLS_DOCS" ]; then
+              echo ""
+              echo "--- Additional Agent Skills injected ---"
+              echo "$ALLOWED_SKILLS_DOCS"
+            fi
             echo ""
             echo "Open a pull request targeting main with the change. Keep it minimal and scoped to the issue. Ensure the build and tests pass before opening the PR."
             echo "JULES_EOF"
