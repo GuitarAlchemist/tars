@@ -1,0 +1,48 @@
+{
+  "finding_id": "gap-2024-050",
+  "source_type": "LearningGap",
+  "evidence_bundle": {
+    "digester_id": "tars-cortex",
+    "digestion_timestamp": "2024-06-26T10:00:00Z",
+    "source_hash": "sha256:7b2266696e64696e67223a226761702d323032342d303530227d"
+  },
+  "scoring": {
+    "ix_scorecard": 0.85,
+    "seldon_assessment": 0.90
+  },
+  "governance_check": {
+    "risk_level": "medium",
+    "budget_tier": "free-local",
+    "afk_readiness": "candidate",
+    "approved_action_level": "issue_draft"
+  },
+  "action_level": "issue_draft",
+  "issue_draft": {
+    "title": "[TARS-V2] Implement Context Pruning for Memory Objects",
+    "repo": "GuitarAlchemist/tars",
+    "parent_epic": "GuitarAlchemist/tars#105",
+    "related_issues": ["GuitarAlchemist/tars#106"],
+    "evidence_bundle": {
+      "digester_id": "tars-cortex",
+      "digestion_timestamp": "2024-06-26T10:00:00Z",
+      "source_hash": "sha256:7b2266696e64696e67223a226761702d323032342d303530227d"
+    },
+    "problem_statement": "The second-brain memory context grows linearly, leading to context window exhaustion during long agent sessions.",
+    "goal": "Implement an LRU-based pruning strategy for `MemoryItem` objects before injecting them into the LLM context.",
+    "non_goals": ["Do not implement vector similarity search in this issue.", "Do not delete items from the durable memory store."],
+    "acceptance_criteria": [
+      "A `PruneContext` function is added to `MemoryStore`.",
+      "The function removes the oldest items that exceed a specified token limit.",
+      "Tests verify that the most recently accessed items are preserved."
+    ],
+    "test_plan": "Unit tests in `Tars.Tests/MemoryStoreTests.fs` to verify pruning logic and boundary conditions.",
+    "risk_policy": "medium",
+    "budget_policy": {
+      "tier": "free-local",
+      "max_cost_usd": 0,
+      "max_runner_minutes": 15
+    },
+    "afk_readiness": "candidate",
+    "stop_conditions": ["If token counting library cannot be integrated without external dependencies, halt and request review."]
+  }
+}
