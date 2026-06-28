@@ -1,0 +1,32 @@
+{
+  "candidate_id": "muc-20260710-042",
+  "source_run_id": "closure-run-20260710-001",
+  "timestamp": "2026-07-10T14:35:00Z",
+  "proposed_claims": [
+    {
+      "claim": "The authentication module handles concurrent token refresh gracefully when utilizing the SemaphoreSlim pattern.",
+      "evidence_score": 0.94,
+      "staleness_marker": "2026-10-10T00:00:00Z",
+      "actionable": true
+    }
+  ],
+  "ix_evaluation": {
+    "advisory_score": 0.95,
+    "confidence": 0.90,
+    "notes": "Strong evidence in trace-events.jsonl. Concurrency metrics improved significantly."
+  },
+  "provenance": {
+    "agent_id": "tars-cortex-v2",
+    "closure_contract_id": "closure-contract-auth-test-v1",
+    "trace_hash": "sha256:abcd1234efgh5678ijkl9012mnop3456qrst7890uvwx1234yzab5678cdef9012"
+  },
+  "grammar_validation": {
+    "passed": true,
+    "version": "1.2.0"
+  },
+  "governance_status": {
+    "state": "pending_approval",
+    "risk_level": "low",
+    "requires_human_review": false
+  }
+}
