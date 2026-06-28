@@ -91,11 +91,50 @@ jobs:
         run: |
           TITLE=$(gh issue view "$ISSUE" --repo "$REPO" --json title --jq '.title')
           BODY=$(gh issue view "$ISSUE" --repo "$REPO" --json body --jq '.body')
+          LABELS=$(gh issue view "$ISSUE" --repo "$REPO" --json labels)
+
+          # Extract skills from YAML block in body
+          BODY_YAML=$(echo "$BODY" | awk '/^```yaml/{flag=1; next} /^```/{flag=0} flag')
+          BODY_SKILLS=$(echo "$BODY_YAML" | awk '/^agent_skills:/{flag=1; next} /^[^ ]/{flag=0} flag && /^[ \t]+-[ \t]+/{sub(/^[ \t]+-[ \t]+/, ""); sub(/\r$/, ""); print}' || true)
+
+          # Extract skills from labels
+          LABEL_SKILLS=$(echo "$LABELS" | jq -r '.labels[].name' | grep '^skill:' | sed 's/^skill://' || true)
+
+          # Combine, deduplicate, and validate skills
+          ALL_SKILLS=$(echo -e "$BODY_SKILLS\n$LABEL_SKILLS" | sort -u | grep -v '^$' || true)
+
+          SKILL_DOCS=""
+          if [ -n "$ALL_SKILLS" ]; then
+            for SKILL in $ALL_SKILLS; do
+              # Strict allowlist: only alphanumeric, hyphen, underscore
+              if [[ "$SKILL" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                SKILL_FILE="docs/agents/skills/${SKILL}.md"
+                if [ -f "$SKILL_FILE" ]; then
+                  SKILL_DOCS="${SKILL_DOCS}
+
+### Injected Agent Skills
+
+--- SKILL: ${SKILL} ---
+"
+                  SKILL_CONTENT=$(cat "$SKILL_FILE")
+                  SKILL_DOCS="${SKILL_DOCS}${SKILL_CONTENT}"
+                else
+                  echo "::warning::Requested agent skill not found: $SKILL_FILE"
+                fi
+              else
+                echo "::warning::Invalid skill format rejected: $SKILL"
+              fi
+            done
+          fi
+
           {
             echo "text<<JULES_EOF"
             echo "Implement GitHub issue #${ISSUE}: ${TITLE}"
             echo ""
             echo "$BODY"
+            if [ -n "$SKILL_DOCS" ]; then
+              printf "%s\n" "$SKILL_DOCS"
+            fi
             echo ""
             echo "Project conventions (this repo is TARS, an F# system; the working directory is v2/, not the repo root):"
             echo "- Follow CLAUDE.md and CONTEXT.md; read any relevant docs/adr/ before coding."

@@ -1,0 +1,14 @@
+{
+  "issue": {
+    "title": "Update research digest contracts",
+    "body": "We need to update the research digest contract to include `novelty_score`.\n\n```yaml\nissue_meta:\n  level: task\nagent_skills:\n  - docs-only-contract\n  - evidence-bundle\n```",
+    "labels": [
+      {"name": "ready-for-agent"},
+      {"name": "skill:docs-only-contract"}
+    ]
+  },
+  "expected_injected_skills": [
+    "docs-only-contract",
+    "evidence-bundle"
+  ]
+}
