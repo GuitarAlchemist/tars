@@ -108,3 +108,28 @@ Mirrors the Demerzel HALT-ALL marker. All fields optional except by convention:
   failing silently.
 - **Follow-up:** a resume-replay mechanism, and bringing the `@codex` comment
   path under the same marker if it is adopted for AFK use.
+
+## Update (2026-06-30) — API path out; PAT-applied triggers; multi-agent router
+
+Two changes, both evidence-driven:
+
+1. **`jules-action` API trigger abandoned.** It was validated at the *invoke*
+   level but **never delivers a PR** — alpha sessions are created
+   (`automationMode: AUTO_CREATE_PR`) then stall (verified twice: sessions
+   `13222017034551546799`, `1381979756652838667`, no PR over 15–18 min). The
+   **label trigger works reliably** the same day (#66 → ack 75s → PR #68 ~12 min);
+   a same-minute diagnostic ruled out quota.
+
+2. **Single workflow → multi-agent router** (`.github/workflows/afk-router.yml`,
+   replacing `jules-auto-delegate.yml`). `ready-for-agent` routes by the repo's
+   existing `worker:*` labels: default **Jules** (`jules` label), `worker:codex`
+   → **Codex** (`@codex`), `worker:claude` → **Claude** (`@claude`). Every
+   trigger is applied with a
+   user-owned PAT (`AFK_AGENT_PAT`) because agents ignore bot-authored events
+   (the original bot-label finding). Conventions reach agents via the repo's
+   `AGENTS.md`/`CLAUDE.md` (read natively), so the synthesized prompt and
+   `JULES_API_KEY` are dropped. Halt-gate and review-gating are unchanged.
+
+   Caveats: Codex needs Codex quota; Claude's `@claude` trigger depends on the
+   Claude GitHub app and is opt-in (so an unverified Claude path can't affect the
+   default Jules flow).
