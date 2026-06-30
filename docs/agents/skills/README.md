@@ -12,4 +12,15 @@ Cloud agents cannot access local TARS skills or local MCP state. However, they c
 
 ## Usage
 
-Cloud agents should parse the `issue_meta` block in the GitHub issue body and use these definitions to guide their approach, ensuring that they respect project constraints, execute required checks, and provide the expected evidence in the pull request body.
+Cloud agents automatically receive the content of declared skills in their prompt. Skills can be declared in a GitHub issue in two ways:
+
+1. **Via Labels:** Apply a label with the prefix `skill:`, for example `skill:docs-only-contract`.
+2. **Via Issue Body YAML:** Include an `agent_skills` list in the `issue_meta` block (or anywhere in the body as a top-level YAML-like key):
+
+```yaml
+agent_skills:
+  - docs-only-contract
+  - evidence-bundle
+```
+
+The Jules AFK workflow validates these declarations against the allowlist of `.skill.md` files in this directory and injects the corresponding documentation into the agent's prompt.
