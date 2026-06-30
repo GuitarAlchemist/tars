@@ -1,0 +1,48 @@
+{
+  "pr_number": 129,
+  "agent": "google-labs-jules",
+  "parent_issue": 55,
+  "watchdog_state": {
+    "current_label": "needs-agent-revision",
+    "last_transition_at": "2026-06-25T14:30:00Z",
+    "last_event": "workflow_run.completed",
+    "ci_status": "failure",
+    "review_status": "changes_requested",
+    "is_stale": false,
+    "has_out_of_scope_files": false
+  },
+  "history": [
+    {
+      "timestamp": "2026-06-25T10:00:00Z",
+      "event": "pull_request.opened",
+      "from": null,
+      "to": "jules-waiting"
+    },
+    {
+      "timestamp": "2026-06-25T10:15:00Z",
+      "event": "workflow_run.completed",
+      "status": "success",
+      "from": "jules-waiting",
+      "to": "needs-human-review"
+    },
+    {
+      "timestamp": "2026-06-25T14:00:00Z",
+      "event": "pull_request_review.submitted",
+      "action": "changes_requested",
+      "from": "needs-human-review",
+      "to": "needs-agent-revision"
+    },
+    {
+      "timestamp": "2026-06-25T14:30:00Z",
+      "event": "workflow_run.completed",
+      "status": "failure",
+      "from": "needs-agent-revision",
+      "to": "needs-agent-revision",
+      "note": "CI failed after manual fix attempt"
+    }
+  ],
+  "governance": {
+    "halt_checked_at": "2026-06-25T14:30:00Z",
+    "halt_active": false
+  }
+}
