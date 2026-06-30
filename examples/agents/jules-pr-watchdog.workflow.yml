@@ -8,6 +8,7 @@ on:
   issue_comment:
     types: [created]
   workflow_run:
+    # Replace ".NET" with the name of your primary CI workflow
     workflows: [".NET"]
     types: [completed]
   schedule:
@@ -116,7 +117,7 @@ jobs:
               CI_FAILING=true
             fi
             CI_PASSING=false
-            if [ -n "$CI_RESULTS" ] && ! echo "$CI_RESULTS" | grep -qvE "SUCCESS|NEUTRAL|SKIPPED|PENDING|EXPECTED"; then
+            if [ -n "$CI_RESULTS" ] && ! echo "$CI_RESULTS" | grep -qvE "SUCCESS|NEUTRAL|SKIPPED|EXPECTED"; then
               if echo "$CI_RESULTS" | grep -q "SUCCESS"; then
                 CI_PASSING=true
               fi

@@ -5,6 +5,8 @@ This document defines the state model and operational rules for the Jules PR wat
 ## Goal
 The watchdog classifies meaningful state transitions on Jules-created PRs to help maintainers monitor progress without manual polling or noisy notification loops.
 
+> **Note**: For security reasons (Agent Blackbox policy), the watchdog workflow is provided as a draft in `examples/agents/jules-pr-watchdog.workflow.yml`. A maintainer must manually move it to `.github/workflows/` to activate it.
+
 ## State Model
 
 The watchdog uses the following labels to track the state of a Jules PR:
