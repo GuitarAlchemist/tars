@@ -66,6 +66,9 @@ jobs:
         run: |
           BEHIND=${{ steps.check.outputs.behind }}
           git commit -m "chore: update Demerzel submodule ($BEHIND commits)"
+          # Reconcile with any concurrent main advance before pushing (avoids the
+          # same non-fast-forward race as the PR path).
+          git pull --rebase origin main
           git push origin main
           echo "### Auto-updated Demerzel submodule ($BEHIND commits)" >> $GITHUB_STEP_SUMMARY
 
@@ -78,7 +81,19 @@ jobs:
           BEHIND=${{ steps.check.outputs.behind }}
           CURRENT=${{ steps.check.outputs.current }}
           LATEST=${{ steps.check.outputs.latest }}
-          BRANCH="chore/update-demerzel-$(date +%Y%m%d)"
+
+          # Idempotent: skip if an update PR is already open. This is what was
+          # failing — the schedule fires 4x/day and the old daily branch name
+          # (chore/update-demerzel-YYYYMMDD) was reused, so later runs pushed to
+          # an existing diverged branch -> non-fast-forward rejection + dup PRs.
+          EXISTING=$(gh pr list --state open --search "chore: update Demerzel submodule in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            echo "### Demerzel update PR #$EXISTING already open — skipping" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          # Unique branch (target sha + run id) never collides with a prior run.
+          BRANCH="chore/update-demerzel-${LATEST}-${{ github.run_id }}"
 
           git checkout -b "$BRANCH"
           git commit -m "chore: update Demerzel submodule ($BEHIND commits)"

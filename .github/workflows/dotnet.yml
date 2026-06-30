@@ -10,9 +10,39 @@ on:
     branches: [ "main" ]
 
 jobs:
+  # Required gate (branch protection requires this `build` check). GitHub-hosted
+  # so it always runs even if the self-hosted runner is offline — the fallback.
   build:
 
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+      working-directory: v2
+    - name: Build
+      run: dotnet build --no-restore
+      working-directory: v2
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+      working-directory: v2
+
+  # Self-hosted lane (AW-STEF, labels: self-hosted, Windows, X64). Informational —
+  # NOT a required check, so an offline/cold runner can't block merges; `build`
+  # above stays the gate. setup-dotnet makes this self-sufficient (installs the
+  # SDK if absent). Promote to required only once it's proven stable.
+  build-selfhosted:
+
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 30
+    # Don't fail other jobs / the run's required status on self-hosted hiccups.
+    continue-on-error: true
 
     steps:
     - uses: actions/checkout@v4
