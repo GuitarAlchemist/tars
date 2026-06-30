@@ -89,56 +89,9 @@ jobs:
           REPO: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number }}
         run: |
-          ISSUE_DATA=$(gh issue view "$ISSUE" --repo "$REPO" --json title,body,labels)
-          TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
-          BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
-
-          # Extract skills from labels (skill:*) and body (agent_skills: YAML)
-          SKILLS_FROM_LABELS=$(echo "$ISSUE_DATA" | jq -r '.labels[].name' | grep '^skill:' | sed 's/^skill://' || true)
-          SKILLS_FROM_BODY=$(echo "$BODY" | grep "^agent_skills:" > /dev/null && echo "$BODY" | sed -n '/^agent_skills:/,/^[a-zA-Z0-9]/p' | head -n -1 | grep "^  - " | sed 's/^  - //' || true)
-          ALL_SKILLS=$(echo -e "${SKILLS_FROM_LABELS}\n${SKILLS_FROM_BODY}" | sed '/^$/d' | sort -u)
-
-          # Validate skills against allowlist in docs/agents/skills/*.skill.md
-          VALID_SKILLS=""
-          if [ -n "$ALL_SKILLS" ]; then
-            for skill in $ALL_SKILLS; do
-              # Strict regex validation to prevent path traversal
-              if [[ "$skill" =~ ^[a-z0-9-]+$ ]]; then
-                SKILL_FILE="docs/agents/skills/${skill}.skill.md"
-                if [ -f "$SKILL_FILE" ]; then
-                  VALID_SKILLS="${VALID_SKILLS}${skill}\n"
-                fi
-              fi
-            done
-          fi
-          VALID_SKILLS=$(echo -e "$VALID_SKILLS" | sed '/^$/d')
-
           {
             echo "text<<JULES_EOF"
-            echo "Implement GitHub issue #${ISSUE}: ${TITLE}"
-            echo ""
-            echo "$BODY"
-            echo ""
-
-            if [ -n "$VALID_SKILLS" ]; then
-              echo "The following repo-specific skills are declared for this task:"
-              for skill in $VALID_SKILLS; do
-                SKILL_FILE="docs/agents/skills/${skill}.skill.md"
-                echo "--- SKILL: $skill ---"
-                cat "$SKILL_FILE"
-                echo ""
-              done
-              echo ""
-            fi
-
-            echo "Project conventions (this repo is TARS, an F# system; the working directory is v2/, not the repo root):"
-            echo "- Follow CLAUDE.md and CONTEXT.md; read any relevant docs/adr/ before coding."
-            echo "- F# functional-first: immutable types, Result<> for errors."
-            echo "- LLM access always goes through LlmFactory.create(logger) — never instantiate DefaultLlmService directly."
-            echo "- Warnings are errors (TreatWarningsAsErrors); code must compile clean."
-            echo "- Tests live in tests/Tars.Tests/ (xUnit). Build and test from v2/: dotnet build && dotnet test."
-            echo ""
-            echo "Open a pull request targeting main with the change. Keep it minimal and scoped to the issue. Ensure the build and tests pass before opening the PR."
+            bash Scripts/build-jules-prompt.sh "$ISSUE" "$REPO"
             echo "JULES_EOF"
           } >> "$GITHUB_OUTPUT"
 
