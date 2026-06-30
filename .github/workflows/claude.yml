@@ -1,0 +1,41 @@
+name: Claude
+
+# Makes `@claude` mentions actionable. Unlike Jules and Codex (autonomous SaaS
+# apps that act on a label/comment by themselves), Claude's GitHub integration
+# only responds when this anthropics/claude-code-action workflow runs it. This is
+# what lets the AFK router's `worker:claude` path actually trigger Claude — the
+# router comments `@claude` (as the PAT owner) and this workflow does the work.
+#
+# Public-repo safety: gated to OWNER/MEMBER/COLLABORATOR, so a stranger commenting
+# `@claude` on a public issue cannot trigger Claude (and burn the API key). The
+# AFK router posts as the PAT owner (OWNER), so router-driven `@claude` passes.
+#
+# Requires the ANTHROPIC_API_KEY secret. Governance: the AFK halt-gate lives in
+# the router, which won't post `@claude` while halted; direct collaborator
+# `@claude` is a deliberate human action.
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  claude:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: |
+      contains(github.event.comment.body, '@claude') &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'COLLABORATOR')
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
