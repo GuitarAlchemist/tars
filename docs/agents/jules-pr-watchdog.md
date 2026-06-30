@@ -40,6 +40,14 @@ The watchdog reacts to the following GitHub events:
 4.  **Minimal Noise**: The watchdog should only comment on meaningful transitions (e.g., CI failure or state changes that require immediate human attention). It should prefer labels over comments for routine updates.
 5.  **Auditability**: All watchdog actions are performed by `github-actions[bot]`, providing a clear audit trail in the PR history.
 
+## Hygiene Alignment
+
+The watchdog enforces the [Cloud-Agent PR Hygiene Policy](./cloud-agent-pr-hygiene.md) by:
+*   Identifying potential duplicates via issue link analysis.
+*   Flagging PRs that modify out-of-scope files (e.g., documentation issues touching runtime code).
+
+See [jules-watchdog-state.example.json](./jules-watchdog-state.example.json) for a sample of how the watchdog tracks state.
+
 ## Reference Implementation
 
 Copy the following into `.github/workflows/jules-pr-watchdog.yml` to enable the watchdog.
@@ -125,7 +133,7 @@ jobs:
           for pr in $PRS; do
             echo "--- Evaluating PR #$pr ---"
 
-            DATA=$(gh pr view "$pr" --json author,labels,state,reviews,statusCheckRollup,updatedAt,body)
+            DATA=$(gh pr view "$pr" --json author,labels,state,reviews,statusCheckRollup,updatedAt,body,mergeable,files)
             if [ $? -ne 0 ]; then echo "Failed to fetch data for PR #$pr"; continue; fi
 
             AUTHOR=$(echo "$DATA" | jq -r '.author.login')
@@ -181,7 +189,14 @@ jobs:
               HAS_CHANGES_REQUESTED=true
             fi
 
-            # 4. Check for staleness
+            # 4. Check Mergeability
+            MERGEABLE=$(echo "$DATA" | jq -r '.mergeable')
+            HAS_CONFLICTS=false
+            if [ "$MERGEABLE" == "CONFLICTING" ]; then
+              HAS_CONFLICTS=true
+            fi
+
+            # 5. Check for staleness
             UPDATED_AT=$(echo "$DATA" | jq -r '.updatedAt')
             UPDATED_TS=$(date -d "$UPDATED_AT" +%s)
             NOW_TS=$(date +%s)
@@ -190,12 +205,28 @@ jobs:
               IS_STALE=true
             fi
 
+            # 6. Check for Out-of-Scope Files
+            # Example: Documentation-only parent issue touching code
+            IS_OUT_OF_SCOPE=false
+            if [ -n "$PARENT_ISSUE" ]; then
+               ISSUE_DATA=$(gh issue view "$PARENT_ISSUE" --json labels)
+               IS_DOCS_ISSUE=$(echo "$ISSUE_DATA" | jq -e '.labels[] | select(.name == "documentation" or .name == "docs")' > /dev/null && echo "true" || echo "false")
+               if [ "$IS_DOCS_ISSUE" == "true" ]; then
+                  TOUCHED_CODE=$(echo "$DATA" | jq -e '.files[] | select(.path | test("\\.(fs|cs|rs|js|ts)$"))' > /dev/null && echo "true" || echo "false")
+                  if [ "$TOUCHED_CODE" == "true" ]; then
+                    IS_OUT_OF_SCOPE=true
+                  fi
+               fi
+            fi
+
             # State Logic
             NEW_LABEL="jules-waiting"
             if [ "$IS_DUPLICATE" == "true" ]; then
               NEW_LABEL="duplicate-agent-pr"
             elif [ "$IS_STALE" == "true" ]; then
               NEW_LABEL="stale-jules-pr"
+            elif [ "$HAS_CONFLICTS" == "true" ] || [ "$IS_OUT_OF_SCOPE" == "true" ]; then
+              NEW_LABEL="needs-agent-revision"
             elif [ "$HAS_APPROVAL" == "true" ] && [ "$CI_PASSING" == "true" ]; then
               NEW_LABEL="ready-to-merge"
             elif [ "$HAS_CHANGES_REQUESTED" == "true" ] || [ "$CI_FAILING" == "true" ]; then
@@ -219,7 +250,11 @@ jobs:
               gh pr edit "$pr" --add-label "$NEW_LABEL"
 
               if [ "$NEW_LABEL" == "needs-agent-revision" ]; then
-                 if [ "$CI_FAILING" == "true" ]; then
+                 if [ "$HAS_CONFLICTS" == "true" ]; then
+                   gh pr comment "$pr" --body "🤖 Watchdog: PR has merge conflicts. Jules, please rebase and resolve."
+                 elif [ "$IS_OUT_OF_SCOPE" == "true" ]; then
+                   gh pr comment "$pr" --body "🤖 Watchdog: Out-of-scope files detected (docs issue touching code). Jules, please revert runtime changes."
+                 elif [ "$CI_FAILING" == "true" ]; then
                    gh pr comment "$pr" --body "🤖 Watchdog: CI failed on this PR. Jules, please review the logs and push a fix."
                  elif [ "$HAS_CHANGES_REQUESTED" == "true" ]; then
                    gh pr comment "$pr" --body "🤖 Watchdog: Changes were requested by a reviewer. Jules, please address the feedback."
