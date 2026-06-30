@@ -121,9 +121,10 @@ Two changes, both evidence-driven:
    a same-minute diagnostic ruled out quota.
 
 2. **Single workflow → multi-agent router** (`.github/workflows/afk-router.yml`,
-   replacing `jules-auto-delegate.yml`). `ready-for-agent` routes by label:
-   default **Jules** (`jules` label), `agent:codex` → **Codex** (`@codex`),
-   `agent:claude` → **Claude** (`@claude`). Every trigger is applied with a
+   replacing `jules-auto-delegate.yml`). `ready-for-agent` routes by the repo's
+   existing `worker:*` labels: default **Jules** (`jules` label), `worker:codex`
+   → **Codex** (`@codex`), `worker:claude` → **Claude** (`@claude`). Every
+   trigger is applied with a
    user-owned PAT (`AFK_AGENT_PAT`) because agents ignore bot-authored events
    (the original bot-label finding). Conventions reach agents via the repo's
    `AGENTS.md`/`CLAUDE.md` (read natively), so the synthesized prompt and

@@ -5,10 +5,12 @@ name: Auto-delegate to AFK agent
 # and open a PR. The PR still waits for human review before merge — agents open
 # PRs, they never merge to main, so review-gating holds by default.
 #
-# Routing (by label; default Jules):
+# Routing (by the repo's existing worker:* labels; default Jules):
 #   - default            -> Jules  : add the `jules` label
-#   - + `agent:codex`    -> Codex  : comment `@codex`
-#   - + `agent:claude`   -> Claude : comment `@claude`
+#   - + `worker:codex`   -> Codex  : comment `@codex`
+#   - + `worker:claude`  -> Claude : comment `@claude`
+# (worker:claude wins over worker:codex if both are present; worker:jules — or no
+#  worker:* label — falls through to the Jules default.)
 #
 # Why a user-owned PAT (AFK_AGENT_PAT): agents ignore trigger events authored by
 # a bot (github-actions[bot]) — proven for Jules (bot-applied `jules` label was
@@ -77,11 +79,12 @@ jobs:
             echo "proceed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # Route by label (default Jules). agent:claude wins over agent:codex if both.
+          # Route by the repo's worker:* labels (default Jules). worker:claude
+          # wins over worker:codex if both; worker:jules / none -> Jules default.
           LABELS=$(gh issue view "$ISSUE" --repo "$REPO" --json labels --jq '[.labels[].name]')
-          if echo "$LABELS" | grep -q '"agent:claude"'; then
+          if echo "$LABELS" | grep -q '"worker:claude"'; then
             AGENT=claude
-          elif echo "$LABELS" | grep -q '"agent:codex"'; then
+          elif echo "$LABELS" | grep -q '"worker:codex"'; then
             AGENT=codex
           else
             AGENT=jules
