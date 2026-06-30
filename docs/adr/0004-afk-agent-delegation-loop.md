@@ -108,3 +108,19 @@ Mirrors the Demerzel HALT-ALL marker. All fields optional except by convention:
   failing silently.
 - **Follow-up:** a resume-replay mechanism, and bringing the `@codex` comment
   path under the same marker if it is adopted for AFK use.
+
+## Update (2026-06-30) — reversal: API path out, PAT-applied label in
+
+The `jules-action` API trigger (chosen above) was validated at the *invoke*
+level but **does not deliver PRs**: its alpha sessions are created with
+`automationMode: AUTO_CREATE_PR` and then stall — verified twice (sessions
+`13222017034551546799`, `1381979756652838667`, no PR over 15–18 min). The
+**label trigger works reliably** the same day (#66 → ack 75s → PR #68 ~12 min);
+a same-minute diagnostic ruled out quota.
+
+**Decision reversed:** the workflow now applies the `jules` label using a
+user-owned PAT (`JULES_LABEL_PAT`, fine-grained, Issues: write). The label event
+is attributed to the PAT owner (a user), so Jules' reliable label→task→PR path
+fires — solving the original bot-label problem without the unreliable API.
+Conventions reach Jules via the repo's `AGENTS.md`/`CLAUDE.md` (read natively),
+so the synthesized prompt (and `JULES_API_KEY`) are dropped.

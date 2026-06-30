@@ -1,15 +1,21 @@
 name: Auto-delegate to Jules
 
 # Review-gated AFK automation. When a maintainer triages an issue with the
-# `ready-for-agent` label, this invokes Google Jules (via the official
-# jules-action + Jules API) to work the issue and open a PR. The PR still waits
-# for human review before merge — Jules opens PRs, it never merges to main, so
-# review-gating holds by default.
+# `ready-for-agent` label, this triggers Google Jules to work the issue and open
+# a PR. The PR still waits for human review before merge — Jules opens PRs, it
+# never merges to main, so review-gating holds by default.
 #
-# Why the API, not the `jules` label: Jules ignores label events applied by a
-# bot (github-actions[bot]). A workflow adding the `jules` label therefore never
-# triggers Jules — verified on issue #58 (bot-applied label: no response;
-# user-applied: picked up in ~75s). So we invoke Jules directly via the API.
+# Trigger mechanism — PAT-applied `jules` label (NOT the jules-action API):
+#   - Jules ignores label events authored by a bot (github-actions[bot]), so a
+#     workflow adding the `jules` label with github.token silently dead-ends.
+#   - The jules-action API path was tried (PR #59) but its alpha sessions are
+#     created yet never deliver a PR (verified: sessions 13222017034551546799,
+#     1381979756652838667 both stalled with no PR over 15–18 min).
+#   - The label path applied by a *user* works reliably and fast (verified the
+#     same day: #66 → ack 75s → PR #68 in ~12 min).
+#   So we apply the `jules` label using a user-owned PAT (JULES_LABEL_PAT): the
+#   label event is attributed to the PAT owner (a user), and Jules' reliable
+#   label→task→PR path fires. See docs/adr/0004-afk-agent-delegation-loop.md.
 #
 # Security: GitHub only lets users with write/triage access apply labels, so
 # applying `ready-for-agent` is collaborator-gated even though this repo is
@@ -22,9 +28,9 @@ name: Auto-delegate to Jules
 # paused (the `ready-for-agent` label is kept, and the issue gets a comment).
 # Absent => the loop runs. See docs/adr/0004-afk-agent-delegation-loop.md.
 #
-# Requires the JULES_API_KEY secret (generate at jules.google). Takes effect
-# only once this file is on the default branch (main); `issues` events always
-# run the workflow version from the default branch.
+# Requires the JULES_LABEL_PAT secret: a fine-grained PAT with Issues: write on
+# this repo. Takes effect only once this file is on the default branch (main);
+# `issues` events always run the workflow version from the default branch.
 
 on:
   issues:
@@ -37,7 +43,7 @@ permissions:
 jobs:
   delegate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     if: ${{ github.event.label.name == 'ready-for-agent' }}
     steps:
       - name: Checkout (read the governance halt marker)
@@ -49,7 +55,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number }}
-          HAS_KEY: ${{ secrets.JULES_API_KEY != '' }}
+          HAS_PAT: ${{ secrets.JULES_LABEL_PAT != '' }}
         run: |
           MARKER="governance/state/afk-halt.json"
           if [ -f "$MARKER" ]; then
@@ -73,45 +79,20 @@ jobs:
               exit 0
             fi
           fi
-          if [ "$HAS_KEY" != "true" ]; then
-            gh issue comment "$ISSUE" --repo "$REPO" --body "⚠️ AFK delegation is configured but the \`JULES_API_KEY\` secret is not set, so Jules was not invoked. Add the secret (Settings → Secrets and variables → Actions) and re-apply the \`ready-for-agent\` label."
-            echo "::warning::JULES_API_KEY not configured — skipping issue #${ISSUE}"
+          if [ "$HAS_PAT" != "true" ]; then
+            gh issue comment "$ISSUE" --repo "$REPO" --body "⚠️ AFK delegation is configured but the \`JULES_LABEL_PAT\` secret is not set, so Jules was not triggered. Add a fine-grained PAT with Issues: write as \`JULES_LABEL_PAT\` and re-apply the \`ready-for-agent\` label."
+            echo "::warning::JULES_LABEL_PAT not configured — skipping issue #${ISSUE}"
             echo "proceed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "proceed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Build Jules prompt from the issue
+      - name: Delegate to Jules (apply `jules` label via PAT, so Jules sees a user-attributed event)
         if: steps.gate.outputs.proceed == 'true'
-        id: prompt
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.JULES_LABEL_PAT }}
           REPO: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number }}
         run: |
-          TITLE=$(gh issue view "$ISSUE" --repo "$REPO" --json title --jq '.title')
-          BODY=$(gh issue view "$ISSUE" --repo "$REPO" --json body --jq '.body')
-          {
-            echo "text<<JULES_EOF"
-            echo "Implement GitHub issue #${ISSUE}: ${TITLE}"
-            echo ""
-            echo "$BODY"
-            echo ""
-            echo "Project conventions (this repo is TARS, an F# system; the working directory is v2/, not the repo root):"
-            echo "- Follow CLAUDE.md and CONTEXT.md; read any relevant docs/adr/ before coding."
-            echo "- F# functional-first: immutable types, Result<> for errors."
-            echo "- LLM access always goes through LlmFactory.create(logger) — never instantiate DefaultLlmService directly."
-            echo "- Warnings are errors (TreatWarningsAsErrors); code must compile clean."
-            echo "- Tests live in tests/Tars.Tests/ (xUnit). Build and test from v2/: dotnet build && dotnet test."
-            echo ""
-            echo "Open a pull request targeting main with the change. Keep it minimal and scoped to the issue. Ensure the build and tests pass before opening the PR."
-            echo "JULES_EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Delegate to Jules
-        if: steps.gate.outputs.proceed == 'true'
-        uses: google-labs-code/jules-action@v1.0.0
-        with:
-          prompt: ${{ steps.prompt.outputs.text }}
-          jules_api_key: ${{ secrets.JULES_API_KEY }}
-          starting_branch: main
+          gh issue edit "$ISSUE" --repo "$REPO" --add-label jules
+          echo "Delegated issue #${ISSUE} to Jules via the \`jules\` label (PAT-attributed)."
