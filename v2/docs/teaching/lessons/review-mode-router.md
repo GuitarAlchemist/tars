@@ -7,7 +7,7 @@ lesson_id: "teach-review-mode-router-001"
 concept_id: "review-mode-router"
 concept_name: "Review Mode Router"
 level: intermediate
-source_artifacts: ["docs/triage/methodology-guard-triage-reasoning.md", "v2/examples/teaching/sessions/teach-anti-rubber-stamp-001.md"]
+source_artifacts: ["v2/examples/teaching/sessions/teach-anti-rubber-stamp-001.md"]
 prerequisites: ["anti-rubber-stamp-review"]
 next_concepts: ["verification-horizon", "goodhart-risk"]
 ```
