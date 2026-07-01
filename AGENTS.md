@@ -31,6 +31,25 @@ Risk policy: [`agent-blackbox.policy.json`](./agent-blackbox.policy.json) (risk 
 
 The PR workflow at [`.github/workflows/agent-blackbox.yml`](./.github/workflows/agent-blackbox.yml) runs `analyze`, emits a risk report + harness audit + response-quality report, comments them on the PR, uploads artifacts, and calls `enforce --report` to fail PRs whose verdict is `block` unless the `agent-blackbox-reviewed` label has been applied by a human reviewer.
 
+## Repo-readable skill library
+
+AFK / cloud agents working from a GitHub issue use the repo-readable skills under
+[`docs/agents/skills/`](./docs/agents/skills/) (see its `README.md`). Of note for
+architecture work:
+
+- **Anti-Ball-of-Mud** ([`docs/agents/skills/anti-ball-of-mud.skill.md`](./docs/agents/skills/anti-ball-of-mud.skill.md)).
+  Invoke **before** feature/refactor work, or **whenever** an in-flight AFK task
+  shows architecture friction — touching many unrelated files, growing an
+  already-large module, duplicating a contract or scoring rule (especially one
+  that belongs in `ix`), threading a provider/LLM/network/FS call into core
+  runtime, or expressing a Demerzel rule as a local `if`. It detects entropy,
+  names **one** seam, keeps the change inside the rewrite budget, and **stops +
+  escalates** to human/Demerzel review when the decision is architectural. Use
+  the user-invoked `/anti-ball-of-mud` when a human asks for the scan; the
+  model-invoked `anti-ball-of-mud-guard` fires automatically as a backpressure
+  guard. It never rewrites code AFK — its deliverable is a report + one
+  human-gated PR.
+
 ## Review independence
 
 The loop is allowed to *propose* but not *self-certify*. Independence is enforced by four mechanisms — each one rated separately by `install-audit`:

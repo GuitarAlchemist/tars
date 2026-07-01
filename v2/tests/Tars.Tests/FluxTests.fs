@@ -99,7 +99,7 @@ type FluxTests() =
             // Parallel: delay * 2 + overhead
 
             let elapsed = sw.ElapsedMilliseconds
-            let expectedMax = (int64 delay * 2L) + 2500L // increased buffer to reduce flakiness in CI
+            let expectedMax = (int64 delay * 2L) + 1500L // buffer to reduce flakiness in CI
             let expectedMin = (int64 delay * 2L) - 200L
 
             Assert.True(elapsed < expectedMax, $"Execution took {elapsed}ms, expected < {expectedMax}ms (Parallel)")

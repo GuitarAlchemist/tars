@@ -9,6 +9,7 @@ Cloud agents cannot access local TARS skills or local MCP state. However, they c
 - **Docs-Only Contract** (`docs-only-contract.skill.md`): Used for documentation-only updates, enforcing that no runtime behavior is changed.
 - **Evidence Bundle** (`evidence-bundle.skill.md`): Used for grounding claims and design decisions in explicitly referenced source material.
 - **Governed Delegation** (`governed-delegation.skill.md`): Used for navigating the Demerzel governance constraints and respecting AFK halt markers.
+- **Anti-Ball-of-Mud** (`anti-ball-of-mud.skill.md`): Detect architecture entropy before/within feature or refactor work, name **one** seam, keep the PR reviewable, and escalate architectural decisions to human/Demerzel review. TARS-native port of `mattpocock/skills`. Has a user-invoked mode (`/anti-ball-of-mud`) and a model-invoked guard (`anti-ball-of-mud-guard`). Supporting docs: `codebase-design-vocabulary.md`, `entropy-signal-catalog.md`, `matt-pocock-skills-mapping.md`. Example invocation + expected output under `examples/agents/anti-ball-of-mud*`.
 
 ## Usage
 

@@ -14,6 +14,7 @@ if [ -z "$ISSUE_NUMBER" ] || [ -z "$REPO" ]; then
 fi
 
 # Fetch issue data via GH CLI
+# Note: In GHA environment, GH_TOKEN must be set.
 ISSUE_DATA=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title,body,labels)
 TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
 BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
@@ -36,17 +37,18 @@ ALL_SKILLS=$(echo -e "${SKILLS_FROM_LABELS}\n${SKILLS_FROM_BODY}" | sed '/^$/d' 
 # 3. Validate against allowlist (docs/agents/skills/*.skill.md)
 VALID_SKILLS=""
 if [ -n "$ALL_SKILLS" ]; then
-  for skill in $ALL_SKILLS; do
+  while read -r skill; do
+    [ -z "$skill" ] && continue
     # Strict alphanumeric + hyphen check (prevents path traversal)
     if [[ "$skill" =~ ^[a-z0-9-]+$ ]]; then
       SKILL_FILE="docs/agents/skills/${skill}.skill.md"
       if [ -f "$SKILL_FILE" ]; then
-        VALID_SKILLS="${VALID_SKILLS}${skill}\n"
+        VALID_SKILLS="${VALID_SKILLS}${skill}"$'\n'
       fi
     fi
-  done
+  done <<< "$ALL_SKILLS"
 fi
-VALID_SKILLS=$(echo -e "$VALID_SKILLS" | sed '/^$/d')
+VALID_SKILLS=$(echo "$VALID_SKILLS" | sed '/^$/d')
 
 # 4. Build the final prompt
 echo "Implement GitHub issue #${ISSUE_NUMBER}: ${TITLE}"
@@ -56,12 +58,13 @@ echo ""
 
 if [ -n "$VALID_SKILLS" ]; then
   echo "The following repo-specific skills are declared for this task:"
-  for skill in $VALID_SKILLS; do
+  while read -r skill; do
+    [ -z "$skill" ] && continue
     SKILL_FILE="docs/agents/skills/${skill}.skill.md"
     echo "--- SKILL: $skill ---"
     cat "$SKILL_FILE"
     echo ""
-  done
+  done <<< "$VALID_SKILLS"
   echo ""
 fi
 
