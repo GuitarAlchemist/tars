@@ -1,9 +1,39 @@
 {
-  "issue_title": "[Task] Update documentation for second-brain synthesis",
-  "issue_labels": [
-    "ready-for-agent",
-    "skill:docs-only-contract",
-    "skill:evidence-bundle"
-  ],
-  "issue_body": "This task requires updating the documentation for the second-brain synthesis pipeline.\n\nissue_meta:\n  level: task\n  priority: P2\nagent_skills:\n  - docs-only-contract\n  - evidence-bundle\n\nPlease ensure all claims are grounded in source material."
+  "scenario": "Agent evaluates issue #114 to determine which skills to apply based on issue_meta.",
+  "issue_meta": {
+    "level": "task",
+    "area": "runtime",
+    "priority": "P0",
+    "afk": {
+      "readiness": "ready",
+      "max_autonomy": "pr",
+      "reason": "documentation-only cloud-agent skill library; no runtime behavior change"
+    },
+    "evidence_required": [
+      "skill_library_docs",
+      "skill_selection_example",
+      "governance_notes"
+    ]
+  },
+  "skill_selection": {
+    "docs-only-contract": {
+      "selected": true,
+      "reason": "The issue reason explicitly states 'documentation-only cloud-agent skill library; no runtime behavior change'."
+    },
+    "governed-delegation": {
+      "selected": true,
+      "reason": "The issue is delegated for AFK processing and specifies 'max_autonomy: pr'. Governance constraints must be respected."
+    },
+    "evidence-bundle": {
+      "selected": false,
+      "reason": "Although evidence is required ('evidence_required' block), this specific task does not require formal source-grounded research digests or second-brain schema compliance. However, the PR body must provide the requested evidence items."
+    }
+  },
+  "execution_plan": [
+    "Verify afk-halt.json is inactive (Governed Delegation).",
+    "Create docs/agents/skills/ README and skill files (Docs-Only Contract).",
+    "Create this skill selection example.",
+    "Verify no F# files are modified.",
+    "Open PR with a checklist of created docs, confirmation of no runtime changes, and evidence of governance check."
+  ]
 }
