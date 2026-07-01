@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AFK Live Agent Board (Example Static Render)</title>
+    <style>
+        /* Embedded CSS for the standalone example file to match the styling requirements */
+        :root {
+            --bg-color: #f6f8fa;
+            --text-color: #24292f;
+            --border-color: #d0d7de;
+            --card-bg: #ffffff;
+            --column-bg: #ebecf0;
+            --link-color: #0969da;
+
+            --risk-low: #2da44e;
+            --risk-medium: #bf8700;
+            --risk-high: #cf222e;
+
+            --tag-bg: #ddf4ff;
+            --tag-text: #0969da;
+
+            --alert-bg: #fff8c5;
+            --alert-text: #9a6700;
+            --alert-border: #d4a72c;
+
+            --error-bg: #ffebe9;
+            --error-text: #cf222e;
+            --error-border: #ff8182;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; line-height: 1.5; }
+        header { margin-bottom: 24px; }
+        h1 { margin-top: 0; margin-bottom: 8px; font-size: 24px; }
+        .summary { display: flex; gap: 16px; margin-bottom: 8px; font-weight: 600; }
+        .summary-item { background: var(--card-bg); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; }
+        .board { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px; min-height: calc(100vh - 150px); }
+        .column { background-color: var(--column-bg); border-radius: 6px; min-width: 300px; max-width: 300px; display: flex; flex-direction: column; }
+        .column h2 { font-size: 14px; padding: 12px; margin: 0; border-bottom: 1px solid var(--border-color); font-weight: 600; }
+        .cards { padding: 12px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex-grow: 1; }
+        .card { background-color: var(--card-bg); border-radius: 6px; border: 1px solid var(--border-color); padding: 12px; box-shadow: 0 1px 2px rgba(27, 31, 36, 0.04); font-size: 13px; }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .card-title { font-weight: 600; margin: 0; font-size: 14px; }
+        .card-title a { color: var(--text-color); text-decoration: none; }
+        .card-title a:hover { color: var(--link-color); text-decoration: underline; }
+        .card-meta { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+        .tag { background-color: var(--tag-bg); color: var(--tag-text); padding: 2px 6px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .risk-low { border-left: 3px solid var(--risk-low); }
+        .risk-medium { border-left: 3px solid var(--risk-medium); }
+        .risk-high { border-left: 3px solid var(--risk-high); }
+        .card-body { margin-bottom: 8px; color: #57606a; }
+        .card-body strong { color: var(--text-color); }
+        .card-links { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+        .card-links a { color: var(--link-color); text-decoration: none; }
+        .card-links a:hover { text-decoration: underline; }
+        .marker-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+        .marker { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .marker-warning { background-color: var(--alert-bg); color: var(--alert-text); border: 1px solid var(--alert-border); }
+        .marker-error { background-color: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); }
+        .empty-state { color: #57606a; font-style: italic; text-align: center; padding: 20px 0; }
+        .notice { background: #ddf4ff; border: 1px solid #54aeff; padding: 10px; margin-bottom: 20px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <div class="notice">
+        <strong>Example File:</strong> This is a static example of the dashboard layout to satisfy the evidence requirement. The actual dashboard dynamically fetches data via JS and is located at <code>docs/agents/live/html/index.html</code>.
+    </div>
+
+    <header>
+        <h1>AFK Live Agent Board</h1>
+        <div class="summary">
+            <div class="summary-item">Total: 3</div>
+            <div class="summary-item">Needs Review: 1</div>
+            <div class="summary-item">Blocked: 0</div>
+            <div class="summary-item">CI Failing: 1</div>
+            <div class="summary-item">Stale: 0</div>
+        </div>
+    </header>
+
+    <main class="board">
+        <div class="column">
+            <h2>Needs Revision</h2>
+            <div class="cards">
+                <div class="card risk-medium">
+                    <div class="card-header">
+                        <h3 class="card-title"><a href="#">#115 Inject declared cloud-agent skills into Jules prompt</a></h3>
+                    </div>
+                    <div class="card-meta">
+                        <span class="tag">Agent: Jules</span>
+                        <span class="tag risk-medium">Risk: medium</span>
+                    </div>
+                    <div class="marker-container">
+                        <div class="marker marker-error">❌ CI Failing</div>
+                    </div>
+                    <div class="card-body">
+                        <div><strong>Last signal:</strong> 2026-06-28T13:02:41Z</div>
+                        <div><strong>Next action:</strong> Fix skill path to &lt;skill&gt;.skill.md</div>
+                    </div>
+                    <div class="card-links">
+                        <a href="#">Issue #115</a> | <a href="#">PR #129</a> | <span>Evidence: <span>review comment</span> &middot; <span>changed files</span> &middot; <span>CI status</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="column">
+            <h2>PR Open</h2>
+            <div class="cards">
+                <div class="card risk-low">
+                    <div class="card-header">
+                        <h3 class="card-title"><a href="#">#136 Define AFK JSON/JSONL state artifacts</a></h3>
+                    </div>
+                    <div class="card-meta">
+                        <span class="tag">Agent: Codex</span>
+                        <span class="tag risk-low">Risk: low</span>
+                    </div>
+                    <div class="marker-container">
+                        <div class="marker marker-warning">👀 Needs Human Review</div>
+                    </div>
+                    <div class="card-body">
+                        <div><strong>Last signal:</strong> 2026-06-28T14:10:00Z</div>
+                        <div><strong>Next action:</strong> Wait for review</div>
+                    </div>
+                    <div class="card-links">
+                        <a href="#">Issue #136</a> | <a href="#">PR #140</a> | <span>Evidence: <span>PR open</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="column">
+            <h2>Agent Working</h2>
+            <div class="cards">
+                <div class="card risk-high">
+                    <div class="card-header">
+                        <h3 class="card-title"><a href="#">#132 Fix agent memory leak in test suite</a></h3>
+                    </div>
+                    <div class="card-meta">
+                        <span class="tag">Agent: Claude</span>
+                        <span class="tag risk-high">Risk: high</span>
+                    </div>
+                    <div class="card-body">
+                        <div><strong>Last signal:</strong> 2026-06-28T14:15:00Z</div>
+                        <div><strong>Next action:</strong> Run tests locally</div>
+                    </div>
+                    <div class="card-links">
+                        <a href="#">Issue #132</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="column">
+            <h2>Done</h2>
+            <div class="cards">
+                <div class="empty-state">No work in this state</div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
