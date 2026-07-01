@@ -1,0 +1,6 @@
+{
+  "halt": true,
+  "reason": "Emergency maintenance of CI infrastructure.",
+  "at": "2026-06-28T14:00:00Z",
+  "by": "human-admin"
+}

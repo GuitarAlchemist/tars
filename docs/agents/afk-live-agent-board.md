@@ -13,13 +13,18 @@ This layer allows humans and agents to observe state transitions across multiple
 
 ## Artifacts
 
-### 1. `afk-runs.json`
+### 1. `afk-runs.json` (Index)
 
 This file serves as the index of all currently tracked AFK runs.
 
 **Location:** `governance/agents/live/afk-runs.json`
 
-**Shape:**
+**Schema:**
+- `version` (string): Schema version.
+- `last_updated` (ISO8601 string): Last time the index was updated.
+- `active_runs` (array of strings): List of active run IDs.
+
+**Sample:**
 
 ```json
 {
@@ -37,7 +42,21 @@ Each active or recent AFK unit is represented as a distinct run.
 
 **Location:** `governance/agents/live/runs/<run-id>.json`
 
-**Shape:**
+**Schema:**
+- `run_id` (string): Unique identifier for the run.
+- `repo` (string): Repository name (e.g., `GuitarAlchemist/tars`).
+- `issue` (integer): Issue number.
+- `agent` (string): Name of the agent assigned (e.g., `jules`, `codex`).
+- `pr` (integer, optional): Pull request number.
+- `state` (string): Current state from the vocabulary.
+- `risk` (string): Risk level (`low`, `medium`, `high`).
+- `last_signal_at` (ISO8601 string): Last observed activity.
+- `summary` (string): Brief human-readable status.
+- `evidence` (array of objects): Links to reviews, comments, or CI results.
+- `next_action` (string): What is expected to happen next.
+- `stop_condition` (string): Conditions under which the run must halt.
+
+**Sample:**
 
 ```json
 {
@@ -68,7 +87,18 @@ An append-only event log tracking state transitions for observability and watchd
 
 **Location:** `governance/agents/live/events/<yyyy-mm-dd>.jsonl`
 
-**Shape:**
+**Format:** JSON Lines (JSONL).
+
+**Schema per line:**
+- `ts` (ISO8601 string): Timestamp of the event.
+- `repo` (string): Repository name.
+- `issue` (integer): Issue number.
+- `agent` (string): Who triggered the event (`jules`, `human`, `system`).
+- `event` (string): Event type (e.g., `pr_opened`, `review_requested_changes`).
+- `pr` (integer, optional): Related PR number.
+- `state` (string): New state after the event.
+
+**Sample:**
 
 ```jsonl
 {"ts":"2026-06-28T06:17:57Z","repo":"GuitarAlchemist/tars","issue":115,"agent":"jules","event":"pr_opened","pr":129,"state":"pr-opened"}
@@ -100,5 +130,14 @@ To ensure the safety of parallel AFK work, the following constraints strictly go
 2. **No Auto-Merge:** The state layer tracks merge readiness but must **never** auto-merge PRs.
 3. **No Bypass of Human/Demerzel Review:** The board reflects governance gates; it cannot override them.
 4. **Halt Marker Enforcement:** Writing to or progressing states must respect `governance/state/afk-halt.json`. If a halt marker is present, auto-delegation and agent-driven transitions must pause.
+   - **Sample Halt Marker (`governance/state/afk-halt.json`):**
+     ```json
+     {
+       "halt": true,
+       "reason": "Emergency maintenance of CI infrastructure.",
+       "at": "2026-06-28T14:00:00Z",
+       "by": "human-admin"
+     }
+     ```
 5. **Deterministic Event Writes:** Keep event writes low-noise. Only record meaningful state transitions such as CI failures or reviews, not internal agent monologues.
 6. **Reviewable Artifacts:** All generated state artifacts (`.json`, `.jsonl`) must be easily reviewable in a PR.
