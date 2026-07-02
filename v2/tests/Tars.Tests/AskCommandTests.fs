@@ -40,11 +40,18 @@ type private StubTools() =
         member _.Get(_) = None
         member _.GetAll() = []
 
+type private StubSkills() =
+    interface ISkillRegistry with
+        member _.GetSkill(_) = None
+        member _.GetSkillsByDomain(_) = []
+        member _.GetAllSkills() = []
+
 /// Test runtime: stub LLM + stub tools, real config defaults.
 let private stubRuntime (llm: ILlmService) : ITarsRuntime =
     { new ITarsRuntime with
         member _.Config = ConfigurationLoader.load ()
         member _.Tools = StubTools() :> IToolRegistry
+        member _.Skills = StubSkills() :> ISkillRegistry
         member _.Llm _ = llm }
 
 [<Fact>]
