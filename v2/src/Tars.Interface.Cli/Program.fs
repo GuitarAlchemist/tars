@@ -218,7 +218,7 @@ let main argv =
 
     task {
         match argv with
-        | [| "ask"; prompt |] -> return! Ask.run logger prompt
+        | [| "ask"; prompt |] -> return! Ask.run (TarsRuntime.production logger) prompt
         | [| "guard-output"; path |] ->
             // Defaults: no required fields, citations not required, extra fields not allowed
             return GuardOutputCommand.run config path None false false
@@ -259,6 +259,14 @@ let main argv =
             | _ ->
                 printfn $"Invalid turn count: %s{n}"
                 return 1
+
+        // Cross-repo showcase (TARS ⇄ ix ⇄ GA)
+        | args when args.Length > 1 && args.[0] = "demo" && args.[1] = "cross-repo" ->
+            return! CrossRepoDemo.run logger (args |> Array.skip 2)
+
+        // Self-train: verified solutions -> SFT dataset (level-4 loop)
+        | args when args.Length > 0 && args.[0] = "self-train" ->
+            return! SelfTrainCommand.run logger (args |> Array.skip 1 |> Array.toList)
 
         // Benchmark
         | args when args.Length > 1 && args.[0] = "benchmark" && args.[1] = "code" ->
@@ -323,7 +331,9 @@ let main argv =
                   Focus = None
                   ResearchEnhanced = false
                   SelfImprovement = false
-                  Benchmark = false }
+                  Benchmark = false
+                  BenchmarkDomain = "code"
+                  GrammarMesh = false }
 
             let mutable i = 1
 
@@ -368,6 +378,10 @@ let main argv =
                 | "--research" -> options <- { options with ResearchEnhanced = true }
                 | "--self-improve" -> options <- { options with SelfImprovement = true }
                 | "--benchmark" -> options <- { options with Benchmark = true }
+                | "--grammar-mesh" -> options <- { options with GrammarMesh = true }
+                | "--benchmark-domain" when i + 1 < args.Length ->
+                    i <- i + 1
+                    options <- { options with BenchmarkDomain = args.[i] }
                 | "--loop" when i + 1 < args.Length ->
                     i <- i + 1
                     let mutable parsedVal = 0
@@ -387,6 +401,8 @@ let main argv =
 
             return! Evolve.run logger options
         | [| "experiment" |] -> return! Experiment.run logger
+        | args when args.Length > 0 && args.[0] = "self-improve" ->
+            return SelfImprove.run logger (args |> Array.skip 1)
         | args when args.Length > 0 && args.[0] = "run" ->
             if args.Length < 2 then
                 printfn "Usage: tars run <workflow.json> [--optimize]"
@@ -458,6 +474,8 @@ let main argv =
         | args when args.Length > 0 && args.[0] = "mcp" ->
             if args.Length > 1 && args.[1] = "server" then
                 return! McpServerCommand.run logger args
+            elif args.Length > 1 && args.[1] = "list" then
+                return! McpCommand.list ()
             else
                 let cmd = if args.Length > 1 then args.[1] else "help"
                 let arg = if args.Length > 2 then args.[2] else ""
@@ -566,6 +584,7 @@ let main argv =
             printfn "  tars test-grammar <file>         Parse a grammar file"
             printfn "  tars memory-add <coll> <id> <text> Add text to vector memory"
             printfn "  tars memory-search <coll> <text> Search vector memory"
+            printfn "  tars demo cross-repo [--with-llm] [--model M]  Showcase TARS <-> ix <-> GA integration"
             printfn "  tars demo-ping                   Run a demo ping agent"
             printfn "  tars diag [--verbose|--full]     Run system diagnostics (--full for all checks)"
 
@@ -617,6 +636,8 @@ let main argv =
             printfn "       status <id>                 Show project status"
             printfn "       run <id>                    Run project pipeline"
             printfn "       demo <id> [-f format]       Generate demo output"
+            printfn "  tars mcp list                    List configured MCP federation backends"
+            printfn "  tars mcp server                  Run TARS as an MCP server (federates configured backends)"
             printfn "  tars skill [command]             Manage MCP skills"
             printfn "       list                        List installed skills"
             printfn "       catalog                     Show available skills"

@@ -17,24 +17,8 @@ open Tars.Cortex.WoTTypes
 
 module WotCommand =
 
-    // Invoker implementation
-    type private CliToolInvoker(registry: ToolRegistry) =
-        interface IToolInvoker with
-            member _.Invoke(toolName: string, args: Map<string, string>) =
-                async {
-                    match registry.Get(toolName) with
-                    | None -> return Result.Error $"Tool '{toolName}' not found in registry."
-                    | Some tool ->
-                        try
-                            let json = System.Text.Json.JsonSerializer.Serialize(args)
-                            let! res = tool.Execute json
-
-                            match res with
-                            | Result.Ok(output: string) -> return Result.Ok(output :> obj)
-                            | Result.Error(err: string) -> return Result.Error err
-                        with ex ->
-                            return Result.Error $"Tool execution failed: {ex.Message}"
-                }
+    // Tool invocation goes through Tars.Tools.ToolInvoker, which owns resilience
+    // (circuit breaker + recording) and surfaces typed ToolOutcomes.
 
     // =========================================================================
     // Bridge: DSL Plan -> Cortex WoTPlan
@@ -336,7 +320,7 @@ module WotCommand =
                                 )
                             )
 
-                        let invoker = CliToolInvoker(tools)
+                        let invoker = Tars.Tools.ToolInvoker.create tools
 
                         let inputs =
                             plan.Inputs |> Map.toList |> List.map (fun (k, v) -> k, v) |> Map.ofList
@@ -428,6 +412,7 @@ module WotCommand =
                                             execPolicy
                                             inputs
                                             plan.Steps
+                                            (SymbolicMemorySink())
                                 with ex ->
                                     return Result.Error(ex.Message, [])
                             }
@@ -1098,7 +1083,7 @@ module WotCommand =
                                     )
                                 )
 
-                            let invoker = CliToolInvoker(tools)
+                            let invoker = Tars.Tools.ToolInvoker.create tools
 
                             AnsiConsole.MarkupLine("[bold]Executing Steps...[/]")
 
@@ -1175,6 +1160,7 @@ module WotCommand =
                                                 execPolicy
                                                 inputs
                                                 plan.Steps
+                                                (SymbolicMemorySink())
                                     with ex ->
                                         return Result.Error(ex.Message, [])
                                 }

@@ -271,7 +271,7 @@ module Patterns =
                                                 allWarnings
                                                 @ [ PartialFailure.Warning $"SafetyGate preview logged for {action}" ]
 
-                                        let! result = tool.Execute actionInput
+                                        let! result = Tars.Core.ToolExecution.runDefault tool actionInput
 
                                         match result with
                                         | Result.Ok output ->
@@ -2080,7 +2080,7 @@ Output ONLY the synthesized solution."""
                                                         match tryConsumeCall ctx "[WoT] tool execution" with
                                                         | false -> return None
                                                         | true ->
-                                                            let! result = tool.Execute input
+                                                            let! result = Tars.Core.ToolExecution.runDefault tool input
 
                                                             match result with
                                                             | Result.Ok output ->

@@ -7,7 +7,8 @@ module ProblemBank =
     let private mkProblem id title desc diff cat sig_ hints timeout validation =
         { Id = id; Title = title; Description = desc; Difficulty = diff
           Category = cat; ExpectedSignature = sig_; Hints = hints
-          TimeLimitSeconds = timeout; ValidationCode = validation }
+          TimeLimitSeconds = timeout; ValidationCode = validation
+          PerfHarness = None; Properties = None }
 
     // =========================================================================
     // Basic
@@ -141,9 +142,46 @@ module ProblemBank =
     // Public API
     // =========================================================================
 
+    // =========================================================================
+    // Performance-rewarded problems (correctness gate + speed reward)
+    // =========================================================================
+
+    /// Problems that carry a PerfHarness: a validated solution is additionally
+    /// timed over a representative workload, giving the loop a continuous speed
+    /// gradient (not just PASS/FAIL). A naive correct impl and a fast one both
+    /// validate — but rank differently on ExecutionNs.
+    let private sumSquaresHarness =
+        "let __input = Array.init 1000000 (fun i -> float (i % 100))\n"
+        + "for _ in 1..3 do sumSquares __input |> ignore\n"            // warmup (JIT + caches)
+        + "let __times = System.Collections.Generic.List<float>()\n"
+        + "for _ in 1..15 do\n"
+        + "    let __sw = System.Diagnostics.Stopwatch.StartNew()\n"
+        + "    sumSquares __input |> ignore\n"
+        + "    __sw.Stop()\n"
+        + "    __times.Add __sw.Elapsed.TotalMilliseconds\n"
+        + "let __sorted = __times |> Seq.sort |> Seq.toArray\n"
+        + "let __median = __sorted.[__sorted.Length / 2]\n"            // median resists jitter
+        + "printfn \"ELAPSED_NS: %d\" (int64 (__median * 1_000_000.0))\n"
+
+    let private perfProblems =
+        let sumSquaresValidation =
+            "let mutable passed = true\n"
+            + "let check (xs: float[]) exp =\n"
+            + "    let got = sumSquares xs\n"
+            + "    if abs (got - exp) > 1e-6 then printfn \"FAIL: sumSquares %A = %f, expected %f\" xs got exp; passed <- false\n"
+            + "check [|1.0;2.0;3.0|] 14.0\ncheck [||] 0.0\ncheck [|2.0|] 4.0\ncheck [|-3.0;4.0|] 25.0\n"
+            + "if passed then printfn \"PASS\"\n"
+        let baseProblem =
+            mkProblem "inter-perf-sum-squares" "Sum of Squares (timed)"
+                "Write a function that returns the sum of the squares of all elements in a float array. It must be correct AND fast: prefer a single pass with no intermediate allocations."
+                Intermediate Algorithms "let sumSquares (xs: float[]) : float"
+                ["Fold once: Array.fold (fun acc x -> acc + x*x) 0.0 — avoid Array.map (it allocates a second array)."] 45
+                sumSquaresValidation
+        [ { baseProblem with PerfHarness = Some sumSquaresHarness } ]
+
     /// All curated benchmark problems.
     let all () : BenchmarkProblem list =
-        basicProblems @ intermediateProblems @ advancedProblems @ expertProblems
+        basicProblems @ intermediateProblems @ advancedProblems @ expertProblems @ perfProblems
 
     /// Filter by difficulty.
     let byDifficulty (d: ProblemDifficulty) : BenchmarkProblem list =

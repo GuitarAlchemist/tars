@@ -6,55 +6,50 @@ namespace Tars.Evolution
 module MctsBridge =
 
     open System
-    open System.IO
     open System.Text.Json
+    open System.Text.RegularExpressions
     open MctsTypes
 
-    /// Result from ix MCTS search
+    /// Result from ix's `grammar.search` skill.
     type MctsExternalResult = {
-        BestActionIndex: int
+        /// Ordered template indices chosen along the best derivation.
+        NodeIndices: int list
+        Reward: float
         Iterations: int
-        AverageReward: float
-        TreeSize: int
     }
 
-    /// Parse ix MCTS output.
-    /// Expected format:
-    ///   MCTS:
-    ///     Best action:  2
-    ///     Iterations:   1000
-    ///     Avg reward:   0.75
-    ///     Tree size:    3421
+    /// Parse ix `grammar.search` JSON output:
+    ///   { "best_derivation": [{"nonterminal": "root", "alternative": "node_2"}, ...],
+    ///     "reward": 0.75, "iterations": 500 }
+    /// We harvest the ordered `node_<i>` references from the derivation; those
+    /// indices map directly back onto the template pool that produced the EBNF.
     let parseMctsOutput (output: string) : MctsExternalResult =
-        let mutable bestAction = 0
-        let mutable iterations = 0
-        let mutable avgReward = 0.0
-        let mutable treeSize = 0
+        let reward, iterations =
+            try
+                use doc = JsonDocument.Parse(output)
+                let root = doc.RootElement
+                let r =
+                    match root.TryGetProperty("reward") with
+                    | true, v -> v.GetDouble()
+                    | _ -> 0.0
+                let it =
+                    match root.TryGetProperty("iterations") with
+                    | true, v -> v.GetInt32()
+                    | _ -> 0
+                r, it
+            with _ -> 0.0, 0
+        // node_<i> tokens, in derivation order. Robust to small shape drift in
+        // how ix labels nonterminals vs. alternatives.
+        let indices =
+            Regex.Matches(output, "node_(\\d+)")
+            |> Seq.map (fun m -> int m.Groups.[1].Value)
+            |> Seq.toList
+        { NodeIndices = indices; Reward = reward; Iterations = iterations }
 
-        for line in output.Split([| '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries) do
-            let trimmed = line.Trim()
-            if trimmed.StartsWith("Best action:") then
-                let v = trimmed.Replace("Best action:", "").Trim()
-                bestAction <- try int v with _ -> 0
-            elif trimmed.StartsWith("Iterations:") then
-                let v = trimmed.Replace("Iterations:", "").Trim()
-                iterations <- try int v with _ -> 0
-            elif trimmed.StartsWith("Avg reward:") then
-                let v = trimmed.Replace("Avg reward:", "").Trim()
-                avgReward <- try float v with _ -> 0.0
-            elif trimmed.StartsWith("Tree size:") then
-                let v = trimmed.Replace("Tree size:", "").Trim()
-                treeSize <- try int v with _ -> 0
-
-        { BestActionIndex = bestAction
-          Iterations = iterations
-          AverageReward = avgReward
-          TreeSize = treeSize }
-
-    /// Serialize WoT templates to a temp EBNF grammar for ix grammar search.
+    /// Serialize WoT templates to an EBNF grammar for ix's grammar-guided MCTS.
     /// Encodes the template pool as EBNF productions so the Rust MCTS can explore
     /// grammar-guided derivations natively.
-    let private templatesToEbnf (templates: Tars.DSL.Wot.DslNode list) : string =
+    let internal templatesToEbnf (templates: Tars.DSL.Wot.DslNode list) : string =
         let productions =
             templates
             |> List.mapi (fun i t ->
@@ -68,49 +63,60 @@ module MctsBridge =
         let header = $"root ::= ({nodeAlts})+"
         header + "\n" + (productions |> String.concat "\n")
 
-    /// Try to run grammar-guided MCTS via ix CLI.
-    /// Calls: ix grammar search --grammar <file> --iterations N --exploration C --max-depth D
-    let private tryMachinGrammarSearch
+    /// Map the ordered template indices from an ix derivation back onto WotActions.
+    /// Honors the F# derivation rules: no duplicate node ids, capped at maxNodes,
+    /// terminated with Complete.
+    let internal indicesToActions
+        (templates: Tars.DSL.Wot.DslNode list)
+        (maxNodes: int)
+        (indices: int list)
+        : WotMctsState.WotAction list =
+        let pool = List.toArray templates
+        let seen = System.Collections.Generic.HashSet<Tars.DSL.Wot.DslId>()
+        let actions = ResizeArray<WotMctsState.WotAction>()
+        for i in indices do
+            if i >= 0 && i < pool.Length && actions.Count < maxNodes then
+                let node = pool.[i]
+                if seen.Add(node.Id) then
+                    actions.Add(WotMctsState.WotAction.AddNode node)
+        if actions.Count > 0 then
+            actions.Add(WotMctsState.WotAction.Complete)
+        List.ofSeq actions
+
+    /// Try grammar-guided MCTS via ix's `grammar.search` skill.
+    let private tryIxGrammarSearch
         (config: MachinBridge.MachinConfig)
         (mctsConfig: MctsConfig)
         (templates: Tars.DSL.Wot.DslNode list)
-        : Result<MctsExternalResult, string> =
+        (maxNodes: int)
+        : Result<WotMctsState.WotAction list, string> =
 
         if not (MachinBridge.isAvailable config) then
             Error "ix not available"
         else
             try
                 let grammarText = templatesToEbnf templates
-                let tmpFile = Path.Combine(Path.GetTempPath(), $"tars_mcts_{Guid.NewGuid():N}.ebnf")
-                File.WriteAllText(tmpFile, grammarText)
-                try
-                    let args =
-                        $"grammar search --grammar \"{tmpFile}\" --iterations {mctsConfig.MaxIterations} --exploration {mctsConfig.ExplorationConstant} --max-depth {mctsConfig.MaxRolloutDepth}"
-                    let task = MachinBridge.runGeneticAlgorithm config 1 1 "" // placeholder — we use executeSkill pattern
-                    // Direct CLI call via process
-                    let psi = System.Diagnostics.ProcessStartInfo()
-                    psi.FileName <- config.SkillPath
-                    psi.Arguments <- $"run -p ix -- {args}"
-                    psi.UseShellExecute <- false
-                    psi.RedirectStandardOutput <- true
-                    psi.RedirectStandardError <- true
-                    psi.CreateNoWindow <- true
-                    match config.WorkingDir with
-                    | Some dir -> psi.WorkingDirectory <- dir
-                    | None -> ()
-
-                    use proc = System.Diagnostics.Process.Start(psi)
-                    let output = proc.StandardOutput.ReadToEnd()
-                    proc.WaitForExit(int config.Timeout.TotalMilliseconds) |> ignore
-
-                    if proc.ExitCode = 0 then
-                        Ok (parseMctsOutput output)
+                let input =
+                    JsonSerializer.Serialize(
+                        {| grammar_ebnf = grammarText
+                           max_iterations = mctsConfig.MaxIterations
+                           exploration = mctsConfig.ExplorationConstant
+                           max_depth = mctsConfig.MaxRolloutDepth |})
+                let result =
+                    (MachinBridge.runSkillJson config "grammar.search" input)
+                        .GetAwaiter()
+                        .GetResult()
+                match result with
+                | Error e -> Error e
+                | Ok json ->
+                    let ext = parseMctsOutput json
+                    let actions = indicesToActions templates maxNodes ext.NodeIndices
+                    if List.isEmpty actions then
+                        Error "ix grammar.search returned no usable derivation"
                     else
-                        Error $"ix grammar search exited with code {proc.ExitCode}"
-                finally
-                    try File.Delete(tmpFile) with _ -> ()
+                        Ok actions
             with ex ->
-                Error $"ix grammar search failed: {ex.Message}"
+                Error $"ix grammar.search failed: {ex.Message}"
 
     /// Run MCTS search for WoT derivation, using ix when available.
     /// Falls back to built-in F# MCTS solver.
@@ -122,26 +128,21 @@ module MctsBridge =
         (maxNodes: int)
         : WotMctsState.WotAction list * bool = // (actions, usedIx)
 
-        // Try Rust MCTS via ix grammar search when config provided
+        let fallback () =
+            let result = WotMctsState.searchDerivation mctsConfig meta templates maxNodes
+            result.BestActions
+
+        // Try Rust grammar-guided MCTS via ix when a config is provided.
         match machinConfig with
         | Some config ->
-            match tryMachinGrammarSearch config mctsConfig templates with
-            | Ok _externalResult ->
-                // Rust MCTS returned a result -- but the action space is indexed,
-                // so we still need F# to map indices back to WotActions.
-                // For now, use the external result's iteration count as a signal
-                // and run F# MCTS with that budget for action mapping.
-                // Full protocol: Rust returns action indices, F# maps to WotActions.
-                let result = WotMctsState.searchDerivation mctsConfig meta templates maxNodes
-                (result.BestActions, true)
-            | Error _reason ->
-                // Fall back to F# MCTS
-                let result = WotMctsState.searchDerivation mctsConfig meta templates maxNodes
-                (result.BestActions, false)
+            match tryIxGrammarSearch config mctsConfig templates maxNodes with
+            | Ok actions -> (actions, true)
+            | Error reason ->
+                if not (isNull (Environment.GetEnvironmentVariable "TARS_IX_DEBUG")) then
+                    eprintfn "[ix-bridge] falling back to F# MCTS: %s" reason
+                (fallback (), false)
         | None ->
-            // No ix config -- use F# fallback directly
-            let result = WotMctsState.searchDerivation mctsConfig meta templates maxNodes
-            (result.BestActions, false)
+            (fallback (), false)
 
     /// Quick search with default config
     let quickSearch

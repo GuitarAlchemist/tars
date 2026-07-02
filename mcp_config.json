@@ -1,0 +1,10 @@
+{
+  "Servers": [
+    {
+      "Name": "claude-code",
+      "Command": "claude",
+      "Arguments": ["mcp", "serve"],
+      "Environment": {}
+    }
+  ]
+}

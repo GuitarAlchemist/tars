@@ -22,6 +22,7 @@
     <Compile Include="LlamaCppClient.fs" />
     <Compile Include="LlamaSharpService.fs" />
     <Compile Include="LlamaSharpFactory.fs" />
+    <Compile Include="Backends.fs" />
     <Compile Include="LlmService.fs" />
     <Compile Include="ChatClientAdapter.fs" />
     <Compile Include="VllmClient.fs" />
