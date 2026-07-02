@@ -21,6 +21,11 @@ jobs:
        github.event.comment.author_association == 'MEMBER' ||
        github.event.comment.author_association == 'COLLABORATOR')
     steps:
+      # Required: the action's branch setup runs git against the workspace and
+      # fails with "not a git repository" without a checkout (run 28550132148).
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: anthropics/claude-code-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
