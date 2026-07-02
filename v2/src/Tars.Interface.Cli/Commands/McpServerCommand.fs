@@ -192,7 +192,7 @@ module McpServerCommand =
                       Version = "1.0.0"
                       ParentVersion = None
                       CreatedAt = DateTime.UtcNow
-                      Execute = fun input -> async { return ClaudeCodeBridge.completePlan input } }
+                      Execute = fun input -> async { return ClaudeCodeBridge.completePlan selector input } }
                 ]
 
                 for tool in bridgeTools do

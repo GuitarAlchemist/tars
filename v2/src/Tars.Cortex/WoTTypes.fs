@@ -228,6 +228,20 @@ module WoTTypes =
           ConstraintScore: float option }
 
     // =========================================================================
+    // Pattern Selection and Outcomes
+    // =========================================================================
+
+    /// <summary>
+    /// A recorded outcome of a pattern selection and execution.
+    /// </summary>
+    type PatternOutcome =
+        { PatternKind: PatternKind
+          Goal: string
+          Success: bool
+          DurationMs: int64
+          Timestamp: DateTime }
+
+    // =========================================================================
     // Enhanced Cognitive State
     // =========================================================================
 
@@ -302,6 +316,8 @@ module WoTTypes =
         abstract CompileTreeOfThoughts: beamWidth: int * searchDepth: int * goal: string -> WoTPlan
         /// Compile a general ReasoningPattern to WoT
         abstract CompilePattern: pattern: ReasoningPattern.ReasoningPattern * goal: string -> WoTPlan
+        /// Compile the default workflow for a given pattern kind
+        abstract CompileFor: kind: PatternKind * goal: string -> WoTPlan
 
     /// <summary>
     /// Interface for executing WoT plans.
@@ -322,3 +338,5 @@ module WoTTypes =
         abstract Recommend: goal: string * state: WoTCognitiveState -> PatternKind
         /// Get pattern suitability scores for a goal
         abstract Score: goal: string -> Map<PatternKind, float>
+        /// Record the outcome of a pattern execution
+        abstract RecordOutcome: outcome: PatternOutcome -> unit
