@@ -308,14 +308,11 @@ Analyze the code and provide architectural insights as a JSON array. Each insigh
                     codeContext
             
             // 3. Query LLM for insights
-            let request = {
-                LlmRequest.Default with
-                    SystemPrompt = Some systemPrompt
-                    Messages = [{ Role = Role.User; Content = userPrompt }]
-                    Temperature = Some 0.3
-            }
-            
-            let! response = llm.CompleteAsync(request)
+            let! response =
+                Prompt.ask userPrompt
+                |> Prompt.withSystem systemPrompt
+                |> Prompt.withTemp 0.3
+                |> Prompt.complete llm
             
             // 4. Parse insights from response
             let insights = parseInsights config.Quiet response.Text

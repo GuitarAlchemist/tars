@@ -34,16 +34,13 @@ Example:
 """
 
             // Create LLM request with proper types
-            let request = {
-                LlmRequest.Default with
-                    Messages = [ { Role = Role.User; Content = prompt } ]
-                    MaxTokens = Some 1000
-                    Temperature = Some 0.3 // Low temperature for factual extraction
-                    ModelHint = Some "fast"
-                    Stream = false
-            }
-
-            let! response = llmService.CompleteAsync(request) |> Async.AwaitTask
+            let! response =
+                Prompt.ask prompt
+                |> Prompt.withMaxTokens 1000
+                |> Prompt.withTemp 0.3 // Low temperature for factual extraction
+                |> Prompt.withHint "fast"
+                |> Prompt.complete llmService
+                |> Async.AwaitTask
             let responseText : string = response.Text
 
             // Parse response into ProposedAssertions

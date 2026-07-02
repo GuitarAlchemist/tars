@@ -92,15 +92,12 @@ Always think step by step. Only ask one follow-up question at a time."""
                 
                 let prompt = context + "Based on the above, what follow-up question do you need to ask, or can you provide the final answer?"
                 
-                let request = {
-                    LlmRequest.Default with
-                        SystemPrompt = Some selfAskSystemPrompt
-                        Messages = [{ Role = Role.User; Content = prompt }]
-                        Temperature = Some config.Temperature
-                        ModelHint = Some "reasoning"
-                }
-                
-                let! response = llm.CompleteAsync request
+                let! response =
+                    Prompt.ask prompt
+                    |> Prompt.withSystem selfAskSystemPrompt
+                    |> Prompt.withTemp config.Temperature
+                    |> Prompt.withHint "reasoning"
+                    |> Prompt.complete llm
                 totalTokens <- totalTokens + (response.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
                 
                 let followUp, answer = parseFollowUp response.Text
@@ -108,12 +105,10 @@ Always think step by step. Only ask one follow-up question at a time."""
                 match followUp with
                 | Some q ->
                     // Answer the follow-up question
-                    let followUpRequest = {
-                        LlmRequest.Default with
-                            Messages = [{ Role = Role.User; Content = q }]
-                            Temperature = Some config.Temperature
-                    }
-                    let! followUpResponse = llm.CompleteAsync followUpRequest
+                    let! followUpResponse =
+                        Prompt.ask q
+                        |> Prompt.withTemp config.Temperature
+                        |> Prompt.complete llm
                     totalTokens <- totalTokens + (followUpResponse.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
                     
                     subQuestions <- subQuestions @ [{
@@ -170,14 +165,11 @@ Format:
             let mutable steps: string list = []
             
             // Step 1: Decompose the problem
-            let decomposeRequest = {
-                LlmRequest.Default with
-                    SystemPrompt = Some decomposePrompt
-                    Messages = [{ Role = Role.User; Content = problem }]
-                    Temperature = Some config.Temperature
-            }
-            
-            let! decomposeResponse = llm.CompleteAsync decomposeRequest
+            let! decomposeResponse =
+                Prompt.ask problem
+                |> Prompt.withSystem decomposePrompt
+                |> Prompt.withTemp config.Temperature
+                |> Prompt.complete llm
             totalTokens <- totalTokens + (decomposeResponse.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
             
             let subProblems = parseDecomposition decomposeResponse.Text
@@ -190,13 +182,10 @@ Format:
             for i, subProblem in subProblems |> List.indexed do
                 let solvePrompt = context + $"\nNow solve this sub-problem: {subProblem}"
                 
-                let solveRequest = {
-                    LlmRequest.Default with
-                        Messages = [{ Role = Role.User; Content = solvePrompt }]
-                        Temperature = Some config.Temperature
-                }
-                
-                let! solveResponse = llm.CompleteAsync solveRequest
+                let! solveResponse =
+                    Prompt.ask solvePrompt
+                    |> Prompt.withTemp config.Temperature
+                    |> Prompt.complete llm
                 totalTokens <- totalTokens + (solveResponse.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
                 
                 solutions <- solutions @ [solveResponse.Text]
@@ -206,13 +195,10 @@ Format:
             // Step 3: Synthesize final answer
             let synthesizePrompt = context + "\n\nBased on solving all sub-problems above, provide the final complete answer to the original problem."
             
-            let synthesizeRequest = {
-                LlmRequest.Default with
-                    Messages = [{ Role = Role.User; Content = synthesizePrompt }]
-                    Temperature = Some config.Temperature
-            }
-            
-            let! synthesizeResponse = llm.CompleteAsync synthesizeRequest
+            let! synthesizeResponse =
+                Prompt.ask synthesizePrompt
+                |> Prompt.withTemp config.Temperature
+                |> Prompt.complete llm
             totalTokens <- totalTokens + (synthesizeResponse.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
             
             return {
@@ -249,14 +235,11 @@ FACT: Paris has a population of about 2.1 million in the city proper."""
             let mutable totalTokens = 0
             
             // Step 1: Generate relevant knowledge
-            let knowledgeRequest = {
-                LlmRequest.Default with
-                    SystemPrompt = Some knowledgeGenPrompt
-                    Messages = [{ Role = Role.User; Content = question }]
-                    Temperature = Some 0.5 // Slightly higher for creativity
-            }
-            
-            let! knowledgeResponse = llm.CompleteAsync knowledgeRequest
+            let! knowledgeResponse =
+                Prompt.ask question
+                |> Prompt.withSystem knowledgeGenPrompt
+                |> Prompt.withTemp 0.5 // Slightly higher for creativity
+                |> Prompt.complete llm
             totalTokens <- totalTokens + (knowledgeResponse.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
             
             let facts = parseKnowledge knowledgeResponse.Text
@@ -268,13 +251,10 @@ FACT: Paris has a population of about 2.1 million in the city proper."""
 
 Please answer this question: {question}"""
             
-            let answerRequest = {
-                LlmRequest.Default with
-                    Messages = [{ Role = Role.User; Content = answerPrompt }]
-                    Temperature = Some config.Temperature
-            }
-            
-            let! answerResponse = llm.CompleteAsync answerRequest
+            let! answerResponse =
+                Prompt.ask answerPrompt
+                |> Prompt.withTemp config.Temperature
+                |> Prompt.complete llm
             totalTokens <- totalTokens + (answerResponse.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
             
             return {
@@ -302,14 +282,11 @@ Consider these hints while formulating your answer:
 
 Using the hints above to guide your reasoning, provide a thorough answer."""
             
-            let request = {
-                LlmRequest.Default with
-                    Messages = [{ Role = Role.User; Content = prompt }]
-                    Temperature = Some config.Temperature
-                    ModelHint = Some "reasoning"
-            }
-            
-            let! response = llm.CompleteAsync request
+            let! response =
+                Prompt.ask prompt
+                |> Prompt.withTemp config.Temperature
+                |> Prompt.withHint "reasoning"
+                |> Prompt.complete llm
             let tokens = response.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0
             
             return {
@@ -340,15 +317,12 @@ Do not include explanations before or after the code."""
     /// Execute PAL prompting pattern (generates code, does not execute)
     let programAided (llm: ILlmService) (config: PromptConfig) (problem: string) =
         task {
-            let request = {
-                LlmRequest.Default with
-                    SystemPrompt = Some palPrompt
-                    Messages = [{ Role = Role.User; Content = problem }]
-                    Temperature = Some 0.2 // Lower for code generation
-                    ModelHint = Some "coding"
-            }
-            
-            let! response = llm.CompleteAsync request
+            let! response =
+                Prompt.ask problem
+                |> Prompt.withSystem palPrompt
+                |> Prompt.withTemp 0.2 // Lower for code generation
+                |> Prompt.withHint "coding"
+                |> Prompt.complete llm
             let tokens = response.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0
             
             let code = extractCode response.Text
@@ -368,17 +342,11 @@ Do not include explanations before or after the code."""
     
     let metaPrompt (llm: ILlmService) (config: PromptConfig) (taskDescription: string) =
         task {
-            let metaRequest = {
-                LlmRequest.Default with
-                    SystemPrompt = Some "You are an expert prompt engineer. Design the optimal prompt for the given task."
-                    Messages = [{
-                        Role = Role.User
-                        Content = sprintf "Design a detailed, effective prompt for this task:\n\n%s\n\nOutput the prompt in a <prompt></prompt> block." taskDescription
-                    }]
-                    Temperature = Some 0.4
-            }
-            
-            let! metaResponse = llm.CompleteAsync metaRequest
+            let! metaResponse =
+                Prompt.ask (sprintf "Design a detailed, effective prompt for this task:\n\n%s\n\nOutput the prompt in a <prompt></prompt> block." taskDescription)
+                |> Prompt.withSystem "You are an expert prompt engineer. Design the optimal prompt for the given task."
+                |> Prompt.withTemp 0.4
+                |> Prompt.complete llm
             let tokens = metaResponse.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0
             
             // Extract the designed prompt
@@ -388,13 +356,10 @@ Do not include explanations before or after the code."""
                 else metaResponse.Text
             
             // Execute the designed prompt
-            let executeRequest = {
-                LlmRequest.Default with
-                    Messages = [{ Role = Role.User; Content = designedPrompt }]
-                    Temperature = Some config.Temperature
-            }
-            
-            let! executeResponse = llm.CompleteAsync executeRequest
+            let! executeResponse =
+                Prompt.ask designedPrompt
+                |> Prompt.withTemp config.Temperature
+                |> Prompt.complete llm
             let totalTokens = tokens + (executeResponse.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
             
             return {

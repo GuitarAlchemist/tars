@@ -320,14 +320,11 @@ Rules:
             let userPrompt = query + factsContext
             
             // 3. Generate response
-            let request = {
-                LlmRequest.Default with
-                    SystemPrompt = Some systemPrompt
-                    Messages = [{ Role = Role.User; Content = userPrompt }]
-                    Temperature = Some 0.3 // Lower for factuality
-            }
-            
-            let! response = llm.CompleteAsync request
+            let! response =
+                Prompt.ask userPrompt
+                |> Prompt.withSystem systemPrompt
+                |> Prompt.withTemp 0.3 // Lower for factuality
+                |> Prompt.complete llm
             
             // 4. Verify claims in response
             let claims = extractClaims response.Text

@@ -139,15 +139,14 @@ module WoTExecutor =
                 else sprintf "%s\n\n%s" stepContext prompt
 
             let request: LlmRequest =
-                { LlmRequest.Default with
-                    ModelHint = modelHint
-                    SystemPrompt = Some "You are TARS, an autonomous reasoning agent."
-                    Messages = [ { Role = Role.User; Content = enrichedPrompt } ]
-                    MaxTokens = Some 1024
-                    Temperature = Some 0.7 }
+                Prompt.ask enrichedPrompt
+                |> Prompt.withSystem "You are TARS, an autonomous reasoning agent."
+                |> Prompt.withOptHint modelHint
+                |> Prompt.withMaxTokens 1024
+                |> Prompt.withTemp 0.7
 
             try
-                let! response = ctx.Llm.CompleteAsync(request) |> Async.AwaitTask
+                let! response = Prompt.complete ctx.Llm request |> Async.AwaitTask
                 ctx.Logger $"[WoT] Think completed: %d{response.Text.Length} chars"
                 return Result.Ok response.Text
             with ex ->
@@ -208,15 +207,15 @@ module WoTExecutor =
                     $"You are simulating the tool '%s{toolName}' with arguments: %s{argsDesc}.\n\
                       Produce a plausible output for this tool call. Be concise and factual."
 
-                let request: LlmRequest =
-                    { LlmRequest.Default with
-                        SystemPrompt = Some "You are TARS, an autonomous reasoning agent simulating a tool call."
-                        Messages = [ { Role = Role.User; Content = prompt } ]
-                        MaxTokens = Some 512
-                        Temperature = Some 0.3 }
+                let! response =
+                    Prompt.ask prompt
+                    |> Prompt.withSystem "You are TARS, an autonomous reasoning agent simulating a tool call."
+                    |> Prompt.withMaxTokens 512
+                    |> Prompt.withTemp 0.3
+                    |> Prompt.complete ctx.Llm
+                    |> Async.AwaitTask
 
                 try
-                    let! response = ctx.Llm.CompleteAsync(request) |> Async.AwaitTask
                     ctx.Logger $"[WoT] LLM fallback for '%s{toolName}': %d{response.Text.Length} chars"
                     return Result.Ok response.Text
                 with ex ->

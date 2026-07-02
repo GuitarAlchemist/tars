@@ -74,19 +74,17 @@ module ConstrainedDecoding =
 
     /// Create a request that forces JSON output matching a schema
     let jsonConstrained (schema: string) (messages: LlmMessage list) : LlmRequest =
-        { LlmRequest.Default with
-            Messages = messages
-            ResponseFormat = Some (ResponseFormat.Constrained (Grammar.JsonSchema schema)) }
+        Prompt.ofMessages messages
+        |> withJsonSchema schema
 
     /// Create a request with EBNF grammar from string
     let ebnfConstrained (grammar: string) (messages: LlmMessage list) : LlmRequest =
-        { LlmRequest.Default with
-            Messages = messages
-            ResponseFormat = Some (ResponseFormat.Constrained (Grammar.Ebnf grammar)) }
+        Prompt.ofMessages messages
+        |> withEbnfGrammar grammar
 
     /// Create a request constrained by the cortex DSL grammar
     let cortexConstrained (grammarsDir: string) (messages: LlmMessage list) : Result<LlmRequest, string> =
-        let req = { LlmRequest.Default with Messages = messages }
+        let req = Prompt.ofMessages messages
         withNamedGrammar grammarsDir "cortex" req
 
     // =========================================================================
