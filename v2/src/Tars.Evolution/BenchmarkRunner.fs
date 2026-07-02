@@ -16,7 +16,12 @@ module BenchmarkRunner =
 
     let private jsonOptions =
         let opts = JsonSerializerOptions(WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
-        opts.Converters.Add(JsonFSharpConverter())
+        // Skippable option fields: a missing option-typed field deserializes to None
+        // instead of throwing. This keeps older result files (saved before a new
+        // option field like ExecutionNs existed) loadable — essential so the
+        // self-train corpus isn't silently dropped on schema growth.
+        let fsharp = JsonFSharpOptions.Default().WithSkippableOptionFields()
+        opts.Converters.Add(JsonFSharpConverter(fsharp))
         opts
 
     /// Extract F# code from LLM response (strip markdown fences, explanations).
@@ -46,14 +51,18 @@ module BenchmarkRunner =
                 .Replace("```", "")
                 .Trim()
 
-    /// Generate a solution via LLM.
-    let private solveWithLlm (llm: ILlmService) (problem: BenchmarkProblem) : Task<string * int64> =
-        task {
-            let hints =
-                if problem.Hints.IsEmpty then ""
-                else sprintf "\nHINTS:\n%s" (problem.Hints |> List.map (fun h -> $"- {h}") |> String.concat "\n")
+    /// System prompt used when soliciting a solution. Exposed so the self-train
+    /// dataset exporter can reconstruct the exact training/inference prompt pair.
+    let solverSystemPrompt = "You are an F# programming expert. Output only valid F# code."
 
-            let prompt = $"""Write F# code to solve this problem.
+    /// Build the user prompt for a problem. Shared between live solving and SFT
+    /// dataset export so training examples match the inference distribution.
+    let buildSolverPrompt (problem: BenchmarkProblem) : string =
+        let hints =
+            if problem.Hints.IsEmpty then ""
+            else sprintf "\nHINTS:\n%s" (problem.Hints |> List.map (fun h -> $"- {h}") |> String.concat "\n")
+
+        $"""Write F# code to solve this problem.
 
 PROBLEM: {problem.Description}
 REQUIRED SIGNATURE: {problem.ExpectedSignature}
@@ -63,12 +72,17 @@ Output ONLY the F# code. No explanations, no markdown, no module declarations.
 The code must define the function(s) with exactly the required signature(s).
 Do not use 'open' statements — write self-contained code."""
 
+    /// Generate a solution via LLM.
+    let private solveWithLlm (llm: ILlmService) (problem: BenchmarkProblem) : Task<string * int64> =
+        task {
+            let prompt = buildSolverPrompt problem
+
             let sw = Stopwatch.StartNew()
             let! response =
                 llm.CompleteAsync(
                     { ModelHint = None
                       Model = None
-                      SystemPrompt = Some "You are an F# programming expert. Output only valid F# code."
+                      SystemPrompt = Some solverSystemPrompt
                       MaxTokens = Some 800
                       Temperature = Some 0.2
                       Stop = []
@@ -135,6 +149,72 @@ Do not use 'open' statements — write self-contained code."""
                 try File.Delete(scriptPath) with _ -> ()
         }
 
+    /// Measure a validated solution's median execution time over its PerfHarness.
+    /// Runs in a fresh fsi process; timing is captured *inside* the script (so fsi
+    /// startup/compile is excluded) and reported as `ELAPSED_NS: <median>`.
+    let private measurePerf (solutionCode: string) (perfHarness: string) : Task<int64 option> =
+        task {
+            let tmpDir = Path.Combine(Path.GetTempPath(), "tars-benchmark")
+            if not (Directory.Exists tmpDir) then Directory.CreateDirectory tmpDir |> ignore
+            let scriptPath = Path.Combine(tmpDir, $"perf_{Guid.NewGuid():N}.fsx")
+            let fullScript = solutionCode + "\n\n// === PERF ===\n" + perfHarness
+            try
+                File.WriteAllText(scriptPath, fullScript)
+                let psi = ProcessStartInfo("dotnet", $"fsi \"{scriptPath}\"")
+                psi.RedirectStandardOutput <- true
+                psi.RedirectStandardError <- true
+                psi.UseShellExecute <- false
+                psi.CreateNoWindow <- true
+                use proc = Process.Start(psi)
+                use cts = new CancellationTokenSource(TimeSpan.FromSeconds(90.0))
+                try
+                    let! out = proc.StandardOutput.ReadToEndAsync(cts.Token)
+                    let! _err = proc.StandardError.ReadToEndAsync(cts.Token)
+                    proc.WaitForExit()
+                    let m = System.Text.RegularExpressions.Regex.Match(out, @"ELAPSED_NS:\s*(\d+)")
+                    if m.Success then return Some(int64 m.Groups.[1].Value) else return None
+                with :? OperationCanceledException ->
+                    try proc.Kill(true) with _ -> ()
+                    return None
+            finally
+                try File.Delete(scriptPath) with _ -> ()
+        }
+
+    /// FsCheck header injected before a property body: pins a stable FsCheck and
+    /// opens it. Kept here (not in the problem) so every property problem is
+    /// consistent and the solution can sit between header and body.
+    let private fsCheckHeader = "#r \"nuget: FsCheck, 2.16.6\"\nopen FsCheck\n"
+
+    /// Run FsCheck property tests against a validated solution. Returns Some true
+    /// if all properties held, Some false if any was falsified (or errored).
+    let private runProperties (solutionCode: string) (propertyBody: string) : Task<bool option> =
+        task {
+            let tmpDir = Path.Combine(Path.GetTempPath(), "tars-benchmark")
+            if not (Directory.Exists tmpDir) then Directory.CreateDirectory tmpDir |> ignore
+            let scriptPath = Path.Combine(tmpDir, $"prop_{Guid.NewGuid():N}.fsx")
+            let fullScript = fsCheckHeader + solutionCode + "\n\n// === PROPERTIES ===\n" + propertyBody
+            try
+                File.WriteAllText(scriptPath, fullScript)
+                let psi = ProcessStartInfo("dotnet", $"fsi \"{scriptPath}\"")
+                psi.RedirectStandardOutput <- true
+                psi.RedirectStandardError <- true
+                psi.UseShellExecute <- false
+                psi.CreateNoWindow <- true
+                use proc = Process.Start(psi)
+                // First run resolves the FsCheck nuget package — allow generous time.
+                use cts = new CancellationTokenSource(TimeSpan.FromSeconds(180.0))
+                try
+                    let! out = proc.StandardOutput.ReadToEndAsync(cts.Token)
+                    let! _err = proc.StandardError.ReadToEndAsync(cts.Token)
+                    proc.WaitForExit()
+                    if out.Contains("PROP PASS") then return Some true else return Some false
+                with :? OperationCanceledException ->
+                    try proc.Kill(true) with _ -> ()
+                    return None
+            finally
+                try File.Delete(scriptPath) with _ -> ()
+        }
+
     /// Run a single benchmark problem.
     let runProblem (llm: ILlmService) (problem: BenchmarkProblem) (retryOnFail: bool) (logger: string -> unit) : Task<BenchmarkAttempt> =
         task {
@@ -179,6 +259,23 @@ Do not use 'open' statements — write self-contained code."""
                 let status = if validated2 then "PASS" elif compiled2 then "FAIL (validation)" else "FAIL (compile)"
                 logger $"  [{problem.Id}] {status}"
 
+                let! execNs =
+                    match problem.PerfHarness with
+                    | Some h when validated2 -> measurePerf retryCode h
+                    | _ -> Task.FromResult (None: int64 option)
+                match execNs with
+                | Some ns -> logger $"  [{problem.Id}] perf: {float ns / 1_000_000.0:F2} ms median"
+                | None -> ()
+
+                let! propsOk =
+                    match problem.Properties with
+                    | Some p when validated2 -> runProperties retryCode p
+                    | _ -> Task.FromResult (None: bool option)
+                match propsOk with
+                | Some true -> logger $"  [{problem.Id}] props: PASS"
+                | Some false -> logger $"  [{problem.Id}] props: FAIL (invariant falsified — overfit)"
+                | None -> ()
+
                 return
                     { ProblemId = problem.Id
                       Difficulty = problem.Difficulty
@@ -190,10 +287,29 @@ Do not use 'open' statements — write self-contained code."""
                       ValidationOutput = output2
                       GenerationTimeMs = genMs + retryGenMs
                       ValidationTimeMs = sw.ElapsedMilliseconds + valSw.ElapsedMilliseconds
+                      ExecutionNs = execNs
+                      PropertiesValidated = propsOk
                       Timestamp = DateTime.UtcNow }
             else
                 let status = if validated then "PASS" elif compiled then "FAIL (validation)" else "FAIL (compile)"
                 logger $"  [{problem.Id}] {status}"
+
+                let! execNs =
+                    match problem.PerfHarness with
+                    | Some h when validated -> measurePerf code h
+                    | _ -> Task.FromResult (None: int64 option)
+                match execNs with
+                | Some ns -> logger $"  [{problem.Id}] perf: {float ns / 1_000_000.0:F2} ms median"
+                | None -> ()
+
+                let! propsOk =
+                    match problem.Properties with
+                    | Some p when validated -> runProperties code p
+                    | _ -> Task.FromResult (None: bool option)
+                match propsOk with
+                | Some true -> logger $"  [{problem.Id}] props: PASS"
+                | Some false -> logger $"  [{problem.Id}] props: FAIL (invariant falsified — overfit)"
+                | None -> ()
 
                 return
                     { ProblemId = problem.Id
@@ -206,12 +322,18 @@ Do not use 'open' statements — write self-contained code."""
                       ValidationOutput = output
                       GenerationTimeMs = genMs
                       ValidationTimeMs = sw.ElapsedMilliseconds
+                      ExecutionNs = execNs
+                      PropertiesValidated = propsOk
                       Timestamp = DateTime.UtcNow }
         }
 
     /// Run a benchmark suite.
-    let runSuite
+    /// Run a benchmark suite over an explicit problem source. `runSuite` delegates
+    /// here with `ProblemBank.all ()`; callers can pass `GaProblemBank.all ()` (or a
+    /// union) to evolve against the Guitar Alchemist music-theory fitness domain.
+    let runSuiteFromProblems
         (llm: ILlmService)
+        (source: BenchmarkProblem list)
         (difficulty: ProblemDifficulty option)
         (category: ProblemCategory option)
         (maxProblems: int option)
@@ -220,7 +342,7 @@ Do not use 'open' statements — write self-contained code."""
         : Task<BenchmarkRunSummary> =
         task {
             let problems =
-                ProblemBank.all ()
+                source
                 |> List.filter (fun p ->
                     (difficulty |> Option.map (fun d -> p.Difficulty = d) |> Option.defaultValue true)
                     && (category |> Option.map (fun c -> p.Category = c) |> Option.defaultValue true))
@@ -254,6 +376,17 @@ Do not use 'open' statements — write self-contained code."""
                   Attempts = attempts
                   TotalDurationMs = sw.ElapsedMilliseconds }
         }
+
+    /// Run the curated F# coding benchmark suite (the default fitness domain).
+    let runSuite
+        (llm: ILlmService)
+        (difficulty: ProblemDifficulty option)
+        (category: ProblemCategory option)
+        (maxProblems: int option)
+        (retryOnFail: bool)
+        (logger: string -> unit)
+        : Task<BenchmarkRunSummary> =
+        runSuiteFromProblems llm (ProblemBank.all ()) difficulty category maxProblems retryOnFail logger
 
     /// Record benchmark results into PatternOutcomeStore for self-improvement feedback.
     let recordOutcomes (summary: BenchmarkRunSummary) : unit =

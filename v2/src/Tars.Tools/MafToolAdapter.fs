@@ -15,7 +15,9 @@ let toAIFunction (tool: Tool) : AIFunction =
     let wrapper =
         Func<string, Task<string>>(fun (input: string) ->
             task {
-                let! result = tool.Execute input |> Async.StartAsTask
+                // Route through ToolExecution so MAF-surfaced tools keep circuit
+                // breaking + recording now that the registry stores raw tools.
+                let! result = ToolExecution.runDefault tool input |> Async.StartAsTask
                 return
                     match result with
                     | Result.Ok value -> value

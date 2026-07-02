@@ -139,7 +139,7 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                         |> Some
 
                     log $"Executing tool '{nameProp}' [CID: {correlationId}] with input: {input}"
-                    let! result = Async.StartAsTask(tool.Execute(input))
+                    let! result = Async.StartAsTask(Tars.Core.ToolExecution.runDefault tool input)
 
                     match result with
                     | Result.Ok output ->

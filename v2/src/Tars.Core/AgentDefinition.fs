@@ -15,6 +15,14 @@ type AgentSkill =
     | Communication
     | Analysis
     | Coding
+    | Search
+    | Routing
+    | Refactoring
+    | Debugging
+    | Testing
+    | Composition
+    | Delegation
+    | Orchestration
     | Custom of string
 
 /// Parsed agent definition from a .md file.
@@ -59,6 +67,14 @@ module AgentDefinitionParser =
         | "communication" -> AgentSkill.Communication
         | "analysis" -> AgentSkill.Analysis
         | "coding" -> AgentSkill.Coding
+        | "search" -> AgentSkill.Search
+        | "routing" -> AgentSkill.Routing
+        | "refactoring" -> AgentSkill.Refactoring
+        | "debugging" -> AgentSkill.Debugging
+        | "testing" -> AgentSkill.Testing
+        | "composition" -> AgentSkill.Composition
+        | "delegation" -> AgentSkill.Delegation
+        | "orchestration" -> AgentSkill.Orchestration
         | other -> AgentSkill.Custom other
 
     /// Parse inline YAML list: [item1, item2, item3]

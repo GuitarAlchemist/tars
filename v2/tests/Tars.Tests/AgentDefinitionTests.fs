@@ -79,6 +79,57 @@ Prompt.
         | other -> Assert.Fail($"Expected Custom 'music-theory', got {other}")
     | Result.Error e -> Assert.Fail($"Parse failed: {e}")
 
+// ── Measured domains are first-class agent skills (closed self-improve backlog) ──
+// GapDetection.extractDomainTags (MetaCognition) measures these domains; each must
+// parse to a dedicated AgentSkill, not AgentSkill.Custom, so capability routing can
+// match what the gap detector measures. These were RED capability-gap seeds that the
+// self-hosting loop closed autonomously (8/8 PROMOTED across two rounds, 2026-06-23) with
+// union-case + parse-arm fixes in AgentDefinition.fs; they now stand as regression guards.
+// ADR 0002 D5.
+let private assertFirstClassSkill (token: string) =
+    let md =
+        sprintf
+            "---\nid: %s-agent\nname: %s Agent\nrole: %s Agent\ndescription: A %s-capable agent\ncapabilities: [%s]\n---\n\nYou handle %s.\n"
+            token
+            token
+            token
+            token
+            token
+            token
+    match AgentDefinitionParser.parse md None with
+    | Result.Ok def ->
+        Assert.Single(def.Capabilities) |> ignore
+        match def.Capabilities.[0] with
+        | AgentSkill.Custom _ ->
+            Assert.Fail(sprintf "'%s' should parse to a dedicated AgentSkill, not AgentSkill.Custom" token)
+        | _ -> ()  // any dedicated (non-Custom) skill satisfies the contract
+    | Result.Error e -> Assert.Fail($"Parse failed: {e}")
+
+[<Fact>]
+let ``Search is a first-class agent skill, not Custom`` () = assertFirstClassSkill "search"
+
+[<Fact>]
+let ``Routing is a first-class agent skill, not Custom`` () = assertFirstClassSkill "routing"
+
+[<Fact>]
+let ``Refactoring is a first-class agent skill, not Custom`` () = assertFirstClassSkill "refactoring"
+
+[<Fact>]
+let ``Debugging is a first-class agent skill, not Custom`` () = assertFirstClassSkill "debugging"
+
+[<Fact>]
+let ``Testing is a first-class agent skill, not Custom`` () = assertFirstClassSkill "testing"
+
+// Round 2 (orchestration cluster) — closed autonomously by the loop, 3/3 PROMOTED.
+[<Fact>]
+let ``Composition is a first-class agent skill, not Custom`` () = assertFirstClassSkill "composition"
+
+[<Fact>]
+let ``Delegation is a first-class agent skill, not Custom`` () = assertFirstClassSkill "delegation"
+
+[<Fact>]
+let ``Orchestration is a first-class agent skill, not Custom`` () = assertFirstClassSkill "orchestration"
+
 [<Fact>]
 let ``Parse fails without frontmatter`` () =
     let md = "Just a plain markdown file."

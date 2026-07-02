@@ -187,3 +187,17 @@ type LlamaSharpService(_config: LlmServiceConfig, modelPath: string) =
             task {
                 return { Backend = LlamaSharp modelPath; Endpoint = Uri("local://llama.sharp"); ApiKey = None }
             }
+
+    /// Releases the native LLamaSharp handles (weights, context, embedder) and the
+    /// generation semaphore. The model pool calls this on eviction and shutdown;
+    /// without it these GPU/native resources leaked for the process lifetime.
+    interface IDisposable with
+        member _.Dispose() =
+            match box executor with
+            | :? IDisposable as d -> d.Dispose()
+            | _ -> ()
+
+            embedder.Dispose()
+            context.Dispose()
+            model.Dispose()
+            semaphore.Dispose()

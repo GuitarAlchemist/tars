@@ -17,6 +17,7 @@
     <Compile Include="Reasoning\CliReasoner.fs" />
     <Compile Include="Reasoning\ReplayReasoner.fs" />
     <Compile Include="LlmFactory.fs" />
+    <Compile Include="Runtime.fs" />
     <Compile Include="ConsoleHelpers.fs" />
     <Compile Include="Commands\AgentHelpers.fs" />
     <Content Include="appsettings.json">
@@ -62,6 +63,9 @@
     <Compile Include="Commands\RalphCommand.fs" />
     <Compile Include="Commands\BreedCommand.fs" />
     <Compile Include="Commands\GrammarCommand.fs" />
+    <Compile Include="Commands\CrossRepoDemo.fs" />
+    <Compile Include="Commands\SelfTrainCommand.fs" />
+    <Compile Include="Commands\SelfImprove.fs" />
     <Compile Include="HealthCommand.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

@@ -150,10 +150,12 @@ module WotExecutor =
                                 let! r = toolInvoker.Invoke(toolName, resolvedArgs)
 
                                 match r with
-                                | Result.Error e -> return Some $"ToolResult failed: Tool '{toolName}' error: {e}"
-                                | Result.Ok res ->
-                                    let resStr = res.ToString()
-
+                                | ToolOutcome.NotFound -> return Some $"ToolResult failed: Tool '{toolName}' not found"
+                                | ToolOutcome.CircuitOpen ->
+                                    return Some $"ToolResult failed: Tool '{toolName}' circuit breaker open"
+                                | ToolOutcome.Failed(_, e) ->
+                                    return Some $"ToolResult failed: Tool '{toolName}' error: {e}"
+                                | ToolOutcome.Succeeded resStr ->
                                     if resStr.Contains check then
                                         return None
                                     else
@@ -185,9 +187,11 @@ module WotExecutor =
         (policy: ExecutionPolicy)
         (inputs: Map<string, string>)
         (planSteps: Step list)
+        (sink: ISymbolicSink)
         : Async<Result<ExecContext * VerifyResult option * TraceEvent list, string * TraceEvent list>> =
         async {
             let runId = Guid.NewGuid()
+            let feedback = ReasonFeedback(runId) :> IReasonFeedback
             let startedAt = DateTime.UtcNow
 
             // Register run in KG
@@ -240,7 +244,7 @@ module WotExecutor =
                 )
 
             // Using a recursive loop for clean early exit
-            let rec loop steps currentCtx (fbState: FeedbackState) =
+            let rec loop steps currentCtx =
                 async {
                     match steps with
                     | [] -> return Result.Ok(currentCtx, lastVerify, Seq.toList traces)
@@ -420,7 +424,23 @@ module WotExecutor =
                                         let! r = toolInvoker.Invoke(toolName, resolvedArgs)
 
                                         match r with
-                                        | Result.Error e ->
+                                        | ToolOutcome.NotFound ->
+                                            return
+                                                fail
+                                                    $"Tool '{toolName}' not found"
+                                                    "tool"
+                                                    (Some toolName)
+                                                    (Some resolvedArgs)
+                                                    step.Metadata
+                                        | ToolOutcome.CircuitOpen ->
+                                            return
+                                                fail
+                                                    $"Tool '{toolName}' circuit breaker open"
+                                                    "tool"
+                                                    (Some toolName)
+                                                    (Some resolvedArgs)
+                                                    step.Metadata
+                                        | ToolOutcome.Failed(_, e) ->
                                             return
                                                 fail
                                                     $"Tool '{toolName}' failed: {e}"
@@ -428,8 +448,8 @@ module WotExecutor =
                                                     (Some toolName)
                                                     (Some resolvedArgs)
                                                     step.Metadata
-                                        | Result.Ok value ->
-                                            match storeSingleOutput currentCtx step.Outputs value with
+                                        | ToolOutcome.Succeeded value ->
+                                            match storeSingleOutput currentCtx step.Outputs (box value) with
                                             | Result.Error e ->
                                                 return
                                                     fail
@@ -439,22 +459,8 @@ module WotExecutor =
                                                         (Some resolvedArgs)
                                                         step.Metadata
                                             | Result.Ok ctx2 ->
-                                                // Phase 17.4: Update feedback loop with rich evidence
-                                                let ev =
-                                                    { Id = step.Id
-                                                      Source = ToolContribution(toolName, step.Id)
-                                                      Content = $"Result from tool '{toolName}'"
-                                                      Confidence = 1.0
-                                                      Weight = 1.0
-                                                      IsContradiction = false
-                                                      ParentIds =
-                                                        step.Inputs
-                                                        |> List.choose (fun inp ->
-                                                            FeedbackLoop.findEvidenceBySourceId inp fbState
-                                                            |> Option.map (fun e -> e.Id))
-                                                      Timestamp = DateTime.UtcNow }
-
-                                                let fbState2 = FeedbackLoop.addEvidence ev fbState
+                                                // Phase 17.4: feed the tool result into the feedback policy
+                                                feedback.Observe(ToolObserved(step, toolName))
 
                                                 do!
                                                     succeed
@@ -465,7 +471,7 @@ module WotExecutor =
                                                         None
                                                         step.Metadata
 
-                                                return! loop rest ctx2 fbState2
+                                                return! loop rest ctx2
 
                         | StepAction.Work(WorkOperation.Verify checks) ->
                             let! vr = runVerify toolInvoker currentCtx checks
@@ -478,11 +484,11 @@ module WotExecutor =
                                 // Phase 15.2: Log failure if verification failed
                                 if not vr.Passed then
                                     let combinedErrors = vr.Errors |> String.concat "; "
-                                    do! SymbolicMemory.logFailure runId (Some step.Id) combinedErrors Map.empty
+                                    do! sink.LogFailure(runId, Some step.Id, combinedErrors, Map.empty)
 
                                 // Verification failure is NOT execution failure in v0
                                 do! succeed "verify" None None vr None step.Metadata
-                                return! loop rest ctx2 fbState
+                                return! loop rest ctx2
 
                         | StepAction.Reason op ->
                             let goal, instruction =
@@ -499,14 +505,14 @@ module WotExecutor =
                                         |> List.map (function
                                             | NodeId s -> s)
 
-                                    let content = FeedbackLoop.aggregateEvidence ids fbState
+                                    let content = feedback.Aggregate ids
                                     Some $"Aggregate evidence from: %A{src}", Some $"Context from sources:\n{content}"
                                 | ReasonOperation.Refine t ->
                                     let tid =
                                         match t with
                                         | NodeId s -> s
 
-                                    let context = FeedbackLoop.summarizeEvidence tid fbState
+                                    let context = feedback.Summarize tid
 
                                     Some $"Refine thought: %A{t}",
                                     Some $"Previous evidence for this thought:\n{context}"
@@ -515,7 +521,7 @@ module WotExecutor =
                                         match t with
                                         | NodeId s -> s
 
-                                    let context = FeedbackLoop.summarizeEvidence tid fbState
+                                    let context = feedback.Summarize tid
 
                                     Some $"Find contradictions for: %A{t}",
                                     Some $"Current evidence to challenge:\n{context}"
@@ -524,7 +530,7 @@ module WotExecutor =
                                         match t with
                                         | NodeId s -> s
 
-                                    let context = FeedbackLoop.summarizeEvidence tid fbState
+                                    let context = feedback.Summarize tid
                                     Some $"Distill core claims from: %A{t}", Some $"Raw evidence to distill:\n{context}"
                                 | ReasonOperation.Backtrack t ->
                                     let tid =
@@ -536,7 +542,7 @@ module WotExecutor =
                                         $"The reasoning path leading to '{tid}' has been flagged as problematic. Propose an alternative strategy."
                                 | ReasonOperation.Score t -> Some $"Score hypothesis at: %A{t}", None
                                 | ReasonOperation.VerifyConsensus p ->
-                                    let reached, explain = FeedbackLoop.checkConsensus p fbState
+                                    let reached, explain = feedback.Consensus p
                                     let statusStr = if reached then "Passed" else "Failed"
                                     Some $"Verify multi-agent consensus ({statusStr}): {explain}", None
 
@@ -550,63 +556,12 @@ module WotExecutor =
                                 | Result.Error e ->
                                     return fail $"Step '{step.Id}' output failed: {e}" "reason" None None step.Metadata
                                 | Result.Ok ctx2 ->
-                                    // Phase 17.4: Evidence Provenance logic (Stub version)
-                                    let fbState2 =
-                                        match op with
-                                        | ReasonOperation.Score t ->
-                                            let h: HypothesisScore =
-                                                FeedbackLoop.score
-                                                    (string t)
-                                                    "Stub Hypothesis"
-                                                    0.5
-                                                    0.5
-                                                    0.5
-                                                    0
-                                                    0.5
-                                                    stubValue.Content
-                                                    []
-                                                    []
-                                                    0 // Volume
-
-                                            FeedbackLoop.registerHypothesis h fbState
-                                        | ReasonOperation.Refine t ->
-                                            let ev =
-                                                { Id = $"stub_ev_{step.Id}"
-                                                  Source = ReasonerThought step.Id
-                                                  Content = stubValue.Content
-                                                  Confidence = 1.0
-                                                  Weight = 0.5
-                                                  IsContradiction = false
-                                                  ParentIds =
-                                                    match FeedbackLoop.findEvidenceBySourceId (string t) fbState with
-                                                    | Some p -> [ p.Id ]
-                                                    | None -> []
-                                                  Timestamp = DateTime.UtcNow }
-
-                                            let s2, _ = FeedbackLoop.updateHypothesis (string t) ev fbState
-                                            s2
-                                        | ReasonOperation.Contradict t ->
-                                            let ev =
-                                                { Id = $"stub_ev_con_{step.Id}"
-                                                  Source = ReasonerThought step.Id
-                                                  Content = stubValue.Content
-                                                  Confidence = 1.0
-                                                  Weight = 0.5
-                                                  IsContradiction = true
-                                                  ParentIds =
-                                                    match FeedbackLoop.findEvidenceBySourceId (string t) fbState with
-                                                    | Some p -> [ p.Id ]
-                                                    | None -> []
-                                                  Timestamp = DateTime.UtcNow }
-
-                                            let s2, _ = FeedbackLoop.updateHypothesis (string t) ev fbState
-                                            s2
-                                        | _ -> fbState
+                                    // Phase 17.4: feed the stub reason result into the feedback policy
+                                    feedback.Observe(ReasonObserved(step, op, stubValue.Content, true))
 
                                     do! succeed "reason" None None stubValue.Content None step.Metadata
 
-
-                                    return! loop rest ctx2 fbState2
+                                    return! loop rest ctx2
                             | ReasonStepMode.Llm
                             | ReasonStepMode.Replay ->
                                 // Call reasoner with stepId - Llm calls LLM, Replay reads journal
@@ -615,7 +570,7 @@ module WotExecutor =
                                 match r with
                                 | Result.Error e ->
                                     // Phase 15.2: Log to symbolic memory
-                                    do! SymbolicMemory.logFailure runId (Some step.Id) e Map.empty
+                                    do! sink.LogFailure(runId, Some step.Id, e, Map.empty)
                                     return fail $"Reason step '{step.Id}' failed: {e}" "reason" None None step.Metadata
                                 | Result.Ok(res: ReasoningResult) ->
                                     match storeSingleOutput currentCtx step.Outputs res.Content with
@@ -623,185 +578,40 @@ module WotExecutor =
                                         return
                                             fail $"Step '{step.Id}' output failed: {e}" "reason" None None step.Metadata
                                     | Result.Ok ctx2 ->
-                                        // Phase 17.4: Evidence Provenance logic
-                                        let fbState2, injectedSteps =
+                                        // Phase 17.4/17.5: feed the reason result into the feedback policy,
+                                        // then let it route any scored hypothesis into new steps.
+                                        feedback.Observe(ReasonObserved(step, op, res.Content, false))
+
+                                        let injectedSteps =
                                             match op with
                                             | ReasonOperation.Score t ->
-                                                // Register new hypothesis from scoring node
-                                                // Calculate initial volume from parent 't'
-                                                let volume =
-                                                    match FeedbackLoop.findEvidenceBySourceId (string t) fbState with
-                                                    | Some ev -> 1 // Or compute volume of ev
-                                                    | None -> 0
-
-                                                let parseScore (c: string) =
-                                                    let lines = c.Split('\n')
-
-                                                    let scoreLine =
-                                                        lines |> Array.tryFind (fun l -> l.StartsWith("Score:"))
-
-                                                    match scoreLine with
-                                                    | Some s ->
-                                                        match Double.TryParse(s.Replace("Score:", "").Trim()) with
-                                                        | true, v -> v
-                                                        | _ -> 0.5
-                                                    | None -> 0.5
-
-                                                let scoreVal = parseScore res.Content
-
-                                                let h: HypothesisScore =
-                                                    FeedbackLoop.score
-                                                        (string t)
-                                                        "Hypothesis"
-                                                        scoreVal
-                                                        scoreVal
-                                                        scoreVal
-                                                        0
-                                                        scoreVal
-                                                        res.Content
-                                                        [] // No initial evidence
-                                                        [] // No conflicts yet
-                                                        volume
-
-                                                let st = FeedbackLoop.registerHypothesis h fbState
-
-                                                // ---------------------------------------------------------
-                                                // CONTROLLER INTEGRATION
-                                                // ---------------------------------------------------------
-                                                // Ask Router what to do with this scored hypothesis
-                                                let decision = WotController.Router.decide h 0.7 10
-
-                                                let newSteps =
-                                                    match decision with
-                                                    | WotController.Expand(nid, k) ->
-                                                        [ 1..k ]
-                                                        |> List.map (fun i ->
-                                                            { step with
-                                                                Id = Guid.NewGuid().ToString()
-                                                                Action =
-                                                                    StepAction.Reason(
-                                                                        ReasonOperation.Generate(
-                                                                            $"Expansion {i} of {nid}"
-                                                                        )
-                                                                    ) })
-                                                    | WotController.Finalize nid ->
-                                                        [ { step with
-                                                              Id = Guid.NewGuid().ToString()
-                                                              Action =
-                                                                  StepAction.Reason(ReasonOperation.Distill(NodeId nid)) } ]
-                                                    | WotController.Backtrack nid ->
-                                                        [ { step with
-                                                              Id = Guid.NewGuid().ToString()
-                                                              Action =
-                                                                  StepAction.Reason(
-                                                                      ReasonOperation.Backtrack(NodeId nid)
-                                                                  ) } ]
-                                                    | WotController.Refine nid ->
-                                                        [ { step with
-                                                              Id = Guid.NewGuid().ToString()
-                                                              Action =
-                                                                  StepAction.Reason(ReasonOperation.Refine(NodeId nid)) } ]
-                                                    | _ -> []
-
-                                                (st, newSteps)
-
-                                            | ReasonOperation.Refine t ->
-                                                // Create supporting evidence
-                                                let ev =
-                                                    { Id = $"ev_{step.Id}"
-                                                      Source = ReasonerThought step.Id
-                                                      Content = res.Content
-                                                      Confidence = 0.8
-                                                      Weight = 0.6
-                                                      IsContradiction = false
-                                                      ParentIds =
-                                                        match
-                                                            FeedbackLoop.findEvidenceBySourceId (string t) fbState
-                                                        with
-                                                        | Some p -> [ p.Id ]
-                                                        | None -> []
-                                                      Timestamp = DateTime.UtcNow }
-
-                                                let s2, _ = FeedbackLoop.updateHypothesis (string t) ev fbState
-                                                (s2, [])
-
-                                            | ReasonOperation.Contradict t ->
-                                                // Create contradicting evidence
-                                                let ev =
-                                                    { Id = $"ev_con_{step.Id}"
-                                                      Source = ReasonerThought step.Id
-                                                      Content = res.Content
-                                                      Confidence = 0.9
-                                                      Weight = 0.7
-                                                      IsContradiction = true
-                                                      ParentIds =
-                                                        match
-                                                            FeedbackLoop.findEvidenceBySourceId (string t) fbState
-                                                        with
-                                                        | Some p -> [ p.Id ]
-                                                        | None -> []
-                                                      Timestamp = DateTime.UtcNow }
-
-                                                let s2, _ = FeedbackLoop.updateHypothesis (string t) ev fbState
-                                                (s2, [])
-
-                                            | ReasonOperation.Backtrack t ->
-                                                let tid =
-                                                    match t with
-                                                    | NodeId s -> s
-
-                                                let s2 =
-                                                    FeedbackLoop.invalidateHypothesis
-                                                        tid
-                                                        "Reasoner signaled backtrack"
-                                                        fbState
-
-                                                (s2, [])
-
-                                            | ReasonOperation.Distill t ->
-                                                let tid =
-                                                    match t with
-                                                    | NodeId s -> s
-
-                                                let ev =
-                                                    { Id = $"distill_{step.Id}"
-                                                      Source = ReasonerThought step.Id
-                                                      Content = res.Content
-                                                      Confidence = 0.95
-                                                      Weight = 0.8
-                                                      IsContradiction = false
-                                                      ParentIds =
-                                                        match FeedbackLoop.findEvidenceBySourceId tid fbState with
-                                                        | Some p -> [ p.Id ]
-                                                        | None -> []
-                                                      Timestamp = DateTime.UtcNow }
-
-                                                let s2, _ = FeedbackLoop.updateHypothesis tid ev fbState
-                                                (s2, [])
-
-                                            | ReasonOperation.Aggregate src ->
-                                                let ev =
-                                                    { Id = $"agg_{step.Id}"
-                                                      Source = ReasonerThought step.Id
-                                                      Content = res.Content
-                                                      Confidence = 0.9
-                                                      Weight = 0.5
-                                                      IsContradiction = false
-                                                      ParentIds =
-                                                        src
-                                                        |> List.choose (function
-                                                            | NodeId s ->
-                                                                FeedbackLoop.findEvidenceBySourceId s fbState
-                                                                |> Option.map (fun e -> e.Id))
-                                                      Timestamp = DateTime.UtcNow }
-
-                                                let s2 = FeedbackLoop.addEvidence ev fbState
-                                                (s2, [])
-
-                                            | _ -> (fbState, [])
+                                                match feedback.Decide(string t) with
+                                                | WotController.Expand(nid, k) ->
+                                                    [ 1..k ]
+                                                    |> List.map (fun i ->
+                                                        { step with
+                                                            Id = Guid.NewGuid().ToString()
+                                                            Action =
+                                                                StepAction.Reason(
+                                                                    ReasonOperation.Generate($"Expansion {i} of {nid}")
+                                                                ) })
+                                                | WotController.Finalize nid ->
+                                                    [ { step with
+                                                          Id = Guid.NewGuid().ToString()
+                                                          Action = StepAction.Reason(ReasonOperation.Distill(NodeId nid)) } ]
+                                                | WotController.Backtrack nid ->
+                                                    [ { step with
+                                                          Id = Guid.NewGuid().ToString()
+                                                          Action = StepAction.Reason(ReasonOperation.Backtrack(NodeId nid)) } ]
+                                                | WotController.Refine nid ->
+                                                    [ { step with
+                                                          Id = Guid.NewGuid().ToString()
+                                                          Action = StepAction.Reason(ReasonOperation.Refine(NodeId nid)) } ]
+                                                | _ -> []
+                                            | _ -> []
 
                                         // Phase 15.2: Log to symbolic memory
-                                        do! SymbolicMemory.logFact runId (Some step.Id) res.Content 1.0
+                                        do! sink.LogFact(runId, Some step.Id, res.Content, 1.0)
 
                                         do!
                                             succeed
@@ -812,15 +622,13 @@ module WotExecutor =
                                                 res.Usage
                                                 step.Metadata
 
-
-                                        return! loop (injectedSteps @ rest) ctx2 fbState2
+                                        return! loop (injectedSteps @ rest) ctx2
 
                         | _ ->
                             return fail $"Action not implemented in v0: {step.Action}" "unknown" None None step.Metadata
                 }
 
-            let initialFbState = FeedbackLoop.create runId
-            let! finalResult = loop planSteps ctx initialFbState
+            let! finalResult = loop planSteps ctx
 
 
             let tracesResult =

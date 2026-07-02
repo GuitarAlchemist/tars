@@ -20,9 +20,19 @@ type ExecContext =
     { Inputs: Map<string, string>
       Vars: Map<string, obj> }
 
-/// Platform-agnostic interface for invoking tools
+/// The result of invoking a tool through the invoker seam. Unlike a flat
+/// Result<obj,string>, this admits the distinct failure modes the invoker knows
+/// about, so callers no longer have to string-match to tell them apart.
+type ToolOutcome =
+    | Succeeded of output: string
+    | NotFound
+    | CircuitOpen
+    | Failed of category: string * message: string
+
+/// Platform-agnostic interface for invoking tools, with resilience (circuit
+/// breaker) and recording owned by the implementation.
 type IToolInvoker =
-    abstract Invoke: toolName: string * args: Map<string, string> -> Async<Result<obj, string>>
+    abstract Invoke: toolName: string * args: Map<string, string> -> Async<ToolOutcome>
 
 /// Token usage for reasoning
 type TokenUsage = { Prompt: int; Completion: int }

@@ -10,85 +10,16 @@ type ToolRegistry(failureThreshold: int, durationOfBreak: TimeSpan) =
     let tools =
         System.Collections.Concurrent.ConcurrentDictionary<string, Tars.Core.Tool>()
 
-    // Circuit breakers for each tool
-    let circuitBreakers =
-        System.Collections.Concurrent.ConcurrentDictionary<string, Resilience.CircuitBreaker>()
+    // failureThreshold/durationOfBreak are retained for call-site compatibility;
+    // resilience now lives in Tars.Core.ToolExecution, applied at invocation time.
+    do ignore (failureThreshold, durationOfBreak)
 
     // Default constructor
     new() = ToolRegistry(3, TimeSpan.FromMinutes(1.0))
 
-    member this.Register(tool: Tars.Core.Tool) =
-        let cb =
-            circuitBreakers.GetOrAdd(tool.Name, fun _ -> Resilience.CircuitBreaker(failureThreshold, durationOfBreak))
-
-        let resilientExecute (input: string) : Async<Result<string, string>> =
-            async {
-                let sw = System.Diagnostics.Stopwatch.StartNew()
-                let taskOp () = Async.StartAsTask(tool.Execute input)
-
-                try
-                    let! (result: Result<string, string>) = Async.AwaitTask(cb.ExecuteAsync(taskOp))
-                    sw.Stop()
-                    let duration = sw.Elapsed.TotalMilliseconds
-
-                    match result with
-                    | Result.Ok output ->
-                        Tars.Core.ToolLedger.record
-                            tool.Name
-                            input
-                            output
-                            duration
-                            true
-                            Tars.Core.ToolFailureCategory.NoFailure
-                            None
-                    | Result.Error err ->
-                        let category =
-                            if err.Contains("timeout") || err.Contains("timed out") then
-                                Tars.Core.ToolFailureCategory.Timeout
-                            elif err.Contains("connection") || err.Contains("http") || err.Contains("network") then
-                                Tars.Core.ToolFailureCategory.DependencyFailure
-                            else
-                                Tars.Core.ToolFailureCategory.Unknown
-
-                        ToolLedger.record
-                            tool.Name
-                            input
-                            err
-                            duration
-                            false
-                            category
-                            None
-
-                    return result
-                with
-                | :? InvalidOperationException as ex when ex.Message.Contains("CircuitBreaker is OPEN") ->
-                    sw.Stop()
-
-                    Tars.Core.ToolLedger.record
-                        tool.Name
-                        input
-                        "Circuit Breaker is OPEN"
-                        sw.Elapsed.TotalMilliseconds
-                        false
-                        Tars.Core.ToolFailureCategory.CircuitBreakerOpen
-                        None
-
-                    return Result.Error "Circuit Breaker is OPEN"
-                | ex ->
-                    sw.Stop()
-
-                    let cat =
-                        if ex.Message.Contains("timeout") then
-                            Tars.Core.ToolFailureCategory.Timeout
-                        else
-                            Tars.Core.ToolFailureCategory.Unknown
-
-                    Tars.Core.ToolLedger.record tool.Name input ex.Message sw.Elapsed.TotalMilliseconds false cat None
-                    return Result.Error ex.Message
-            }
-
-        let resilientTool = { tool with Execute = resilientExecute }
-        tools.TryAdd(resilientTool.Name, resilientTool) |> ignore
+    /// Stores the tool as-is. Resilience (circuit breaker + recording) is applied
+    /// by Tars.Core.ToolExecution when the tool is invoked, not at registration.
+    member this.Register(tool: Tars.Core.Tool) = tools.TryAdd(tool.Name, tool) |> ignore
 
     member this.RegisterAssembly(assembly: Assembly) =
         let methods =

@@ -32,7 +32,13 @@ type EvolveOptions =
       Focus: string option
       ResearchEnhanced: bool
       SelfImprovement: bool
-      Benchmark: bool }
+      Benchmark: bool
+      /// Fitness domain for the post-cycle benchmark: "code" (default), "ga"
+      /// (Guitar Alchemist music theory), or "all".
+      BenchmarkDomain: string
+      /// Run a parallel grammar-mesh sweep each cycle and record the winning
+      /// derivation as a pattern outcome (ADR 0001). Off by default.
+      GrammarMesh: bool }
 
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
@@ -754,9 +760,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         if not options.Quiet then
                             RichOutput.dim (sprintf "   %s" msg)
 
+                    let benchSource =
+                        match options.BenchmarkDomain.ToLowerInvariant() with
+                        | "ga" | "music" -> GaProblemBank.all ()
+                        | "all" -> ProblemBank.all () @ GaProblemBank.all ()
+                        | _ -> ProblemBank.all ()
+
                     let! benchSummary =
-                        BenchmarkRunner.runSuite
+                        BenchmarkRunner.runSuiteFromProblems
                             llmService
+                            benchSource
                             None    // all difficulties
                             None    // all categories
                             None    // no limit
@@ -774,6 +787,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         RichOutput.dim (sprintf "   Compiled: %d/%d (%s%%)" benchSummary.Compiled benchSummary.TotalProblems compilePct)
                         RichOutput.dim (sprintf "   Duration: %.1fs" durationSec)
                         RichOutput.dim (sprintf "   Results saved to %s" benchPath)
+
+                    // Level-4 loop: refresh the self-train SFT dataset from the
+                    // verified corpus after each cycle (only PASS-validated rows).
+                    let datasetPath =
+                        System.IO.Path.Combine(
+                            System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
+                            ".tars", "self_train", "dataset.jsonl")
+                    let stStats = SelfTrain.exportDataset datasetPath None
+                    if not options.Quiet then
+                        RichOutput.dim (sprintf "   Self-train dataset: %d verified examples -> %s" stStats.VerifiedExamples stStats.OutputPath)
 
             if not options.Quiet then
                 let consumedTokens =
@@ -841,6 +864,27 @@ let run (logger: ILogger) (options: EvolveOptions) =
                             RichOutput.dim $"  [Meta] {r}"
             with ex ->
                 logger.Warning("Meta-cognitive analysis skipped: {Message}", ex.Message)
+
+            // Grammar-mesh sweep: parallelize grammar search across a config grid
+            // via ix-pipeline, record the winner as an outcome (ADR 0001 D4/D6).
+            if options.GrammarMesh then
+                try
+                    if not options.Quiet then
+                        RichOutput.info "Running grammar-mesh sweep (ix-pipeline)..."
+                    let outcome = GrammarMeshBridge.runDefaultSweep ()
+                    let best = outcome.Ranked |> List.sortByDescending (fun r -> r.Reward) |> List.tryHead
+                    let reward = best |> Option.map (fun r -> r.Reward) |> Option.defaultValue 0.0
+                    let backend = if outcome.UsedMesh then "parallel ix mesh" else "serial F# fallback"
+                    if not options.Quiet then
+                        RichOutput.dim $"  [Mesh] {outcome.Ranked.Length} configs swept ({backend}); best reward {reward:F3}, {outcome.Best.Length} actions"
+                    PatternOutcomeStore.record
+                        { PatternKind = Tars.Cortex.WoTTypes.PatternKind.WorkflowOfThought
+                          Goal = "grammar-mesh sweep"
+                          Success = reward > 0.0 && not outcome.Best.IsEmpty
+                          DurationMs = 0L
+                          Timestamp = DateTime.UtcNow }
+                with ex ->
+                    logger.Warning("Grammar-mesh sweep skipped: {Message}", ex.Message)
 
             // Refresh promotion index so pattern selectors pick up new outcomes
             try

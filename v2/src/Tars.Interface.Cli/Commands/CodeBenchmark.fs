@@ -27,7 +27,17 @@ module CodeBenchmark =
         | "async" -> Some AsyncPatterns
         | "type" | "types" | "typedesign" -> Some TypeDesign
         | "pattern" | "patternmatching" -> Some PatternMatching
+        | "music" | "musictheory" | "ga" -> Some MusicTheory
         | _ -> None
+
+    /// Resolve the fitness domain (problem source) for a run.
+    /// code = curated F# puzzles (default); ga = Guitar Alchemist music theory;
+    /// all = both.
+    let private problemSource (domain: string) : BenchmarkProblem list =
+        match domain.ToLowerInvariant() with
+        | "ga" | "music" -> GaProblemBank.all ()
+        | "all" -> ProblemBank.all () @ GaProblemBank.all ()
+        | _ -> ProblemBank.all ()
 
     let private showStatus () =
         let s = ProblemBank.summary ()
@@ -73,6 +83,9 @@ module CodeBenchmark =
             let mutable difficulty = None
             let mutable category = None
             let mutable maxProblems = None
+            let mutable domain = "code"
+            let mutable model = None
+            let mutable idFilter = None
             let mutable i = 1
             while i < args.Length do
                 match args.[i] with
@@ -85,13 +98,30 @@ module CodeBenchmark =
                 | "--max" | "-n" when i + 1 < args.Length ->
                     maxProblems <- Some (int args.[i + 1])
                     i <- i + 2
+                | "--domain" when i + 1 < args.Length ->
+                    domain <- args.[i + 1]
+                    i <- i + 2
+                | "--model" | "-m" when i + 1 < args.Length ->
+                    model <- Some args.[i + 1]
+                    i <- i + 2
+                | "--id" when i + 1 < args.Length ->
+                    idFilter <- Some args.[i + 1]
+                    i <- i + 2
                 | _ -> i <- i + 1
 
-            let llm = LlmFactory.create logger
+            let llm =
+                match model with
+                | Some m -> LlmFactory.createWithModel logger m
+                | None -> LlmFactory.create logger
+            let source =
+                let s = problemSource domain
+                match idFilter with
+                | Some id -> s |> List.filter (fun p -> p.Id = id)
+                | None -> s
 
-            RichOutput.info "Starting code benchmark..."
+            RichOutput.info $"Starting code benchmark (domain: {domain}, {source.Length} problems)..."
             let! summary =
-                BenchmarkRunner.runSuite llm difficulty category maxProblems true
+                BenchmarkRunner.runSuiteFromProblems llm source difficulty category maxProblems true
                     (fun msg -> printfn "%s" msg)
 
             // Record outcomes for self-improvement loop
@@ -113,8 +143,10 @@ module CodeBenchmark =
             printfn "Usage: tars benchmark code [run|status|report]"
             printfn ""
             printfn "  run [options]   Run benchmark suite"
+            printfn "    --domain code|ga|all   Fitness domain (code = F# puzzles, ga = Guitar Alchemist music theory)"
             printfn "    --difficulty basic|intermediate|advanced|expert"
-            printfn "    --category algorithms|strings|data|error|type|pattern"
+            printfn "    --category algorithms|strings|data|error|type|pattern|music"
+            printfn "    --model NAME  Override the LLM (e.g. qwen2.5-coder:7b)"
             printfn "    --max N       Limit to N problems"
             printfn "  status          Show problem bank and latest results"
             printfn "  report          Show benchmark history"

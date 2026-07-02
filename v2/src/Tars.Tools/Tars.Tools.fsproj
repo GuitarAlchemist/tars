@@ -10,6 +10,7 @@
     <Compile Include="ToolHelpers.fs" />
     <Compile Include="ToolFactory.fs" />
     <Compile Include="Registry.fs" />
+    <Compile Include="ToolInvoker.fs" />
     <Compile Include="MafToolAdapter.fs" />
     <Compile Include="StandardTools.fs" />
     <Compile Include="SemanticTools.fs" />

@@ -57,5 +57,8 @@ jobs:
       run: dotnet build --no-restore
       working-directory: v2
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      # Standing infra for the self-improve backlog (ADR 0002 D5): in-flight gap seeds
+      # are deliberately RED and tagged Category=SelfImproveBacklog; exclude them so CI
+      # gates on real regressions. Closing a gap removes its trait, rejoining gating.
+      run: dotnet test --no-build --verbosity normal --filter "Category!=SelfImproveBacklog"
       working-directory: v2

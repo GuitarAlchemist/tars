@@ -1,14 +1,15 @@
 namespace Tars.Evolution
 
 open System
-open System.Diagnostics
-open System.Text
 open System.Text.Json
 open System.Threading.Tasks
+open Tars.Core
 
 /// Bridge to ix's Rust-based ML algorithms.
-/// Calls `ix` CLI for genetic algorithms, optimization, and clustering.
-/// Falls back to built-in F# implementations when ix is not available.
+///
+/// The low-level subprocess handling lives in `Tars.Core.IxSkill` (the single
+/// seam to ix); this module adds the Evolution-specific skill wrappers and a
+/// built-in F# fallback so TARS never hard-depends on the Rust toolchain.
 module MachinBridge =
 
     /// Result from an ix optimization call.
@@ -20,11 +21,11 @@ module MachinBridge =
 
     /// Configuration for the ix bridge.
     type MachinConfig =
-        { /// Path to ix executable
+        { /// Path to the cargo executable (used when no prebuilt binary is found).
           SkillPath: string
           /// Timeout for subprocess calls
           Timeout: TimeSpan
-          /// Working directory for ix
+          /// Working directory — the ix repo root (cargo + target/ live here).
           WorkingDir: string option }
 
     let defaultConfig =
@@ -32,74 +33,22 @@ module MachinBridge =
           Timeout = TimeSpan.FromSeconds(30.0)
           WorkingDir = None }
 
-    /// Check if ix is available.
+    let private toIxConfig (c: MachinConfig) : IxSkill.Config =
+        { CargoPath = c.SkillPath
+          Timeout = c.Timeout
+          RepoDir = c.WorkingDir }
+
+    /// Check if ix is available (binary present, or cargo can resolve ix-skill).
     let isAvailable (config: MachinConfig) : bool =
-        try
-            let psi = ProcessStartInfo()
-            psi.FileName <- config.SkillPath
-            psi.Arguments <- "run -p ix -- list"
-            psi.UseShellExecute <- false
-            psi.RedirectStandardOutput <- true
-            psi.RedirectStandardError <- true
-            psi.CreateNoWindow <- true
-            match config.WorkingDir with
-            | Some dir -> psi.WorkingDirectory <- dir
-            | None -> ()
+        IxSkill.isAvailable (toIxConfig config)
 
-            use proc = Process.Start(psi)
-            proc.WaitForExit(5000) |> ignore
-            proc.ExitCode = 0
-        with _ -> false
-
-    /// Execute ix CLI and parse output.
-    let private executeSkill
+    /// Run an ix skill with a JSON input document, returning raw JSON stdout.
+    let runSkillJson
         (config: MachinConfig)
-        (args: string)
+        (skill: string)
+        (inputJson: string)
         : Task<Result<string, string>> =
-        task {
-            try
-                let psi = ProcessStartInfo()
-                psi.FileName <- config.SkillPath
-                psi.Arguments <- sprintf "run -p ix -- %s" args
-                psi.UseShellExecute <- false
-                psi.RedirectStandardOutput <- true
-                psi.RedirectStandardError <- true
-                psi.CreateNoWindow <- true
-                match config.WorkingDir with
-                | Some dir -> psi.WorkingDirectory <- dir
-                | None -> ()
-
-                use proc = new Process()
-                proc.StartInfo <- psi
-
-                let stdout = StringBuilder()
-                let stderr = StringBuilder()
-
-                proc.OutputDataReceived.Add(fun e ->
-                    if not (isNull e.Data) then
-                        stdout.AppendLine(e.Data) |> ignore)
-                proc.ErrorDataReceived.Add(fun e ->
-                    if not (isNull e.Data) then
-                        stderr.AppendLine(e.Data) |> ignore)
-
-                proc.Start() |> ignore
-                proc.BeginOutputReadLine()
-                proc.BeginErrorReadLine()
-
-                let! completed =
-                    Task.Run(fun () ->
-                        proc.WaitForExit(int config.Timeout.TotalMilliseconds))
-
-                if not completed then
-                    try proc.Kill() with _ -> ()
-                    return Error "ix timed out"
-                elif proc.ExitCode <> 0 then
-                    return Error (stderr.ToString().Trim())
-                else
-                    return Ok (stdout.ToString().Trim())
-            with ex ->
-                return Error (sprintf "ix error: %s" ex.Message)
-        }
+        IxSkill.runSkillJson (toIxConfig config) skill inputJson
 
     /// Parse ix optimization output.
     let parseOptimizeOutput (output: string) : OptimizeResult =
@@ -138,55 +87,43 @@ module MachinBridge =
           Iterations = iterations
           Converged = converged }
 
-    /// Run genetic algorithm optimization via ix.
-    let runGeneticAlgorithm
+    /// Minimize a benchmark function via ix's `optimize` skill.
+    ///
+    /// `func` is one of `sphere | rosenbrock | rastrigin`; `method` is one of
+    /// `sgd | adam | pso | annealing` (ix's optimize surface — it does not yet
+    /// accept a caller-supplied fitness closure, so custom-fitness work stays on
+    /// the F# fallback in EvolutionaryPatternBreeder).
+    let runOptimize
         (config: MachinConfig)
+        (func: string)
+        (method: string)
         (dim: int)
-        (maxGenerations: int)
-        (fitnessFunction: string)
+        (maxIter: int)
         : Task<Result<OptimizeResult, string>> =
         task {
-            let args =
-                sprintf "optimize --algo genetic --function %s --dim %d --max-iter %d"
-                    fitnessFunction dim maxGenerations
-            let! result = executeSkill config args
+            let input =
+                JsonSerializer.Serialize(
+                    {| ``function`` = func
+                       dimensions = dim
+                       method = method
+                       max_iter = maxIter |})
+            let! result = runSkillJson config "optimize" input
             match result with
-            | Ok output -> return Ok (parseOptimizeOutput output)
-            | Error err -> return Error err
-        }
-
-    /// Run differential evolution via ix.
-    let runDifferentialEvolution
-        (config: MachinConfig)
-        (dim: int)
-        (maxGenerations: int)
-        (fitnessFunction: string)
-        : Task<Result<OptimizeResult, string>> =
-        task {
-            let args =
-                sprintf "optimize --algo differential --function %s --dim %d --max-iter %d"
-                    fitnessFunction dim maxGenerations
-            let! result = executeSkill config args
-            match result with
-            | Ok output -> return Ok (parseOptimizeOutput output)
-            | Error err -> return Error err
-        }
-
-    /// Run PSO via ix.
-    let runPSO
-        (config: MachinConfig)
-        (dim: int)
-        (maxIterations: int)
-        (fitnessFunction: string)
-        : Task<Result<OptimizeResult, string>> =
-        task {
-            let args =
-                sprintf "optimize --algo pso --function %s --dim %d --max-iter %d"
-                    fitnessFunction dim maxIterations
-            let! result = executeSkill config args
-            match result with
-            | Ok output -> return Ok (parseOptimizeOutput output)
-            | Error err -> return Error err
+            | Result.Error err -> return Result.Error err
+            | Result.Ok json ->
+                try
+                    use doc = JsonDocument.Parse(json)
+                    let root = doc.RootElement
+                    let bestParams =
+                        [ for e in root.GetProperty("best_params").EnumerateArray() -> e.GetDouble() ]
+                    return
+                        Result.Ok
+                            { BestValue = root.GetProperty("best_value").GetDouble()
+                              BestParams = bestParams
+                              Iterations = root.GetProperty("iterations").GetInt32()
+                              Converged = root.GetProperty("converged").GetBoolean() }
+                with ex ->
+                    return Result.Error (sprintf "ix optimize parse error: %s" ex.Message)
         }
 
     // =========================================================================

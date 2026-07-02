@@ -346,7 +346,7 @@ let executeToolCall (toolRegistry: IToolRegistry) (response: string) (userMessag
 
                 let result =
                     try
-                        let res = tool.Execute finalInput |> Async.RunSynchronously
+                        let res = Tars.Core.ToolExecution.runDefault tool finalInput |> Async.RunSynchronously
 
                         match res with
                         | Result.Ok r ->
@@ -531,7 +531,7 @@ let update
                         | Some tool ->
                             // Add timeout to prevent hanging on tools that depend on external services
                             let timeoutMs = 10000 // 10 second timeout
-                            let executionTask = tool.Execute "test input" |> Async.StartAsTask
+                            let executionTask = Tars.Core.ToolExecution.runDefault tool "test input" |> Async.StartAsTask
                             let timeoutTask = Task.Delay(timeoutMs)
 
                             let! completedTask = Task.WhenAny(executionTask, timeoutTask)
