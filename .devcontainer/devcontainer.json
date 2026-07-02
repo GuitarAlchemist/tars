@@ -1,0 +1,22 @@
+{
+  "name": "TARS",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": { "version": "10.0" },
+    "ghcr.io/devcontainers/features/powershell:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ionide.ionide-fsharp",
+        "ms-dotnettools.csdevkit",
+        "anthropic.claude-code"
+      ]
+    }
+  },
+  // Working directory is v2/ (see CLAUDE.md). Full build/test:
+  //   cd v2 && dotnet build && dotnet test
+  "postCreateCommand": "npm install -g @anthropic-ai/claude-code"
+}
