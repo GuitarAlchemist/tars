@@ -24,12 +24,27 @@ jobs:
       id-token: write
 
     steps:
+      # Cost-safe: auto-review runs ONLY on the $0 subscription token. Without
+      # it, skip green instead of failing red on every PR — and never fall back
+      # to the pay-per-use ANTHROPIC_API_KEY here (this fires on every PR).
+      - name: Gate on subscription token presence
+        id: gate
+        env:
+          HAS_OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        run: |
+          if [ "$HAS_OAUTH" != "true" ]; then
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN not set — skipping auto-review (subscription-only lane)."
+          fi
+          echo "ok=$HAS_OAUTH" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
+        if: steps.gate.outputs.ok == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: Run Claude Code Review
+        if: steps.gate.outputs.ok == 'true'
         id: claude-review
         uses: anthropics/claude-code-action@v1
         with:

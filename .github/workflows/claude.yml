@@ -29,6 +29,11 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # Subscription OAuth token ($0/call), never the pay-per-use ANTHROPIC_API_KEY.
-          # Set org-wide via: claude setup-token && gh secret set CLAUDE_CODE_OAUTH_TOKEN --org GuitarAlchemist
+          # Subscription OAuth token ($0/call) — preferred. Set org-wide via:
+          # claude setup-token && gh secret set CLAUDE_CODE_OAUTH_TOKEN --org GuitarAlchemist
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # TEMPORARY pay-per-use fallback (2026-07-01): remove once the OAuth
+          # token is provisioned, then revoke the key. This lane only fires on
+          # explicit @claude mentions from OWNER/MEMBER/COLLABORATOR, so spend
+          # is human-initiated and bounded.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
