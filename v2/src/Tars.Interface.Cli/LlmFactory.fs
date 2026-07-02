@@ -68,9 +68,8 @@ module LlmFactory =
             let primary = create logger
             // Quick check: can we reach the configured backend?
             let probe =
-                { LlmRequest.Default with
-                    Messages = [ { Role = Role.User; Content = "ping" } ]
-                    MaxTokens = Some 1 }
+                Prompt.ask "ping"
+                |> Prompt.withMaxTokens 1
             let result = primary.CompleteAsync(probe) |> fun t -> t.Wait(TimeSpan.FromSeconds(5.0))
             if result then primary
             else

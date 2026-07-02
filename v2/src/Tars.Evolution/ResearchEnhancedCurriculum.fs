@@ -94,16 +94,13 @@ INSIGHT: [key finding 2]
 INSIGHT: [key finding 3]
 CONTRADICTION: [if any contradictions between papers]""" papersText
 
-                            let request = {
-                                LlmRequest.Default with
-                                    ModelHint = Some "reasoning"
-                                    SystemPrompt = Some "You are a research analyst extracting actionable insights."
-                                    Messages = [{ Role = Role.User; Content = prompt }]
-                                    Temperature = Some 0.3
-                                    MaxTokens = Some 500
-                            }
-                            
-                            let! response = llm.CompleteAsync request
+                            let! response =
+                                Prompt.ask prompt
+                                |> Prompt.withHint "reasoning"
+                                |> Prompt.withSystem "You are a research analyst extracting actionable insights."
+                                |> Prompt.withTemp 0.3
+                                |> Prompt.withMaxTokens 500
+                                |> Prompt.complete llm
                             let text = response.Text
                             
                             // Parse insights
@@ -248,16 +245,13 @@ Format:
 TASK: [description of task 1]
 TASK: [description of task 2]""" findingsText
 
-            let request = {
-                LlmRequest.Default with
-                    ModelHint = Some "reasoning"
-                    SystemPrompt = Some "You are generating practical coding tasks based on research findings."
-                    Messages = [{ Role = Role.User; Content = prompt }]
-                    Temperature = Some 0.5
-                    MaxTokens = Some 400
-            }
-            
-            let! response = llm.CompleteAsync request
+            let! response =
+                Prompt.ask prompt
+                |> Prompt.withHint "reasoning"
+                |> Prompt.withSystem "You are generating practical coding tasks based on research findings."
+                |> Prompt.withTemp 0.5
+                |> Prompt.withMaxTokens 400
+                |> Prompt.complete llm
             
             // Parse suggested tasks
             let taskPattern = @"TASK:\s*(.+?)(?=TASK:|$)"
