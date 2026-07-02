@@ -2,10 +2,11 @@
 # /improve-codebase-architecture skill (.claude/skills/improve-codebase-architecture).
 # Mirror of ga's architecture-refinement.yml with tars slices.
 #
-# "Periodically, when needed": a monthly cron fires a DETERMINISTIC churn gate
-# first — no Claude credits are spent unless one of the project slices has
+# Need-driven, not calendar-driven: a daily cron fires a DETERMINISTIC churn
+# gate first — no Claude credits are spent unless one of the project slices has
 # actually moved since its last review (or has never been reviewed). The gate
-# picks the slice with the highest churn-since-last-review.
+# picks the slice with the highest churn-since-last-review; the daily check-in
+# only bounds review latency to ~1 day once a slice clears the gate.
 #
 # PROPOSES, never auto-refactors: output is a durable report under
 # state/quality/architecture-refinement/ plus one `needs-triage` issue listing
@@ -18,8 +19,10 @@ name: Architecture Refinement
 
 on:
   schedule:
-    # Monthly, day 3 (offset from ga's day 2 to stagger subscription load).
-    - cron: '30 6 3 * *'
+    # Daily, 07:30 UTC (offset from ga's 06:30 to stagger subscription load).
+    # The churn gate decides whether Claude actually runs; the cron is just
+    # the check-in frequency and spends no credits.
+    - cron: '30 7 * * *'
   workflow_dispatch:
     inputs:
       slice:
