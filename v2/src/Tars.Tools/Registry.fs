@@ -4,6 +4,7 @@ open System
 open System.Text.Json
 open System.Reflection
 open System.Threading.Tasks
+open System.Collections.Immutable
 open Tars.Core
 
 type ToolRegistry(failureThreshold: int, durationOfBreak: TimeSpan) =
@@ -140,3 +141,131 @@ type ToolRegistry(failureThreshold: int, durationOfBreak: TimeSpan) =
         member this.Register(tool: Tool) = this.Register(tool)
         member this.Get(name: string) = this.Get(name)
         member this.GetAll() = this.GetAll()
+
+module SkillRegistry =
+    let private buildArgs (input: string) (parameters: ParameterInfo[]) =
+        if parameters.Length = 0 then
+            [||]
+        elif parameters.Length = 1 && parameters[0].ParameterType = typeof<string> then
+            [| input :> obj |]
+        else
+            let convertValue (element: JsonElement) (t: Type) =
+                try
+                    if t = typeof<string> then
+                        box (element.GetString())
+                    elif t = typeof<int> then
+                        box (element.GetInt32())
+                    elif t = typeof<int64> then
+                        box (element.GetInt64())
+                    elif t = typeof<bool> then
+                        box (element.GetBoolean())
+                    elif t = typeof<float> then
+                        box (element.GetDouble() |> float)
+                    elif t = typeof<double> then
+                        box (element.GetDouble())
+                    elif t = typeof<Guid> then
+                        box (Guid.Parse(element.GetString()))
+                    else
+                        box (element.GetRawText())
+                with _ ->
+                    try
+                        element.GetString() |> box
+                    with _ ->
+                        box null
+
+            let parsed =
+                try
+                    JsonDocument.Parse(input).RootElement
+                with _ ->
+                    JsonDocument.Parse("{}").RootElement
+
+            if parsed.ValueKind = JsonValueKind.Object then
+                parameters
+                |> Array.map (fun p ->
+                    let mutable prop = Unchecked.defaultof<JsonElement>
+
+                    if parsed.TryGetProperty(p.Name, &prop) then
+                        convertValue prop p.ParameterType
+                    else
+                        box null)
+            elif parsed.ValueKind = JsonValueKind.Array then
+                let values = parsed.EnumerateArray() |> Seq.toArray
+
+                parameters
+                |> Array.mapi (fun i p ->
+                    if i < values.Length then
+                        convertValue values[i] p.ParameterType
+                    else
+                        box null)
+            else
+                [| input :> obj |]
+
+    let private discover () =
+        AppDomain.CurrentDomain.GetAssemblies()
+        |> Array.collect (fun a ->
+            try
+                a.GetTypes()
+            with _ ->
+                [||])
+        |> Array.collect (fun t ->
+            t.GetMethods(BindingFlags.Public ||| BindingFlags.Static ||| BindingFlags.Instance))
+        |> Array.choose (fun m ->
+            let attr = m.GetCustomAttribute<TarsSkillAttribute>()
+
+            if box attr |> isNull then
+                None
+            else
+                let toolAttr = m.GetCustomAttribute<TarsToolAttribute>()
+                let description = if box toolAttr |> isNull then "" else toolAttr.Description
+
+                let execute (input: string) : Async<Result<string, string>> =
+                    async {
+                        try
+                            let parameters = m.GetParameters()
+                            let args = buildArgs input parameters
+
+                            let instance =
+                                if m.IsStatic then
+                                    null
+                                else
+                                    Activator.CreateInstance(m.DeclaringType)
+
+                            let result = m.Invoke(instance, args)
+
+                            match result with
+                            | :? Task<string> as t ->
+                                let! r = Async.AwaitTask t
+                                return Result.Ok r
+                            | :? string as s -> return Result.Ok s
+                            | :? Task<Result<string, string>> as t ->
+                                let! r = Async.AwaitTask t
+                                return r
+                            | :? Result<string, string> as r -> return r
+                            | null -> return Result.Ok "null"
+                            | _ -> return Result.Ok(result.ToString())
+                        with ex ->
+                            return Result.Error ex.Message
+                    }
+
+                Some
+                    { Name = attr.Name
+                      Domain = attr.Domain
+                      Description = description
+                      Version = "1.0.0"
+                      CreatedAt = DateTime.UtcNow
+                      Execute = execute })
+        |> ImmutableArray.ToImmutableArray
+
+    let All = lazy (discover ())
+
+    let byName name =
+        All.Value |> Seq.tryFind (fun s -> s.Name = name)
+
+    let byDomain domain =
+        All.Value |> Seq.filter (fun s -> s.Domain = domain) |> Seq.toArray
+
+    type GlobalSkillRegistry() =
+        interface ISkillRegistry with
+            member _.GetSkill name = byName name
+            member _.GetSkillsByDomain domain = byDomain domain |> Array.toList
+            member _.GetAllSkills () = All.Value |> Seq.toList

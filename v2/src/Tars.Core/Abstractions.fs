@@ -58,6 +58,12 @@ type IToolRegistry =
     /// Get all registered tools
     abstract member GetAll: unit -> Tool list
 
+/// Registry for looking up capabilities (skills) by name or domain
+type ISkillRegistry =
+    abstract member GetSkill: name: string -> TarsSkill option
+    abstract member GetSkillsByDomain: domain: string -> TarsSkill list
+    abstract member GetAllSkills: unit -> TarsSkill list
+
 /// Represents the Knowledge Graph service
 type IGraphService =
     abstract member AddNodeAsync: TarsEntity -> Task<string>

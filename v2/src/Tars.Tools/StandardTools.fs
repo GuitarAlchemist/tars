@@ -12,6 +12,7 @@ module StandardTools =
     let private dockerClient = lazy (DockerClient.createClient ())
     let private httpClient = lazy (new HttpClient())
 
+    [<TarsSkill("standard.run_command", "standard")>]
     [<TarsToolAttribute("run_command", "Executes a shell command in a secure sandbox. Input: command string.")>]
     let runCommand (args: string) =
         task {
@@ -32,6 +33,7 @@ module StandardTools =
             | Error e -> return $"Sandbox Error: %s{e}"
         }
 
+    [<TarsSkill("standard.html_to_text", "standard")>]
     [<TarsToolAttribute("html_to_text", "Converts HTML to plain text. Input JSON: { \"html\": \"...\" }")>]
     let htmlToText (args: string) =
         task {
@@ -51,6 +53,7 @@ module StandardTools =
                 return $"html_to_text error: {ex.Message}"
         }
 
+    [<TarsSkill("standard.read_file", "standard")>]
     [<TarsToolAttribute("read_file", "Reads a text file (UTF-8). Input JSON: { \"path\": \"relative/or/absolute\" }")>]
     let readFile (args: string) =
         task {
@@ -72,6 +75,7 @@ module StandardTools =
                 return $"read_file error: {ex.Message}"
         }
 
+    [<TarsSkill("standard.list_dir", "standard")>]
     [<TarsToolAttribute("list_dir", "Lists files and folders. Input JSON: { \"path\": \"dir\" }")>]
     let listDir (args: string) =
         task {
@@ -94,6 +98,7 @@ module StandardTools =
                 return $"list_dir error: {ex.Message}"
         }
 
+    [<TarsSkill("standard.http_get", "standard")>]
     [<TarsToolAttribute("http_get",
                         "Fetches a URL over HTTP(S) and returns the text content. Input JSON: { \"url\": \"https://...\" }")>]
     let httpGet (args: string) =
