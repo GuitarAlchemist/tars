@@ -22,6 +22,8 @@ type ITarsRuntime =
     abstract member Config: TarsConfig
     /// Tool registry with all TARS tools registered (assembly scanned once).
     abstract member Tools: IToolRegistry
+    /// Skill registry with all TARS skills registered.
+    abstract member Skills: ISkillRegistry
     /// Resolve an LLM service for the requested model choice.
     abstract member Llm: ModelChoice -> ILlmService
 
@@ -41,9 +43,12 @@ module TarsRuntime =
                  registry.RegisterAssembly(typeof<Tars.Tools.TarsToolAttribute>.Assembly)
                  registry :> IToolRegistry)
 
+        let skills = lazy (Tars.Tools.SkillRegistry.GlobalSkillRegistry() :> ISkillRegistry)
+
         { new ITarsRuntime with
             member _.Config = config
             member _.Tools = tools.Value
+            member _.Skills = skills.Value
 
             member _.Llm choice =
                 match choice with
