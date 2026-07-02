@@ -1,0 +1,79 @@
+name: Jules PR watchdog
+
+# Finer-grained observability for Jules-authored PRs (issue #132). Reacts to PR events and a
+# low-frequency schedule, classifies each Jules PR into one jules-state:* label, and comments only
+# on the critical CI-failure transition. Never merges; never bypasses review; halt-gated on
+# governance/state/afk-halt.json. See docs/agents/jules-pr-watchdog.md.
+
+on:
+  pull_request_target:
+    types: [synchronize, opened, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+  workflow_run:
+    workflows: [".NET"]
+    types: [completed]
+  schedule:
+    - cron: '23 */6 * * *'   # low-frequency sweep for staleness/duplicates
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number to classify
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: read
+  actions: read
+
+concurrency:
+  # One classification per PR at a time; never cancel an in-flight run.
+  group: jules-watchdog-${{ github.event.pull_request.number || github.event.workflow_run.id || github.event.inputs.pr || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout (read the governance halt marker + the classifier script)
+        uses: actions/checkout@v4
+
+      # Event-driven paths: a single PR number is available directly.
+      - name: Classify the triggering PR
+        if: ${{ github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review' || github.event_name == 'workflow_dispatch' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number || github.event.inputs.pr }}
+          EVENT_NAME: ${{ github.event.action || github.event_name }}
+        run: bash .github/scripts/jules-pr-watchdog.sh
+
+      # workflow_run gives a head SHA, not a PR — resolve the open PR(s) for that SHA.
+      - name: Classify the PR(s) for a completed check run
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_NAME: workflow_run
+        run: |
+          set -euo pipefail
+          for PR in $(gh pr list --repo "$REPO" --state open --search "$HEAD_SHA" \
+                        --json number --jq '.[].number'); do
+            PR="$PR" bash .github/scripts/jules-pr-watchdog.sh
+          done
+
+      # Scheduled sweep: re-classify every open PR (catches staleness + duplicates).
+      - name: Scheduled sweep of open PRs
+        if: ${{ github.event_name == 'schedule' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: schedule
+        run: |
+          set -euo pipefail
+          for PR in $(gh pr list --repo "$REPO" --state open --json number --jq '.[].number'); do
+            PR="$PR" bash .github/scripts/jules-pr-watchdog.sh
+          done
