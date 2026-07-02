@@ -99,6 +99,14 @@ jobs:
           echo "proceed=true" >> "$GITHUB_OUTPUT"
           echo "::notice::AFK routing issue #${ISSUE} to ${AGENT}"
 
+      - name: Inject declared skills into the Jules prompt (issue #115)
+        if: steps.gate.outputs.proceed == 'true' && steps.gate.outputs.agent == 'jules'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: bash .github/scripts/afk-inject-skills.sh
+
       - name: Trigger the agent (PAT-attributed so the agent doesn't ignore it)
         if: steps.gate.outputs.proceed == 'true'
         env:
