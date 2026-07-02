@@ -1,0 +1,34 @@
+{
+  "scenario": "AFK router resolves declared skills for an issue routed to Jules, then injects the matching skill docs into the issue thread (Jules's prompt). Demonstrates the allowlist gate and safe handling of hostile input.",
+  "hook": ".github/scripts/afk-inject-skills.sh",
+  "input": {
+    "issue_body_excerpt": "agent_skills:\n  - docs-only-contract\n  - ../../etc/passwd\n  - not-a-real-skill",
+    "issue_labels": ["ready-for-agent", "worker:jules", "skill:evidence-bundle"]
+  },
+  "resolution": {
+    "declared_from_body": ["docs-only-contract", "../../etc/passwd", "not-a-real-skill"],
+    "declared_from_labels": ["evidence-bundle"],
+    "allowlist_rule": "name matches ^[a-z0-9-]+$ AND docs/agents/skills/<name>.skill.md exists",
+    "selected": ["docs-only-contract", "evidence-bundle"],
+    "dropped": {
+      "../../etc/passwd": "rejected: fails charset check (path traversal never reaches the filesystem)",
+      "not-a-real-skill": "rejected: no docs/agents/skills/not-a-real-skill.skill.md"
+    }
+  },
+  "prompt_injection_result": {
+    "action": "posts one issue comment titled '🧩 Declared cloud-agent skills (auto-injected)'",
+    "contents": "the full text of docs/agents/skills/docs-only-contract.skill.md and docs/agents/skills/evidence-bundle.skill.md, each in a collapsible <details> block",
+    "github_output": "selected=docs-only-contract,evidence-bundle"
+  },
+  "backward_compatibility": {
+    "scenario": "issue declares no agent_skills and carries no skill:* label",
+    "result": "hook exits 0, posts nothing, sets selected= (empty) — router behaves exactly as before"
+  },
+  "safety_notes": [
+    "Never reads arbitrary paths: declared names can only resolve to docs/agents/skills/<name>.skill.md.",
+    "Allowlist derived from *.skill.md files present in the repo, not from issue content.",
+    "Runs downstream of the governance halt-gate and PAT preflight; touches neither.",
+    "Injection uses github.token (posts context Jules reads); the Jules trigger label stays PAT-attributed.",
+    "Public commenters cannot select non-skill files or point the hook outside the skill library."
+  ]
+}
