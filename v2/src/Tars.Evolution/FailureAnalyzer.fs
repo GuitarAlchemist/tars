@@ -6,6 +6,7 @@ open System.Threading.Tasks
 open Tars.Llm
 open Tars.Core.MetaCognition
 open Tars.Cortex
+open Tars.Cortex.WoTTypes
 
 /// LLM-enhanced failure analysis.
 /// Collects failures from pattern outcomes and cycle results, then optionally
@@ -13,7 +14,7 @@ open Tars.Cortex
 module FailureAnalyzer =
 
     /// Convert a PatternOutcome (from PatternSelector) to a FailureRecord.
-    let fromPatternOutcome (outcome: PatternOutcomeStore.PatternOutcome) : FailureRecord option =
+    let fromPatternOutcome (outcome: PatternOutcome) : FailureRecord option =
         if outcome.Success then None
         else
             Some
@@ -52,7 +53,7 @@ module FailureAnalyzer =
 
     /// Collect all failure records from available sources.
     let collectFailures
-        (outcomes: PatternOutcomeStore.PatternOutcome list)
+        (outcomes: PatternOutcome list)
         (cycleResults: RetroactionLoop.CycleResult list)
         : FailureRecord list =
         let fromOutcomes = outcomes |> List.choose fromPatternOutcome
@@ -144,7 +145,7 @@ Output ONLY: CATEGORY: detail""" errorSamples
     let analyzeFailures
         (llm: ILlmService option)
         (threshold: float)
-        (outcomes: PatternOutcomeStore.PatternOutcome list)
+        (outcomes: PatternOutcome list)
         (cycleResults: RetroactionLoop.CycleResult list)
         : Task<FailureCluster list> =
         task {

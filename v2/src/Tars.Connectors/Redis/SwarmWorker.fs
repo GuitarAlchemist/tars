@@ -105,7 +105,7 @@ type SwarmWorker
                     sprintf """{"plan_id": "%s", "final_output": "Completed by worker %s"}"""
                         planId workerId
 
-                let _ = completePlan completeInput
+                let _ = completePlan selector completeInput
 
                 { JobId = job.JobId
                   WorkerId = workerId

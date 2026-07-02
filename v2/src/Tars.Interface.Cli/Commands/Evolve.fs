@@ -10,6 +10,7 @@ open Tars.Kernel
 open Tars.Evolution
 open Tars.Llm
 open Tars.Cortex
+open Tars.Cortex.WoTTypes
 open Tars.Connectors.EpisodeIngestion
 open Tars.Interface.Cli // For ConfigurationLoader
 open Tars.Interface.Cli.SpectreUI
@@ -766,6 +767,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         | "all" -> ProblemBank.all () @ GaProblemBank.all ()
                         | _ -> ProblemBank.all ()
 
+                    let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
                     let! benchSummary =
                         BenchmarkRunner.runSuiteFromProblems
                             llmService
@@ -776,7 +778,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                             true    // retry on failure
                             benchLogger
 
-                    BenchmarkRunner.recordOutcomes benchSummary
+                    BenchmarkRunner.recordOutcomes selector benchSummary
                     let benchPath = BenchmarkRunner.saveResults benchSummary
 
                     if not options.Quiet then
@@ -869,6 +871,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
             // via ix-pipeline, record the winner as an outcome (ADR 0001 D4/D6).
             if options.GrammarMesh then
                 try
+                    let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
                     if not options.Quiet then
                         RichOutput.info "Running grammar-mesh sweep (ix-pipeline)..."
                     let outcome = GrammarMeshBridge.runDefaultSweep ()
@@ -877,7 +880,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                     let backend = if outcome.UsedMesh then "parallel ix mesh" else "serial F# fallback"
                     if not options.Quiet then
                         RichOutput.dim $"  [Mesh] {outcome.Ranked.Length} configs swept ({backend}); best reward {reward:F3}, {outcome.Best.Length} actions"
-                    PatternOutcomeStore.record
+                    selector.RecordOutcome
                         { PatternKind = Tars.Cortex.WoTTypes.PatternKind.WorkflowOfThought
                           Goal = "grammar-mesh sweep"
                           Success = reward > 0.0 && not outcome.Best.IsEmpty

@@ -10,6 +10,8 @@ open Tars.Evolution.MctsTypes
 open Tars.Evolution.WotMctsState
 open Tars.DSL.Wot
 open Tars.Core.WorkflowOfThought
+open Tars.Cortex
+open Tars.Cortex.WoTTypes
 open Tars.Interface.Cli
 
 /// `tars demo cross-repo` — a scripted showcase of the TARS ⇄ ix ⇄ Guitar
@@ -176,7 +178,8 @@ module CrossRepoDemo =
             BenchmarkRunner.runSuiteFromProblems
                 llm (GaProblemBank.all ()) None None (Some maxProblems) true
                 (fun msg -> AnsiConsole.MarkupLine($"    [dim]{Markup.Escape msg}[/]"))
-        BenchmarkRunner.recordOutcomes summary
+        let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
+        BenchmarkRunner.recordOutcomes selector summary
         let pct = (summary.PassRate * 100.0).ToString("F0")
         AnsiConsole.MarkupLine($"  Result: [bold]{summary.Validated}/{summary.TotalProblems}[/] passed ([bold]{pct}%%[/]) — outcomes recorded → feeds the bandit (section 2)")
         AnsiConsole.WriteLine()

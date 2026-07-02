@@ -3,6 +3,7 @@ namespace Tars.Interface.Cli.Commands
 open System
 open Spectre.Console
 open Tars.Cortex
+open Tars.Cortex.WoTTypes
 open Tars.Core.MetaCognition
 open Tars.Evolution
 
@@ -66,7 +67,7 @@ module RalphCommand =
             0
 
     let private generatePrompt (focus: string option) =
-        let outcomes = PatternOutcomeStore.loadAll ()
+        let outcomes: PatternOutcome list = PatternOutcomeStore.loadAll ()
         if outcomes.IsEmpty then
             AnsiConsole.MarkupLine("[yellow]No execution history. Using generic improvement prompt.[/]")
             RalphBridge.generateTarsPrompt [] focus

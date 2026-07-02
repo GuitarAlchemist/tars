@@ -454,6 +454,17 @@ module PatternCompiler =
 
             member _.CompilePattern(pattern, goal) = compilePattern pattern goal
 
+            member this.CompileFor(kind, goal) =
+                let compiler = this :> IPatternCompiler
+                match kind with
+                | ChainOfThought -> compiler.CompileChainOfThought(5, goal)
+                | ReAct -> compiler.CompileReAct([ "search"; "calculate"; "read" ], 10, goal)
+                | GraphOfThoughts -> compiler.CompileGraphOfThoughts(3, 3, goal)
+                | TreeOfThoughts -> compiler.CompileTreeOfThoughts(3, 2, goal)
+                | PlanAndExecute -> compiler.CompileChainOfThought(3, goal)
+                | WorkflowOfThought -> compiler.CompileChainOfThought(5, goal)
+                | Custom _ -> compiler.CompileChainOfThought(3, goal)
+
     // =========================================================================
     // Visualization Helpers
     // =========================================================================
