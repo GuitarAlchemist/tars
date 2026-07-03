@@ -65,7 +65,6 @@ let main argv =
         CredentialVault.registerSecret "OLLAMA_BASE_URL" ollamaUrl
 
     let tarsConfig = ConfigurationLoader.load ()
-    let runtime = TarsRuntime.production Log.Logger
 
     if isMcpMode then
         // Redirect all logs to Stderr to keep Stdout clean for JSON-RPC
