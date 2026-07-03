@@ -215,8 +215,12 @@ module SkillRegistry =
             if box attr |> isNull then
                 None
             else
-                let toolAttr = m.GetCustomAttribute<TarsToolAttribute>()
-                let description = if box toolAttr |> isNull then "" else toolAttr.Description
+                let description =
+                    if not (String.IsNullOrEmpty attr.Description) then
+                        attr.Description
+                    else
+                        let toolAttr = m.GetCustomAttribute<TarsToolAttribute>()
+                        if box toolAttr |> isNull then "" else toolAttr.Description
 
                 let execute (input: string) : Async<Result<string, string>> =
                     async {

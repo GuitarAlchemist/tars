@@ -15,7 +15,7 @@ open Tars.Interface.Cli
 
 module McpServerCommand =
 
-    let run (logger: ILogger) (runtime: ITarsRuntime) (args: string array) =
+    let run (logger: ILogger) (args: string array) =
         task {
             let mutable useSse = false
             let mutable port = 8000
@@ -223,7 +223,8 @@ module McpServerCommand =
                 logger.Error("Failed to register tools: {Error}", ex.Message)
             // We don't throw, just continue with partial tools
 
-            let server = McpServer(registry, runtime.Skills)
+            let skillRegistry = Tars.Tools.SkillRegistry.GlobalSkillRegistry()
+            let server = McpServer(registry, skillRegistry)
 
             if useSse then
                 let sseServer = Tars.Connectors.Mcp.SseMcpServer(server, port)

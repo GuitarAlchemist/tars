@@ -474,7 +474,7 @@ let main argv =
 
         | args when args.Length > 0 && args.[0] = "mcp" ->
             if args.Length > 1 && args.[1] = "server" then
-                return! McpServerCommand.run logger runtime args
+                return! McpServerCommand.run logger args
             elif args.Length > 1 && args.[1] = "list" then
                 return! McpCommand.list ()
             else

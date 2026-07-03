@@ -13,3 +13,4 @@ type TarsSkillAttribute(name: string, domain: string) =
     inherit Attribute()
     member val Name = name
     member val Domain = domain
+    member val Description = "" with get, set
