@@ -12,7 +12,7 @@ open Tars.Cortex.WoTTypes
 module EvolutionaryBreederTests =
 
     /// Helper to construct PatternOutcome without ambiguity with PatternOutcomeDto.
-    let private mkOutcome (kind: PatternKind) (goal: string) (success: bool) (durationMs: int64) : PatternOutcomeStore.PatternOutcome =
+    let private mkOutcome (kind: PatternKind) (goal: string) (success: bool) (durationMs: int64) : PatternOutcome =
         { PatternKind = kind; Goal = goal; Success = success; DurationMs = durationMs; Timestamp = DateTime.UtcNow }
 
     // =========================================================================

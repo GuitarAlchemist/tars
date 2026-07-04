@@ -6,6 +6,7 @@ open Tars.Llm
 open Tars.Llm.ClaudeCodeService
 open Tars.Core.MetaCognition
 open Tars.Cortex
+open Tars.Cortex.WoTTypes
 open Tars.Evolution
 
 /// CLI command for running TARS meta-cognitive analysis.
@@ -27,10 +28,10 @@ module MetaCommand =
         AnsiConsole.MarkupLine("    --threshold <0.0-1.0>   Gap detection threshold (default 0.5)")
         0
 
-    let private loadOutcomes () =
+    let private loadOutcomes () : PatternOutcome list =
         PatternOutcomeStore.loadAll ()
 
-    let private showStats (outcomes: PatternOutcomeStore.PatternOutcome list) =
+    let private showStats (outcomes: PatternOutcome list) =
         AnsiConsole.MarkupLine("[bold cyan]TARS Execution History[/]")
         AnsiConsole.MarkupLine("")
 
@@ -74,7 +75,7 @@ module MetaCommand =
 
             AnsiConsole.Write(table)
 
-    let private showClusters (outcomes: PatternOutcomeStore.PatternOutcome list) (threshold: float) =
+    let private showClusters (outcomes: PatternOutcome list) (threshold: float) =
         let failures =
             outcomes
             |> List.filter (fun o -> not o.Success)
@@ -116,7 +117,7 @@ module MetaCommand =
                 AnsiConsole.MarkupLine(sprintf "    Sample goal: %s" cluster.Representative.Goal)
                 AnsiConsole.MarkupLine("")
 
-    let private showGaps (outcomes: PatternOutcomeStore.PatternOutcome list) (threshold: float) =
+    let private showGaps (outcomes: PatternOutcome list) (threshold: float) =
         let failures =
             outcomes
             |> List.filter (fun o -> not o.Success)
@@ -174,7 +175,7 @@ module MetaCommand =
 
             AnsiConsole.Write(table)
 
-    let private showCurriculum (outcomes: PatternOutcomeStore.PatternOutcome list) (threshold: float) (useClaude: bool) =
+    let private showCurriculum (outcomes: PatternOutcome list) (threshold: float) (useClaude: bool) =
         let failures =
             outcomes
             |> List.filter (fun o -> not o.Success)
@@ -231,7 +232,7 @@ module MetaCommand =
 
             AnsiConsole.Write(table)
 
-    let private runFullAnalysis (outcomes: PatternOutcomeStore.PatternOutcome list) (threshold: float) (useClaude: bool) =
+    let private runFullAnalysis (outcomes: PatternOutcome list) (threshold: float) (useClaude: bool) =
         AnsiConsole.MarkupLine("[bold cyan]TARS Meta-Cognitive Analysis[/]")
         AnsiConsole.MarkupLine("[dim]Analyzing execution history for gaps, patterns, and learning opportunities...[/]")
         AnsiConsole.MarkupLine("")

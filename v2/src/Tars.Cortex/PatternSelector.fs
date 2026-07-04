@@ -13,14 +13,6 @@ open Tars.Cortex.WoTTypes
 /// </summary>
 module PatternOutcomeStore =
 
-    /// A recorded outcome of a pattern selection and execution.
-    type PatternOutcome =
-        { PatternKind: PatternKind
-          Goal: string
-          Success: bool
-          DurationMs: int64
-          Timestamp: DateTime }
-
     /// JSON-friendly DTO for serialization (PatternKind is a DU, so we store it as a string).
     type PatternOutcomeDto =
         { PatternKind: string
@@ -208,6 +200,9 @@ module PatternSelector =
             | Some c when IxSkill.isAvailable c -> Some c
             | _ -> None)
 
+        /// In-memory cache for bandit scores to avoid repeated disk I/O and IX calls.
+        let mutable cachedBanditScores: Map<PatternKind, float> option = None
+
         /// Stable string key for a PatternKind (used as the ix rule id).
         let kindKey (k: PatternKind) = sprintf "%A" k
 
@@ -245,48 +240,54 @@ module PatternSelector =
         /// so under-explored kinds keep a chance. Delegates to ix `grammar.weights`
         /// when available; otherwise computes the identical math in F#.
         let banditScores () : Map<PatternKind, float> =
-            let perKind =
-                PatternOutcomeStore.loadAll ()
-                |> List.groupBy (fun o -> o.PatternKind)
-                |> List.map (fun (kind, es) ->
-                    let succ = es |> List.filter (fun e -> e.Success) |> List.length
-                    let fail = es.Length - succ
-                    kind, float succ + 1.0, float fail + 1.0)
+            match cachedBanditScores with
+            | Some scores -> scores
+            | None ->
+                let perKind =
+                    PatternOutcomeStore.loadAll ()
+                    |> List.groupBy (fun o -> o.PatternKind)
+                    |> List.map (fun (kind, es) ->
+                        let succ = es |> List.filter (fun e -> e.Success) |> List.length
+                        let fail = es.Length - succ
+                        kind, float succ + 1.0, float fail + 1.0)
 
-            if List.isEmpty perKind then Map.empty
-            else
-                // F# reference implementation: Beta mean α/(α+β), then softmax.
-                let fsharp () =
-                    let means = perKind |> List.map (fun (k, a, b) -> k, a / (a + b))
-                    let exps = means |> List.map (fun (k, m) -> k, exp m)
-                    let z = exps |> List.sumBy snd
-                    exps |> List.map (fun (k, e) -> k, e / z) |> Map.ofList
+                let scores =
+                    if List.isEmpty perKind then Map.empty
+                    else
+                        // F# reference implementation: Beta mean α/(α+β), then softmax.
+                        let fsharp () =
+                            let means = perKind |> List.map (fun (k, a, b) -> k, a / (a + b))
+                            let exps = means |> List.map (fun (k, m) -> k, exp m)
+                            let z = exps |> List.sumBy snd
+                            exps |> List.map (fun (k, e) -> k, e / z) |> Map.ofList
 
-                let viaIx () =
-                    match ixConfig.Value with
-                    | None -> None
-                    | Some c ->
-                        try
-                            let rules =
-                                perKind
-                                |> List.map (fun (k, a, b) -> {| id = kindKey k; alpha = a; beta = b |})
-                            let input = JsonSerializer.Serialize({| rules = rules; temperature = 1.0 |})
-                            match (IxSkill.runSkillJson c "grammar.weights" input).GetAwaiter().GetResult() with
-                            | Result.Error _ -> None
-                            | Result.Ok json ->
-                                use d = JsonDocument.Parse(json)
-                                let probs = d.RootElement.GetProperty("probabilities")
-                                let m =
-                                    [ for p in probs.EnumerateArray() ->
-                                        p.GetProperty("rule_id").GetString(),
-                                        p.GetProperty("probability").GetDouble() ]
-                                    |> List.choose (fun (id, pr) ->
-                                        keyToKind id |> Option.map (fun k -> k, pr))
-                                    |> Map.ofList
-                                if Map.isEmpty m then None else Some m
-                        with _ -> None
+                        let viaIx () =
+                            match ixConfig.Value with
+                            | None -> None
+                            | Some c ->
+                                try
+                                    let rules =
+                                        perKind
+                                        |> List.map (fun (k, a, b) -> {| id = kindKey k; alpha = a; beta = b |})
+                                    let input = JsonSerializer.Serialize({| rules = rules; temperature = 1.0 |})
+                                    match (IxSkill.runSkillJson c "grammar.weights" input).GetAwaiter().GetResult() with
+                                    | Result.Error _ -> None
+                                    | Result.Ok json ->
+                                        use d = JsonDocument.Parse(json)
+                                        let probs = d.RootElement.GetProperty("probabilities")
+                                        let m =
+                                            [ for p in probs.EnumerateArray() ->
+                                                p.GetProperty("rule_id").GetString(),
+                                                p.GetProperty("probability").GetDouble() ]
+                                            |> List.choose (fun (id, pr) ->
+                                                keyToKind id |> Option.map (fun k -> k, pr))
+                                            |> Map.ofList
+                                        if Map.isEmpty m then None else Some m
+                                with _ -> None
 
-                viaIx () |> Option.defaultWith fsharp
+                        viaIx () |> Option.defaultWith fsharp
+                cachedBanditScores <- Some scores
+                scores
 
         let heuristicScore (goal: string) =
             let g = goal.ToLowerInvariant()
@@ -370,13 +371,12 @@ module PatternSelector =
                 + promoBoost) // Direct addition — promoted patterns already normalized
 
         /// Record the outcome of a pattern execution so future selections can learn from it.
-        member _.RecordOutcome(patternKind: PatternKind, goal: string, success: bool, durationMs: int64) =
-            PatternOutcomeStore.record
-                { PatternKind = patternKind
-                  Goal = goal
-                  Success = success
-                  DurationMs = durationMs
-                  Timestamp = DateTime.UtcNow }
+        member this.RecordOutcome(outcome: PatternOutcome) =
+            // 1. Persist to disk
+            PatternOutcomeStore.record outcome
+
+            // 2. Invalidate/update cache
+            cachedBanditScores <- None // Simple invalidation forces reload next time Score() is called
 
         interface IPatternSelector with
             member _.Recommend(goal, _state) =
@@ -384,3 +384,6 @@ module PatternSelector =
 
             member _.Score(goal) =
                 combineScores goal
+
+            member this.RecordOutcome(outcome) =
+                this.RecordOutcome(outcome)

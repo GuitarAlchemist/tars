@@ -4,6 +4,8 @@ open System
 open System.Threading.Tasks
 open Serilog
 open Spectre.Console
+open Tars.Cortex
+open Tars.Cortex.WoTTypes
 open Tars.Evolution
 open Tars.Interface.Cli
 
@@ -97,7 +99,8 @@ module SelfTrainCommand =
             let runWith (model: string) = task {
                 let llm = LlmFactory.createWithModel logger model
                 let! summary = BenchmarkRunner.runSuiteFromProblems llm source None None maxN true quietLog
-                BenchmarkRunner.recordOutcomes summary
+                let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
+                BenchmarkRunner.recordOutcomes selector summary
                 BenchmarkRunner.saveResults summary |> ignore
                 return summary
             }
