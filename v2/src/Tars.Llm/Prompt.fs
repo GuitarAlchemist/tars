@@ -75,6 +75,10 @@ module Prompt =
     let withStream (stream: bool) (req: LlmRequest) =
         { req with Stream = stream }
 
+    /// <summary>Sets the stop sequences.</summary>
+    let withStop (stop: string list) (req: LlmRequest) =
+        { req with Stop = stop }
+
     /// <summary>Adds a message to the conversation.</summary>
     let withMessage (role: Role) (content: string) (req: LlmRequest) =
         { req with Messages = req.Messages @ [ { Role = role; Content = content } ] }

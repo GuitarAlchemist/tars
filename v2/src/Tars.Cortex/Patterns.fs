@@ -205,26 +205,14 @@ module Patterns =
                     let userContent = contextPrelude + formatHistory steps goal
 
                     let request: LlmRequest =
-                        { ModelHint = None
-                          Model = None
-                          SystemPrompt = Some systemPrompt
-                          MaxTokens = Some 500
-                          Temperature = Some 0.3
-                          Stop = [ "Observation:" ]
-                          Messages =
-                            [ { Role = Role.User
-                                Content = userContent } ]
-                          Tools = []
-                          ToolChoice = None
-                          ResponseFormat = None
-                          Stream = false
-                          JsonMode = false
-                          Seed = None
-
-                          ContextWindow = None }
+                        Prompt.ask userContent
+                        |> Prompt.withSystem systemPrompt
+                        |> Prompt.withMaxTokens 500
+                        |> Prompt.withTemp 0.3
+                        |> Prompt.withStop [ "Observation:" ]
 
                     // Get LLM response
-                    let! response = llm.CompleteAsync(request) |> Async.AwaitTask
+                    let! response = Prompt.complete llm request |> Async.AwaitTask
 
                     ctx.Logger $"[ReAct] LLM Response: %s{response.Text}"
 
@@ -404,24 +392,13 @@ module Patterns =
         fun input ->
             fun ctx ->
                 async {
-                    let request: LlmRequest =
-                        { ModelHint = None
-                          Model = None
-                          SystemPrompt = Some systemPrompt
-                          MaxTokens = Some 500
-                          Temperature = Some 0.7
-                          Stop = []
-                          Messages = [ { Role = Role.User; Content = input } ]
-                          Tools = []
-                          ToolChoice = None
-                          ResponseFormat = None
-                          Stream = false
-                          JsonMode = false
-                          Seed = None
-
-                          ContextWindow = None }
-
-                    let! response = llm.CompleteAsync(request) |> Async.AwaitTask
+                    let! response =
+                        Prompt.ask input
+                        |> Prompt.withSystem systemPrompt
+                        |> Prompt.withMaxTokens 500
+                        |> Prompt.withTemp 0.7
+                        |> Prompt.complete llm
+                        |> Async.AwaitTask
                     return Success response.Text
                 }
 
@@ -429,28 +406,13 @@ module Patterns =
     let llmPlanner (llm: ILlmService) (goal: string) : AgentWorkflow<string list> =
         fun ctx ->
             async {
-                let request: LlmRequest =
-                    { ModelHint = None
-                      Model = None
-                      SystemPrompt =
-                        Some
-                            "You are a planning assistant. Generate a numbered list of steps to accomplish the goal. Output ONLY the steps, one per line, numbered like '1. Step one'"
-                      MaxTokens = Some 300
-                      Temperature = Some 0.5
-                      Stop = []
-                      Messages =
-                        let content = $"Create a plan to: %s{goal}"
-                        [ { Role = Role.User; Content = content } ]
-                      Tools = []
-                      ToolChoice = None
-                      ResponseFormat = None
-                      Stream = false
-                      JsonMode = false
-                      Seed = None
-
-                      ContextWindow = None }
-
-                let! response = llm.CompleteAsync(request) |> Async.AwaitTask
+                let! response =
+                    Prompt.ask $"Create a plan to: %s{goal}"
+                    |> Prompt.withSystem "You are a planning assistant. Generate a numbered list of steps to accomplish the goal. Output ONLY the steps, one per line, numbered like '1. Step one'"
+                    |> Prompt.withMaxTokens 300
+                    |> Prompt.withTemp 0.5
+                    |> Prompt.complete llm
+                    |> Async.AwaitTask
 
                 // Parse numbered steps
                 let steps =
@@ -958,11 +920,9 @@ module Patterns =
                 let state = buildThoughtState goal config.Constraints path contextPrelude
 
                 let request: LlmRequest =
-                    { ModelHint = Some "reasoning"
-                      Model = None
-                      SystemPrompt =
-                        Some
-                            $"""You are a reasoning engine exploring multiple solution paths.
+                    Prompt.ask state
+                    |> Prompt.withHint "reasoning"
+                    |> Prompt.withSystem $"""You are a reasoning engine exploring multiple solution paths.
 Generate {config.BranchingFactor} DIFFERENT next-step thoughts to solve the goal.
 Each thought should be a single step or hypothesis (not a full final answer).
 Ensure each thought explores a distinct angle or strategy.
@@ -971,20 +931,10 @@ THOUGHT 1: [first approach]
 THOUGHT 2: [second approach]
 THOUGHT 3: [third approach]
 Be creative and diverse in your approaches."""
-                      MaxTokens = Some 4000
-                      Temperature = Some 0.9
-                      Stop = []
-                      Messages = [ { Role = Role.User; Content = state } ]
-                      Tools = []
-                      ToolChoice = None
-                      ResponseFormat = None
-                      Stream = false
-                      JsonMode = false
-                      Seed = None
+                    |> Prompt.withMaxTokens 4000
+                    |> Prompt.withTemp 0.9
 
-                      ContextWindow = None }
-
-                let! response = llm.CompleteAsync(request) |> Async.AwaitTask
+                let! response = Prompt.complete llm request |> Async.AwaitTask
                 let initialText = response.Text.Trim()
 
                 ctx.Logger
@@ -1139,33 +1089,20 @@ Be creative and diverse in your approaches."""
                 let state = buildThoughtState goal config.Constraints node.Path contextPrelude
 
                 let request: LlmRequest =
-                    { ModelHint = Some "fast"
-                      Model = None
-                      SystemPrompt =
-                        Some
-                            $"""You are a strict evaluator of reasoning steps.
+                    Prompt.ask $"{state}\n\nThought:\n{node.Content}"
+                    |> Prompt.withHint "fast"
+                    |> Prompt.withSystem $"""You are a strict evaluator of reasoning steps.
 Return ONLY a JSON object with fields:
 - score: 0.0 to 1.0
 - confidence: 0.0 to 1.0
 - reasons: array of short strings
 - risks: array of short strings
 Do not include markdown, code fences, or extra text."""
-                      MaxTokens = Some 200
-                      Temperature = Some 0.1
-                      Stop = []
-                      Messages =
-                        [ { Role = Role.User
-                            Content = $"{state}\n\nThought:\n{node.Content}" } ]
-                      Tools = []
-                      ToolChoice = None
-                      ResponseFormat = Some ResponseFormat.Json
-                      Stream = false
-                      JsonMode = true
-                      Seed = None
+                    |> Prompt.withMaxTokens 200
+                    |> Prompt.withTemp 0.1
+                    |> Prompt.withJson
 
-                      ContextWindow = None }
-
-                let! response = llm.CompleteAsync(request) |> Async.AwaitTask
+                let! response = Prompt.complete llm request |> Async.AwaitTask
 
                 let! parsed =
                     match tryParseJsonWithFallback response.Text with
@@ -1325,32 +1262,18 @@ Do not include markdown, code fences, or extra text."""
                 let state = buildThoughtState goal config.Constraints node.Path contextPrelude
 
                 let request: LlmRequest =
-                    { ModelHint = Some "reasoning"
-                      Model = None
-                      SystemPrompt =
-                        Some
-                            $"""Improve and refine this reasoning step to better achieve the goal.
+                    Prompt.ask (if String.IsNullOrWhiteSpace critique then
+                                  $"{state}\n\nCurrent thought:\n{node.Content}"
+                                else
+                                  $"{state}\n\nCurrent thought:\n{node.Content}\n\nCritique:\n{critique}")
+                    |> Prompt.withHint "reasoning"
+                    |> Prompt.withSystem $"""Improve and refine this reasoning step to better achieve the goal.
 Fix errors, add missing details, and make it more precise and actionable.
 Output ONLY the improved thought."""
-                      MaxTokens = Some 2000
-                      Temperature = Some 0.4
-                      Stop = []
-                      Messages =
-                        [ { Role = Role.User
-                            Content =
-                              if String.IsNullOrWhiteSpace critique then
-                                  $"{state}\n\nCurrent thought:\n{node.Content}"
-                              else
-                                  $"{state}\n\nCurrent thought:\n{node.Content}\n\nCritique:\n{critique}" } ]
-                      Tools = []
-                      ToolChoice = None
-                      ResponseFormat = None
-                      Stream = false
-                      JsonMode = false
-                      Seed = None
-                      ContextWindow = None }
+                    |> Prompt.withMaxTokens 2000
+                    |> Prompt.withTemp 0.4
 
-                let! response = llm.CompleteAsync(request) |> Async.AwaitTask
+                let! response = Prompt.complete llm request |> Async.AwaitTask
 
                 let refined =
                     let rawText = response.Text.Trim()
@@ -1427,29 +1350,15 @@ Output ONLY the improved thought."""
                         contextPrelude
 
                 let request: LlmRequest =
-                    { ModelHint = Some "reasoning"
-                      Model = None
-                      SystemPrompt =
-                        Some
-                            $"""Synthesize these approaches into a single coherent solution.
+                    Prompt.ask $"{state}\n\nCandidate approaches:\n{thoughtsList}"
+                    |> Prompt.withHint "reasoning"
+                    |> Prompt.withSystem $"""Synthesize these approaches into a single coherent solution.
 Take the best ideas from each approach and honor the constraints.
 Output ONLY the synthesized solution."""
-                      MaxTokens = Some 4000
-                      Temperature = Some 0.3
-                      Stop = []
-                      Messages =
-                        [ { Role = Role.User
-                            Content = $"{state}\n\nCandidate approaches:\n{thoughtsList}" } ]
-                      Tools = []
-                      ToolChoice = None
-                      ResponseFormat = None
-                      Stream = false
-                      JsonMode = false
-                      Seed = None
+                    |> Prompt.withMaxTokens 4000
+                    |> Prompt.withTemp 0.3
 
-                      ContextWindow = None }
-
-                let! response = llm.CompleteAsync(request) |> Async.AwaitTask
+                let! response = Prompt.complete llm request |> Async.AwaitTask
 
                 let content =
                     let rawText = response.Text.Trim()
@@ -2027,28 +1936,14 @@ Output ONLY the synthesized solution."""
                                                 return None
                                             else
                                                 let request: LlmRequest =
-                                                    { ModelHint = Some "fast"
-                                                      Model = None
-                                                      SystemPrompt =
-                                                        Some
-                                                            "Decide whether a tool call is necessary. Return JSON: {\"tool\":\"name or null\",\"input\":\"...\",\"reason\":\"...\"}."
-                                                      MaxTokens = Some 120
-                                                      Temperature = Some 0.1
-                                                      Stop = []
-                                                      Messages =
-                                                        [ { Role = Role.User
-                                                            Content =
-                                                              $"{state}\n\nCandidate thought:\n{seedThought}\n\nAvailable tools:\n{toolList}" } ]
-                                                      Tools = []
-                                                      ToolChoice = None
-                                                      ResponseFormat = Some ResponseFormat.Json
-                                                      Stream = false
-                                                      JsonMode = true
-                                                      Seed = None
+                                                    Prompt.ask $"{state}\n\nCandidate thought:\n{seedThought}\n\nAvailable tools:\n{toolList}"
+                                                    |> Prompt.withHint "fast"
+                                                    |> Prompt.withSystem "Decide whether a tool call is necessary. Return JSON: {\"tool\":\"name or null\",\"input\":\"...\",\"reason\":\"...\"}."
+                                                    |> Prompt.withMaxTokens 120
+                                                    |> Prompt.withTemp 0.1
+                                                    |> Prompt.withJson
 
-                                                      ContextWindow = None }
-
-                                                let! response = llm.CompleteAsync(request) |> Async.AwaitTask
+                                                let! response = Prompt.complete llm request |> Async.AwaitTask
 
                                                 match JsonParsing.tryParseElement response.Text with
                                                 | Result.Ok elem ->
