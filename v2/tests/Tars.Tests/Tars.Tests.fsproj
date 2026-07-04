@@ -127,6 +127,7 @@
     <Compile Include="SelfImproveBacklogTests.fs" />
     <Compile Include="AgentDefinitionTests.fs" />
     <Compile Include="ResearchCycleTests.fs" />
+    <Compile Include="RegistryDiscoveryTests.fs" />
     <Compile Include="AskCommandTests.fs" />
     <Compile Include="RoutingClassifierTests.fs" />
     <Compile Include="LocalModelPoolTests.fs" />

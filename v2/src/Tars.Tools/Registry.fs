@@ -208,16 +208,24 @@ module SkillRegistry =
             with _ ->
                 [||])
         |> Array.collect (fun t ->
-            t.GetMethods(BindingFlags.Public ||| BindingFlags.Static ||| BindingFlags.Instance))
+            try
+                t.GetMethods(BindingFlags.Public ||| BindingFlags.NonPublic ||| BindingFlags.Static ||| BindingFlags.Instance)
+            with _ ->
+                [||])
         |> Array.choose (fun m ->
-            let attr = m.GetCustomAttribute<TarsSkillAttribute>()
+            let attr =
+                try
+                    m.GetCustomAttribute<TarsSkillAttribute>() |> box
+                with _ ->
+                    null
 
-            if box attr |> isNull then
+            if isNull attr then
                 None
             else
+                let skillAttr = attr :?> TarsSkillAttribute
                 let description =
-                    if not (String.IsNullOrEmpty attr.Description) then
-                        attr.Description
+                    if not (String.IsNullOrEmpty skillAttr.Description) then
+                        skillAttr.Description
                     else
                         let toolAttr = m.GetCustomAttribute<TarsToolAttribute>()
                         if box toolAttr |> isNull then "" else toolAttr.Description
@@ -252,8 +260,8 @@ module SkillRegistry =
                     }
 
                 Some
-                    { Name = attr.Name
-                      Domain = attr.Domain
+                    { Name = skillAttr.Name
+                      Domain = skillAttr.Domain
                       Description = description
                       Version = "1.0.0"
                       CreatedAt = DateTime.UtcNow

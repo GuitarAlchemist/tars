@@ -160,7 +160,7 @@ type McpServer(registry: IToolRegistry, ?skillRegistry: ISkillRegistry, ?knowled
                 match skill with
                 | Some skill ->
                     log $"Executing skill '{nameProp}' [CID: {correlationId}] with input: {input}"
-                    let! result = skill.Execute input
+                    let! result = Async.StartAsTask(Tars.Core.ToolExecution.runSkillDefault skill input)
 
                     match result with
                     | Result.Ok output ->

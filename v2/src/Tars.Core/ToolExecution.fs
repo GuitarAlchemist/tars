@@ -85,3 +85,20 @@ module ToolExecution =
 
     /// Run a tool through its circuit breaker using the default ledger recorder.
     let runDefault (tool: Tool) (input: string) : Async<Result<string, string>> = run defaultRecorder tool input
+
+    /// Run a skill through its circuit breaker, recording the outcome.
+    let runSkill (recorder: IToolRecorder) (skill: TarsSkill) (input: string) : Async<Result<string, string>> =
+        async {
+            // Treat the skill as a tool for execution purposes
+            let toolAdapter: Tool =
+                { Name = skill.Name
+                  Description = skill.Description
+                  Version = skill.Version
+                  ParentVersion = None
+                  CreatedAt = skill.CreatedAt
+                  Execute = skill.Execute }
+            return! run recorder toolAdapter input
+        }
+
+    /// Run a skill with the default production recorder.
+    let runSkillDefault (skill: TarsSkill) (input: string) : Async<Result<string, string>> = runSkill defaultRecorder skill input

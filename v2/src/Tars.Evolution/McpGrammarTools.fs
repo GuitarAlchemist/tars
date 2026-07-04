@@ -8,8 +8,8 @@ module McpGrammarTools =
     open System
     open System.Text.Json
     open System.Text.Json.Serialization
-    open Tars.Tools
     open Tars.Core
+    open Tars.Tools
 
     let private jsonOptions =
         let o = JsonSerializerOptions(WriteIndented = true)
