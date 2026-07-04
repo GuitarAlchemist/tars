@@ -153,6 +153,15 @@ type ThoughtGraph =
       Edges: ThoughtEdge list
       ContextId: Guid }
 
+/// Represents a capability registered via the TarsSkill attribute
+type TarsSkill =
+    { Name: string
+      Domain: string
+      Description: string
+      Version: string
+      CreatedAt: DateTime
+      Execute: string -> Async<Result<string, string>> }
+
 /// The current state of an agent in its lifecycle
 type AgentState =
     | Idle

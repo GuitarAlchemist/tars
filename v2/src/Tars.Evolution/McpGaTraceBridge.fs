@@ -8,6 +8,7 @@ module McpGaTraceBridge =
     open System.Text.Json
     open System.Text.Json.Serialization
     open Tars.Core
+    open Tars.Tools
 
     let private jsonOptions =
         let o = JsonSerializerOptions(WriteIndented = true)
@@ -33,6 +34,7 @@ module McpGaTraceBridge =
         Details: string list
     }
 
+    [<TarsSkill("evolution.ingest_ga_traces", "evolution")>]
     let private ingestGaTraces (input: string) : Result<string, string> =
         try
             let req =
@@ -93,6 +95,7 @@ module McpGaTraceBridge =
         EventTypes: Map<string, int>
     }
 
+    [<TarsSkill("evolution.ga_trace_stats", "evolution")>]
     let private gaTraceStats (_input: string) : Result<string, string> =
         try
             let s = GaTraceBridge.stats ()
@@ -114,6 +117,7 @@ module McpGaTraceBridge =
     // Tool: promotion_index — View ranked promotion index
     // =========================================================================
 
+    [<TarsSkill("evolution.promotion_index", "evolution")>]
     let private promotionIndexTool (_input: string) : Result<string, string> =
         try
             let index = PromotionIndex.refresh ()
@@ -125,6 +129,7 @@ module McpGaTraceBridge =
     // Tool: export_insights — Export meta-cognitive insights for GA consumption
     // =========================================================================
 
+    [<TarsSkill("evolution.export_insights", "evolution")>]
     let private exportInsightsTool (_input: string) : Result<string, string> =
         try
             let path = InsightExporter.export ()

@@ -8,6 +8,7 @@ module McpGrammarTools =
     open System
     open System.Text.Json
     open System.Text.Json.Serialization
+    open Tars.Tools
     open Tars.Core
 
     let private jsonOptions =
@@ -35,6 +36,7 @@ module McpGrammarTools =
         TotalWeight: float
     }
 
+    [<TarsSkill("grammar.weights", "grammar")>]
     let private grammarWeights (_input: string) : Result<string, string> =
         try
             let rules = WeightedGrammar.load ()
@@ -74,6 +76,7 @@ module McpGrammarTools =
         NewConfidence: float
     }
 
+    [<TarsSkill("grammar.update", "grammar")>]
     let private grammarUpdate (input: string) : Result<string, string> =
         try
             let req = JsonSerializer.Deserialize<UpdateInput>(input, jsonOptions)
@@ -109,6 +112,7 @@ module McpGrammarTools =
         Species: ReplicatorDynamics.GrammarSpecies list
     }
 
+    [<TarsSkill("grammar.evolve", "grammar")>]
     let private grammarEvolve (_input: string) : Result<string, string> =
         try
             let rules = WeightedGrammar.load ()
@@ -143,6 +147,7 @@ module McpGrammarTools =
         Actions: string list
     }
 
+    [<TarsSkill("grammar.search", "grammar")>]
     let private grammarSearch (input: string) : Result<string, string> =
         try
             let req =

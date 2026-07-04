@@ -37,6 +37,7 @@ module SemanticTools =
         with ex ->
             Error ex.Message
 
+    [<TarsSkill("semantic.explore_project", "semantic")>]
     [<TarsToolAttribute("explore_project",
                         "Explores the project structure. Input JSON: { \"path\": \"root_path\", \"depth\": 2 }")>]
     let exploreProject (args: string) =
@@ -98,6 +99,7 @@ module SemanticTools =
         with ex ->
             Error ex.Message
 
+    [<TarsSkill("semantic.read_code", "semantic")>]
     [<TarsToolAttribute("read_code", "Reads a code file with line numbers. Input JSON: { \"path\": \"file.fs\" }")>]
     let readCode (args: string) =
         match parseReadCodeArgs args with
@@ -133,6 +135,7 @@ module SemanticTools =
         with ex ->
             Error ex.Message
 
+    [<TarsSkill("semantic.patch_code", "semantic")>]
     [<TarsToolAttribute("patch_code",
                         "Replaces a block of code. Input JSON: { \"path\": \"file.fs\", \"original\": \"...\", \"replacement\": \"...\" }")>]
     let patchCode (args: string) =

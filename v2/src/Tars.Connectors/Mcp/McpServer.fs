@@ -8,7 +8,7 @@ open System.Collections.Concurrent
 open Tars.Core
 
 /// Enhanced MCP Server with progress notifications, subagent support, and knowledge graph
-type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.TemporalGraph) =
+type McpServer(registry: IToolRegistry, ?skillRegistry: ISkillRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.TemporalGraph) =
     let instanceId = Guid.NewGuid().ToString().Substring(0, 8)
     let startTime = DateTime.UtcNow
     
@@ -90,10 +90,14 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
         createSuccessResponse id result
 
     let handleListTools (id: int) =
-        let tools = registry.GetAll()
+        let legacyTools = registry.GetAll()
+        let skills =
+            match skillRegistry with
+            | Some sr -> sr.GetAllSkills()
+            | None -> []
 
         let mcpTools =
-            tools
+            legacyTools
             |> List.map (fun t ->
                 let schema =
                     {| ``type`` = "object"
@@ -106,7 +110,22 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                   Description = Some t.Description
                   InputSchema = JsonSerializer.SerializeToElement(schema, serializerOptions) })
 
-        let result = { Tools = mcpTools; NextCursor = None }
+        let mcpSkills =
+            skills
+            |> Seq.map (fun s ->
+                let schema =
+                    {| ``type`` = "object"
+                       properties =
+                        {| arguments =
+                            {| ``type`` = "string"
+                               description = "Arguments for the tool (JSON string or plain text)" |} |} |}
+
+                { Name = s.Name
+                  Description = Some s.Description
+                  InputSchema = JsonSerializer.SerializeToElement(schema, serializerOptions) })
+
+        let allTools = Seq.append mcpTools mcpSkills |> Seq.toList
+        let result = { Tools = allTools; NextCursor = None }
         createSuccessResponse id result
 
     let handleCallTool (id: int) (params': JsonElement) =
@@ -121,25 +140,27 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                     else
                         None
 
-                match registry.Get(nameProp) with
-                | Some tool ->
-                    let input =
-                        match argsProp with
-                        | Some args ->
-                            if args.ValueKind = JsonValueKind.String then
-                                args.GetString()
-                            else
-                                args.GetRawText()
-                        | None -> ""
+                let input =
+                    match argsProp with
+                    | Some args ->
+                        if args.ValueKind = JsonValueKind.String then
+                            args.GetString()
+                        else
+                            args.GetRawText()
+                    | None -> ""
 
-                    let correlationId = Guid.NewGuid().ToString().Substring(0, 8)
-                    let meta = 
-                        Map [ ("instance_id", instanceId :> obj)
-                              ("correlation_id", correlationId :> obj) ]
-                        |> Some
+                let correlationId = Guid.NewGuid().ToString().Substring(0, 8)
+                let meta =
+                    Map [ ("instance_id", instanceId :> obj)
+                          ("correlation_id", correlationId :> obj) ]
+                    |> Some
 
-                    log $"Executing tool '{nameProp}' [CID: {correlationId}] with input: {input}"
-                    let! result = Async.StartAsTask(Tars.Core.ToolExecution.runDefault tool input)
+                // Check SkillRegistry first (new pattern)
+                let skill = skillRegistry |> Option.bind (fun sr -> sr.GetSkill nameProp)
+                match skill with
+                | Some skill ->
+                    log $"Executing skill '{nameProp}' [CID: {correlationId}] with input: {input}"
+                    let! result = skill.Execute input
 
                     match result with
                     | Result.Ok output ->
@@ -171,8 +192,45 @@ type McpServer(registry: IToolRegistry, ?knowledgeGraph: TemporalKnowledgeGraph.
                               Meta = meta }
 
                         return createSuccessResponse id callResult
+                | None ->
+                    // Fallback to legacy registry
+                    match registry.Get(nameProp) with
+                    | Some tool ->
+                        log $"Executing tool '{nameProp}' [CID: {correlationId}] with input: {input}"
+                        let! result = Async.StartAsTask(Tars.Core.ToolExecution.runDefault tool input)
 
-                | None -> return createError id -32601 $"Tool not found: {nameProp}"
+                        match result with
+                        | Result.Ok output ->
+                            let content =
+                                [ { Type = "text"
+                                    Text = Some output
+                                    Data = None
+                                    MimeType = None
+                                    Resource = None } ]
+
+                            let callResult =
+                                { Content = content
+                                  IsError = Some false
+                                  Meta = meta }
+
+                            return createSuccessResponse id callResult
+
+                        | Result.Error err ->
+                            let content =
+                                [ { Type = "text"
+                                    Text = Some err
+                                    Data = None
+                                    MimeType = None
+                                    Resource = None } ]
+
+                            let callResult =
+                                { Content = content
+                                  IsError = Some true
+                                  Meta = meta }
+
+                            return createSuccessResponse id callResult
+
+                    | None -> return createError id -32601 $"Tool not found: {nameProp}"
             with ex ->
                 log $"Error calling tool: {ex.Message}"
                 return createError id -32603 $"Internal error: {ex.Message}"
