@@ -207,15 +207,15 @@ module WoTExecutor =
                     $"You are simulating the tool '%s{toolName}' with arguments: %s{argsDesc}.\n\
                       Produce a plausible output for this tool call. Be concise and factual."
 
-                let! response =
-                    Prompt.ask prompt
-                    |> Prompt.withSystem "You are TARS, an autonomous reasoning agent simulating a tool call."
-                    |> Prompt.withMaxTokens 512
-                    |> Prompt.withTemp 0.3
-                    |> Prompt.complete ctx.Llm
-                    |> Async.AwaitTask
-
                 try
+                    let! response =
+                        Prompt.ask prompt
+                        |> Prompt.withSystem "You are TARS, an autonomous reasoning agent simulating a tool call."
+                        |> Prompt.withMaxTokens 512
+                        |> Prompt.withTemp 0.3
+                        |> Prompt.complete ctx.Llm
+                        |> Async.AwaitTask
+
                     ctx.Logger $"[WoT] LLM fallback for '%s{toolName}': %d{response.Text.Length} chars"
                     return Result.Ok response.Text
                 with ex ->
