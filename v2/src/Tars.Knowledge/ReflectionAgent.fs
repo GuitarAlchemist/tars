@@ -112,14 +112,13 @@ type ReflectionAgent(ledger: KnowledgeLedger, registry: IAgentRegistry option, l
                     let userMsg = 
                          $"Current System Beliefs:\n{relevantBeliefs}\n\nTask: Analyze these beliefs. Identify ONE critical architectural issue or improvement. Return it as a succinct task description (e.g. 'Refactor module X to decouple Y'). If everything looks good, return 'No action needed'."
                     
-                    let request = 
-                        { LlmRequest.Default with
-                            SystemPrompt = Some systemPrompt
-                            Messages = [ { Role = Role.User; Content = userMsg } ]
-                            Temperature = Some 0.2 }
-                            
                     try
-                        let! response = service.CompleteAsync(request) |> Async.AwaitTask
+                        let! response =
+                            Prompt.ask userMsg
+                            |> Prompt.withSystem systemPrompt
+                            |> Prompt.withTemp 0.2
+                            |> Prompt.complete service
+                            |> Async.AwaitTask
                         let suggestion = response.Text.Trim()
                         
                         // Sanitize quotes to avoid JSON issues downstream

@@ -132,9 +132,7 @@ type LlmServiceChatClient(inner: ILlmService) =
                     |> Seq.map ChatClientMapping.fromAIChatMessage
                     |> Seq.toList
 
-                let mutable req =
-                    { LlmRequest.Default with
-                        Messages = tarsMessages }
+                let mutable req = Prompt.ofMessages tarsMessages
 
                 if not (isNull options) then
                     req <-
@@ -202,9 +200,8 @@ type LlmServiceChatClient(inner: ILlmService) =
                         |> Seq.toList
 
                     let mutable req =
-                        { LlmRequest.Default with
-                            Messages = tarsMessages
-                            Stream = true }
+                        Prompt.ofMessages tarsMessages
+                        |> Prompt.withStream true
 
                     if not (isNull options) then
                         req <-

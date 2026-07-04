@@ -15,6 +15,7 @@
     <Compile Include="OllamaClientAsync.fs" />
     <Compile Include="OpenAiCompatibleClient.fs" />
     <Compile Include="AnthropicClient.fs" />
+    <Compile Include="Prompt.fs" />
     <Compile Include="ConstrainedDecoding.fs" />
     <Compile Include="AiFunction.fs" />
     <Compile Include="AiFunctionIx.fs" />
