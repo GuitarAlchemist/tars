@@ -77,6 +77,14 @@ module PatternOutcomeStore =
             File.WriteAllText(outcomePath (), json)
         with _ -> () // Best-effort — don't crash if disk write fails
 
+    /// Get the last write time of the outcome store on disk.
+    let getLastWriteTime () : DateTime =
+        try
+            let path = outcomePath ()
+            if File.Exists path then File.GetLastWriteTimeUtc path
+            else DateTime.MinValue
+        with _ -> DateTime.MinValue
+
 /// <summary>
 /// Selects the best reasoning pattern for a given goal.
 /// Supports both heuristic selection and (future) learned selection.
@@ -202,6 +210,7 @@ module PatternSelector =
 
         /// In-memory cache for bandit scores to avoid repeated disk I/O and IX calls.
         let mutable cachedBanditScores: Map<PatternKind, float> option = None
+        let mutable lastStoreMtime = DateTime.MinValue
 
         /// Stable string key for a PatternKind (used as the ix rule id).
         let kindKey (k: PatternKind) = sprintf "%A" k
@@ -240,6 +249,11 @@ module PatternSelector =
         /// so under-explored kinds keep a chance. Delegates to ix `grammar.weights`
         /// when available; otherwise computes the identical math in F#.
         let banditScores () : Map<PatternKind, float> =
+            let currentMtime = PatternOutcomeStore.getLastWriteTime ()
+            if currentMtime > lastStoreMtime then
+                cachedBanditScores <- None
+                lastStoreMtime <- currentMtime
+
             match cachedBanditScores with
             | Some scores -> scores
             | None ->
@@ -377,6 +391,7 @@ module PatternSelector =
 
             // 2. Invalidate/update cache
             cachedBanditScores <- None // Simple invalidation forces reload next time Score() is called
+            lastStoreMtime <- PatternOutcomeStore.getLastWriteTime ()
 
         interface IPatternSelector with
             member _.Recommend(goal, _state) =
