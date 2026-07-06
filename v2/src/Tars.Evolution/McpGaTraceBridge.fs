@@ -58,7 +58,7 @@ module McpGaTraceBridge =
                       Promotions = 0; Rejections = 0
                       Details = ["No GA trace files found in ~/.ga/traces/"] }, jsonOptions))
             else
-                let results = PromotionPipeline.run minOcc artifacts
+                let results = PromotionPipeline.run PromotionPipeline.defaultStore minOcc artifacts
                 let promotions = results |> List.filter (fun r ->
                     match r.Decision with GovernanceDecision.Approve _ -> true | _ -> false)
                 let rejections = results |> List.filter (fun r ->

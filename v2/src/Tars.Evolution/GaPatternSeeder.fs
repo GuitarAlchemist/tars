@@ -186,4 +186,4 @@ module GaPatternSeeder =
     /// Run the promotion pipeline on GA-discovered patterns.
     let seed (minOccurrences: int) : PromotionPipeline.PipelineResult list =
         let artifacts = gaTraceArtifacts ()
-        PromotionPipeline.run minOccurrences artifacts
+        PromotionPipeline.run PromotionPipeline.defaultStore minOccurrences artifacts

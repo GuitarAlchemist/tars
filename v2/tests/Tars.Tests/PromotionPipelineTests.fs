@@ -182,7 +182,7 @@ let ``Pipeline classify returns candidate for sufficient occurrence`` () =
 
 [<Fact>]
 let ``Pipeline full run handles empty input`` () =
-    let results = PromotionPipeline.run 3 []
+    let results = PromotionPipeline.run (InMemoryPromotionStore()) 3 []
     Assert.Empty(results)
 
 [<Fact>]

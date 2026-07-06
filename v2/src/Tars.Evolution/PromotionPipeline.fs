@@ -12,80 +12,21 @@ open System.Text.Json
 open System.Text.Json.Serialization
 
 // ─────────────────────────────────────────────────────────────────────
-// State: persistent recurrence and lineage stores
+// State: injectable promotion store (recurrence + lineage + weights)
 // ─────────────────────────────────────────────────────────────────────
 
-let private recurrenceStore =
-    System.Collections.Concurrent.ConcurrentDictionary<string, RecurrenceRecord>()
-
-let private lineageStore =
-    System.Collections.Concurrent.ConcurrentDictionary<string, LineageRecord>()
-
+/// JSON options for the directory-scoped helpers at the bottom of this file.
 let private jsonOptions =
     let o = JsonSerializerOptions(JsonSerializerDefaults.General)
     o.Converters.Add(JsonFSharpConverter())
     o.WriteIndented <- true
     o
 
-let private getPromotionDir () =
-    let dir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".tars", "promotion")
-    if not (Directory.Exists dir) then
-        Directory.CreateDirectory dir |> ignore
-    dir
-
-/// Save recurrence and lineage stores to disk.
-let save () =
-    try
-        let dir = getPromotionDir ()
-        let recurrencePath = Path.Combine(dir, "recurrence.json")
-        let lineagePath = Path.Combine(dir, "lineage.json")
-
-        let recurrenceData = recurrenceStore.Values |> Seq.toList
-        let lineageData = lineageStore.Values |> Seq.toList
-
-        File.WriteAllText(recurrencePath, JsonSerializer.Serialize(recurrenceData, jsonOptions))
-        File.WriteAllText(lineagePath, JsonSerializer.Serialize(lineageData, jsonOptions))
-        Ok (recurrenceData.Length, lineageData.Length)
-    with ex ->
-        Error $"Failed to save promotion state: {ex.Message}"
-
-/// Load recurrence and lineage stores from disk.
-let load () =
-    try
-        let dir = getPromotionDir ()
-        let recurrencePath = Path.Combine(dir, "recurrence.json")
-        let lineagePath = Path.Combine(dir, "lineage.json")
-
-        if File.Exists recurrencePath then
-            let json = File.ReadAllText(recurrencePath)
-            let records = JsonSerializer.Deserialize<RecurrenceRecord list>(json, jsonOptions)
-            for r in records do
-                recurrenceStore.[r.PatternName] <- r
-
-        if File.Exists lineagePath then
-            let json = File.ReadAllText(lineagePath)
-            let records = JsonSerializer.Deserialize<LineageRecord list>(json, jsonOptions)
-            for r in records do
-                lineageStore.[r.Id] <- r
-
-        Ok (recurrenceStore.Count, lineageStore.Count)
-    with ex ->
-        Error $"Failed to load promotion state: {ex.Message}"
-
-/// Initialize: load from disk on first use.
-let private initialized =
-    lazy (
-        match load () with
-        | Ok (r, l) ->
-            if r > 0 || l > 0 then
-                Console.Error.WriteLine($"[Promotion] Loaded {r} recurrence records, {l} lineage records from disk")
-        | Error err ->
-            Console.Error.WriteLine($"[Promotion] {err}")
-    )
-
-let private ensureLoaded () = initialized.Force()
+/// Process-global disk-backed store rooted at ~/.tars/promotion. This is the
+/// default for production callers; tests inject an `InMemoryPromotionStore`
+/// to stay hermetic. The global mutable ConcurrentDictionary state that used
+/// to live here — and leaked across tests — now lives inside the store.
+let defaultStore : IPromotionStore = DiskPromotionStore() :> IPromotionStore
 
 // ─────────────────────────────────────────────────────────────────────
 // Step 1: INSPECT — Analyze completed work artifacts
@@ -110,15 +51,14 @@ let inspect (artifacts: TraceArtifact list) : TraceArtifact list =
 // Step 2: EXTRACT — Pull recurring structural patterns
 // ─────────────────────────────────────────────────────────────────────
 
-let extract (artifacts: TraceArtifact list) : RecurrenceRecord list =
-    ensureLoaded ()
+let extractInto (store: IPromotionStore) (artifacts: TraceArtifact list) : RecurrenceRecord list =
     artifacts
     |> List.groupBy (fun a -> a.PatternName)
     |> List.map (fun (name, group) ->
         let existing =
-            match recurrenceStore.TryGetValue(name) with
-            | true, r -> r
-            | false, _ ->
+            match store.TryGetRecurrence name with
+            | Some r -> r
+            | None ->
                 { PatternId = Guid.NewGuid().ToString("N").[..7]
                   PatternName = name
                   FirstSeen = DateTime.UtcNow
@@ -143,8 +83,12 @@ let extract (artifacts: TraceArtifact list) : RecurrenceRecord list =
                 Contexts = (existing.Contexts @ newContexts) |> List.distinct
                 AverageScore = avgScore }
 
-        recurrenceStore.[name] <- updated
+        store.UpsertRecurrence updated
         updated)
+
+/// Extract using the process-global default store (backward-compatible entry point).
+let extract (artifacts: TraceArtifact list) : RecurrenceRecord list =
+    extractInto defaultStore artifacts
 
 // ─────────────────────────────────────────────────────────────────────
 // Step 3: CLASSIFY — Determine if promotion is warranted
@@ -233,7 +177,7 @@ let validate
 // Step 6: PERSIST — Store the decision and update lineage
 // ─────────────────────────────────────────────────────────────────────
 
-let persist (candidate: PromotionCandidate) (decision: GovernanceDecision) : LineageRecord =
+let persistInto (store: IPromotionStore) (candidate: PromotionCandidate) (decision: GovernanceDecision) : LineageRecord =
     let lineage = {
         Id = Guid.NewGuid().ToString("N").[..7]
         PatternId = candidate.Record.PatternId
@@ -248,7 +192,7 @@ let persist (candidate: PromotionCandidate) (decision: GovernanceDecision) : Lin
         Confidence = float (PromotionCriteria.score candidate.Criteria) / 8.0
     }
 
-    lineageStore.[lineage.Id] <- lineage
+    store.AddLineage lineage
 
     // If approved, update the recurrence record's level
     match decision with
@@ -259,13 +203,17 @@ let persist (candidate: PromotionCandidate) (decision: GovernanceDecision) : Lin
                 PromotionHistory =
                     candidate.Record.PromotionHistory
                     @ [ (candidate.ProposedLevel, DateTime.UtcNow) ] }
-        recurrenceStore.[candidate.Record.PatternName] <- updated
+        store.UpsertRecurrence updated
     | _ -> ()
 
     // Persist to disk after each decision
-    save () |> ignore
+    store.Flush ()
 
     lineage
+
+/// Persist using the process-global default store (backward-compatible entry point).
+let persist (candidate: PromotionCandidate) (decision: GovernanceDecision) : LineageRecord =
+    persistInto defaultStore candidate decision
 
 // ─────────────────────────────────────────────────────────────────────
 // Step 7: GOVERN — Grammar Governor makes final decision
@@ -286,18 +234,19 @@ type PipelineResult = {
     RoundtripValidation: RoundtripValidation.RoundtripResult option
 }
 
-/// Run the full 7-step promotion pipeline on a batch of trace artifacts.
+/// Run the full 7-step promotion pipeline on a batch of trace artifacts against
+/// a caller-supplied store (inject `defaultStore` for the process-global disk
+/// store, or an `InMemoryPromotionStore` for hermetic tests).
 /// Uses probabilistic weights to rank candidates and updates weights from outcomes.
-let run (minOccurrences: int) (artifacts: TraceArtifact list) : PipelineResult list =
-    ensureLoaded ()
-    let existing = recurrenceStore.Values |> Seq.toList
+let run (store: IPromotionStore) (minOccurrences: int) (artifacts: TraceArtifact list) : PipelineResult list =
+    let existing = store.GetRecurrence ()
 
     // Load probabilistic weights (empty list on first run)
-    let mutable weights = WeightedGrammar.load ()
+    let mutable weights = store.LoadWeights ()
 
     // Steps 1-2: Inspect and Extract
     let inspected = artifacts |> inspect
-    let records = inspected |> extract
+    let records = inspected |> extractInto store
 
     // Build a lookup of rollback expansions by pattern name
     let rollbackByPattern =
@@ -332,23 +281,12 @@ let run (minOccurrences: int) (artifacts: TraceArtifact list) : PipelineResult l
                 |> propose candidate.Record.PatternName rollback
                 |> validate existing None
 
-            let rawDecision = govern existing candidate
-
-            // Round-trip validation for approved promotions
-            let roundtripResult, decision =
-                match rawDecision with
-                | Approve _ ->
-                    let rtResult = RoundtripValidation.quickValidate candidate
-                    if rtResult.Passed then
-                        Some rtResult, rawDecision
-                    else
-                        let reason =
-                            sprintf "Round-trip validation failed (semantic match: %.2f). %s"
-                                rtResult.SemanticMatch
-                                (rtResult.Issues |> String.concat "; ")
-                        Some rtResult, Reject reason
-                | _ ->
-                    None, rawDecision
+            // ONE verdict from the gate: the Grammar Governor's decision plus
+            // any round-trip override, decided in a single place. The pipeline
+            // never re-inspects SemanticMatch to second-guess the decision.
+            let verdict = PromotionGate.decide RoundtripValidation.quickValidate existing candidate
+            let decision = verdict.Decision
+            let roundtripResult = verdict.Roundtrip
 
             // Update weight from governance outcome (Bayesian update)
             let success = match decision with Approve _ -> true | _ -> false
@@ -358,7 +296,7 @@ let run (minOccurrences: int) (artifacts: TraceArtifact list) : PipelineResult l
                         WeightedGrammar.updateWeight WeightedGrammar.defaultConfig w success
                     else w)
 
-            let lineage = persist candidate decision
+            let lineage = persistInto store candidate decision
             let report =
                 let govReport = GrammarGovernor.auditReport candidate decision
                 match roundtripResult with
@@ -372,19 +310,17 @@ let run (minOccurrences: int) (artifacts: TraceArtifact list) : PipelineResult l
               RoundtripValidation = roundtripResult })
 
     // Persist updated weights
-    WeightedGrammar.save weights
+    store.SaveWeights weights
 
     results
 
 /// Get all recurrence records (for inspection/debugging)
 let getRecurrenceRecords () : RecurrenceRecord list =
-    ensureLoaded ()
-    recurrenceStore.Values |> Seq.toList
+    defaultStore.GetRecurrence ()
 
 /// Get all lineage records
 let getLineageRecords () : LineageRecord list =
-    ensureLoaded ()
-    lineageStore.Values |> Seq.toList
+    defaultStore.GetLineage ()
 
 // ── Root-aware store access (hermetic, parallel-safe) ───────────────
 // The functions above read the process-global in-memory store (lazily
@@ -426,7 +362,5 @@ let saveStoresTo
 
 /// Get patterns at a specific promotion level
 let getPatternsAtLevel (level: PromotionLevel) : RecurrenceRecord list =
-    ensureLoaded ()
-    recurrenceStore.Values
-    |> Seq.filter (fun r -> r.CurrentLevel = level)
-    |> Seq.toList
+    defaultStore.GetRecurrence ()
+    |> List.filter (fun r -> r.CurrentLevel = level)
