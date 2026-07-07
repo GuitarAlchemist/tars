@@ -49,8 +49,10 @@ let private withSeededStore (f: string -> unit) =
     let dir =
         Path.Combine(Path.GetTempPath(), "tars-promo-test-" + Guid.NewGuid().ToString("N"))
     Directory.CreateDirectory dir |> ignore
+    let store = PromotionStore.createFileNamed dir
     try
-        PromotionPipeline.saveStoresTo dir (seededRecords ()) []
+        for r in seededRecords () do
+            store.UpsertRecurrenceRecord r
         f dir
     finally
         try Directory.Delete(dir, true) with _ -> ()

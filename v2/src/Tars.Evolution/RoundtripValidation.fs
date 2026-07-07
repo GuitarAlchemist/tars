@@ -11,31 +11,6 @@ module Tars.Evolution.RoundtripValidation
 open System
 
 // ─────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────
-
-type RoundtripResult = {
-    PatternId: string
-    OriginalTemplate: string       // The promoted abstraction
-    ExpandedCode: string           // The lower-level expansion
-    ReconstructedTemplate: string  // Re-abstracted from expanded code
-    SemanticMatch: float           // 0.0-1.0 how similar original and reconstructed are
-    Passed: bool                   // SemanticMatch >= threshold
-    Issues: string list            // Any detected semantic losses
-}
-
-module RoundtripResult =
-    let empty patternId = {
-        PatternId = patternId
-        OriginalTemplate = ""
-        ExpandedCode = ""
-        ReconstructedTemplate = ""
-        SemanticMatch = 0.0
-        Passed = false
-        Issues = []
-    }
-
-// ─────────────────────────────────────────────────────────────────────
 // Helpers: structural comparison
 // ─────────────────────────────────────────────────────────────────────
 
@@ -287,6 +262,18 @@ ISSUES: <comma-separated list of issues, or "none">"""
                     { structural with
                         Issues = (sprintf "LLM validation failed (%s), fell back to structural" ex.Message) :: structural.Issues }
     }
+
+/// Default implementation of IRoundtripValidator
+type DefaultRoundtripValidator(llm: Tars.Llm.ILlmService option) =
+    interface IRoundtripValidator with
+        member _.Validate(candidate: PromotionCandidate) =
+            match llm with
+            | Some llmSvc ->
+                // Async to Sync for the interface - usually not ideal but for this refactor we'll keep it simple
+                // or we could make the interface async. Given the current pipeline is sync-ish.
+                validateWithLlm llmSvc candidate |> Async.RunSynchronously
+            | None ->
+                quickValidate candidate
 
 // ─────────────────────────────────────────────────────────────────────
 // Audit report

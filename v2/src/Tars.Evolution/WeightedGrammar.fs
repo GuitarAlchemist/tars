@@ -18,35 +18,6 @@ module WeightedGrammar =
     // Types
     // =========================================================================
 
-    /// Source system that produced/evolved a rule's weight
-    type RuleSource =
-        | Tars
-        | GuitarAlchemist
-        | MachinDeOuf
-        | Evolved
-        | Manual
-
-    /// A grammar rule annotated with probabilistic weight metadata
-    type WeightedRule = {
-        PatternId: string
-        PatternName: string
-        Level: PromotionLevel
-        /// Raw 0-8 criteria score from GrammarGovernor
-        RawScore: int
-        /// Current probability weight in [0.0, 1.0]
-        Weight: float
-        /// Bayesian confidence in the weight estimate (higher = more certain)
-        Confidence: float
-        /// Success rate from execution outcomes
-        SuccessRate: float
-        /// How many times this rule has been selected for use
-        SelectionCount: int
-        /// Who/what assigned this weight
-        Source: RuleSource
-        /// When the weight was last updated
-        LastUpdated: DateTime
-    }
-
     /// Configuration for weight computation
     type WeightConfig = {
         /// Softmax temperature: high = uniform, low = winner-take-all
@@ -192,88 +163,16 @@ module WeightedGrammar =
     // Persistence (weights.json alongside recurrence.json)
     // =========================================================================
 
-    /// DTO for JSON serialization
-    type WeightedRuleDto = {
-        PatternId: string
-        PatternName: string
-        Level: string
-        RawScore: int
-        Weight: float
-        Confidence: float
-        SuccessRate: float
-        SelectionCount: int
-        Source: string
-        LastUpdated: string
-    }
-
-    let private toDto (r: WeightedRule) : WeightedRuleDto =
-        { PatternId = r.PatternId
-          PatternName = r.PatternName
-          Level = PromotionLevel.label r.Level
-          RawScore = r.RawScore
-          Weight = r.Weight
-          Confidence = r.Confidence
-          SuccessRate = r.SuccessRate
-          SelectionCount = r.SelectionCount
-          Source = match r.Source with
-                   | Tars -> "tars" | GuitarAlchemist -> "guitar_alchemist"
-                   | MachinDeOuf -> "ix" | Evolved -> "evolved" | Manual -> "manual"
-          LastUpdated = r.LastUpdated.ToString("o") }
-
-    let private fromDto (dto: WeightedRuleDto) : WeightedRule =
-        let level =
-            match dto.Level with
-            | "helper" -> Helper | "builder" -> Builder
-            | "dsl_clause" -> DslClause | "grammar_rule" -> GrammarRule
-            | _ -> Implementation
-        let source =
-            match dto.Source with
-            | "guitar_alchemist" -> GuitarAlchemist | "ix" -> MachinDeOuf
-            | "evolved" -> Evolved | "manual" -> Manual | _ -> Tars
-        { PatternId = dto.PatternId
-          PatternName = dto.PatternName
-          Level = level
-          RawScore = dto.RawScore
-          Weight = dto.Weight
-          Confidence = dto.Confidence
-          SuccessRate = dto.SuccessRate
-          SelectionCount = dto.SelectionCount
-          Source = source
-          LastUpdated = try DateTime.Parse(dto.LastUpdated) with _ -> DateTime.UtcNow }
-
-    let private weightsDir =
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".tars", "promotion")
-
-    let private weightsPath = Path.Combine(weightsDir, "weights.json")
-
-    let private jsonOptions =
-        let opts = JsonSerializerOptions()
-        opts.WriteIndented <- true
-        opts
-
-    /// Save weighted rules to ~/.tars/promotion/weights.json
-    let save (rules: WeightedRule list) : unit =
-        try
-            Directory.CreateDirectory(weightsDir) |> ignore
-            let dtos = rules |> List.map toDto
-            let json = JsonSerializer.Serialize(dtos, jsonOptions)
-            File.WriteAllText(weightsPath, json)
-        with _ -> () // graceful degradation
+    /// Save weighted rules using the provided store.
+    let save (store: IPromotionStore) (rules: WeightedRule list) : unit =
+        store.SaveWeights rules
 
     /// Load weighted rules from a specific promotion directory's weights.json.
-    /// Lets callers (notably hermetic tests) read an isolated store instead of
-    /// the shared ~/.tars one.
     let loadFrom (dir: string) : WeightedRule list =
-        try
-            let path = Path.Combine(dir, "weights.json")
-            if File.Exists(path) then
-                let json = File.ReadAllText(path)
-                let dtos = JsonSerializer.Deserialize<WeightedRuleDto list>(json, jsonOptions)
-                dtos |> List.map fromDto
-            else []
-        with _ -> []
+        let store = PromotionStore.createFileNamed dir
+        store.GetWeights()
 
-    /// Load weighted rules from ~/.tars/promotion/weights.json
-    let load () : WeightedRule list = loadFrom weightsDir
+    /// Load weighted rules from the default promotion store.
+    let load () : WeightedRule list =
+        let store = PromotionStore.createDefault ()
+        store.GetWeights()

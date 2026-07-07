@@ -201,7 +201,7 @@ module GrammarDistillationTests =
 
         Assert.Equal(production.Id, rule.PatternId)
         Assert.Equal(production.SuccessRate, rule.SuccessRate)
-        Assert.Equal(WeightedGrammar.Evolved, rule.Source)
+        Assert.Equal(Evolved, rule.Source)
         Assert.True(rule.Weight > 0.0)
         Assert.True(rule.RawScore >= 3)
 

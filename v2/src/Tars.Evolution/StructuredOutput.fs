@@ -131,9 +131,9 @@ let fromPipelineResult (r: PromotionPipeline.PipelineResult) : GovernanceOutput 
       Timestamp = r.Lineage.PromotedAt.ToString("o") }
 
 /// Convert a batch of pipeline results to a structured run output
-let fromPipelineRun (results: PromotionPipeline.PipelineResult list) (artifactCount: int) : PipelineRunOutput =
+let fromPipelineRun (store: IPromotionStore) (results: PromotionPipeline.PipelineResult list) (artifactCount: int) : PipelineRunOutput =
     let outputs = results |> List.map fromPipelineResult
-    let records = PromotionPipeline.getRecurrenceRecords ()
+    let records = PromotionPipeline.getRecurrenceRecords store
     let avgFitness =
         if records.IsEmpty then 0.0
         else records |> List.averageBy (fun r -> r.AverageScore) |> fun x -> Math.Round(x, 3)
@@ -158,8 +158,8 @@ let toJson<'T> (output: 'T) : string =
     JsonSerializer.Serialize(output, jsonOptions)
 
 /// Serialize a pipeline run to JSON
-let pipelineRunToJson (results: PromotionPipeline.PipelineResult list) (artifactCount: int) : string =
-    fromPipelineRun results artifactCount |> toJson
+let pipelineRunToJson (store: IPromotionStore) (results: PromotionPipeline.PipelineResult list) (artifactCount: int) : string =
+    fromPipelineRun store results artifactCount |> toJson
 
 /// Serialize a single governance decision to JSON
 let governanceToJson (result: PromotionPipeline.PipelineResult) : string =

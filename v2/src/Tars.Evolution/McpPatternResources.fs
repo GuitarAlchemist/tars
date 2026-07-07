@@ -223,8 +223,9 @@ module McpPatternResources =
     let getPromotionStatus (_input: string) : Async<Result<string, string>> =
         async {
             try
-                let records = PromotionPipeline.getRecurrenceRecords ()
-                let lineage = PromotionPipeline.getLineageRecords ()
+                let store = PromotionStore.createDefault ()
+                let records = PromotionPipeline.getRecurrenceRecords store
+                let lineage = PromotionPipeline.getLineageRecords store
 
                 let recurrenceOutputs = records |> List.map StructuredOutput.fromRecurrence
                 let byLevel =
@@ -256,7 +257,8 @@ module McpPatternResources =
     let getPromotionLineage (_input: string) : Async<Result<string, string>> =
         async {
             try
-                let lineage = PromotionPipeline.getLineageRecords ()
+                let store = PromotionStore.createDefault ()
+                let lineage = PromotionPipeline.getLineageRecords store
 
                 let outputs =
                     lineage
@@ -286,7 +288,7 @@ module McpPatternResources =
         }
 
     /// Run the promotion pipeline and return structured JSON results.
-    let runPromotionPipeline (input: string) : Async<Result<string, string>> =
+    let runPromotionPipeline (llm: ILlmService option) (input: string) : Async<Result<string, string>> =
         async {
             try
                 let minOccurrences =
@@ -294,8 +296,9 @@ module McpPatternResources =
                     | true, v when v > 0 -> v
                     | _ -> 3
 
+                let store = PromotionStore.createDefault ()
                 // Use existing recurrence records if available, otherwise create test data
-                let existingRecords = PromotionPipeline.getRecurrenceRecords ()
+                let existingRecords = PromotionPipeline.getRecurrenceRecords store
                 let artifacts =
                     if existingRecords.IsEmpty then
                         // No data yet — return empty run
@@ -314,8 +317,9 @@ module McpPatternResources =
                                   Timestamp = DateTime.UtcNow
                                   RollbackExpansion = None } : PromotionPipeline.TraceArtifact))
 
-                let results = PromotionPipeline.run minOccurrences artifacts
-                let json = StructuredOutput.pipelineRunToJson results artifacts.Length
+                let gate = PromotionGate.createDefault llm
+                let results = PromotionPipeline.run store gate minOccurrences artifacts
+                let json = StructuredOutput.pipelineRunToJson store results artifacts.Length
                 return Ok json
             with ex ->
                 return Error (sprintf "Failed to run promotion pipeline: %s" ex.Message)
@@ -377,4 +381,4 @@ module McpPatternResources =
             Version = "1.0"
             ParentVersion = None
             CreatedAt = DateTime.UtcNow
-            Execute = runPromotionPipeline } ]
+            Execute = runPromotionPipeline llm } ]

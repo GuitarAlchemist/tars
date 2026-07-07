@@ -80,14 +80,15 @@ module McpGrammarTools =
     let private grammarUpdate (input: string) : Result<string, string> =
         try
             let req = JsonSerializer.Deserialize<UpdateInput>(input, jsonOptions)
-            let rules = WeightedGrammar.load ()
+            let store = PromotionStore.createDefault ()
+            let rules = store.GetWeights()
             match rules |> List.tryFind (fun r -> r.PatternId = req.PatternId) with
             | None -> Result.Error $"Rule not found: {req.PatternId}"
             | Some rule ->
                 let updated = WeightedGrammar.updateWeight WeightedGrammar.defaultConfig rule req.Success
                 let newRules = rules |> List.map (fun r ->
                     if r.PatternId = req.PatternId then updated else r)
-                WeightedGrammar.save newRules
+                store.SaveWeights newRules
                 let response = {
                     PatternId = req.PatternId
                     OldWeight = rule.Weight

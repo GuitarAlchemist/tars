@@ -222,8 +222,8 @@ module GrammarMlBridge =
     /// Use ix prediction as a Bayesian prior for a new production's weight.
     let applyPredictivePrior
         (prediction: MlPrediction)
-        (rule: WeightedGrammar.WeightedRule)
-        : WeightedGrammar.WeightedRule =
+        (rule: WeightedRule)
+        : WeightedRule =
 
         // Blend ix prediction with default prior, weighted by ix confidence
         let blendedRate =
@@ -233,7 +233,7 @@ module GrammarMlBridge =
         { rule with
             SuccessRate = blendedRate
             Confidence = max rule.Confidence (prediction.Confidence * 0.5)
-            Source = WeightedGrammar.Evolved }
+            Source = Evolved }
 
     // =========================================================================
     // Integration 3: Breed new productions via ix_evolution
@@ -314,9 +314,9 @@ module GrammarMlBridge =
     let evolveAsync
         (callIx: IxCaller)
         (productions: TypedProduction list)
-        (existingWeights: WeightedGrammar.WeightedRule list)
+        (existingWeights: WeightedRule list)
         (config: GrammarMlConfig)
-        : Async<Result<WeightedGrammar.WeightedRule list * BreedingResult option, string>> =
+        : Async<Result<WeightedRule list * BreedingResult option, string>> =
         async {
             if productions.Length < 3 then
                 return Error "Need at least 3 productions to train a model"

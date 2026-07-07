@@ -156,7 +156,7 @@ module GrammarMlBridgeTests =
 
         // Blended: 0.9 * 0.8 + original * 0.2
         Assert.True(updated.SuccessRate > rule.SuccessRate * 0.5)
-        Assert.Equal(WeightedGrammar.Evolved, updated.Source)
+        Assert.Equal(Evolved, updated.Source)
 
     [<Fact>]
     let ``applyPredictivePrior with low confidence barely changes rate`` () =

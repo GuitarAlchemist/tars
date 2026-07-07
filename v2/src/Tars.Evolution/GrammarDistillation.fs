@@ -281,7 +281,7 @@ module GrammarDistillation =
     // =========================================================================
 
     /// Convert a TypedProduction to a WeightedRule for the Bayesian system.
-    let toWeightedRule (production: TypedProduction) : WeightedGrammar.WeightedRule =
+    let toWeightedRule (production: TypedProduction) : WeightedRule =
         { PatternId = production.Id
           PatternName = production.Name
           Level = production.SuggestedLevel
@@ -292,7 +292,7 @@ module GrammarDistillation =
           Confidence = min 1.0 (float production.TraceCount / 10.0)
           SuccessRate = production.SuccessRate
           SelectionCount = production.TraceCount
-          Source = WeightedGrammar.Evolved
+          Source = Evolved
           LastUpdated = production.LastUpdated }
 
     // =========================================================================

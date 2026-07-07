@@ -28,7 +28,8 @@ let private ixBridgeConfig () : MachinBridge.MachinConfig option =
 
 /// Display current weighted grammar rules
 let private showWeights () =
-    let rules = WeightedGrammar.load ()
+    let store = PromotionStore.createDefault ()
+    let rules = store.GetWeights()
     if rules.IsEmpty then
         RichOutput.info "No weighted rules found. Run [bold]tars grammar evolve[/] to initialize."
     else
@@ -64,10 +65,11 @@ let private showWeights () =
 
 /// Run replicator dynamics on the grammar ecosystem
 let private runReplicator (steps: int) =
-    let rules = WeightedGrammar.load ()
+    let store = PromotionStore.createDefault ()
+    let rules = store.GetWeights()
     if rules.IsEmpty then
         // Bootstrap from promotion pipeline
-        let records = PromotionPipeline.getRecurrenceRecords ()
+        let records = PromotionPipeline.getRecurrenceRecords store
         if records.IsEmpty then
             RichOutput.warn "No rules or recurrence records found. Run some workflows first."
         else
@@ -76,7 +78,7 @@ let private runReplicator (steps: int) =
                 let score = min 8 (r.OccurrenceCount + (if r.AverageScore > 0.5 then 3 else 1))
                 (r, score))
             let weighted = WeightedGrammar.fromRecurrenceRecords WeightedGrammar.defaultConfig scored
-            WeightedGrammar.save weighted
+            store.SaveWeights weighted
             RichOutput.ok $"Created [bold]{weighted.Length}[/] weighted rules from recurrence records."
     else
         RichOutput.info $"Running replicator dynamics on [bold]{rules.Length}[/] rules for {steps} steps..."
@@ -139,7 +141,7 @@ let private runReplicator (steps: int) =
                 | Some s -> { r with Weight = s.Proportion; Source = Evolved; LastUpdated = DateTime.UtcNow }
                 | None -> { r with Weight = 0.0; Source = Evolved; LastUpdated = DateTime.UtcNow })
             |> List.filter (fun r -> r.Weight > 0.001)
-        WeightedGrammar.save updatedRules
+        store.SaveWeights updatedRules
         RichOutput.ok $"Saved [bold]{updatedRules.Length}[/] evolved weights."
 
 /// Run MCTS search for WoT workflow derivation

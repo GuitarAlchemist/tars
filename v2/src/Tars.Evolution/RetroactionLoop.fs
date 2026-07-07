@@ -403,6 +403,7 @@ Output JSON ONLY, no explanation.
     /// Feed a completed execution into the promotion pipeline.
     /// Converts cycle data into TraceArtifacts and runs the 7-step loop.
     let feedPromotionPipeline
+        (llm: ILlmService option)
         (problem: Problem)
         (score: ExecutionScore)
         (pattern: PatternDefinition)
@@ -415,7 +416,9 @@ Output JSON ONLY, no explanation.
               Score = score.Overall
               Timestamp = System.DateTime.UtcNow
               RollbackExpansion = pattern.RollbackExpansion }
-        PromotionPipeline.run 3 [ artifact ]
+        let store = PromotionStore.createDefault ()
+        let gate = PromotionGate.createDefault llm
+        PromotionPipeline.run store gate 3 [ artifact ]
 
     // =========================================================================
     // Cycle Metrics
@@ -498,7 +501,7 @@ Output JSON ONLY, no explanation.
                         match newPattern with
                         | Some pattern ->
                             Console.WriteLine("[Retroaction] Feeding promotion pipeline...")
-                            let results = feedPromotionPipeline problem score pattern
+                            let results = feedPromotionPipeline (Some llm) problem score pattern
                             for r in results do
                                 Console.WriteLine(r.AuditReport)
 

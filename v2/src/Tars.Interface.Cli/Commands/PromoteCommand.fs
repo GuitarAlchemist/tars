@@ -34,7 +34,8 @@ let private levelColor = function
 
 /// Show all recurrence records and their current promotion levels.
 let status () =
-    let records = PromotionPipeline.getRecurrenceRecords ()
+    let store = PromotionStore.createDefault ()
+    let records = PromotionPipeline.getRecurrenceRecords store
 
     if jsonMode then
         let outputs = records |> List.map StructuredOutput.fromRecurrence
@@ -85,7 +86,8 @@ let status () =
 
 /// Show lineage records (promotion history).
 let lineage () =
-    let records = PromotionPipeline.getLineageRecords ()
+    let store = PromotionStore.createDefault ()
+    let records = PromotionPipeline.getLineageRecords store
 
     if jsonMode then
         let outputs =
@@ -206,11 +208,13 @@ let runPipeline (minOccurrences: int) =
         AnsiConsole.MarkupLine($"[dim]  Feeding {artifacts.Length} trace artifacts into pipeline...[/]")
         AnsiConsole.WriteLine()
 
-    let results = PromotionPipeline.run minOccurrences artifacts
+    let store = PromotionStore.createDefault ()
+    let gate = PromotionGate.createDefault None
+    let results = PromotionPipeline.run store gate minOccurrences artifacts
 
     if jsonMode then
         // Headless: strict JSON only, no markup
-        printfn "%s" (StructuredOutput.pipelineRunToJson results artifacts.Length)
+        printfn "%s" (StructuredOutput.pipelineRunToJson store results artifacts.Length)
     else
         if results.IsEmpty then
             printDim "  No promotions triggered. Patterns may need more occurrences."
@@ -230,7 +234,7 @@ let runPipeline (minOccurrences: int) =
                 | None -> ()
 
         AnsiConsole.WriteLine()
-        let jsonOutput = StructuredOutput.pipelineRunToJson results artifacts.Length
+        let jsonOutput = StructuredOutput.pipelineRunToJson store results artifacts.Length
         AnsiConsole.MarkupLine("[bold cyan]Structured JSON Output:[/]")
         AnsiConsole.WriteLine(jsonOutput)
 
@@ -238,8 +242,9 @@ let runPipeline (minOccurrences: int) =
 
 /// Generate a full JSON report of current pipeline state.
 let report () =
-    let records = PromotionPipeline.getRecurrenceRecords ()
-    let lineageRecords = PromotionPipeline.getLineageRecords ()
+    let store = PromotionStore.createDefault ()
+    let records = PromotionPipeline.getRecurrenceRecords store
+    let lineageRecords = PromotionPipeline.getLineageRecords store
 
     if jsonMode then
         let fullReport =

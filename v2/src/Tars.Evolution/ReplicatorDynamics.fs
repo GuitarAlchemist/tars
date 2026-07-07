@@ -87,7 +87,7 @@ module ReplicatorDynamics =
 
     /// Build species from weighted rules with outcome data
     let buildSpecies
-        (rules: WeightedGrammar.WeightedRule list)
+        (rules: WeightedRule list)
         (outcomesById: Map<string, (bool * int64) list>)
         : GrammarSpecies list =
         if rules.IsEmpty then []
@@ -185,7 +185,7 @@ module ReplicatorDynamics =
 
     /// Quick run with default config
     let evolveEcosystem
-        (rules: WeightedGrammar.WeightedRule list)
+        (rules: WeightedRule list)
         (outcomesById: Map<string, (bool * int64) list>)
         : ReplicatorResult =
         let species = buildSpecies rules outcomesById

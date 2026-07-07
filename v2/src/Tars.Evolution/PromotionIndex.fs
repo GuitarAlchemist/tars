@@ -36,24 +36,25 @@ module PromotionIndex =
         o.Converters.Add(JsonFSharpConverter())
         o
 
-    let private indexPath () =
-        let dir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".tars", "promotion")
+    let private indexPath (promotionDir: string option) =
+        let dir =
+            match promotionDir with
+            | Some d -> d
+            | None ->
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".tars", "promotion")
         if not (Directory.Exists dir) then
             Directory.CreateDirectory dir |> ignore
         Path.Combine(dir, "index.json")
 
     // ── Build index from live promotion stores ──────────────────────
 
-    /// Build the index from explicit records/weights/lineage. Pure: no I/O,
-    /// no global state — the testable core shared by the live and
-    /// directory-scoped builders below.
-    let buildFrom
-        (records: RecurrenceRecord list)
-        (weights: WeightedGrammar.WeightedRule list)
-        (lineage: LineageRecord list)
-        : PromotionIndexData =
+    /// Build the index from an explicit IPromotionStore. Pure-ish: no global state.
+    let buildFrom (store: IPromotionStore) : PromotionIndexData =
+        let records = store.GetRecurrenceRecords()
+        let weights = store.GetWeights()
+        let lineage = store.GetLineageRecords()
 
         // Find the most recent rollback expansion from lineage for each pattern
         let rollbackByPattern =
@@ -95,21 +96,13 @@ module PromotionIndex =
           GeneratedAt = DateTime.UtcNow
           PatternCount = entries.Length }
 
-    /// Build the index from the live, process-global promotion stores.
+    /// Build the index from the default promotion store.
     let build () : PromotionIndexData =
-        buildFrom
-            (PromotionPipeline.getRecurrenceRecords ())
-            (WeightedGrammar.load ())
-            (PromotionPipeline.getLineageRecords ())
+        buildFrom (PromotionStore.createDefault ())
 
-    /// Build the index from an isolated promotion directory (reads disk
-    /// directly, bypassing the shared in-memory store). Hermetic and
-    /// parallel-safe — the basis for deterministic tests.
+    /// Build the index from an isolated promotion directory.
     let buildFromDir (promotionDir: string) : PromotionIndexData =
-        buildFrom
-            (PromotionPipeline.recurrenceRecordsFrom promotionDir)
-            (WeightedGrammar.loadFrom promotionDir)
-            (PromotionPipeline.lineageRecordsFrom promotionDir)
+        buildFrom (PromotionStore.createFileNamed promotionDir)
 
     /// Persist the index to a specific promotion directory.
     let saveTo (promotionDir: string) (index: PromotionIndexData) : unit =
@@ -123,7 +116,7 @@ module PromotionIndex =
     let save (index: PromotionIndexData) : unit =
         try
             let json = JsonSerializer.Serialize(index, jsonOptions)
-            File.WriteAllText(indexPath (), json)
+            File.WriteAllText(indexPath None, json)
         with _ -> () // Best-effort
 
     /// Load a persisted index from a specific promotion directory.
@@ -140,7 +133,7 @@ module PromotionIndex =
     /// Load the persisted index from disk.
     let load () : PromotionIndexData option =
         try
-            let path = indexPath ()
+            let path = indexPath None
             if File.Exists path then
                 let json = File.ReadAllText path
                 Some (JsonSerializer.Deserialize<PromotionIndexData>(json, jsonOptions))

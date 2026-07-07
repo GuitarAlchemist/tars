@@ -53,7 +53,8 @@ type GaPatternSeederTests(output: ITestOutputHelper) =
         output.WriteLine($"(Pipeline returning 0 results means patterns already at max level)")
 
         // Verify recurrence records were created
-        let records = PromotionPipeline.getRecurrenceRecords ()
+        let store = PromotionStore.createDefault ()
+        let records = PromotionPipeline.getRecurrenceRecords store
         let gaRecords = records |> List.filter (fun r -> r.PatternName.StartsWith("ga."))
         output.WriteLine($"GA recurrence records in store: {gaRecords.Length}")
         for r in gaRecords do

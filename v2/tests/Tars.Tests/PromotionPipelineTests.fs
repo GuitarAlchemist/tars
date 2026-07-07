@@ -162,7 +162,8 @@ let ``Pipeline extracts and tracks recurrence`` () =
           Score = 0.9; Timestamp = DateTime.UtcNow
           RollbackExpansion = None }
     ]
-    let records = PromotionPipeline.extract (PromotionPipeline.inspect artifacts)
+    let store = PromotionStore.createInMemory ()
+    let records = PromotionPipeline.extract store (PromotionPipeline.inspect artifacts)
     Assert.True(records.Length >= 1)
     let record = records |> List.find (fun r -> r.PatternName = "extract_test")
     Assert.True(record.OccurrenceCount >= 2)
@@ -182,7 +183,9 @@ let ``Pipeline classify returns candidate for sufficient occurrence`` () =
 
 [<Fact>]
 let ``Pipeline full run handles empty input`` () =
-    let results = PromotionPipeline.run 3 []
+    let store = PromotionStore.createInMemory ()
+    let gate = PromotionGate.createDefault None
+    let results = PromotionPipeline.run store gate 3 []
     Assert.Empty(results)
 
 [<Fact>]
