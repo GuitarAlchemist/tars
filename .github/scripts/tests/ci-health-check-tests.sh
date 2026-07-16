@@ -35,7 +35,7 @@ run_test() {
   # We use 'bash -c' to ensure the mocked 'gh' function is used
   output=$(export REPO="mock/repo"; export MOCK_RUN_LIST; export MOCK_RUN_VIEW; bash "$CI_HEALTH_CHECK")
 
-  actual_conclusion=$(echo "$output" | grep "conclusion=" | cut -d'=' -f2)
+  actual_conclusion=$(echo "$output" | grep "conclusion=" | cut -d'=' -f2 | tr -d "'")
 
   if [ "$actual_conclusion" == "$expected_conclusion" ]; then
     echo "  ✅ Pass"

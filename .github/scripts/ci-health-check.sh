@@ -36,13 +36,14 @@ WF_CONCLUSION=$(echo "$RUN_JSON" | jq -r '.conclusion // empty')
 JOBS_JSON=$(gh run view --repo "$REPO" "$RUN_ID" --json jobs)
 
 # Extract conclusion of the job named exactly "build".
-BUILD_CONCLUSION=$(echo "$JOBS_JSON" | jq -r '.jobs[] | select(.name == "build") | .conclusion // empty')
+# We take the first one found to avoid any multi-line output issues.
+BUILD_CONCLUSION=$(echo "$JOBS_JSON" | jq -r '.jobs[] | select(.name == "build") | .conclusion // empty' | head -n 1)
 
 # Fallback: if 'build' job isn't found (e.g. workflow structure changed),
 # use the overall workflow conclusion to be safe.
 FINAL_CONCLUSION="${BUILD_CONCLUSION:-$WF_CONCLUSION}"
 
-echo "conclusion=$FINAL_CONCLUSION"
-echo "sha=$SHA"
-echo "url=$URL"
-echo "id=$RUN_ID"
+echo "conclusion='$FINAL_CONCLUSION'"
+echo "sha='$SHA'"
+echo "url='$URL'"
+echo "id='$RUN_ID'"
