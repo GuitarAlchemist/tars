@@ -37,7 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           # Accurate CI health check: looks at the 'build' job specifically.
-          CHECK_OUTPUT=$(.github/scripts/ci-health-check.sh)
+          CHECK_OUTPUT=$(Scripts/ci-health/check.sh)
           if [ -z "$CHECK_OUTPUT" ]; then
             echo "No completed .NET runs on main yet — nothing to sweep."
             exit 0
