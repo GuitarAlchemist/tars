@@ -155,6 +155,14 @@ tests stand as green regression guards. The backlog is a *living queue*: the
 (`composition`/`delegation`/`orchestration`) — **3/3 PROMOTED**, all the proper 2-edit fix,
 consolidated likewise. Total across both rounds: **8/8 gaps closed autonomously**, 7 proper
 multi-edit + 1 legitimate 1-edit shortcut.
+**Round 3 seeded (2026-07-21)** from the round-1 fundamental research program
+(`docs/research/`): five adversarially double-verified defects in the learning loop
+itself — the outcome-store `PatternKind` codec corruption (nested `custom "…"` layers),
+the degenerate Beta(1,1)-less prior, the posterior-never-reaches-`Weight` disconnect
+(live r = −0.85), the pre-normalization smoothing-floor bug, and the name-as-template
+`RemovesComplexity` inflation. Seeds in `SelfImproveRound3Tests.fs`; unlike rounds 1–2
+these are single-function *behavioral* fixes rather than union-case additions — a
+deliberate difficulty escalation for the gate.
 
 ## Open items to resolve in implementation
 
