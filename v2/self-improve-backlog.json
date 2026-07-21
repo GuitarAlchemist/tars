@@ -11,27 +11,13 @@
     "target_test": "bayesianUpdate keeps a fresh rule's posterior non-degenerate",
     "target_file": "v2/src/Tars.Evolution/WeightedGrammar.fs",
     "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
-    "rationale": "bayesianUpdate with priorCount=0 (every rule from fromRecurrenceRecords starts at SelectionCount=0) collapses the posterior to exactly 1.0/0.0 on the first observation — one data point becomes certainty. Add Beta(1,1)-style pseudo-counts so the posterior stays strictly inside (0,1). Research: docs/research/theory-bayesian-grammar-induction.md."
+    "rationale": "bayesianUpdate with priorCount=0 (every rule from fromRecurrenceRecords starts at SelectionCount=0) collapses the posterior to exactly 1.0/0.0 on the first observation \u2014 one data point becomes certainty. Add Beta(1,1)-style pseudo-counts so the posterior stays strictly inside (0,1). Research: docs/research/theory-bayesian-grammar-induction.md."
   },
   {
     "id": "posterior-to-weight",
     "target_test": "updateWeight folds the Bayesian posterior into the ranking Weight",
     "target_file": "v2/src/Tars.Evolution/WeightedGrammar.fs",
     "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
-    "rationale": "updateWeight advances SuccessRate/Confidence but never touches Weight, the field classifyWeighted actually ranks by — so execution outcomes can never change promotion order, and live promotion state shows r(SuccessRate, Weight) = -0.85. Recompute Weight from the posterior on each update (respect MinWeight). Research: docs/research/theory-bayesian-grammar-induction.md, empirical-promotion-dynamics.md."
-  },
-  {
-    "id": "replicator-floor",
-    "target_test": "replicator step preserves the smoothing floor after renormalization",
-    "target_file": "v2/src/Tars.Evolution/ReplicatorDynamics.fs",
-    "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
-    "rationale": "step clamps proportions to SmoothingFloor BEFORE renormalizing, so a floored species is rescaled below the floor and the documented 1% diversity guarantee does not hold — the only guard against monoculture fixation is broken. Enforce the floor as a post-normalization invariant. Research: docs/research/theory-replicator-dynamics.md."
-  },
-  {
-    "id": "template-not-name",
-    "target_test": "a pattern name alone does not satisfy RemovesComplexity",
-    "target_file": "v2/src/Tars.Evolution/PromotionPipeline.fs",
-    "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
-    "rationale": "The live pipeline proposes candidates with PatternTemplate = the pattern's name (run: propose candidate.Record.PatternName) and RemovesComplexity is a bare non-emptiness check, so every named pattern trivially 'removes complexity' — one of the criteria inflations behind the governor's 95.7% approval rate. validateDeterministic must reject a template that is literally the candidate's own name. Research: docs/research/frontier-program-synthesis.md, empirical-promotion-dynamics.md."
+    "rationale": "updateWeight advances SuccessRate/Confidence but never touches Weight, the field classifyWeighted actually ranks by \u2014 so execution outcomes can never change promotion order, and live promotion state shows r(SuccessRate, Weight) = -0.85. Recompute Weight from the posterior on each update (respect MinWeight). Research: docs/research/theory-bayesian-grammar-induction.md, empirical-promotion-dynamics.md."
   }
 ]

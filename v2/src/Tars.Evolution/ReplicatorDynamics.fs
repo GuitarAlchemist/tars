@@ -118,13 +118,15 @@ module ReplicatorDynamics =
             let updated =
                 species |> List.map (fun s ->
                     let delta = dt * s.Proportion * (s.Fitness - avgFitness)
-                    let newProp = max floor (s.Proportion + delta)
+                    let newProp = s.Proportion + delta
                     { s with Proportion = newProp })
 
             // Renormalize to sum to 1.0
             let total = updated |> List.sumBy (fun s -> s.Proportion)
             if total < 1e-15 then updated
-            else updated |> List.map (fun s -> { s with Proportion = s.Proportion / total })
+            else 
+                let renormalized = updated |> List.map (fun s -> { s with Proportion = s.Proportion / total })
+                renormalized |> List.map (fun s -> { s with Proportion = max floor s.Proportion })
 
     // =========================================================================
     // ESS detection

@@ -163,6 +163,16 @@ the degenerate Beta(1,1)-less prior, the posterior-never-reaches-`Weight` discon
 `RemovesComplexity` inflation. Seeds in `SelfImproveRound3Tests.fs`; unlike rounds 1–2
 these are single-function *behavioral* fixes rather than union-case additions — a
 deliberate difficulty escalation for the gate.
+**Round 3 partial closure (2026-07-21): 2/5 PROMOTED** (`--n 3 --parallel 2`,
+qwen3-coder:30b): `replicator-floor` (clamp moved post-renormalization; residual: a
+floored species can leave the simplex sum slightly above 1 — no redistribution step)
+and `template-not-name` (non-whitespace + `<> PatternName`, the intended minimal fix).
+Rejected, still queued: `outcome-kind-codec` (best-of-3 none passed — the exact-inverse
+codec rewrite exceeds the proposer at `num_ctx=4096`), `beta-prior-degenerate` (repair
+introduced 2 regressions), `posterior-to-weight` (0 applicable proposals). First
+measured proposal-quality ceiling: union-case edits 8/8, behavioral single-function
+fixes 2/5. Gate-side suspect worth fixing before round 3b: the Ollama request pins
+`num_ctx: 4096`, which truncates whole-file prompts (PatternSelector.fs ≈ 400 lines).
 
 ## Open items to resolve in implementation
 

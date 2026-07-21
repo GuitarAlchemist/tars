@@ -95,7 +95,6 @@ let ``updateWeight folds the Bayesian posterior into the ranking Weight`` () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``replicator step preserves the smoothing floor after renormalization`` () =
     let mkSpecies id proportion fitness : GrammarSpecies =
         { PatternId = id
@@ -121,7 +120,6 @@ let ``replicator step preserves the smoothing floor after renormalization`` () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``a pattern name alone does not satisfy RemovesComplexity`` () =
     let record =
         { PatternId = "seed5"

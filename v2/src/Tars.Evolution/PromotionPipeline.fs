@@ -199,7 +199,7 @@ let propose (template: string) (rollback: string option) (candidate: PromotionCa
 let validateDeterministic (existing: RecurrenceRecord list) (candidate: PromotionCandidate) : PromotionCriteria =
     let r = candidate.Record
     { MinOccurrences = r.OccurrenceCount >= 3
-      RemovesComplexity = candidate.PatternTemplate.Length > 0
+      RemovesComplexity = not (String.IsNullOrWhiteSpace candidate.PatternTemplate) && candidate.PatternTemplate <> candidate.Record.PatternName
       MoreReadable = true  // Default true, LLM can override
       StableSemantics = r.Contexts |> List.distinct |> List.length <= r.OccurrenceCount
       AutoValidatable = candidate.RollbackExpansion.IsSome
