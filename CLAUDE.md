@@ -59,7 +59,7 @@ Three repos via MCP/CLI bridges: **tars** (this repo, agent system), **ix** (`~/
 - `diag reasoning` needs Postgres (`evolve` handles absence gracefully).
 - Tars.LSP removed from solution (OmniSharp .NET 10 compat); project files still on disk.
 
-For governance details, use `demerzel-*` skills.
+For governance details, see the Demerzel repo (`~/source/repos/Demerzel`). No `demerzel-*` skills are installed in this repo.
 
 ## Karpathy 4 Rules — AI coding discipline
 
@@ -75,7 +75,7 @@ Self-improvement reflex: when the user corrects you, invoke `/correct` so the ru
 ## Session continuity (Cherny pattern)
 
 - `/digest` — captures meaningful session state (cursor, in-flight, hypotheses, success criteria) to `state/digests/latest.md`. Auto-fallback via `.claude/hooks/precompact-digest.ps1`; auto-injected on next session via `.claude/hooks/sessionstart-digest.ps1`. See `.claude/skills/digest/SKILL.md`.
-- `/learnings` — captures surprises (non-obvious facts worth grep-finding later) into `docs/solutions/<category>/<date>-<topic>.md`.
+- Learnings — surprises (non-obvious facts worth grep-finding later) are captured into `docs/solutions/<category>/<date>-<topic>.md`. Convention only: no `/learnings` skill is installed — write the file directly.
 - `/correct` — turns user corrections into permanent rules in this CLAUDE.md.
 
 The hooks are validated in CI by `.github/workflows/karpathy-cherny-discipline.yml`.
@@ -88,7 +88,7 @@ _Appended by `/correct` when the user corrects an approach. Persists across sess
 
 ## Agent skills
 
-Per-repo config for the mattpocock engineering skills (`to-issues`, `to-prd`, `triage`, `qa`, `tdd`, `improve-codebase-architecture`, etc.).
+Per-repo config consumed by engineering skills where available (e.g. `qa`, `tdd`, `review`). Only `correct` and `digest` are installed in-repo (`.claude/skills/`); the conventions below hold regardless of which skill pack a session has.
 
 ### Issue tracker
 
