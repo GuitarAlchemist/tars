@@ -8,6 +8,7 @@ open System.Threading.Tasks
 open Xunit
 open Microsoft.Agents.AI
 open Microsoft.Extensions.AI
+open Tars.Core
 open Tars.Cortex
 
 /// Stub session for testing.
@@ -96,6 +97,32 @@ type OrchestratorRoutingTests() =
         let result = orch.Route("verify the output is correct")
         Assert.True(result.IsSome)
         Assert.Equal("reviewer", result.Value.Agent.Name)
+
+    [<Fact>]
+    member _.``Register by AgentSkill routes on the declared union``() =
+        // The typed overload is the first consumer of the promoted AgentSkill cases:
+        // a coder agent declaring Refactoring/Debugging now matches those goals.
+        let orch = AgentOrchestrator()
+        let coder = StubAgent("coder", "c1")
+        let reviewer = StubAgent("reviewer", "r1")
+        orch.Register(coder, [ AgentSkill.Coding; AgentSkill.Refactoring; AgentSkill.Debugging ], priority = 5)
+        orch.Register(reviewer, [ AgentSkill.Critique; AgentSkill.Testing ], priority = 5)
+        Assert.Equal("coder", orch.Route("refactoring the parser").Value.Agent.Name)
+        Assert.Equal("reviewer", orch.Route("write testing coverage").Value.Agent.Name)
+
+    [<Fact>]
+    member _.``AgentSkill.parse and toKeyword are exact inverses``() =
+        // parse "search" is first-class Search, never Custom — closes the
+        // "any non-Custom skill" underspecification that enabled round-3 spec-gaming.
+        Assert.Equal(AgentSkill.Search, AgentSkill.parse "search")
+        let named =
+            [ AgentSkill.Reasoning; AgentSkill.Planning; AgentSkill.Critique
+              AgentSkill.Verification; AgentSkill.Communication; AgentSkill.Analysis
+              AgentSkill.Coding; AgentSkill.Search; AgentSkill.Routing
+              AgentSkill.Refactoring; AgentSkill.Debugging; AgentSkill.Testing
+              AgentSkill.Composition; AgentSkill.Delegation; AgentSkill.Orchestration ]
+        for s in named do
+            Assert.Equal(s, AgentSkill.parse (AgentSkill.toKeyword s))
 
     [<Fact>]
     member _.``Route falls back to highest priority when no keyword matches``() =

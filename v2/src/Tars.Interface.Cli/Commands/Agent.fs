@@ -727,9 +727,9 @@ let runPipeline
                 let reviewer = TarsWoTAgent(executor, compiler, cotSelector, reviewerCtx, name = "Reviewer", description = "Reviews and critiques solutions")
 
                 let orchestrator = AgentOrchestrator()
-                orchestrator.Register(analyzer, [ "analysis"; "patterns"; "understanding" ], priority = 10)
-                orchestrator.Register(coder, [ "coding"; "implementation"; "tools" ], priority = 10)
-                orchestrator.Register(reviewer, [ "review"; "critique"; "quality" ], priority = 10)
+                orchestrator.Register(analyzer, [ AgentSkill.Analysis; AgentSkill.Composition; AgentSkill.Custom "patterns"; AgentSkill.Custom "understanding" ], priority = 10)
+                orchestrator.Register(coder, [ AgentSkill.Coding; AgentSkill.Refactoring; AgentSkill.Debugging; AgentSkill.Custom "implementation"; AgentSkill.Custom "tools" ], priority = 10)
+                orchestrator.Register(reviewer, [ AgentSkill.Critique; AgentSkill.Testing; AgentSkill.Verification; AgentSkill.Custom "review"; AgentSkill.Custom "quality" ], priority = 10)
 
                 printfn "🔄 Running pipeline: Analyzer -> Coder -> Reviewer"
                 printfn ""
@@ -823,9 +823,9 @@ let runFanOut
                 let reviewer = TarsWoTAgent(executor, compiler, cotSelector, reviewerCtx, name = "Reviewer", description = "Reviews and critiques solutions")
 
                 let orchestrator = AgentOrchestrator()
-                orchestrator.Register(analyzer, [ "analysis"; "patterns"; "understanding" ], priority = 10)
-                orchestrator.Register(coder, [ "coding"; "implementation"; "tools" ], priority = 10)
-                orchestrator.Register(reviewer, [ "review"; "critique"; "quality" ], priority = 10)
+                orchestrator.Register(analyzer, [ AgentSkill.Analysis; AgentSkill.Composition; AgentSkill.Custom "patterns"; AgentSkill.Custom "understanding" ], priority = 10)
+                orchestrator.Register(coder, [ AgentSkill.Coding; AgentSkill.Refactoring; AgentSkill.Debugging; AgentSkill.Custom "implementation"; AgentSkill.Custom "tools" ], priority = 10)
+                orchestrator.Register(reviewer, [ AgentSkill.Critique; AgentSkill.Testing; AgentSkill.Verification; AgentSkill.Custom "review"; AgentSkill.Custom "quality" ], priority = 10)
 
                 printfn "🔄 Running fan-out: Analyzer | Coder | Reviewer (parallel)"
                 printfn ""

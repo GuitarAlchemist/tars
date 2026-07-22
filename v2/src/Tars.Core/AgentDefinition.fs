@@ -25,6 +25,54 @@ type AgentSkill =
     | Orchestration
     | Custom of string
 
+/// Keyword codec for AgentSkill, used to route on the declared union rather than
+/// re-parsing free strings. `parse` and `toKeyword` are exact inverses over the 15
+/// named cases; Custom round-trips through its own (lowercased) payload.
+[<RequireQualifiedAccess>]
+module AgentSkill =
+
+    /// Lowercase keyword form (the routing/matching surface).
+    let toKeyword (s: AgentSkill) : string =
+        match s with
+        | AgentSkill.Reasoning -> "reasoning"
+        | AgentSkill.Planning -> "planning"
+        | AgentSkill.Critique -> "critique"
+        | AgentSkill.Verification -> "verification"
+        | AgentSkill.Communication -> "communication"
+        | AgentSkill.Analysis -> "analysis"
+        | AgentSkill.Coding -> "coding"
+        | AgentSkill.Search -> "search"
+        | AgentSkill.Routing -> "routing"
+        | AgentSkill.Refactoring -> "refactoring"
+        | AgentSkill.Debugging -> "debugging"
+        | AgentSkill.Testing -> "testing"
+        | AgentSkill.Composition -> "composition"
+        | AgentSkill.Delegation -> "delegation"
+        | AgentSkill.Orchestration -> "orchestration"
+        | AgentSkill.Custom name -> name.ToLowerInvariant()
+
+    /// Parse a capability string to its first-class skill. Exact for the 15 named
+    /// cases — `parse "search" = Search`, never Custom — closing the underspecification
+    /// that let promoted patterns be graded as "any non-Custom skill".
+    let parse (s: string) : AgentSkill =
+        match s.Trim().ToLowerInvariant() with
+        | "reasoning" -> AgentSkill.Reasoning
+        | "planning" -> AgentSkill.Planning
+        | "critique" -> AgentSkill.Critique
+        | "verification" -> AgentSkill.Verification
+        | "communication" -> AgentSkill.Communication
+        | "analysis" -> AgentSkill.Analysis
+        | "coding" -> AgentSkill.Coding
+        | "search" -> AgentSkill.Search
+        | "routing" -> AgentSkill.Routing
+        | "refactoring" -> AgentSkill.Refactoring
+        | "debugging" -> AgentSkill.Debugging
+        | "testing" -> AgentSkill.Testing
+        | "composition" -> AgentSkill.Composition
+        | "delegation" -> AgentSkill.Delegation
+        | "orchestration" -> AgentSkill.Orchestration
+        | other -> AgentSkill.Custom other
+
 /// Parsed agent definition from a .md file.
 type AgentDefinition =
     { /// Unique agent identifier (e.g., "planner", "qa-engineer")
@@ -58,24 +106,7 @@ module AgentDefinitionParser =
         else v
 
     /// Parse capabilities from a YAML list (inline [...] or multi-line - items).
-    let private parseCapability (s: string) : AgentSkill =
-        match s.Trim().ToLowerInvariant() with
-        | "reasoning" -> AgentSkill.Reasoning
-        | "planning" -> AgentSkill.Planning
-        | "critique" -> AgentSkill.Critique
-        | "verification" -> AgentSkill.Verification
-        | "communication" -> AgentSkill.Communication
-        | "analysis" -> AgentSkill.Analysis
-        | "coding" -> AgentSkill.Coding
-        | "search" -> AgentSkill.Search
-        | "routing" -> AgentSkill.Routing
-        | "refactoring" -> AgentSkill.Refactoring
-        | "debugging" -> AgentSkill.Debugging
-        | "testing" -> AgentSkill.Testing
-        | "composition" -> AgentSkill.Composition
-        | "delegation" -> AgentSkill.Delegation
-        | "orchestration" -> AgentSkill.Orchestration
-        | other -> AgentSkill.Custom other
+    let private parseCapability (s: string) : AgentSkill = AgentSkill.parse s
 
     /// Parse inline YAML list: [item1, item2, item3]
     let private parseInlineList (s: string) : string list =
