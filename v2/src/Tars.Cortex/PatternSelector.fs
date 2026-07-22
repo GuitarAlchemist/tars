@@ -14,76 +14,134 @@ open Tars.Cortex.WoTTypes
 module PatternOutcomeStore =
 
     /// A recorded outcome of a pattern selection and execution.
+    /// Provenance covariates (CycleId/ModelId/SelectorStrategy) are optional so a
+    /// learning curve can be attributed to a cycle and model; absent on legacy rows.
     type PatternOutcome =
         { PatternKind: PatternKind
           Goal: string
           Success: bool
           DurationMs: int64
-          Timestamp: DateTime }
+          Timestamp: DateTime
+          CycleId: string option
+          ModelId: string option
+          SelectorStrategy: string option }
 
-    /// JSON-friendly DTO for serialization (PatternKind is a DU, so we store it as a string).
+        /// Construct an outcome with empty provenance. Call sites that don't yet
+        /// thread cycle/model/strategy use this so future field additions never
+        /// break a record literal again.
+        static member Create(patternKind, goal, success, durationMs) =
+            { PatternKind = patternKind
+              Goal = goal
+              Success = success
+              DurationMs = durationMs
+              Timestamp = DateTime.UtcNow
+              CycleId = None
+              ModelId = None
+              SelectorStrategy = None }
+
+    /// JSON-friendly DTO for serialization. STJ-primitive on purpose: no DUs, no
+    /// FSharpOption on the wire — "" (or null on legacy lines) means "unknown".
     type PatternOutcomeDto =
         { PatternKind: string
           Goal: string
           Success: bool
           DurationMs: int64
-          Timestamp: DateTime }
+          Timestamp: DateTime
+          CycleId: string
+          ModelId: string
+          SelectorStrategy: string }
+
+    /// Total, injective print for PatternKind: the six fieldless cases map to their
+    /// exact case names; Custom carries its payload verbatim behind a "Custom:" tag.
+    /// `parseKind` is its exact left inverse — parseKind (kindToString k) = k for all k.
+    let internal kindToString (k: PatternKind) : string =
+        match k with
+        | ChainOfThought -> "ChainOfThought"
+        | ReAct -> "ReAct"
+        | PlanAndExecute -> "PlanAndExecute"
+        | GraphOfThoughts -> "GraphOfThoughts"
+        | TreeOfThoughts -> "TreeOfThoughts"
+        | WorkflowOfThought -> "WorkflowOfThought"
+        | Custom name -> "Custom:" + name
+
+    /// Exact inverse of `kindToString`. Case-sensitive tag match; a "Custom:" prefix
+    /// restores the payload verbatim (further colons preserved); any other string is
+    /// an already-canonical Custom payload, so the parse is idempotent (no re-wrapping,
+    /// the root cause of the historic nested-quoting corruption). Name is intentionally
+    /// kept — a reflection-based regression test binds it.
+    let internal parseKind (s: string) : PatternKind =
+        match s with
+        | "ChainOfThought" -> ChainOfThought
+        | "ReAct" -> ReAct
+        | "PlanAndExecute" -> PlanAndExecute
+        | "GraphOfThoughts" -> GraphOfThoughts
+        | "TreeOfThoughts" -> TreeOfThoughts
+        | "WorkflowOfThought" -> WorkflowOfThought
+        | _ when s.StartsWith("Custom:", StringComparison.Ordinal) -> Custom(s.Substring 7)
+        | _ -> Custom s
+
+    let private optToStr = function Some s -> s | None -> ""
+    let private strToOpt (s: string) = if String.IsNullOrEmpty s then None else Some s
 
     let private toDto (o: PatternOutcome) : PatternOutcomeDto =
-        { PatternKind = sprintf "%A" o.PatternKind
+        { PatternKind = kindToString o.PatternKind
           Goal = o.Goal
           Success = o.Success
           DurationMs = o.DurationMs
-          Timestamp = o.Timestamp }
-
-    let private parseKind (s: string) : PatternKind =
-        match s.ToLowerInvariant() with
-        | s when s.Contains("chainofthought") || s.Contains("chain") -> ChainOfThought
-        | s when s.Contains("react") -> ReAct
-        | s when s.Contains("planandexecute") -> PlanAndExecute
-        | s when s.Contains("graphofthoughts") || s.Contains("graph") -> GraphOfThoughts
-        | s when s.Contains("treeofthoughts") || s.Contains("tree") -> TreeOfThoughts
-        | s when s.Contains("workflowofthought") || s.Contains("workflow") -> WorkflowOfThought
-        | other -> Custom other
+          Timestamp = o.Timestamp
+          CycleId = optToStr o.CycleId
+          ModelId = optToStr o.ModelId
+          SelectorStrategy = optToStr o.SelectorStrategy }
 
     let private fromDto (d: PatternOutcomeDto) : PatternOutcome =
         { PatternKind = parseKind d.PatternKind
           Goal = d.Goal
           Success = d.Success
           DurationMs = d.DurationMs
-          Timestamp = d.Timestamp }
+          Timestamp = d.Timestamp
+          CycleId = strToOpt d.CycleId
+          ModelId = strToOpt d.ModelId
+          SelectorStrategy = strToOpt d.SelectorStrategy }
 
-    let private jsonOptions =
+    /// JSONL: one record per line, no indentation. Append-only, O(1), crash-tolerant.
+    let private jsonlOptions =
         JsonSerializerOptions(
-            WriteIndented = true,
+            WriteIndented = false,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase)
 
-    let private outcomePath () =
+    let private jsonlPath () =
         let dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tars")
         if not (Directory.Exists dir) then
             Directory.CreateDirectory dir |> ignore
-        Path.Combine(dir, "pattern_outcomes.json")
+        Path.Combine(dir, "pattern_outcomes.jsonl")
 
-    /// Load all recorded outcomes from disk.
+    /// Load all recorded outcomes from the JSONL store. A torn final line from a
+    /// crash mid-append is skipped, never fatal — one bad line must not lose the store.
     let loadAll () : PatternOutcome list =
         try
-            let path = outcomePath ()
+            let path = jsonlPath ()
             if File.Exists path then
-                let json = File.ReadAllText path
-                let dtos = JsonSerializer.Deserialize<PatternOutcomeDto list>(json, jsonOptions)
-                dtos |> List.map fromDto
+                File.ReadLines path
+                |> Seq.choose (fun line ->
+                    if String.IsNullOrWhiteSpace line then None
+                    else
+                        try Some(JsonSerializer.Deserialize<PatternOutcomeDto>(line, jsonlOptions) |> fromDto)
+                        with _ -> None)
+                |> Seq.toList
             else
                 []
         with _ -> []
 
-    /// Record a new outcome, appending it to the on-disk store.
+    /// Record a new outcome by appending one line — no read-modify-write, so a codec
+    /// asymmetry can never compound into progressive corruption.
     let record (outcome: PatternOutcome) : unit =
         try
-            let existing = loadAll () |> List.map toDto
-            let updated = existing @ [ toDto outcome ]
-            let json = JsonSerializer.Serialize(updated, jsonOptions)
-            File.WriteAllText(outcomePath (), json)
-        with _ -> () // Best-effort — don't crash if disk write fails
+            let line = JsonSerializer.Serialize(toDto outcome, jsonlOptions)
+            File.AppendAllText(jsonlPath (), line + "\n")
+        with ex ->
+            // Best-effort — telemetry write must never crash the caller — but log the
+            // failure path (total silence is how the historic corruption went unnoticed).
+            System.Diagnostics.Debug.WriteLine($"PatternOutcomeStore.record failed: {ex.Message}")
 
 /// <summary>
 /// Selects the best reasoning pattern for a given goal.
@@ -208,8 +266,9 @@ module PatternSelector =
             | Some c when IxSkill.isAvailable c -> Some c
             | _ -> None)
 
-        /// Stable string key for a PatternKind (used as the ix rule id).
-        let kindKey (k: PatternKind) = sprintf "%A" k
+        /// Stable string key for a PatternKind (used as the ix rule id). Uses the
+        /// canonical codec so Custom kinds never send multi-line ids over the wire.
+        let kindKey (k: PatternKind) = PatternOutcomeStore.kindToString k
 
         let keyToKind (s: string) : PatternKind option =
             match s.ToLowerInvariant() with
@@ -370,13 +429,19 @@ module PatternSelector =
                 + promoBoost) // Direct addition — promoted patterns already normalized
 
         /// Record the outcome of a pattern execution so future selections can learn from it.
-        member _.RecordOutcome(patternKind: PatternKind, goal: string, success: bool, durationMs: int64) =
+        /// Provenance covariates are optional; SelectorStrategy defaults to "HistoryBased"
+        /// since that is the strategy this selector implements.
+        member _.RecordOutcome(patternKind: PatternKind, goal: string, success: bool, durationMs: int64,
+                               ?cycleId: string, ?modelId: string, ?strategy: string) =
             PatternOutcomeStore.record
                 { PatternKind = patternKind
                   Goal = goal
                   Success = success
                   DurationMs = durationMs
-                  Timestamp = DateTime.UtcNow }
+                  Timestamp = DateTime.UtcNow
+                  CycleId = cycleId
+                  ModelId = modelId
+                  SelectorStrategy = Some(defaultArg strategy "HistoryBased") }
 
         interface IPatternSelector with
             member _.Recommend(goal, _state) =

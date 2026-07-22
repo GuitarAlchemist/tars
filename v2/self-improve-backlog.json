@@ -1,12 +1,5 @@
 [
   {
-    "id": "outcome-kind-codec",
-    "target_test": "PatternKind round-trips through the outcome store codec without corruption",
-    "target_file": "v2/src/Tars.Cortex/PatternSelector.fs",
-    "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
-    "rationale": "PatternOutcomeStore serializes PatternKind with sprintf \"%A\" but parseKind is a lowercasing substring matcher whose Custom fallthrough re-wraps the whole string, adding one custom-quoting layer per load/append (live records nest ~80 layers; 25/231 corrupted, worsening on every write). Make parseKind (keep the name) an exact inverse of the %A print for every case, including Custom. Research: docs/research/empirical-learning-curves.md, theory-mcts-skill-search.md."
-  },
-  {
     "id": "beta-prior-degenerate",
     "target_test": "bayesianUpdate keeps a fresh rule's posterior non-degenerate",
     "target_file": "v2/src/Tars.Evolution/WeightedGrammar.fs",

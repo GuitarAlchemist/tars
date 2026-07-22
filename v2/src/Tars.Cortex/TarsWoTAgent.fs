@@ -181,12 +181,8 @@ type TarsWoTAgent
             let! result = executor.Execute(plan, ctx)
 
             // 5. Record outcome so pattern selection learns from real results
-            PatternOutcomeStore.record
-                { PatternKind = patternKind
-                  Goal = goal
-                  Success = result.Success
-                  DurationMs = result.Metrics.TotalDurationMs
-                  Timestamp = DateTime.UtcNow }
+            PatternOutcomeStore.record (
+                PatternOutcomeStore.PatternOutcome.Create(patternKind, goal, result.Success, result.Metrics.TotalDurationMs))
 
             match selector with
             | :? PatternSelector.HistoryAwareSelector as hist ->
@@ -242,12 +238,8 @@ type TarsWoTAgent
             let! result = executor.ExecuteWithProgress(plan, ctx, onProgress)
 
             // Record outcome so pattern selection learns from real results
-            PatternOutcomeStore.record
-                { PatternKind = patternKind
-                  Goal = goal
-                  Success = result.Success
-                  DurationMs = result.Metrics.TotalDurationMs
-                  Timestamp = DateTime.UtcNow }
+            PatternOutcomeStore.record (
+                PatternOutcomeStore.PatternOutcome.Create(patternKind, goal, result.Success, result.Metrics.TotalDurationMs))
 
             match selector with
             | :? PatternSelector.HistoryAwareSelector as hist ->

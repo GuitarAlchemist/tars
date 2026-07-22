@@ -877,12 +877,12 @@ let run (logger: ILogger) (options: EvolveOptions) =
                     let backend = if outcome.UsedMesh then "parallel ix mesh" else "serial F# fallback"
                     if not options.Quiet then
                         RichOutput.dim $"  [Mesh] {outcome.Ranked.Length} configs swept ({backend}); best reward {reward:F3}, {outcome.Best.Length} actions"
-                    PatternOutcomeStore.record
-                        { PatternKind = Tars.Cortex.WoTTypes.PatternKind.WorkflowOfThought
-                          Goal = "grammar-mesh sweep"
-                          Success = reward > 0.0 && not outcome.Best.IsEmpty
-                          DurationMs = 0L
-                          Timestamp = DateTime.UtcNow }
+                    PatternOutcomeStore.record (
+                        PatternOutcomeStore.PatternOutcome.Create(
+                            Tars.Cortex.WoTTypes.PatternKind.WorkflowOfThought,
+                            "grammar-mesh sweep",
+                            reward > 0.0 && not outcome.Best.IsEmpty,
+                            0L))
                 with ex ->
                     logger.Warning("Grammar-mesh sweep skipped: {Message}", ex.Message)
 

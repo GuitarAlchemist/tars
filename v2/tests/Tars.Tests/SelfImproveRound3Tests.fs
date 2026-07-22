@@ -14,32 +14,47 @@ open Tars.Evolution.ReplicatorDynamics
 // in-flight seeds; the trait is removed once the loop closes each.
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Seed 1 — outcome-store codec (docs/research/empirical-learning-curves.md,
-// theory-mcts-skill-search.md). PatternOutcomeStore serializes PatternKind with
-// `sprintf "%A"` but parseKind is a lowercasing substring matcher whose Custom
-// fallthrough re-wraps the whole string, adding one `custom "..."` layer per
-// load/append cycle (live records have nested ~80 layers deep). The codec must
-// be an exact inverse: parse (print k) = k for every case, including Custom.
+// Seed 1 — outcome-store codec (CLOSED by human implementation, wave-1 item 1,
+// docs/plans/2026-07-21-research-agenda-deepened.md §3). The store previously
+// serialized PatternKind with `sprintf "%A"` and parsed it with a lowercasing
+// substring matcher whose Custom fallthrough re-wrapped the whole string, adding
+// one quoting layer per load/append cycle (live records nested ~89 layers deep).
+// The fix: `kindToString` is a total, injective print and `parseKind` its exact
+// left inverse — parseKind (kindToString k) = k for every case, incl. adversarial
+// Custom payloads. Reflection binds both private functions by name.
 // ─────────────────────────────────────────────────────────────────────────────
 
-[<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
-let ``PatternKind round-trips through the outcome store codec without corruption`` () =
+[<Theory>]
+[<InlineData("chain-of-thought")>]          // fieldless cases exercised via the loop below;
+[<InlineData("Custom:benchmark:easy")>]     // these InlineData drive the adversarial Custom payloads
+[<InlineData("Custom \"quoted\"")>]          // a literal that looks like the old %A form
+[<InlineData("ChainOfThought")>]             // payload equal to a case name
+[<InlineData("with\nnewline")>]
+[<InlineData("")>]
+[<InlineData("supply-chain-audit")>]         // would misclassify as ChainOfThought under the old matcher
+let ``PatternKind round-trips through the outcome store codec without corruption`` (customPayload: string) =
     let storeModule = typeof<Tars.Cortex.PatternOutcomeStore.PatternOutcome>.DeclaringType
-    let mi =
-        storeModule.GetMethod(
-            "parseKind",
-            BindingFlags.Static ||| BindingFlags.NonPublic ||| BindingFlags.Public)
-    Assert.True(not (isNull mi), "PatternOutcomeStore.parseKind not found — keep the function name when fixing the codec")
-    let parse (s: string) =
-        mi.Invoke(null, [| box s |]) :?> Tars.Cortex.WoTTypes.PatternKind
+    let bind name =
+        let mi = storeModule.GetMethod(name, BindingFlags.Static ||| BindingFlags.NonPublic ||| BindingFlags.Public)
+        Assert.True(not (isNull mi), $"PatternOutcomeStore.{name} not found — keep the function name when editing the codec")
+        mi
+    let kindToString = bind "kindToString"
+    let parseKind = bind "parseKind"
+    let print (k: Tars.Cortex.WoTTypes.PatternKind) = kindToString.Invoke(null, [| box k |]) :?> string
+    let parse (s: string) = parseKind.Invoke(null, [| box s |]) :?> Tars.Cortex.WoTTypes.PatternKind
+    // Exact-inverse over every fieldless case plus the adversarial Custom payload.
     let cases: Tars.Cortex.WoTTypes.PatternKind list =
         [ Tars.Cortex.WoTTypes.PatternKind.ChainOfThought
           Tars.Cortex.WoTTypes.PatternKind.ReAct
+          Tars.Cortex.WoTTypes.PatternKind.PlanAndExecute
+          Tars.Cortex.WoTTypes.PatternKind.GraphOfThoughts
           Tars.Cortex.WoTTypes.PatternKind.TreeOfThoughts
-          Tars.Cortex.WoTTypes.PatternKind.Custom "benchmark:easy" ]
+          Tars.Cortex.WoTTypes.PatternKind.WorkflowOfThought
+          Tars.Cortex.WoTTypes.PatternKind.Custom customPayload ]
     for kind in cases do
-        Assert.Equal(kind, parse (sprintf "%A" kind))
+        Assert.Equal(kind, parse (print kind))
+        // Idempotent: parsing an already-canonical string is a fixed point.
+        Assert.Equal(parse (print kind), parse (print (parse (print kind))))
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Seed 2 — degenerate Beta prior (docs/research/theory-bayesian-grammar-induction.md).

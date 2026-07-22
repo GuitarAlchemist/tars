@@ -420,12 +420,8 @@ module ClaudeCodeBridge =
                     (DateTime.UtcNow - activePlan.StartedAt).TotalMilliseconds |> int64
 
                 // Record outcome for pattern learning
-                PatternOutcomeStore.record
-                    { PatternKind = activePlan.PatternKind
-                      Goal = activePlan.Goal
-                      Success = success
-                      DurationMs = duration
-                      Timestamp = DateTime.UtcNow }
+                PatternOutcomeStore.record (
+                    PatternOutcomeStore.PatternOutcome.Create(activePlan.PatternKind, activePlan.Goal, success, duration))
 
                 // Check golden regression (best-effort)
                 let regressionMsg =
