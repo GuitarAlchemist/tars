@@ -19,6 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Pin the patched parser version above dotNetRdf's vulnerable transitive floor. -->
+    <PackageReference Include="AngleSharp" Version="1.5.2" />
     <PackageReference Include="dotNetRdf" Version="3.4.1" />
   </ItemGroup>
 
