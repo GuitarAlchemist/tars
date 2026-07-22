@@ -240,7 +240,7 @@ module ProbabilisticGrammarIntegrationTests =
             { PatternId = "test_rule"; PatternName = "converge_test"
               Level = Implementation; RawScore = 5; Weight = 0.5
               Confidence = 0.0; SuccessRate = 0.5; SelectionCount = 0
-              Source = Tars; LastUpdated = DateTime.UtcNow }
+              Alpha = 0.0; Beta = 0.0; Source = Tars; LastUpdated = DateTime.UtcNow }
 
         let rng = Random(42)
         let mutable rule = initial
@@ -267,13 +267,13 @@ module ProbabilisticGrammarIntegrationTests =
         let weights : WeightedRule list = [
             { PatternId = "pid_low_weight"; PatternName = "low_weight"; Level = Implementation
               RawScore = 3; Weight = 0.1; Confidence = 0.5; SuccessRate = 0.3
-              SelectionCount = 10; Source = Tars; LastUpdated = DateTime.UtcNow }
+              SelectionCount = 10; Alpha = 3.0; Beta = 7.0; Source = Tars; LastUpdated = DateTime.UtcNow }
             { PatternId = "pid_high_weight"; PatternName = "high_weight"; Level = Implementation
               RawScore = 7; Weight = 0.7; Confidence = 0.9; SuccessRate = 0.9
-              SelectionCount = 20; Source = Tars; LastUpdated = DateTime.UtcNow }
+              SelectionCount = 20; Alpha = 18.0; Beta = 2.0; Source = Tars; LastUpdated = DateTime.UtcNow }
             { PatternId = "pid_mid_weight"; PatternName = "mid_weight"; Level = Implementation
               RawScore = 5; Weight = 0.3; Confidence = 0.7; SuccessRate = 0.6
-              SelectionCount = 15; Source = Tars; LastUpdated = DateTime.UtcNow }
+              SelectionCount = 15; Alpha = 9.0; Beta = 6.0; Source = Tars; LastUpdated = DateTime.UtcNow }
         ]
 
         let ranked = PromotionPipeline.classifyWeighted 3 weights records

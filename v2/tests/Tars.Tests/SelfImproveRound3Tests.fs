@@ -65,7 +65,6 @@ let ``PatternKind round-trips through the outcome store codec without corruption
 // ─────────────────────────────────────────────────────────────────────────────
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``bayesianUpdate keeps a fresh rule's posterior non-degenerate`` () =
     let afterSuccess, _ = bayesianUpdate 0.5 0 true 0.95
     Assert.True(afterSuccess > 0.5 && afterSuccess < 1.0,
@@ -83,7 +82,6 @@ let ``bayesianUpdate keeps a fresh rule's posterior non-degenerate`` () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 [<Fact>]
-[<Trait("Category", "SelfImproveBacklog")>]
 let ``updateWeight folds the Bayesian posterior into the ranking Weight`` () =
     let rule : WeightedRule =
         { PatternId = "seed3"
@@ -94,6 +92,8 @@ let ``updateWeight folds the Bayesian posterior into the ranking Weight`` () =
           Confidence = 0.75
           SuccessRate = 0.5
           SelectionCount = 10
+          Alpha = 5.0
+          Beta = 5.0
           Source = Tars
           LastUpdated = DateTime.UtcNow }
     let afterFailures =

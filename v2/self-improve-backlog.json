@@ -1,16 +1,1 @@
-[
-  {
-    "id": "beta-prior-degenerate",
-    "target_test": "bayesianUpdate keeps a fresh rule's posterior non-degenerate",
-    "target_file": "v2/src/Tars.Evolution/WeightedGrammar.fs",
-    "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
-    "rationale": "bayesianUpdate with priorCount=0 (every rule from fromRecurrenceRecords starts at SelectionCount=0) collapses the posterior to exactly 1.0/0.0 on the first observation \u2014 one data point becomes certainty. Add Beta(1,1)-style pseudo-counts so the posterior stays strictly inside (0,1). Research: docs/research/theory-bayesian-grammar-induction.md."
-  },
-  {
-    "id": "posterior-to-weight",
-    "target_test": "updateWeight folds the Bayesian posterior into the ranking Weight",
-    "target_file": "v2/src/Tars.Evolution/WeightedGrammar.fs",
-    "test_project": "v2/tests/Tars.Tests/Tars.Tests.fsproj",
-    "rationale": "updateWeight advances SuccessRate/Confidence but never touches Weight, the field classifyWeighted actually ranks by \u2014 so execution outcomes can never change promotion order, and live promotion state shows r(SuccessRate, Weight) = -0.85. Recompute Weight from the posterior on each update (respect MinWeight). Research: docs/research/theory-bayesian-grammar-induction.md, empirical-promotion-dynamics.md."
-  }
-]
+[]
