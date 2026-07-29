@@ -60,7 +60,7 @@ METASCRIPT SCHEMA EXAMPLES:
                           Messages = [ { Role = Role.User; Content = prompt } ]
                           Tools = []
                           ToolChoice = None
-                          ResponseFormat = Some ResponseFormat.Json
+                          ResponseFormat = Some (ResponseFormat.Constrained (Grammar.JsonSchema EvolutionSchemas.optimizerSchema))
                           Stream = false
                           JsonMode = true
                           Seed = None

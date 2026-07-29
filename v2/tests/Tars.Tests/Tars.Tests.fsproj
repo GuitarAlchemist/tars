@@ -126,6 +126,7 @@
     <Compile Include="SelfHostingGateTests.fs" />
     <Compile Include="SelfImproveBacklogTests.fs" />
     <Compile Include="SelfImproveRound3Tests.fs" />
+    <Compile Include="EvolutionConstrainedDecodingTests.fs" />
     <Compile Include="AgentDefinitionTests.fs" />
     <Compile Include="ResearchCycleTests.fs" />
     <Compile Include="AskCommandTests.fs" />

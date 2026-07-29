@@ -24,6 +24,7 @@
     <Compile Include="PromotionPipeline.fs" />
     <Compile Include="PromotionIndex.fs" />
     <Compile Include="StructuredOutput.fs" />
+    <Compile Include="EvolutionSchemas.fs" />
     <Compile Include="ProblemIngestor.fs" />
     <Compile Include="ResearchEnhancedCurriculum.fs" />
     <Compile Include="CurriculumManager.fs" />
