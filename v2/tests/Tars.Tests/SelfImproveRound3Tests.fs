@@ -126,6 +126,37 @@ let ``replicator step preserves the smoothing floor after renormalization`` () =
         Assert.True(s.Proportion >= floor,
             sprintf "species %s at %.6f is below the smoothing floor %.2f" s.PatternName s.Proportion floor)
 
+    // Enforcing the floor must not cost the sum-to-one invariant: clamping up adds
+    // mass, and if it is not reclaimed the next step averages fitness over a
+    // non-distribution. Regression for the P2 raised on PR #207.
+    let sum = next |> List.sumBy (fun s -> s.Proportion)
+    Assert.True(abs (sum - 1.0) < 1e-9,
+        sprintf "proportions sum to %.9f, not 1.0 — the floor clamp leaked mass" sum)
+
+[<Fact>]
+let ``replicator step keeps floor and sum-to-one across repeated steps`` () =
+    let mkSpecies id proportion fitness : GrammarSpecies =
+        { PatternId = id
+          PatternName = id
+          Level = Helper
+          Proportion = proportion
+          Fitness = fitness
+          IsStable = false }
+    let floor = 0.01
+    // Iterating is what exposes leaked mass: a sum drifting above 1.0 feeds the
+    // next step's average fitness and compounds.
+    let mutable pop =
+        [ mkSpecies "fit" 0.97 1.0; mkSpecies "mid" 0.02 0.5; mkSpecies "rare" 0.01 0.0 ]
+
+    for _ in 1..50 do
+        pop <- step 0.5 floor pop
+        let sum = pop |> List.sumBy (fun s -> s.Proportion)
+        Assert.True(abs (sum - 1.0) < 1e-9, sprintf "sum drifted to %.9f" sum)
+
+        for s in pop do
+            Assert.True(s.Proportion >= floor - 1e-12,
+                sprintf "species %s fell to %.9f, below floor %.2f" s.PatternName s.Proportion floor)
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Seed 5 — a name is not a template (docs/research/frontier-program-synthesis.md,
 // empirical-promotion-dynamics.md). The live pipeline proposes candidates with

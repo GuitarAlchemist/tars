@@ -124,9 +124,37 @@ module ReplicatorDynamics =
             // Renormalize to sum to 1.0
             let total = updated |> List.sumBy (fun s -> s.Proportion)
             if total < 1e-15 then updated
-            else 
+            else
                 let renormalized = updated |> List.map (fun s -> { s with Proportion = s.Proportion / total })
-                renormalized |> List.map (fun s -> { s with Proportion = max floor s.Proportion })
+                // The smoothing floor is a post-normalization invariant, but clamping up
+                // to it adds mass. Reclaim that mass from the species with headroom above
+                // the floor, proportionally to that headroom — clamping alone pushes the
+                // sum past 1.0, and the next step would then compute average fitness
+                // against something that is no longer a probability distribution.
+                let n = float renormalized.Length
+
+                if floor <= 0.0 then
+                    renormalized
+                elif floor * n >= 1.0 then
+                    // Floor is infeasible for this many species; the uniform distribution
+                    // is the closest point that still satisfies sum-to-one.
+                    renormalized |> List.map (fun s -> { s with Proportion = 1.0 / n })
+                else
+                    let floored =
+                        renormalized |> List.map (fun s -> { s with Proportion = max floor s.Proportion })
+
+                    let excess = (floored |> List.sumBy (fun s -> s.Proportion)) - 1.0
+                    let headroom = floored |> List.sumBy (fun s -> s.Proportion - floor)
+
+                    if excess <= 1e-15 || headroom <= 1e-15 then
+                        floored
+                    else
+                        // excess < headroom whenever floor * n < 1.0, so no species is
+                        // pushed back below the floor by this subtraction.
+                        floored
+                        |> List.map (fun s ->
+                            let share = (s.Proportion - floor) / headroom
+                            { s with Proportion = s.Proportion - excess * share })
 
     // =========================================================================
     // ESS detection
