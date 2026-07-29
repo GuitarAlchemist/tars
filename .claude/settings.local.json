@@ -301,7 +301,8 @@
       "Skill(ralph-loop:cancel-ralph)",
       "Bash(grep:*)",
       "Bash(cd:*)",
-      "WebFetch(domain:strandsagents.com)"
+      "WebFetch(domain:strandsagents.com)",
+      "Skill(digest)"
     ]
   }
 }
