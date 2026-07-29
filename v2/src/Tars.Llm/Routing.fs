@@ -227,6 +227,141 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
 
         | DefaultHint -> localRoute cfg.DefaultOllamaModel
 
+/// What decode-time constraint a request actually needs. Closed and
+/// compiler-checked so `supports` cannot silently acquire a missing case when a
+/// backend is added.
+type ConstraintNeed =
+    /// A real grammar engine is required (EBNF/CFG, or regex — see `ofRequest`).
+    | NeedsCfg
+    /// A JSON schema is required; most OpenAI-wire backends can enforce this.
+    | NeedsJsonSchema
+    | NoNeed
+
+/// A constraint the chosen backend cannot enforce. This travels in the routing
+/// *result* rather than being logged here: `chooseBackend` is pure, and the
+/// `ILogger` lives at the service boundary.
+type ConstraintDowngrade = { RequestedGrammar: string; Backend: string }
+
+/// `chooseBackend`'s result plus whatever constraint had to be given up to use it.
+/// A separate wrapper on purpose — `RoutedBackend` has ~34 construction sites
+/// across src and tests, and is the return type of `ILlmService.RouteAsync`, so
+/// adding a field there would be a breaking change for no benefit.
+type ChosenBackend =
+    { Routed: RoutedBackend
+      Downgrade: ConstraintDowngrade option }
+
+module ConstraintNeed =
+
+    /// Classify what a request needs the decoder to enforce.
+    let ofRequest (req: LlmRequest) : ConstraintNeed =
+        match req.ResponseFormat with
+        | Some(ResponseFormat.Constrained(Grammar.JsonSchema _)) -> NeedsJsonSchema
+        // Regex shares the CFG bucket: enforcing it needs the same grammar engine,
+        // and no call site emits it today.
+        | Some(ResponseFormat.Constrained(Grammar.Ebnf _))
+        | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> NeedsCfg
+        | _ -> NoNeed
+
+    /// Whether a backend can actually enforce the need — by capability, not by
+    /// provider name. Every case is spelled out so adding an `LlmBackend` case
+    /// fails the build here rather than silently defaulting to "unsupported".
+    let supports (backend: LlmBackend) (need: ConstraintNeed) : bool =
+        match need with
+        | NoNeed -> true
+        | NeedsJsonSchema ->
+            match backend with
+            // Ollama compiles a JSON schema to GBNF server-side; the OpenAI wire
+            // protocol carries it as response_format.json_schema.
+            | Vllm _
+            | LlamaCpp _
+            | Ollama _
+            | OpenAI _
+            | DockerModelRunner _ -> true
+            // These degrade to prompt hints — see AnthropicClient / GoogleGeminiClient.
+            | Anthropic _
+            | GoogleGemini _
+            | LlamaSharp _ -> false
+        | NeedsCfg ->
+            match backend with
+            // vLLM via structured_outputs.grammar; llama.cpp via GBNF.
+            | Vllm _
+            | LlamaCpp _ -> true
+            // Ollama has no raw GBNF/regex API — schema only.
+            | Ollama _
+            | OpenAI _
+            | DockerModelRunner _
+            | Anthropic _
+            | GoogleGemini _
+            | LlamaSharp _ -> false
+
+/// The grammar kind a request asked for, named as it appears in logs and tests.
+let private requestedGrammarName (req: LlmRequest) =
+    match req.ResponseFormat with
+    | Some(ResponseFormat.Constrained(Grammar.Ebnf _)) -> "ebnf"
+    | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> "regex"
+    | Some(ResponseFormat.Constrained(Grammar.JsonSchema _)) -> "json_schema"
+    | _ -> "none"
+
+let private backendName (backend: LlmBackend) =
+    match backend with
+    | Ollama _ -> "Ollama"
+    | Vllm _ -> "Vllm"
+    | OpenAI _ -> "OpenAI"
+    | GoogleGemini _ -> "GoogleGemini"
+    | Anthropic _ -> "Anthropic"
+    | DockerModelRunner _ -> "DockerModelRunner"
+    | LlamaCpp _ -> "LlamaCpp"
+    | LlamaSharp _ -> "LlamaSharp"
+
+/// Route, and report whether the chosen backend can enforce the requested
+/// constraint. Still pure — callers that do not care about constraints keep using
+/// `chooseBackend` unchanged.
+let chooseBackendWithConstraints (cfg: RoutingConfig) (req: LlmRequest) : ChosenBackend =
+    let routed = chooseBackend cfg req
+    let need = ConstraintNeed.ofRequest req
+
+    let downgrade =
+        if ConstraintNeed.supports routed.Backend need then
+            None
+        else
+            Some
+                { RequestedGrammar = requestedGrammarName req
+                  Backend = backendName routed.Backend }
+
+    { Routed = routed; Downgrade = downgrade }
+
+/// Where constraint downgrades get reported. Routing stays pure, so the warning
+/// is emitted here at the service boundary instead.
+///
+/// A swappable sink rather than an ILogger because Tars.Llm has no logging
+/// dependency at all and LlmServiceConfig carries only Routing — introducing DI
+/// for one warning would be a larger change than the feature. Defaults to stderr.
+///
+/// Deliberately logged on *every* downgraded request, not sampled or rate-limited:
+/// silent degradation is the defect this whole slice exists to remove, and a
+/// warning that fires once at startup is indistinguishable from silence.
+module ConstraintDowngradeLog =
+
+    let private defaultSink (msg: string) = eprintfn "%s" msg
+
+    let mutable private sink: string -> unit = defaultSink
+
+    /// Redirect warnings (tests capture; hosts can forward to their logger).
+    let setSink (f: string -> unit) = sink <- f
+
+    let resetSink () = sink <- defaultSink
+
+    let format (d: ConstraintDowngrade) =
+        $"CONSTRAINT DOWNGRADE: {d.RequestedGrammar} grammar discarded — backend {d.Backend} cannot enforce it; falling back to JSON mode"
+
+    let warn (d: ConstraintDowngrade) = sink (format d)
+
+    /// Route, reporting any downgrade. The one call the service paths use.
+    let routeAndWarn (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
+        let chosen = chooseBackendWithConstraints cfg req
+        chosen.Downgrade |> Option.iter warn
+        chosen.Routed
+
 module RoutingConfig =
     /// <summary>
     /// Creates a RoutingConfig from a TarsConfig.

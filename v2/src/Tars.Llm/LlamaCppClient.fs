@@ -61,10 +61,27 @@ module LlamaCppClient =
           temperature: float option
           stream: bool option
           response_format: LlamaCppResponseFormatDto option
+          /// llama-server top-level GBNF grammar. This is what makes llama.cpp a
+          /// grammar-capable *local* backend — no vLLM GPU deployment required.
+          grammar: string option
+          /// llama-server top-level JSON-schema constraint (compiled to GBNF server-side).
+          json_schema: JsonElement option
           n_gpu_layers: int option
           n_ctx: int option
           n_parallel: int option
           flash_attn: bool option }
+
+    /// llama-server carries constraints in top-level `grammar` (GBNF) and
+    /// `json_schema` fields, not in `response_format`. Previously every
+    /// `Constrained` variant fell into a wildcard and was dropped outright — the
+    /// grammar never reached the server and nothing reported that it had gone.
+    let private llamaCppConstraints (req: LlmRequest) : string option * JsonElement option =
+        match req.ResponseFormat with
+        | Some(ResponseFormat.Constrained(Grammar.Ebnf grammar)) -> Some grammar, None
+        | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
+            None, Some(JsonSerializer.Deserialize<JsonElement>(schema))
+        // Regex has no llama-server equivalent; it degrades, and Routing reports it.
+        | _ -> None, None
 
     /// <summary>DTO for response message.</summary>
     [<CLIMutable>]
@@ -180,11 +197,17 @@ module LlamaCppClient =
                   response_format =
                     match req.ResponseFormat with
                     | Some ResponseFormat.Json -> Some { ``type`` = "json_object" }
+                    | Some(ResponseFormat.Constrained _) ->
+                        // The constraint itself rides in grammar/json_schema below;
+                        // json_object stays on as the degradation belt.
+                        Some { ``type`` = "json_object" }
                     | _ ->
                         if req.JsonMode then
                             Some { ``type`` = "json_object" }
                         else
                             None
+                  grammar = fst (llamaCppConstraints req)
+                  json_schema = snd (llamaCppConstraints req)
                   n_gpu_layers = cfg.GpuLayers
                   n_ctx = cfg.ContextSize
                   n_parallel = cfg.NumParallel
@@ -279,11 +302,17 @@ module LlamaCppClient =
                   response_format =
                     match req.ResponseFormat with
                     | Some ResponseFormat.Json -> Some { ``type`` = "json_object" }
+                    | Some(ResponseFormat.Constrained _) ->
+                        // The constraint itself rides in grammar/json_schema below;
+                        // json_object stays on as the degradation belt.
+                        Some { ``type`` = "json_object" }
                     | _ ->
                         if req.JsonMode then
                             Some { ``type`` = "json_object" }
                         else
                             None
+                  grammar = fst (llamaCppConstraints req)
+                  json_schema = snd (llamaCppConstraints req)
                   n_gpu_layers = cfg.GpuLayers
                   n_ctx = cfg.ContextSize
                   n_parallel = cfg.NumParallel

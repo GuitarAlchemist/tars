@@ -57,7 +57,7 @@ module internal ChatClientMapping =
             opts.ResponseFormat <- ChatResponseFormat.Json
             opts.AdditionalProperties <-
                 let dict = System.Collections.Generic.Dictionary<string, obj>()
-                dict.["json_schema"] <- box schema
+                dict.["structured_outputs_json"] <- box schema
                 dict :> System.Collections.Generic.IDictionary<string, obj>
                 |> System.Collections.ObjectModel.ReadOnlyDictionary
                 |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
@@ -65,16 +65,17 @@ module internal ChatClientMapping =
             // Pass EBNF grammar through AdditionalProperties for backends that support it
             opts.AdditionalProperties <-
                 let dict = System.Collections.Generic.Dictionary<string, obj>()
-                dict.["guided_decoding_backend"] <- box "xgrammar"
-                dict.["guided_decoding_grammar"] <- box grammar
+                // Lockstep with OpenAiCompatibleClient's structured_outputs naming —
+                // two pipelines must not emit different wire shapes for one Grammar.
+                // Backend selection is the server's job, so no backend key here.
+                dict.["structured_outputs_grammar"] <- box grammar
                 dict :> System.Collections.Generic.IDictionary<string, obj>
                 |> System.Collections.ObjectModel.ReadOnlyDictionary
                 |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
         | Some (ResponseFormat.Constrained (Grammar.Regex pattern)) ->
             opts.AdditionalProperties <-
                 let dict = System.Collections.Generic.Dictionary<string, obj>()
-                dict.["guided_decoding_backend"] <- box "outlines"
-                dict.["guided_decoding_regex"] <- box pattern
+                dict.["structured_outputs_regex"] <- box pattern
                 dict :> System.Collections.Generic.IDictionary<string, obj>
                 |> System.Collections.ObjectModel.ReadOnlyDictionary
                 |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)

@@ -35,7 +35,7 @@ module LlmService =
             member _.CompleteAsync(req: LlmRequest) : AsyncResult<LlmResponse, LlmError> =
                 asyncResult {
                     let req = enrichRequest cfg.Routing req
-                    let routed = chooseBackend cfg.Routing req
+                    let routed = ConstraintDowngradeLog.routeAndWarn cfg.Routing req
 
                     // Ollama keeps its functional-path validation (generateValidated);
                     // every other backend delegates to the shared resolver and wraps
@@ -87,21 +87,21 @@ module LlmService =
             member _.RouteAsync(req: LlmRequest) : AsyncResult<RoutedBackend, LlmError> =
                 asyncResult {
                     let req = enrichRequest cfg.Routing req
-                    return chooseBackend cfg.Routing req
+                    return ConstraintDowngradeLog.routeAndWarn cfg.Routing req
                 }
 
         interface ILlmService with
             member _.CompleteAsync(req: LlmRequest) : Task<LlmResponse> =
                 task {
                     let req = enrichRequest cfg.Routing req
-                    let routed = chooseBackend cfg.Routing req
+                    let routed = ConstraintDowngradeLog.routeAndWarn cfg.Routing req
                     return! (Backends.resolve cfg httpClient routed).Complete req
                 }
 
             member _.CompleteStreamAsync(req: LlmRequest, onToken: string -> unit) : Task<LlmResponse> =
                 task {
                     let req = enrichRequest cfg.Routing req
-                    let routed = chooseBackend cfg.Routing req
+                    let routed = ConstraintDowngradeLog.routeAndWarn cfg.Routing req
                     return! (Backends.resolve cfg httpClient routed).Stream(req, onToken)
                 }
 
@@ -110,7 +110,7 @@ module LlmService =
             member _.RouteAsync(req: LlmRequest) : Task<RoutedBackend> =
                 task {
                     let req = enrichRequest cfg.Routing req
-                    return chooseBackend cfg.Routing req
+                    return ConstraintDowngradeLog.routeAndWarn cfg.Routing req
                 }
 
         interface ICancellableLlmService with

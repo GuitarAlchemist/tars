@@ -35,8 +35,13 @@ module OpenAiCompatibleClient =
           temperature: float option
           stream: bool option
           response_format: obj option
-          /// vLLM extra_body for guided decoding (EBNF grammar, regex, JSON schema)
-          extra_body: obj option }
+          /// vLLM >= 0.12 unified constraint field, emitted top-level. Replaces the
+          /// old nested `extra_body.guided_decoding`, which was never a server-side
+          /// API — `extra_body` is a Python-SDK client-side kwarg that merges into
+          /// the body, so a literal field by that name was silently ignored.
+          /// Gated on the resolved backend: OpenAI proper rejects unknown top-level
+          /// params, so this stays None for anything but vLLM.
+          structured_outputs: obj option }
 
     /// <summary>DTO for response message.</summary>
     [<CLIMutable>]
@@ -63,11 +68,26 @@ module OpenAiCompatibleClient =
           choices: OpenAiChoiceDto[]
           usage: OpenAiUsageDto option }
 
-    let private jsonOptions =
+    /// Exposed so serialization tests assert the exact bytes we put on the wire.
+    let jsonOptions =
         JsonSerializerOptions(
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         )
+
+    /// Build the vLLM `structured_outputs` payload. Returns None unless the resolved
+    /// backend is vLLM: `Vllm`, `OpenAI` and `DockerModelRunner` share this adapter,
+    /// and OpenAI proper 400s on unknown top-level parameters.
+    let private buildStructuredOutputs (vllmExtensions: bool) (req: LlmRequest) : obj option =
+        if not vllmExtensions then
+            None
+        else
+            match req.ResponseFormat with
+            | Some(ResponseFormat.Constrained(Grammar.Ebnf grammar)) -> Some(box {| grammar = grammar |})
+            | Some(ResponseFormat.Constrained(Grammar.Regex pattern)) -> Some(box {| regex = pattern |})
+            | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
+                Some(box {| json = JsonSerializer.Deserialize<JsonElement>(schema) |})
+            | _ -> None
 
     let private toOpenAiRole =
         function
@@ -90,6 +110,40 @@ module OpenAiCompatibleClient =
 
         (systemMsg @ otherMsgs) |> List.toArray
 
+    /// The single place an OpenAI-wire request DTO is shaped. Both the streaming and
+    /// non-streaming paths go through here — they were byte-for-byte duplicates, and
+    /// a wire contract that depends on whether you stream is a bug waiting to happen.
+    /// Public so serialization tests can assert the exact payload; nothing else in
+    /// the codebase asserted it before, which is how the dead `extra_body` shape
+    /// survived.
+    let buildRequestDto (vllmExtensions: bool) (model: string) (stream: bool) (req: LlmRequest) : OpenAiRequestDto =
+        { model = model
+          messages = toOpenAiMessages req.SystemPrompt req.Messages
+          max_tokens = req.MaxTokens
+          temperature = req.Temperature
+          stream = Some stream
+          structured_outputs = buildStructuredOutputs vllmExtensions req
+          response_format =
+            match req.ResponseFormat with
+            | Some ResponseFormat.Json -> Some(box {| ``type`` = "json_object" |})
+            | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
+                Some(
+                    box
+                        {| ``type`` = "json_schema"
+                           json_schema =
+                            {| name = "output"
+                               strict = true
+                               schema = JsonSerializer.Deserialize<JsonElement>(schema) |} |}
+                )
+            | Some(ResponseFormat.Constrained(Grammar.Ebnf _)) -> None // carried in structured_outputs
+            | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> None // carried in structured_outputs
+            | Some ResponseFormat.Text -> None
+            | None ->
+                if req.JsonMode then
+                    Some(box {| ``type`` = "json_object" |})
+                else
+                    None }
+
     /// <summary>DTO for embedding request.</summary>
     [<CLIMutable>]
     type OpenAiEmbeddingRequestDto = { input: string; model: string }
@@ -111,7 +165,8 @@ module OpenAiCompatibleClient =
     /// <param name="req">The LLM request containing messages and parameters.</param>
     /// <param name="apiKey">Optional API key for authentication.</param>
     /// <returns>The LLM response with generated text and usage stats.</returns>
-    let sendChatAsync
+    let sendChatAsyncWith
+        (vllmExtensions: bool)
         (http: HttpClient)
         (baseUri: Uri)
         (model: string)
@@ -119,42 +174,8 @@ module OpenAiCompatibleClient =
         (req: LlmRequest)
         : Task<LlmResponse> =
         task {
-            // Build guided_decoding extra_body for vLLM when EBNF or Regex grammar is specified
-            let extraBody =
-                match req.ResponseFormat with
-                | Some(ResponseFormat.Constrained(Grammar.Ebnf grammar)) ->
-                    Some(box {| guided_decoding = {| backend = "xgrammar"; grammar = grammar |} |})
-                | Some(ResponseFormat.Constrained(Grammar.Regex pattern)) ->
-                    Some(box {| guided_decoding = {| backend = "outlines"; regex = pattern |} |})
-                | _ -> None
+            let dto = buildRequestDto vllmExtensions model false req
 
-            let dto: OpenAiRequestDto =
-                { model = model
-                  messages = toOpenAiMessages req.SystemPrompt req.Messages
-                  max_tokens = req.MaxTokens
-                  temperature = req.Temperature
-                  stream = Some false
-                  extra_body = extraBody
-                  response_format =
-                    match req.ResponseFormat with
-                    | Some ResponseFormat.Json -> Some(box {| ``type`` = "json_object" |})
-                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
-                        Some(
-                            box
-                                {| ``type`` = "json_schema"
-                                   json_schema =
-                                    {| name = "output"
-                                       strict = true
-                                       schema = JsonSerializer.Deserialize<JsonElement>(schema) |} |}
-                        )
-                    | Some(ResponseFormat.Constrained(Grammar.Ebnf _)) -> None // Handled via extra_body guided_decoding
-                    | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> None // Handled via extra_body guided_decoding
-                    | Some ResponseFormat.Text -> None
-                    | None ->
-                        if req.JsonMode then
-                            Some(box {| ``type`` = "json_object" |})
-                        else
-                            None }
 
             let uri = Uri(baseUri, "/v1/chat/completions")
             let content = JsonContent.Create(dto, options = jsonOptions)
@@ -276,7 +297,8 @@ module OpenAiCompatibleClient =
     /// <param name="req">The LLM request.</param>
     /// <param name="onToken">Callback invoked for each token received.</param>
     /// <returns>The complete LLM response after streaming completes.</returns>
-    let sendChatStreamAsync
+    let sendChatStreamAsyncWith
+        (vllmExtensions: bool)
         (http: HttpClient)
         (baseUri: Uri)
         (model: string)
@@ -285,42 +307,8 @@ module OpenAiCompatibleClient =
         (onToken: string -> unit)
         : Task<LlmResponse> =
         task {
-            // Build guided_decoding extra_body for vLLM when EBNF or Regex grammar is specified
-            let streamExtraBody =
-                match req.ResponseFormat with
-                | Some(ResponseFormat.Constrained(Grammar.Ebnf grammar)) ->
-                    Some(box {| guided_decoding = {| backend = "xgrammar"; grammar = grammar |} |})
-                | Some(ResponseFormat.Constrained(Grammar.Regex pattern)) ->
-                    Some(box {| guided_decoding = {| backend = "outlines"; regex = pattern |} |})
-                | _ -> None
+            let dto = buildRequestDto vllmExtensions model true req
 
-            let dto: OpenAiRequestDto =
-                { model = model
-                  messages = toOpenAiMessages req.SystemPrompt req.Messages
-                  max_tokens = req.MaxTokens
-                  temperature = req.Temperature
-                  stream = Some true
-                  extra_body = streamExtraBody
-                  response_format =
-                    match req.ResponseFormat with
-                    | Some ResponseFormat.Json -> Some(box {| ``type`` = "json_object" |})
-                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
-                        Some(
-                            box
-                                {| ``type`` = "json_schema"
-                                   json_schema =
-                                    {| name = "output"
-                                       strict = true
-                                       schema = JsonSerializer.Deserialize<JsonElement>(schema) |} |}
-                        )
-                    | Some(ResponseFormat.Constrained(Grammar.Ebnf _)) -> None // Handled via extra_body
-                    | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> None // Handled via extra_body
-                    | Some ResponseFormat.Text -> None
-                    | None ->
-                        if req.JsonMode then
-                            Some(box {| ``type`` = "json_object" |})
-                        else
-                            None }
 
             let uri = Uri(baseUri, "/v1/chat/completions")
 
@@ -390,3 +378,12 @@ module OpenAiCompatibleClient =
                   Usage = None
                   Raw = None }
         }
+
+    /// Back-compat entry points. `vllmExtensions` defaults to false — the
+    /// OpenAI-safe choice, since emitting vLLM-only top-level params against
+    /// OpenAI proper is a 400. Backends.resolve opts in for the Vllm case.
+    let sendChatAsync http baseUri model apiKey req =
+        sendChatAsyncWith false http baseUri model apiKey req
+
+    let sendChatStreamAsync http baseUri model apiKey req onToken =
+        sendChatStreamAsyncWith false http baseUri model apiKey req onToken
