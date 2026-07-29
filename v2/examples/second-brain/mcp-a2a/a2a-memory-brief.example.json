@@ -1,0 +1,15 @@
+{
+  "artifact_type": "MemoryBrief",
+  "version": "1.0",
+  "id": "brief-auth-fallback-2026",
+  "topic": "Authentication Fallback Mechanisms",
+  "content": "Historically, using a secondary OIDC provider caused a race condition in the TARS context assembly layer (Issue #45). The current policy dictates failing fast rather than attempting silent token refresh.",
+  "confidence_score": 0.95,
+  "last_verified_date": "2026-06-20T10:00:00Z",
+  "provenance_summary": "Synthesized from 3 GitHub issues and 1 architectural decision record.",
+  "privacy_level": "public",
+  "related_memory_ids": [
+    "mem-1234",
+    "mem-5678"
+  ]
+}

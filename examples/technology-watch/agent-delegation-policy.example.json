@@ -1,0 +1,33 @@
+{
+  "policy_name": "tech-watch-issue-creation",
+  "delegation_level": "issue_create",
+  "risk_level": "low",
+  "repo_target": "GuitarAlchemist/tars",
+  "files_or_surfaces_allowed": [
+    "docs/research/*",
+    "examples/technology-watch/*"
+  ],
+  "requires_tests": false,
+  "requires_human_approval": true,
+  "requires_demerzel_gate": false,
+  "max_runtime_minutes": 15,
+  "max_cost_usd": 0.5,
+  "allowed_tools": [
+    "read_file",
+    "list_files",
+    "write_file",
+    "google_search",
+    "view_text_website"
+  ],
+  "forbidden_tools": [
+    "run_in_bash_session",
+    "submit"
+  ],
+  "stop_conditions": [
+    "Cost exceeds max_cost_usd limit.",
+    "Execution time exceeds max_runtime_minutes limit.",
+    "Attempted modification outside allowed surfaces.",
+    "governance/state/afk-halt.json marker is present."
+  ],
+  "rollback_or_recovery": "Abort execution. Do not push any branches or open PRs. Revert local git changes."
+}

@@ -1,0 +1,47 @@
+{
+  "policy_id": "codex-dispatch-policy-v1",
+  "description": "Risk policy and execution bounds for the governed Codex dispatch seam.",
+  "target_agent": "codex",
+  "triggers": {
+    "enabled_labels": ["codex-ready"],
+    "disabled_triggers": ["@codex"]
+  },
+  "governance": {
+    "halt_marker_path": "governance/state/afk-halt.json",
+    "enforce_halt": true
+  },
+  "execution_bounds": {
+    "risk_levels": {
+      "low": {
+        "max_autonomy": "direct-pr",
+        "time_bound_minutes": 15
+      },
+      "medium": {
+        "max_autonomy": "draft-pr",
+        "time_bound_minutes": 30
+      },
+      "high": {
+        "max_autonomy": "plan-only",
+        "time_bound_minutes": 60
+      }
+    },
+    "default_risk_level": "medium"
+  },
+  "skill_injection": {
+    "enabled": true,
+    "source_paths": [
+      ".claude/skills/grill-me/",
+      ".claude/skills/grill-with-docs/",
+      ".claude/skills/tdd/"
+    ],
+    "injection_method": "workspace-mount"
+  },
+  "fallback": {
+    "enabled": true,
+    "trigger_conditions": ["quota_exhausted", "api_timeout", "rate_limited"],
+    "route_to_agent": "jules",
+    "fallback_label": "ready-for-agent",
+    "remove_original_label": true,
+    "notify_on_fallback": true
+  }
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "issue": "#115",
+    "title": "Inject declared cloud-agent skills into Jules prompt",
+    "agent": "Jules",
+    "pr": "#129",
+    "state": "needs-agent-revision",
+    "risk": "medium",
+    "last_signal": "2026-06-28T13:02:41Z",
+    "next_action": "Fix skill path to <skill>.skill.md",
+    "evidence": ["review comment", "changed files", "CI status"],
+    "is_stale": false,
+    "is_blocked": false,
+    "is_duplicate": false,
+    "ci_failing": true,
+    "needs_human_review": false
+  },
+  {
+    "issue": "#136",
+    "title": "Define AFK JSON/JSONL state artifacts",
+    "agent": "Codex",
+    "pr": "#140",
+    "state": "pr-open",
+    "risk": "low",
+    "last_signal": "2026-06-28T14:10:00Z",
+    "next_action": "Wait for review",
+    "evidence": ["PR open"],
+    "is_stale": false,
+    "is_blocked": false,
+    "is_duplicate": false,
+    "ci_failing": false,
+    "needs_human_review": true
+  },
+  {
+    "issue": "#132",
+    "title": "Fix agent memory leak in test suite",
+    "agent": "Claude",
+    "pr": null,
+    "state": "agent-working",
+    "risk": "high",
+    "last_signal": "2026-06-28T14:15:00Z",
+    "next_action": "Run tests locally",
+    "evidence": [],
+    "is_stale": false,
+    "is_blocked": false,
+    "is_duplicate": false,
+    "ci_failing": false,
+    "needs_human_review": false
+  }
+]

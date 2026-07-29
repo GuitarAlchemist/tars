@@ -163,15 +163,7 @@ type TarsWoTAgent
             let patternKind = selector.Recommend(goal, cogState)
 
             // 3. Compile the pattern into a WoTPlan
-            let plan =
-                match patternKind with
-                | ChainOfThought -> compiler.CompileChainOfThought(5, goal)
-                | ReAct -> compiler.CompileReAct([ "search"; "calculate"; "read" ], 10, goal)
-                | GraphOfThoughts -> compiler.CompileGraphOfThoughts(3, 3, goal)
-                | TreeOfThoughts -> compiler.CompileTreeOfThoughts(3, 2, goal)
-                | PlanAndExecute -> compiler.CompileChainOfThought(3, goal)
-                | WorkflowOfThought -> compiler.CompileChainOfThought(5, goal)
-                | Custom _ -> compiler.CompileChainOfThought(3, goal)
+            let plan = compiler.CompileFor(patternKind, goal)
 
             // 4. Execute the plan through the WoT engine
             let ctx =
@@ -181,13 +173,8 @@ type TarsWoTAgent
             let! result = executor.Execute(plan, ctx)
 
             // 5. Record outcome so pattern selection learns from real results
-            PatternOutcomeStore.record (
-                PatternOutcomeStore.PatternOutcome.Create(patternKind, goal, result.Success, result.Metrics.TotalDurationMs))
-
-            match selector with
-            | :? PatternSelector.HistoryAwareSelector as hist ->
-                hist.RecordOutcome(patternKind, goal, result.Success, result.Metrics.TotalDurationMs)
-            | _ -> ()
+            selector.RecordOutcome(
+                PatternOutcome.Create(patternKind, goal, result.Success, result.Metrics.TotalDurationMs))
 
             return result
         }
@@ -218,15 +205,7 @@ type TarsWoTAgent
 
             let patternKind = selector.Recommend(goal, cogState)
 
-            let plan =
-                match patternKind with
-                | ChainOfThought -> compiler.CompileChainOfThought(5, goal)
-                | ReAct -> compiler.CompileReAct([ "search"; "calculate"; "read" ], 10, goal)
-                | GraphOfThoughts -> compiler.CompileGraphOfThoughts(3, 3, goal)
-                | TreeOfThoughts -> compiler.CompileTreeOfThoughts(3, 2, goal)
-                | PlanAndExecute -> compiler.CompileChainOfThought(3, goal)
-                | WorkflowOfThought -> compiler.CompileChainOfThought(5, goal)
-                | Custom _ -> compiler.CompileChainOfThought(3, goal)
+            let plan = compiler.CompileFor(patternKind, goal)
 
             let ctx =
                 { agentContext with
@@ -238,13 +217,8 @@ type TarsWoTAgent
             let! result = executor.ExecuteWithProgress(plan, ctx, onProgress)
 
             // Record outcome so pattern selection learns from real results
-            PatternOutcomeStore.record (
-                PatternOutcomeStore.PatternOutcome.Create(patternKind, goal, result.Success, result.Metrics.TotalDurationMs))
-
-            match selector with
-            | :? PatternSelector.HistoryAwareSelector as hist ->
-                hist.RecordOutcome(patternKind, goal, result.Success, result.Metrics.TotalDurationMs)
-            | _ -> ()
+            selector.RecordOutcome(
+                PatternOutcome.Create(patternKind, goal, result.Success, result.Metrics.TotalDurationMs))
 
             return result
         }

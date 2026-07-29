@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "0.1",
+  "emittedAt": "2026-05-17T00:00:00Z",
+  "repo": {
+    "root": "tars",
+    "branch": "feat/install-audit-closure-tars",
+    "head": "pending"
+  },
+  "workflowMode": "loop-eligible",
+  "counts": {
+    "dirtyFiles": 0,
+    "blocks": 0,
+    "warnings": 0
+  },
+  "haltAll": {
+    "path": "~/.demerzel/HALT-ALL",
+    "present": false,
+    "active": false,
+    "readStatus": "missing",
+    "scope": null,
+    "expiresAt": null,
+    "reason": null
+  },
+  "findings": [],
+  "domains": [
+    {
+      "domain": "tars-harness",
+      "baselinePath": "state/quality/tars-harness/baseline.json",
+      "lock": {
+        "present": false
+      },
+      "stopPresent": false,
+      "lastJsonPath": "state/quality/tars-harness/last.json",
+      "lastJsonWriteTime": "2026-05-17T00:00:00Z",
+      "oracleStatus": "ok",
+      "metricValue": 1.0,
+      "outOfScopeDirty": [],
+      "protectedDirty": [],
+      "recentHistoryLines": []
+    }
+  ]
+}

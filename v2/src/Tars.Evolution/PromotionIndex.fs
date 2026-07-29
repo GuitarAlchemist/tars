@@ -46,11 +46,14 @@ module PromotionIndex =
 
     // ── Build index from live promotion stores ──────────────────────
 
-    /// Build the index from current recurrence records and weights.
-    let build () : PromotionIndexData =
-        let records = PromotionPipeline.getRecurrenceRecords ()
-        let weights = WeightedGrammar.load ()
-        let lineage = PromotionPipeline.getLineageRecords ()
+    /// Build the index from explicit records/weights/lineage. Pure: no I/O,
+    /// no global state — the testable core shared by the live and
+    /// directory-scoped builders below.
+    let buildFrom
+        (records: RecurrenceRecord list)
+        (weights: WeightedGrammar.WeightedRule list)
+        (lineage: LineageRecord list)
+        : PromotionIndexData =
 
         // Find the most recent rollback expansion from lineage for each pattern
         let rollbackByPattern =
@@ -92,12 +95,47 @@ module PromotionIndex =
           GeneratedAt = DateTime.UtcNow
           PatternCount = entries.Length }
 
+    /// Build the index from the live, process-global promotion stores.
+    let build () : PromotionIndexData =
+        buildFrom
+            (PromotionPipeline.getRecurrenceRecords ())
+            (WeightedGrammar.load ())
+            (PromotionPipeline.getLineageRecords ())
+
+    /// Build the index from an isolated promotion directory (reads disk
+    /// directly, bypassing the shared in-memory store). Hermetic and
+    /// parallel-safe — the basis for deterministic tests.
+    let buildFromDir (promotionDir: string) : PromotionIndexData =
+        buildFrom
+            (PromotionPipeline.recurrenceRecordsFrom promotionDir)
+            (WeightedGrammar.loadFrom promotionDir)
+            (PromotionPipeline.lineageRecordsFrom promotionDir)
+
+    /// Persist the index to a specific promotion directory.
+    let saveTo (promotionDir: string) (index: PromotionIndexData) : unit =
+        try
+            Directory.CreateDirectory promotionDir |> ignore
+            let json = JsonSerializer.Serialize(index, jsonOptions)
+            File.WriteAllText(Path.Combine(promotionDir, "index.json"), json)
+        with _ -> () // Best-effort
+
     /// Persist the index to disk for fast loading by agent layer.
     let save (index: PromotionIndexData) : unit =
         try
             let json = JsonSerializer.Serialize(index, jsonOptions)
             File.WriteAllText(indexPath (), json)
         with _ -> () // Best-effort
+
+    /// Load a persisted index from a specific promotion directory.
+    let loadFrom (promotionDir: string) : PromotionIndexData option =
+        try
+            let path = Path.Combine(promotionDir, "index.json")
+            if File.Exists path then
+                let json = File.ReadAllText path
+                Some (JsonSerializer.Deserialize<PromotionIndexData>(json, jsonOptions))
+            else
+                None
+        with _ -> None
 
     /// Load the persisted index from disk.
     let load () : PromotionIndexData option =
@@ -114,6 +152,12 @@ module PromotionIndex =
     let refresh () : PromotionIndexData =
         let index = build ()
         save index
+        index
+
+    /// Build from and persist to an isolated promotion directory.
+    let refreshIn (promotionDir: string) : PromotionIndexData =
+        let index = buildFromDir promotionDir
+        saveTo promotionDir index
         index
 
     // ── Query helpers for pattern selection ──────────────────────────

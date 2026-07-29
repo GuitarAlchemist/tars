@@ -206,7 +206,7 @@ let runPipeline (minOccurrences: int) =
         AnsiConsole.MarkupLine($"[dim]  Feeding {artifacts.Length} trace artifacts into pipeline...[/]")
         AnsiConsole.WriteLine()
 
-    let results = PromotionPipeline.run minOccurrences artifacts
+    let results = PromotionPipeline.run PromotionPipeline.defaultStore minOccurrences artifacts
 
     if jsonMode then
         // Headless: strict JSON only, no markup

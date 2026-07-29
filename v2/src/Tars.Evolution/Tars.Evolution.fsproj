@@ -19,6 +19,8 @@
     <Compile Include="ResearchWeights.fs" />
     <Compile Include="ResearchCycle.fs" />
     <Compile Include="RoundtripValidation.fs" />
+    <Compile Include="PromotionStore.fs" />
+    <Compile Include="PromotionGate.fs" />
     <Compile Include="PromotionPipeline.fs" />
     <Compile Include="PromotionIndex.fs" />
     <Compile Include="StructuredOutput.fs" />

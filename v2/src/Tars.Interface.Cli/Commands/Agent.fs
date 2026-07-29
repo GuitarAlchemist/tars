@@ -711,12 +711,14 @@ let runPipeline
                 let cotSelector =
                     { new IPatternSelector with
                         member _.Recommend(_goal, _state) = ChainOfThought
-                        member _.Score(_goal) = [ ChainOfThought, 1.0 ] |> Map.ofList }
+                        member _.Score(_goal) = [ ChainOfThought, 1.0 ] |> Map.ofList
+                        member _.RecordOutcome(outcome) = PatternOutcomeStore.record outcome }
 
                 let reactSelector =
                     { new IPatternSelector with
                         member _.Recommend(_goal, _state) = ReAct
-                        member _.Score(_goal) = [ ReAct, 1.0 ] |> Map.ofList }
+                        member _.Score(_goal) = [ ReAct, 1.0 ] |> Map.ofList
+                        member _.RecordOutcome(outcome) = PatternOutcomeStore.record outcome }
 
                 let analyzerCtx = createAgentContext logger llmWithEvidence None
                 let coderCtx = createAgentContext logger llmWithEvidence None
@@ -807,12 +809,14 @@ let runFanOut
                 let cotSelector =
                     { new IPatternSelector with
                         member _.Recommend(_goal, _state) = ChainOfThought
-                        member _.Score(_goal) = [ ChainOfThought, 1.0 ] |> Map.ofList }
+                        member _.Score(_goal) = [ ChainOfThought, 1.0 ] |> Map.ofList
+                        member _.RecordOutcome(outcome) = PatternOutcomeStore.record outcome }
 
                 let reactSelector =
                     { new IPatternSelector with
                         member _.Recommend(_goal, _state) = ReAct
-                        member _.Score(_goal) = [ ReAct, 1.0 ] |> Map.ofList }
+                        member _.Score(_goal) = [ ReAct, 1.0 ] |> Map.ofList
+                        member _.RecordOutcome(outcome) = PatternOutcomeStore.record outcome }
 
                 let analyzerCtx = createAgentContext logger llmWithEvidence None
                 let coderCtx = createAgentContext logger llmWithEvidence None

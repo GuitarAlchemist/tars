@@ -1,0 +1,40 @@
+{
+  "bundleId": "a1b2c3d4-e5f6-7890-1234-56789abcdef0",
+  "sourceSetId": "b2c3d4e5-f6a7-8901-2345-6789abcdef01",
+  "claims": [
+    {
+      "claimId": "c3d4e5f6-a7b8-9012-3456-789abcdef012",
+      "statement": "TARS agents must not instantiate DefaultLlmService directly; they must always use LlmFactory.create(logger).",
+      "supportingEvidence": [
+        {
+          "artifactId": "art-001",
+          "exactQuote": "LLM access always goes through LlmFactory.create(logger) — never instantiate DefaultLlmService directly."
+        }
+      ]
+    },
+    {
+      "claimId": "d4e5f6a7-b8c9-0123-4567-89abcdef0123",
+      "statement": "Evidence bundles must explicitely separate synthesized claims from their supporting artifacts.",
+      "supportingEvidence": [
+        {
+          "artifactId": "art-002",
+          "exactQuote": "The synthesis is structured into an EvidenceBundle, separating claims from evidence."
+        }
+      ]
+    }
+  ],
+  "stalenessWarnings": [
+    {
+      "artifactId": "art-002",
+      "reason": "The referenced document (v1/design.md) has been deprecated in favor of v2 architecture.",
+      "newerVersionUri": "file:///v2/docs/design/source-grounded-second-brain-synthesis.md"
+    }
+  ],
+  "contradictions": [
+    {
+      "newClaimId": "c3d4e5f6-a7b8-9012-3456-789abcdef012",
+      "existingMemoryId": "e5f6a7b8-c9d0-1234-5678-9abcdef01234",
+      "description": "New claim states LlmFactory must be used, but an old memory item from 2024 states DefaultLlmService is the standard approach."
+    }
+  ]
+}

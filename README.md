@@ -158,6 +158,12 @@ Patterns climb: *Implementation → Helper → Builder → DslClause → Grammar
 
 ---
 
+## AI agent integrations
+
+The AFK (Away From Keyboard) issue delegation loop is governed by a halt marker at `governance/state/afk-halt.json`.
+
+---
+
 ## AI discipline (Karpathy + Cherny)
 
 Every code-touching turn applies four rules: **think before coding · simplicity first · surgical changes · goal-driven execution**. Session continuity uses the Cherny pattern:

@@ -12,8 +12,8 @@ open Tars.Cortex.WoTTypes
 module EvolutionaryBreederTests =
 
     /// Helper to construct PatternOutcome without ambiguity with PatternOutcomeDto.
-    let private mkOutcome (kind: PatternKind) (goal: string) (success: bool) (durationMs: int64) : PatternOutcomeStore.PatternOutcome =
-        PatternOutcomeStore.PatternOutcome.Create(kind, goal, success, durationMs)
+    let private mkOutcome (kind: PatternKind) (goal: string) (success: bool) (durationMs: int64) : PatternOutcome =
+        PatternOutcome.Create(kind, goal, success, durationMs)
 
     // =========================================================================
     // MachinBridge.FallbackGA tests

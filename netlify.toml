@@ -1,0 +1,4 @@
+[build]
+  # Only run Netlify previews when web-facing packages change. Repository,
+  # governance, and workflow-only PRs should not create noisy deploy failures.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- package.json package-lock.json TarsEngine.Web TarsEngine.FSharp.UI TarsEngine.FSharp.AutonomousUI TarsEngine.FSharp.DynamicUI TarsEngine.FSharp.SelfBuildingUI TarsEngine.FSharp.UsefulUI src/JanusUI src/TarsEngine.FSharp.Cli/TarsEngine.FSharp.Cli/Web vscode-extension mcp-server"

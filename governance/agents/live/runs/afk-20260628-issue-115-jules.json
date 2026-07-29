@@ -1,0 +1,20 @@
+{
+  "run_id": "afk-20260628-issue-115-jules",
+  "repo": "GuitarAlchemist/tars",
+  "issue": 115,
+  "agent": "jules",
+  "pr": 129,
+  "state": "needs-agent-revision",
+  "risk": "medium",
+  "last_signal_at": "2026-06-28T13:02:41Z",
+  "summary": "PR exists but needs revision before merge.",
+  "evidence": [
+    {
+      "type": "review_comment",
+      "url": "https://github.com/GuitarAlchemist/tars/pull/129#pullrequestreview-4587561762",
+      "finding": "Skill path should load <skill>.skill.md"
+    }
+  ],
+  "next_action": "Agent should patch workflow path handling and avoid overwriting merged skill docs.",
+  "stop_condition": "Do not merge until CI is green and human review passes."
+}

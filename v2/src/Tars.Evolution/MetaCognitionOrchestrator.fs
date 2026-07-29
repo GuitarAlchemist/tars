@@ -6,6 +6,7 @@ open Tars.Llm
 open Tars.Core.MetaCognition
 open Tars.Core.WorkflowOfThought
 open Tars.Cortex
+open Tars.Cortex.WoTTypes
 
 /// Top-level orchestrator that ties the five meta-cognitive components into a coherent cycle:
 /// 1. Collect and cluster failures
@@ -19,7 +20,7 @@ module MetaCognitionOrchestrator =
     let runCycle
         (llm: ILlmService option)
         (config: MetaCognitionConfig)
-        (recentOutcomes: PatternOutcomeStore.PatternOutcome list)
+        (recentOutcomes: PatternOutcome list)
         (recentCycles: RetroactionLoop.CycleResult list)
         (recentTraces: (string list * TraceEvent list * string * string) list)  // (plannedStepIds, trace, goal, result)
         : Task<MetaCognitionResult> =

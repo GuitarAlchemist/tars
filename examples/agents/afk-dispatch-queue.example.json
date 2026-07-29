@@ -1,0 +1,63 @@
+{
+  "queue_id": "afk-cloud-agent-main",
+  "repo": "GuitarAlchemist/tars",
+  "generated_at": "2026-06-28T06:10:00Z",
+  "global_wip_limit": 5,
+  "open_cloud_agent_prs": 4,
+  "lanes": [
+    {
+      "lane": "contract",
+      "wip_limit": 2,
+      "open_prs": 1,
+      "queued_issues": 2,
+      "priority": 0
+    },
+    {
+      "lane": "workflow",
+      "wip_limit": 1,
+      "open_prs": 1,
+      "queued_issues": 1,
+      "priority": 1
+    },
+    {
+      "lane": "runtime",
+      "wip_limit": 0,
+      "open_prs": 0,
+      "queued_issues": 0,
+      "priority": 5
+    }
+  ],
+  "locks": [
+    {
+      "lock_id": "lock-issue-118",
+      "kind": "issue",
+      "resource": "issue:GuitarAlchemist/tars#118",
+      "owner": "workflow:afk-delegate",
+      "owner_pr": "GuitarAlchemist/tars#119",
+      "acquired_at": "2026-06-28T06:09:00Z",
+      "expires_at": null,
+      "release_policy": "release_on_pr_merge_or_close"
+    },
+    {
+      "lock_id": "lock-surface-workflows",
+      "kind": "surface",
+      "resource": "surface:.github/workflows",
+      "owner": "workflow:afk-delegate",
+      "owner_pr": "GuitarAlchemist/tars#119",
+      "acquired_at": "2026-06-28T06:09:00Z",
+      "expires_at": null,
+      "release_policy": "release_on_pr_merge_or_close"
+    }
+  ],
+  "probabilistic_indexes": [
+    {
+      "index_id": "possible-surface-conflicts-v1",
+      "kind": "bloom_filter",
+      "scope": "open_pr_changed_surfaces",
+      "false_positive_rate": 0.01,
+      "authoritative": false,
+      "exact_check_required": true
+    }
+  ],
+  "pending_decisions": []
+}

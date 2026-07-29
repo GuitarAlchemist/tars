@@ -11,6 +11,7 @@ open Tars.Tools.Standard
 open Tars.Cortex.WoTTypes
 open Tars.Cortex
 open Tars.Knowledge
+open Tars.Interface.Cli
 
 module McpServerCommand =
 
@@ -192,7 +193,7 @@ module McpServerCommand =
                       Version = "1.0.0"
                       ParentVersion = None
                       CreatedAt = DateTime.UtcNow
-                      Execute = fun input -> async { return ClaudeCodeBridge.completePlan input } }
+                      Execute = fun input -> async { return ClaudeCodeBridge.completePlan selector input } }
                 ]
 
                 for tool in bridgeTools do
@@ -222,7 +223,8 @@ module McpServerCommand =
                 logger.Error("Failed to register tools: {Error}", ex.Message)
             // We don't throw, just continue with partial tools
 
-            let server = McpServer(registry)
+            let skillRegistry = Tars.Tools.SkillRegistry.GlobalSkillRegistry()
+            let server = McpServer(registry, skillRegistry)
 
             if useSse then
                 let sseServer = Tars.Connectors.Mcp.SseMcpServer(server, port)

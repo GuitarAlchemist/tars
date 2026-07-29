@@ -1,0 +1,58 @@
+{
+  "title": "[TARS] Implement Reasoning-Trace Visualization Dashboard",
+  "repository": "GuitarAlchemist/tars",
+  "parent_issue": "GuitarAlchemist/tars#150",
+  "related_issues": ["GuitarAlchemist/tars#145", "GuitarAlchemist/tars#148"],
+  "issue_meta": {
+    "level": "story",
+    "area": "runtime",
+    "priority": "P1",
+    "complexity": "M",
+    "risk": "medium",
+    "afk": {
+      "readiness": "ready",
+      "max_autonomy": "draft",
+      "reason": "Medium risk design requires explicit trace."
+    }
+  },
+  "problem_statement": "Human-in-the-loop operators lack visibility into the internal monologue and reasoning steps of TARS agents, leading to lower trust and harder debugging.",
+  "goal": "Implement a UI component in the TARS dashboard to display streaming reasoning traces and task execution details.",
+  "context": "Based on digest-2024-003 ('Visualizing Internal Monologues', arXiv:2406.1234), displaying reasoning traces increases human trust by 60%.",
+  "evidence_required": [
+    "design_mockups",
+    "streaming_api_contract",
+    "ui_component_tests"
+  ],
+  "work_breakdown": [
+    "1. Extend `Tars.Interface.Web` to include a new 'Reasoning' tab.",
+    "2. Implement backend endpoint in `Tars.Cortex` to stream reasoning tokens.",
+    "3. Build frontend folding/unfolding logic for nested sub-tasks.",
+    "4. Add unit and integration tests for the new UI and streaming API."
+  ],
+  "acceptance_criteria": [
+    "The reasoning tab is visible in the TARS dashboard.",
+    "Reasoning tokens from `Tars.Cortex` stream in real-time.",
+    "Sub-tasks can be expanded and collapsed in the UI.",
+    "All new tests pass successfully."
+  ],
+  "non_goals": [
+    "Do not implement full historical log persistence in this issue.",
+    "Do not alter the core reasoning logic of TARS agents."
+  ],
+  "risk_policy": {
+    "level": "medium",
+    "mitigation": "Requires design review before implementation. Ensure streaming endpoint is rate-limited."
+  },
+  "budget_policy": {
+    "tier": "free-local",
+    "max_cost_usd": 0,
+    "max_runner_minutes": 60
+  },
+  "afk_readiness": "draft",
+  "routing": {
+    "lane": "feature",
+    "preferred_workers": [
+      "claude-code-local"
+    ]
+  }
+}

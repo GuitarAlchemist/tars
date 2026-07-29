@@ -1,0 +1,35 @@
+{
+  "id": "a1b2c3d4-e5f6-4789-8012-3456789abcde",
+  "kind": "DecisionRecord",
+  "created_at": "2025-06-15T15:10:00Z",
+  "observed_at": "2025-06-15T15:10:00Z",
+  "extracted_by": "jules-agent",
+  "confidence": 1.0,
+  "privacy_level": "internal",
+  "provenance": {
+    "source_uri": "https://github.com/GuitarAlchemist/tars/pull/123",
+    "source_issue": "123"
+  },
+  "semantic_summary": "Decision to use JSONL for the second-brain append-only log to ensure easy recovery and streaming compatibility.",
+  "structured_payload": {
+    "decision": "Use JSONL for memory logs",
+    "context": "Need a storage format for the second-brain that is easy to write from multiple processes and remains human-readable.",
+    "alternatives": [
+      {
+        "format": "SQLite",
+        "rejected_reason": "Harder to diff in Git and requires more complex migration handling for early-stage prototype."
+      },
+      {
+        "format": "Protobuf",
+        "rejected_reason": "Not human-readable without specialized tools; JSON is better for the current transparency goals."
+      }
+    ],
+    "rationale": "JSONL provides a balance of human-readability, machine-parsability, and append-only efficiency."
+  },
+  "links": [
+    {
+      "target_id": "550e8400-e29b-41d4-a716-446655440000",
+      "relation": "implements"
+    }
+  ]
+}

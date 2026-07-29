@@ -1,0 +1,58 @@
+{
+  "title": "[Demerzel] Implement Static Verification for Agent Plans",
+  "repository": "GuitarAlchemist/demerzel",
+  "parent_issue": "GuitarAlchemist/demerzel#88",
+  "related_issues": ["GuitarAlchemist/tars#90"],
+  "issue_meta": {
+    "level": "story",
+    "area": "governance",
+    "priority": "P0",
+    "complexity": "H",
+    "risk": "high",
+    "afk": {
+      "readiness": "ready",
+      "max_autonomy": "draft",
+      "reason": "High-risk implementation issue requires explicit review before execution."
+    }
+  },
+  "problem_statement": "Unconstrained autonomous agent swarms can formulate plans that violate governance and safety invariants, leading to unbounded escalation.",
+  "goal": "Integrate formal static verification methods to enforce constitutional constraints on TARS agent plans before execution.",
+  "context": "Based on thesis-2024-002 ('Autonomous Governance in Multi-Agent Systems'), static policy analysis can prevent 90% of unintended escalations. This is critical for Demerzel's governance mission.",
+  "evidence_required": [
+    "grammar_definition",
+    "static_checker_design",
+    "formal_verification_tests"
+  ],
+  "work_breakdown": [
+    "1. Define a verifiable plan grammar mapping to TARS actions.",
+    "2. Implement `ConstitutionalStaticChecker` in Demerzel core.",
+    "3. Add pre-execution hook in TARS to query Demerzel's checker.",
+    "4. Add unit tests for invariant violations and false positives."
+  ],
+  "acceptance_criteria": [
+    "A formal grammar for agent plans is defined.",
+    "The static checker successfully flags plans violating invariant rules.",
+    "TARS agents halt execution if Demerzel rejects the plan.",
+    "All new tests pass successfully."
+  ],
+  "non_goals": [
+    "Do not implement dynamic/runtime monitoring in this issue.",
+    "Do not support arbitrary, non-TARS agents at this time."
+  ],
+  "risk_policy": {
+    "level": "high",
+    "mitigation": "Requires core maintainer approval. Must include extensive negative tests."
+  },
+  "budget_policy": {
+    "tier": "free-local",
+    "max_cost_usd": 0,
+    "max_runner_minutes": 120
+  },
+  "afk_readiness": "draft",
+  "routing": {
+    "lane": "feature",
+    "preferred_workers": [
+      "claude-code-local"
+    ]
+  }
+}

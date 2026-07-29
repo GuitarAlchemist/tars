@@ -1,0 +1,32 @@
+{
+  "id": "rf-2024-001",
+  "question_id": "rq-2024-001",
+  "claims": [
+    {
+      "claim": "The TARS ecosystem strictly uses `Result<T, E>` for functional-first error handling, avoiding exceptions for domain logic.",
+      "confidence": 0.95,
+      "actionable": true
+    },
+    {
+      "claim": "Demerzel policy evaluation also utilizes Result types, specifically returning a structured `PolicyViolation` on the Error track.",
+      "confidence": 0.90,
+      "actionable": true
+    }
+  ],
+  "evidence": {
+    "registrar_pointers": [
+      "streeling://catalog/tars-core/fsharp-error-patterns.md",
+      "streeling://catalog/demerzel/policy-evaluation.md"
+    ],
+    "source_hashes": [
+      "sha256:abc123def456...",
+      "sha256:fedcba987654..."
+    ],
+    "staleness_marker": "2024-06-25T10:00:00Z"
+  },
+  "scorecard": {
+    "relevance": 0.95,
+    "quality": 0.88,
+    "grammar_validation": "passed"
+  }
+}

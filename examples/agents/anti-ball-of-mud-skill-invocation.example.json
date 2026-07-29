@@ -1,0 +1,41 @@
+{
+  "scenario": "An AFK agent is dispatched on a 'add retry + telemetry to MctsBridge' issue. Mid-task it notices the change is about to thread an HTTP/provider call and duplicate ix scoring into core runtime, so the anti-ball-of-mud-guard fires.",
+  "skill": "anti-ball-of-mud",
+  "mode": "model-invoked",
+  "trigger": "anti-ball-of-mud-guard",
+  "issue_meta": {
+    "level": "task",
+    "area": "evolution",
+    "priority": "P1",
+    "afk": {
+      "readiness": "ready",
+      "max_autonomy": "pr",
+      "reason": "feature work on MctsBridge retry/telemetry"
+    }
+  },
+  "triggers_fired": [
+    "adding logic to an already-large module instead of behind a seam",
+    "duplicating scoring logic that belongs in ix",
+    "threading a provider/network call into core runtime"
+  ],
+  "entropy_signals": [
+    { "catalog_row": 12, "file": "v2/src/Tars.Evolution/MctsBridge.fs", "severity": "high", "note": "retry/telemetry reimplements bandit-style backoff already in ix" },
+    { "catalog_row": 11, "file": "v2/src/Tars.Evolution/MctsBridge.fs", "severity": "high", "note": "telemetry would add a direct network call to core runtime" }
+  ],
+  "report_ref": "examples/agents/anti-ball-of-mud.expected-output.md",
+  "decision": "stop_and_escalate",
+  "proposed_seams": 1,
+  "review_gate": "human_or_demerzel",
+  "afk_autonomy_respected": true,
+  "files_written": [
+    "PR note (no runtime .fs edited)"
+  ],
+  "execution_plan": [
+    "Check governance/state/afk-halt.json is inactive (governed-delegation).",
+    "Match touched files against entropy-signal-catalog.md; record rows 11 and 12 (both high).",
+    "Stop feature work; do NOT thread the call into MctsBridge.fs.",
+    "Emit the eight-part report (see report_ref) proposing one telemetry-adapter seam.",
+    "Escalate the architectural choice (where telemetry lives, whether retry calls ix) to a human / Demerzel reviewer.",
+    "Record the report as a PR note; do not commit an exploratory architecture-review artifact."
+  ]
+}

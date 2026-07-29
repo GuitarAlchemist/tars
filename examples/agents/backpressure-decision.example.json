@@ -1,0 +1,13 @@
+{
+  "decision_id": "decision-2026-06-28-001",
+  "issue": "GuitarAlchemist/tars#118",
+  "decision": "defer_lock_conflict",
+  "reason": "Issue already has an open cloud-agent PR and the workflow surface is locked by another PR.",
+  "observed_open_prs": 5,
+  "global_wip_limit": 5,
+  "conflicting_locks": [
+    "issue:GuitarAlchemist/tars#118",
+    "surface:.github/workflows"
+  ],
+  "retry_after": "after_conflicting_pr_closes"
+}

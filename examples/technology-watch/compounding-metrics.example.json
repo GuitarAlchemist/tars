@@ -1,0 +1,51 @@
+{
+  "cycle_id": "tech-watch-2026-03-15-001",
+  "timestamp": "2026-03-15T14:30:00Z",
+  "metadata": {
+    "topic": "Compounding Metrics for Second Brain",
+    "harness_version": "v2.1.4",
+    "agent_id": "jules-v2.1"
+  },
+  "leading_indicators": {
+    "retrieval_precision_at_k": 0.92,
+    "context_token_efficiency": 0.85,
+    "agent_ready_issue_rate": 0.80,
+    "missing_acceptance_criteria_rate": 0.05,
+    "issue_rework_rate": 0.12,
+    "trace_completeness": 1.0,
+    "artifact_reuse_rate": 0.65,
+    "research_to_issue_conversion_quality": 0.88,
+    "closure_replay_success_rate": 0.75,
+    "stale_memory_hit_rate": 0.02
+  },
+  "compounding_indicators": {
+    "cycle_quality_delta": 0.12,
+    "cycle_time_delta": -340,
+    "reuse_multiplier": 1.45,
+    "issue_quality_delta": 0.08,
+    "retrieval_quality_delta": 0.15,
+    "agent_success_delta": 0.10,
+    "failure_recurrence_delta": -0.05,
+    "knowledge_reuse_delta": 0.22
+  },
+  "guardrails": {
+    "false_confidence_rate": 0.01,
+    "stale_context_rate": 0.04,
+    "invalid_issue_creation_rate": 0.0,
+    "unvalidated_memory_promotion_rate": 0.0,
+    "agent_rework_rate": 0.15,
+    "cost_per_valid_improvement": 0.45,
+    "human_review_burden": 0.10
+  },
+  "scorecard": {
+    "quality_gain": 0.12,
+    "reuse_multiplier": 1.45,
+    "confidence": 0.95,
+    "penalties": {
+      "cost_penalty": 0.05,
+      "rework_penalty": 0.02,
+      "stale_context_penalty": 0.01
+    },
+    "final_cycle_score": 0.085
+  }
+}

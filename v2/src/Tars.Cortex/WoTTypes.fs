@@ -228,6 +228,38 @@ module WoTTypes =
           ConstraintScore: float option }
 
     // =========================================================================
+    // Pattern Selection and Outcomes
+    // =========================================================================
+
+    /// <summary>
+    /// A recorded outcome of a pattern selection and execution.
+    /// Provenance covariates (CycleId/ModelId/SelectorStrategy) are optional so a
+    /// learning curve can be attributed to a cycle and model; absent on legacy rows.
+    /// </summary>
+    type PatternOutcome =
+        { PatternKind: PatternKind
+          Goal: string
+          Success: bool
+          DurationMs: int64
+          Timestamp: DateTime
+          CycleId: string option
+          ModelId: string option
+          SelectorStrategy: string option }
+
+        /// Construct an outcome with empty provenance. Call sites that don't yet
+        /// thread cycle/model/strategy use this so future field additions never
+        /// break a record literal again.
+        static member Create(patternKind, goal, success, durationMs) =
+            { PatternKind = patternKind
+              Goal = goal
+              Success = success
+              DurationMs = durationMs
+              Timestamp = DateTime.UtcNow
+              CycleId = None
+              ModelId = None
+              SelectorStrategy = None }
+
+    // =========================================================================
     // Enhanced Cognitive State
     // =========================================================================
 
@@ -302,6 +334,8 @@ module WoTTypes =
         abstract CompileTreeOfThoughts: beamWidth: int * searchDepth: int * goal: string -> WoTPlan
         /// Compile a general ReasoningPattern to WoT
         abstract CompilePattern: pattern: ReasoningPattern.ReasoningPattern * goal: string -> WoTPlan
+        /// Compile the default workflow for a given pattern kind
+        abstract CompileFor: kind: PatternKind * goal: string -> WoTPlan
 
     /// <summary>
     /// Interface for executing WoT plans.
@@ -322,3 +356,5 @@ module WoTTypes =
         abstract Recommend: goal: string * state: WoTCognitiveState -> PatternKind
         /// Get pattern suitability scores for a goal
         abstract Score: goal: string -> Map<PatternKind, float>
+        /// Record the outcome of a pattern execution
+        abstract RecordOutcome: outcome: PatternOutcome -> unit

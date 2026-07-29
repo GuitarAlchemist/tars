@@ -389,10 +389,10 @@ Do not use 'open' statements — write self-contained code."""
         runSuiteFromProblems llm (ProblemBank.all ()) difficulty category maxProblems retryOnFail logger
 
     /// Record benchmark results into PatternOutcomeStore for self-improvement feedback.
-    let recordOutcomes (summary: BenchmarkRunSummary) : unit =
+    let recordOutcomes (selector: IPatternSelector) (summary: BenchmarkRunSummary) : unit =
         for attempt in summary.Attempts do
-            PatternOutcomeStore.record
-                { PatternOutcomeStore.PatternOutcome.Create(
+            selector.RecordOutcome
+                { PatternOutcome.Create(
                     Custom $"benchmark:{attempt.Category}",
                     attempt.ProblemId,
                     attempt.Validated,

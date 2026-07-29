@@ -116,15 +116,12 @@ type WotEngine(llm: ILlmServiceFunctional, tools: IToolRegistry) =
                                 actualText
 
                         let req =
-                            { LlmRequest.Default with
-                                SystemPrompt =
-                                    Some
-                                        "You are TARS, an autonomous reasoning system. Provide structured, accurate thinking. For plans, output valid JSON. For critiques, reference specific evidence."
-                                Messages = [ { Role = Role.User; Content = prompt } ]
-                                Temperature = Some 0.2
-                                Model = reasonNode.Model
-                                ModelHint = reasonNode.ModelHint |> Option.orElse (Some "reasoning")
-                                ContextWindow = reasonNode.Budget.MaxContext }
+                            Prompt.ask prompt
+                            |> Prompt.withSystem "You are TARS, an autonomous reasoning system. Provide structured, accurate thinking. For plans, output valid JSON. For critiques, reference specific evidence."
+                            |> Prompt.withTemp 0.2
+                            |> Prompt.withOptModel reasonNode.Model
+                            |> Prompt.withOptHint (reasonNode.ModelHint |> Option.orElse (Some "reasoning"))
+                            |> Prompt.withOptContextWindow reasonNode.Budget.MaxContext
 
                         let startTime = DateTimeOffset.UtcNow
                         let! resResult = llm.CompleteAsync req

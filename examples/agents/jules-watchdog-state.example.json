@@ -1,0 +1,21 @@
+{
+  "repo": "GuitarAlchemist/tars",
+  "pr": 149,
+  "agent": "jules",
+  "state": "needs-agent-revision",
+  "label": "jules-state:needs-agent-revision",
+  "linked_issue": 132,
+  "head_sha": "0123456789abcdef0123456789abcdef01234567",
+  "event": "workflow_run",
+  "last_activity_at": "2026-06-30T13:48:36Z",
+  "signals": {
+    "ci": "failure",
+    "review": "none",
+    "mergeable": "MERGEABLE",
+    "requested_fix_addressed": "n/a",
+    "age_days": 0,
+    "duplicate": false,
+    "superseded_by": null
+  },
+  "reason": "CI is failing on the latest commit — the agent must push a fix."
+}

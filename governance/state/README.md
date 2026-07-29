@@ -8,6 +8,11 @@ Belief state persistence directory for Demerzel governance integration.
 - `pdca/` — PDCA cycle tracking (*.pdca.json)
 - `knowledge/` — Knowledge transfer records (*.knowledge.json)
 - `snapshots/` — Belief snapshots for reconnaissance (*.snapshot.json)
+- `afk-halt.json` — **kill switch for the AFK agent-delegation loop** (absent =
+  running). When present + unexpired, `.github/workflows/jules-auto-delegate.yml`
+  pauses delegating `ready-for-agent` issues to Jules. The cloud-reachable
+  equivalent of Demerzel's `~/.demerzel/HALT-ALL`. Schema + halt/resume procedure
+  in `docs/adr/0004-afk-agent-delegation-loop.md`.
 
 ## File Naming
 

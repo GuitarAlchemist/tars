@@ -1,0 +1,13 @@
+{
+  "question_id": "rq-2024-002",
+  "missing_concepts": [
+    "GPU-accelerated vector indexing in DuckDB",
+    "Streeling bindings for CUDA"
+  ],
+  "proposed_issue": {
+    "title": "[Research Follow-up] Investigate GPU-accelerated DuckDB vector indexing for Streeling",
+    "body": "A recent Second Brain research loop queried for 'GPU-accelerated vector indexing in DuckDB' but the Streeling catalog returned no actionable learnings. We need to evaluate whether the ecosystem should adopt this capability to speed up Registrar queries.\n\n### Tasks\n- [ ] Research DuckDB vector extension GPU support.\n- [ ] Evaluate applicability to Streeling's Registrar schema.\n- [ ] Update Streeling catalog with findings.",
+    "labels": ["research", "streeling", "performance", "requires-human-approval"],
+    "risk_level": "Medium"
+  }
+}

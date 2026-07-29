@@ -1,0 +1,30 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "kind": "MemoryItem",
+  "created_at": "2025-06-15T14:30:00Z",
+  "observed_at": "2025-06-15T14:25:00Z",
+  "extracted_by": "tars-cortex-agent-01",
+  "confidence": 0.85,
+  "staleness": {
+    "ttl_seconds": 604800,
+    "last_verified_at": "2025-06-15T14:30:00Z"
+  },
+  "privacy_level": "internal",
+  "provenance": {
+    "source_uri": "https://github.com/GuitarAlchemist/tars/issues/90",
+    "source_repo": "GuitarAlchemist/tars",
+    "source_issue": "90",
+    "content_hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "semantic_summary": "TARS V2 development is focusing on a 'second-brain' memory architecture to improve persistence and reasoning.",
+  "structured_payload": {
+    "observation": "Development of memory contracts is a high-priority (P0) task for the runtime area.",
+    "context": "Issue #90 defines the epic for second-brain implementation."
+  },
+  "links": [
+    {
+      "target_id": "83",
+      "relation": "related_to"
+    }
+  ]
+}

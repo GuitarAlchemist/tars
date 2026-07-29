@@ -1,0 +1,31 @@
+{
+  "contract_id": "closure-2024-001-refactor-memory-logic",
+  "goal": "Refactor the memory promotion logic to include IX scoring threshold check.",
+  "context": {
+    "source_issue": "GuitarAlchemist/tars#82",
+    "target_modules": ["Tars.Core.MemoryPromotion"],
+    "required_skills": ["semantic.read_code", "semantic.modify_code"]
+  },
+  "constraints": {
+    "invariants": ["TestPassing", "CoverageMaintained"],
+    "prohibitions": ["CannotModifyCore", "CannotAccessNetwork"],
+    "resource_bounds": [
+      { "type": "MaxTimeMinutes", "value": 30 },
+      { "type": "MaxCost", "value": 0.0 }
+    ]
+  },
+  "success_criteria": [
+    "Promotion fails if IX score < 0.7",
+    "Existing unit tests in Tars.Core.Tests pass",
+    "New unit test for threshold check added"
+  ],
+  "failure_modes": [
+    { "mode": "LowConfidence", "action": "EscalateToHuman" },
+    { "mode": "Timeout", "action": "RetryOnce" }
+  ],
+  "provenance": {
+    "creator": "TARS-Cortex-V2",
+    "timestamp": "2024-01-15T10:00:00Z",
+    "confidence": 0.95
+  }
+}

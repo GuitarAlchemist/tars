@@ -65,12 +65,11 @@ module AiFunction =
                 { Role = User; Content = $"Your previous output failed validation: {fb}\nPlease fix and try again. Output ONLY valid JSON." }))
 
         let baseReq =
-            { LlmRequest.Default with
-                SystemPrompt = Some cfg.SystemPrompt
-                Messages = messages
-                ModelHint = cfg.ModelHint
-                Temperature = cfg.Temperature
-                JsonMode = true }
+            Prompt.ofMessages messages
+            |> Prompt.withSystem cfg.SystemPrompt
+            |> Prompt.withOptHint cfg.ModelHint
+            |> Prompt.withOptTemp cfg.Temperature
+            |> Prompt.withJson
 
         match cfg.JsonSchema with
         | Some schema -> ConstrainedDecoding.withJsonSchema schema baseReq

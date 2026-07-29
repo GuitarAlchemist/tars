@@ -35,8 +35,8 @@ if ($first -notmatch "^(no|don't|dont|stop|wait|actually|that's wrong|thats wron
 
 # Throttle: increment counter, fire only on first or every Nth thereafter
 $throttle = 5
-if ($env:HARI_CORRECTION_THROTTLE -and $env:HARI_CORRECTION_THROTTLE -match '^\d+$') {
-    $throttle = [int]$env:HARI_CORRECTION_THROTTLE
+if ($env:TARS_CORRECTION_THROTTLE -and $env:TARS_CORRECTION_THROTTLE -match '^\d+$') {
+    $throttle = [int]$env:TARS_CORRECTION_THROTTLE
 }
 
 $count = 0

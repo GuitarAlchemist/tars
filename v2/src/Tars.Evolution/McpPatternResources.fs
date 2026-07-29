@@ -314,7 +314,7 @@ module McpPatternResources =
                                   Timestamp = DateTime.UtcNow
                                   RollbackExpansion = None } : PromotionPipeline.TraceArtifact))
 
-                let results = PromotionPipeline.run minOccurrences artifacts
+                let results = PromotionPipeline.run PromotionPipeline.defaultStore minOccurrences artifacts
                 let json = StructuredOutput.pipelineRunToJson results artifacts.Length
                 return Ok json
             with ex ->

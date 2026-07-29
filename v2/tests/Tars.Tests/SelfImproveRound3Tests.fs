@@ -33,7 +33,9 @@ open Tars.Evolution.ReplicatorDynamics
 [<InlineData("")>]
 [<InlineData("supply-chain-audit")>]         // would misclassify as ChainOfThought under the old matcher
 let ``PatternKind round-trips through the outcome store codec without corruption`` (customPayload: string) =
-    let storeModule = typeof<Tars.Cortex.PatternOutcomeStore.PatternOutcome>.DeclaringType
+    // PatternOutcome now lives in WoTTypes (shared with IPatternSelector); the DTO is
+    // still module-local, so it is what anchors reflection onto PatternOutcomeStore.
+    let storeModule = typeof<Tars.Cortex.PatternOutcomeStore.PatternOutcomeDto>.DeclaringType
     let bind name =
         let mi = storeModule.GetMethod(name, BindingFlags.Static ||| BindingFlags.NonPublic ||| BindingFlags.Public)
         Assert.True(not (isNull mi), $"PatternOutcomeStore.{name} not found — keep the function name when editing the codec")

@@ -392,7 +392,10 @@ module ClaudeCodeBridge =
     /// Complete an active plan, record outcome for pattern learning, and check
     /// for golden trace regression.
     /// Input JSON: { "plan_id": "...", "final_output": "..." }
-    let completePlan (input: string) : Result<string, string> =
+    let completePlan
+        (selector: IPatternSelector)
+        (input: string)
+        : Result<string, string> =
         try
             let doc = JsonDocument.Parse(input)
             let root = doc.RootElement
@@ -420,8 +423,8 @@ module ClaudeCodeBridge =
                     (DateTime.UtcNow - activePlan.StartedAt).TotalMilliseconds |> int64
 
                 // Record outcome for pattern learning
-                PatternOutcomeStore.record (
-                    PatternOutcomeStore.PatternOutcome.Create(activePlan.PatternKind, activePlan.Goal, success, duration))
+                selector.RecordOutcome(
+                    PatternOutcome.Create(activePlan.PatternKind, activePlan.Goal, success, duration))
 
                 // Check golden regression (best-effort)
                 let regressionMsg =

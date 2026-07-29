@@ -2,6 +2,8 @@ namespace Tars.Interface.Cli.Commands
 
 open System
 open Serilog
+open Tars.Cortex
+open Tars.Cortex.WoTTypes
 open Tars.Evolution
 open Tars.Interface.Cli
 open Tars.Interface.Cli.SpectreUI
@@ -125,7 +127,8 @@ module CodeBenchmark =
                     (fun msg -> printfn "%s" msg)
 
             // Record outcomes for self-improvement loop
-            BenchmarkRunner.recordOutcomes summary
+            let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
+            BenchmarkRunner.recordOutcomes selector summary
 
             // Save results
             let path = BenchmarkRunner.saveResults summary

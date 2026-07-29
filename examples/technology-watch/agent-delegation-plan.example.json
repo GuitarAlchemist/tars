@@ -1,0 +1,49 @@
+{
+  "plan_id": "plan-2024-001",
+  "issue_id": "GuitarAlchemist/ix#205",
+  "delegation_target": "jules",
+  "context": {
+    "source_digest": "digest-2024-001",
+    "rationale": "Implement policy-guided MCTS pruning as per ResearchDigest digest-2024-001."
+  },
+  "governance": {
+    "risk_level": "high",
+    "approval_required": true,
+    "halt_conditions": [
+      "Test failure in MCTS loop",
+      "Performance regression > 5%"
+    ],
+    "budget": {
+      "tier": "free-local",
+      "max_cost_usd": 0,
+      "max_runner_minutes": 120
+    }
+  },
+  "tasks": [
+    {
+      "id": "task-1",
+      "description": "Port MLP evaluator to Rust in IX engine.",
+      "status": "pending"
+    },
+    {
+      "id": "task-2",
+      "description": "Integrate MLP evaluator with MCTS loop.",
+      "status": "pending"
+    },
+    {
+      "id": "task-3",
+      "description": "Benchmark MCTS with and without policy-guided pruning.",
+      "status": "pending"
+    }
+  ],
+  "verification": {
+    "required_tests": [
+      "tests/mcts_pruning_tests.rs",
+      "benches/mcts_benchmark.rs"
+    ],
+    "success_criteria": [
+      "All tests pass.",
+      "Benchmark shows >= 20% speedup."
+    ]
+  }
+}

@@ -1,0 +1,116 @@
+# TARS Sentrux architectural constraints — initial baseline
+#
+# Purpose: unblock the Sentrux dashboard's "Rule violations" surface for the
+# tars repo. Numbers here are REALISTIC starting points derived from the
+# current state on 2026-05-24 — tars is a large, multi-language repo with
+# many legacy/experimental directories, so constraints are intentionally
+# generous on day one.
+#
+# Tightening strategy:
+#   1. The biggest lever is excluding legacy/experimental dirs from scan
+#      (node_modules, backup_*, archive/, Legacy_CSharp_Projects/, v1/, v2/,
+#      _Reorg.bak/, etc) — once those are out, the per-function ceilings can
+#      drop dramatically.
+#   2. Until then, max_cc and max_fn_lines are set to clear the noise floor.
+#   3. Layer order locks in the Grammar.Core → Agents → MCP-server hierarchy
+#      that already mostly holds.
+#
+# Baseline snapshot (sentrux scan on feat/sentrux-rules):
+#   files = 13730, import_edges = 2574, cross_module_edges = 372,
+#   detected cycles = 3, quality_signal = 3533/10000.
+
+[constraints]
+# Acyclicity: 3 cycles detected today. Buffer to 5.
+# TODO: investigate the 3 cycles in a follow-up `chore/sentrux-cycle-fix` PR.
+max_cycles = 5
+
+# Cyclomatic complexity ceiling. Set high to clear vendored / generated
+# code. Tighten once node_modules and backup_* are excluded from scan.
+max_cc = 6000
+
+# Function length ceiling. Set high — tars carries minified node_modules
+# (parser bundles up to 4000+ lines).
+# TODO: drop to ~400 once legacy/backup dirs are excluded.
+max_fn_lines = 5000
+
+# God-file detector: too noisy on a 13k-file repo. Enable later.
+no_god_files = false
+
+# ─── Layers ────────────────────────────────────────────────────────
+# tars' canonical core → agents → MCP layering.
+
+[[layers]]
+name = "grammar-core"
+paths = [
+  "Tars.Engine.Grammar/*",
+  "TarsEngine.FSharp.Core/*",
+  "TarsEngine.DSL/*",
+]
+order = 0
+
+[[layers]]
+name = "ml-and-vector"
+paths = [
+  "Tars.Engine.VectorStore/*",
+  "TarsEngine.FSharp.ML/*",
+  "TarsEngine.CustomTransformers/*",
+  "TarsEngine.CUDA.VectorStore/*",
+]
+order = 1
+
+[[layers]]
+name = "agents-and-flux"
+paths = [
+  "TarsEngine.FSharp.Agents/*",
+  "TarsEngine.FSharp.FLUX/*",
+  "TarsEngine.FSharp.FLUX.Standalone/*",
+  "TarsEngine.FSharp.Consciousness/*",
+  "TarsEngine.FSharp.Main/*",
+]
+order = 2
+
+[[layers]]
+name = "integration"
+paths = [
+  "Tars.Engine.Integration/*",
+  "TarsEngine.FSharp.Adapters/*",
+  "TarsEngine.CSharp.Adapters/*",
+]
+order = 3
+
+[[layers]]
+name = "mcp-and-cli"
+paths = [
+  "mcp-server/*",
+  "TarsEngine.FSharp.Cli/*",
+  "TarsCli/*",
+]
+order = 4
+
+[[layers]]
+name = "ui-and-tooling"
+paths = [
+  "TarsEngine.FSharp.AutonomousUI/*",
+  "TarsEngine.FSharp.DynamicUI/*",
+  "JanusUI/*",
+  "ui/*",
+  "vscode-extension/*",
+]
+order = 5
+
+# ─── Boundaries ────────────────────────────────────────────────────
+
+[[boundaries]]
+from = "Tars.Engine.Grammar/*"
+to = "mcp-server/*"
+reason = "Grammar core must not depend on the TypeScript MCP server runtime — it's a library, not an app."
+
+[[boundaries]]
+from = "Tars.Engine.Grammar/*"
+to = "TarsEngine.FSharp.AutonomousUI/*"
+reason = "Grammar core must not pull in UI dependencies."
+
+[[boundaries]]
+from = "TarsEngine.FSharp.Core/*"
+to = "TarsCli/*"
+reason = "Engine core must not reverse-depend on its own CLI host."

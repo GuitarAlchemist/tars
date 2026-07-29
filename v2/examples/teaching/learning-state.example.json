@@ -1,0 +1,77 @@
+{
+  "version": "1.0",
+  "student_id": "maintainer-local",
+  "profile": {
+    "role": "student-maintainer",
+    "preferred_mode": "project-example-first",
+    "notes": "Learning state is explicit and local-first. Do not infer private personal data."
+  },
+  "concepts": [
+    {
+      "concept_id": "anti-rubber-stamp-review",
+      "concept_name": "Anti-Rubber-Stamp Human Review",
+      "source": {
+        "repo": "GuitarAlchemist/Demerzel",
+        "issues": [632, 634],
+        "docs": [
+          "docs/governance/human-review/anti-rubber-stamp-policy.md",
+          "docs/governance/human-review/review-mode-router.md"
+        ]
+      },
+      "attempt_count": 1,
+      "last_seen_at": "2026-07-01",
+      "quick_check_score": 0.8,
+      "quiz_score": 0.7,
+      "teach_back_score": 0.6,
+      "scenario_score": 0.5,
+      "misconceptions_detected": [
+        "human-in-the-loop means asking for confirmation on every action"
+      ],
+      "mastery_level_before": 1,
+      "mastery_level_after": 3,
+      "mastery_delta": 2,
+      "forgetting_risk": "medium",
+      "next_review_due_optional": "2026-07-08",
+      "recommended_next_concepts": [
+        "review-mode-router",
+        "verification-horizon",
+        "goodhart-risk"
+      ]
+    },
+    {
+      "concept_id": "goodhart-risk",
+      "concept_name": "Goodhart and Anti-Metric Gaming",
+      "source": {
+        "repo": "GuitarAlchemist/.github",
+        "issues": [26]
+      },
+      "attempt_count": 0,
+      "last_seen_at": null,
+      "quick_check_score": null,
+      "quiz_score": null,
+      "teach_back_score": null,
+      "scenario_score": null,
+      "misconceptions_detected": [],
+      "mastery_level_before": 0,
+      "mastery_level_after": 0,
+      "mastery_delta": 0,
+      "forgetting_risk": "unknown",
+      "next_review_due_optional": null,
+      "recommended_next_concepts": []
+    }
+  ],
+  "session_history": [
+    {
+      "lesson_id": "teach-anti-rubber-stamp-001",
+      "topic": "anti-rubber-stamp-review",
+      "mode": "teach-back",
+      "completed_at": "2026-07-01",
+      "summary": "Learner can explain why too many confirmations create approval fatigue; needs more scenario practice."
+    }
+  ],
+  "interpretation_notes": [
+    "Scores are learning signals, not authority signals.",
+    "A high quiz score alone is not mastery.",
+    "Decision readiness requires applied understanding and human judgment."
+  ]
+}

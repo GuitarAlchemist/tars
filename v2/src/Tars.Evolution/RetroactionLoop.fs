@@ -415,7 +415,7 @@ Output JSON ONLY, no explanation.
               Score = score.Overall
               Timestamp = System.DateTime.UtcNow
               RollbackExpansion = pattern.RollbackExpansion }
-        PromotionPipeline.run 3 [ artifact ]
+        PromotionPipeline.run PromotionPipeline.defaultStore 3 [ artifact ]
 
     // =========================================================================
     // Cycle Metrics

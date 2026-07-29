@@ -172,7 +172,8 @@ let ``full round-trip compile execute complete`` () =
     let completeInput =
         sprintf """{"plan_id": "%s", "final_output": "The document summary is..."}""" planId
 
-    let completeResult = completePlan completeInput
+    let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
+    let completeResult = completePlan selector completeInput
 
     match completeResult with
     | Result.Ok json ->
@@ -222,10 +223,11 @@ let ``completePlan removes plan from active list`` () =
     let planId = doc.RootElement.GetProperty("planId").GetString()
 
     // Complete it
-    let _ = completePlan (sprintf """{"plan_id": "%s", "final_output": "done"}""" planId)
+    let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
+    let _ = completePlan selector (sprintf """{"plan_id": "%s", "final_output": "done"}""" planId)
 
     // Try again - should fail
-    let result = completePlan (sprintf """{"plan_id": "%s", "final_output": "again"}""" planId)
+    let result = completePlan selector (sprintf """{"plan_id": "%s", "final_output": "again"}""" planId)
     match result with
     | Result.Error msg -> Assert.Contains("Plan not found", msg)
     | Result.Ok _ -> Assert.Fail "Second completePlan should have failed"

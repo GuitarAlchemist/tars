@@ -2,6 +2,7 @@ namespace Tars.Evolution
 
 open System
 open Tars.Cortex
+open Tars.Cortex.WoTTypes
 open Tars.Core.MetaCognition
 
 /// Applies real genetic algorithm operators to TARS pattern evolution.
@@ -64,7 +65,7 @@ module EvolutionaryPatternBreeder =
     /// Compute fitness from execution history for a given genome.
     /// Lower is better (GA minimizes).
     let computeFitness
-        (outcomes: PatternOutcomeStore.PatternOutcome list)
+        (outcomes: PatternOutcome list)
         (genome: float array)
         : float =
         let g = fromArray genome
@@ -112,7 +113,7 @@ module EvolutionaryPatternBreeder =
     /// Run a breeding cycle to find optimal pattern hyperparameters.
     let breed
         (machinConfig: MachinBridge.MachinConfig option)
-        (outcomes: PatternOutcomeStore.PatternOutcome list)
+        (outcomes: PatternOutcome list)
         (generations: int)
         : BreedingResult =
 

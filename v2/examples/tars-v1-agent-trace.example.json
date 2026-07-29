@@ -1,0 +1,26 @@
+{
+  "artifact_type": "AgenticTraceCapture",
+  "version": "1.0",
+  "episode_id": "ep-98765-v1",
+  "mapped_to": "aiw-episode.json",
+  "budget": {
+    "cost_usd": 0.0,
+    "tier": "free-local",
+    "mapped_to": "budget-ledger.json"
+  },
+  "provider_trace": {
+    "provider": "ollama-local",
+    "prompt_tokens": 150,
+    "completion_tokens": 45,
+    "latency_ms": 850
+  },
+  "test_log_summary": {
+    "status": "passed",
+    "total_tests": 820,
+    "passed": 820,
+    "failed": 0
+  },
+  "diff_summary": "1 file changed, 25 insertions(+), 0 deletions(-)",
+  "stop_reason": "goal_achieved",
+  "escalation_reason": null
+}

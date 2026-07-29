@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "domain": "tars-harness",
+  "purpose": "Repo-level harness baseline for Agent Blackbox readiness across tars.",
+  "established_at": "2026-05-17T00:00:00Z",
+  "established_by": "Agent Blackbox install-audit closure PR",
+  "metric": "harness_ready",
+  "metric_description": "1.0 when the repo-local overseer reports loop-eligible and Agent Blackbox harness-audit reaches 100.",
+  "primary_baseline": 1.0,
+  "primary_baseline_source": "Local harness rollout baseline.",
+  "_harness": {
+    "oracle_command": "pwsh Scripts/verify.ps1",
+    "kill_switches": {
+      "global": "state/.loop-halted",
+      "per_domain": "state/quality/tars-harness/.STOP"
+    },
+    "lock_file": "state/quality/tars-harness/.lock",
+    "history_file": "state/quality/tars-harness/loop-history.jsonl"
+  },
+  "scope_boundary": {
+    "allow_edit": ["**"],
+    "protected_paths": [
+      ".env",
+      ".env.*",
+      "Directory.Build.props",
+      "global.json"
+    ]
+  }
+}
