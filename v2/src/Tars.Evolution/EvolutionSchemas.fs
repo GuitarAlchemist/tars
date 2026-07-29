@@ -82,53 +82,21 @@ module EvolutionSchemas =
   "additionalProperties": false
 }"""
 
-    /// Optimizer.LlmWorkflowOptimizer.OptimizeAsync — a whole Metascript `Workflow`
-    /// (Tars.Metascript.Domain.Workflow), since this site returns a modified copy of
-    /// the serialized workflow rather than a fixed report shape. Step fields that are
-    /// `option` in the F# record are nullable here; strict mode forbids omitting them
-    /// from `required`, so absence is encoded as null.
-    let optimizerSchema =
-        """{
-  "type": "object",
-  "properties": {
-    "Name": { "type": "string" },
-    "Description": { "type": "string" },
-    "Version": { "type": "string" },
-    "Inputs": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "Name": { "type": "string" },
-          "Type": { "type": "string" },
-          "Description": { "type": "string" }
-        },
-        "required": ["Name", "Type", "Description"],
-        "additionalProperties": false
-      }
-    },
-    "Steps": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "Id": { "type": "string" },
-          "Type": { "type": "string" },
-          "Agent": { "type": ["string", "null"] },
-          "Tool": { "type": ["string", "null"] },
-          "Instruction": { "type": ["string", "null"] },
-          "Outputs": { "type": ["array", "null"], "items": { "type": "string" } },
-          "Tools": { "type": ["array", "null"], "items": { "type": "string" } },
-          "Params": { "type": ["object", "null"], "additionalProperties": { "type": "string" } }
-        },
-        "required": ["Id", "Type", "Agent", "Tool", "Instruction", "Outputs", "Tools", "Params"],
-        "additionalProperties": false
-      }
-    }
-  },
-  "required": ["Name", "Description", "Version", "Inputs", "Steps"],
-  "additionalProperties": false
-}"""
+    // NOTE: there is deliberately no optimizerSchema.
+    //
+    // Optimizer.OptimizeAsync returns a whole Tars.Metascript Workflow, and that
+    // type cannot be expressed as a strict-mode JSON schema: `Params` is a
+    // Map<string,string>, i.e. an open-ended object, and strict mode requires
+    // `additionalProperties:false` with a closed property list on every object.
+    //
+    // The first attempt at one was actively harmful: it declared 8 of WorkflowStep's
+    // 10 fields with additionalProperties:false, so a compliant model was *forbidden*
+    // from emitting DependsOn and Context. DependsOn carries step ordering — the
+    // constraint would have silently deleted workflow dependencies, and the prompt
+    // shows the model a serialized workflow that does include those fields.
+    //
+    // That site keeps ResponseFormat.Json. A schema that constrains the model to a
+    // shape its consumer rejects is worse than no schema.
 
     /// SymbolicReflector.ReflectOnTrace — trigger + observations + summary.
     /// `severity` is documented "(optional, for Anomaly)"; strict mode encodes that

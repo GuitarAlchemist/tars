@@ -80,7 +80,8 @@ module LlamaCppClient =
         | Some(ResponseFormat.Constrained(Grammar.Ebnf grammar)) -> Some grammar, None
         | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
             None, Some(JsonSerializer.Deserialize<JsonElement>(schema))
-        // Regex has no llama-server equivalent; it degrades, and Routing reports it.
+        // Regex has no llama-server equivalent. Routing's NeedsRegex bucket marks
+        // LlamaCpp unsupported, so this degradation is reported rather than silent.
         | _ -> None, None
 
     /// <summary>DTO for response message.</summary>
@@ -197,10 +198,14 @@ module LlamaCppClient =
                   response_format =
                     match req.ResponseFormat with
                     | Some ResponseFormat.Json -> Some { ``type`` = "json_object" }
-                    | Some(ResponseFormat.Constrained _) ->
-                        // The constraint itself rides in grammar/json_schema below;
-                        // json_object stays on as the degradation belt.
-                        Some { ``type`` = "json_object" }
+                    // ONLY for JsonSchema. Setting json_object alongside a GBNF
+                    // grammar destroys it: llama-server's json_object branch assigns
+                    // json_schema = {} (nlohmann treats null as empty), and
+                    // json_schema_to_grammar({}) — match-any-JSON — then overwrites
+                    // params.grammar. HTTP 200, constraint silently gone. That is the
+                    // exact defect this work exists to remove.
+                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema _)) -> Some { ``type`` = "json_object" }
+                    | Some(ResponseFormat.Constrained _) -> None
                     | _ ->
                         if req.JsonMode then
                             Some { ``type`` = "json_object" }
@@ -302,10 +307,14 @@ module LlamaCppClient =
                   response_format =
                     match req.ResponseFormat with
                     | Some ResponseFormat.Json -> Some { ``type`` = "json_object" }
-                    | Some(ResponseFormat.Constrained _) ->
-                        // The constraint itself rides in grammar/json_schema below;
-                        // json_object stays on as the degradation belt.
-                        Some { ``type`` = "json_object" }
+                    // ONLY for JsonSchema. Setting json_object alongside a GBNF
+                    // grammar destroys it: llama-server's json_object branch assigns
+                    // json_schema = {} (nlohmann treats null as empty), and
+                    // json_schema_to_grammar({}) — match-any-JSON — then overwrites
+                    // params.grammar. HTTP 200, constraint silently gone. That is the
+                    // exact defect this work exists to remove.
+                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema _)) -> Some { ``type`` = "json_object" }
+                    | Some(ResponseFormat.Constrained _) -> None
                     | _ ->
                         if req.JsonMode then
                             Some { ``type`` = "json_object" }

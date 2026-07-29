@@ -121,6 +121,46 @@ module EvolutionConstrainedDecodingTests =
             assertConstrainedBy EvolutionSchemas.symbolicReflectionSchema "SymbolicReflector" llm.Single
         }
 
+    [<Fact>]
+    let ``Optimizer site deliberately stays on plain JSON mode`` () =
+        task {
+            // Not an oversight. Optimizer returns a Tars.Metascript Workflow, whose
+            // `Params: Map<string,string>` is an open-ended object — inexpressible under
+            // strict mode, which demands additionalProperties:false everywhere.
+            //
+            // The first attempt declared 8 of WorkflowStep's 10 fields with
+            // additionalProperties:false, forbidding a compliant model from emitting
+            // DependsOn and Context. DependsOn carries step ordering, so the constraint
+            // would have silently deleted workflow dependencies on every optimization.
+            // This test exists so nobody "completes the set" by reintroducing it.
+            let llm = CapturingLlm("""{"Name":"w","Description":"","Version":"1","Inputs":[],"Steps":[]}""")
+
+            let optimizer =
+                Optimizer.LlmWorkflowOptimizer(llm :> ILlmService) :> Optimizer.IWorkflowOptimizer
+
+            let workflow: Tars.Metascript.Domain.Workflow =
+                { Name = "w"
+                  Description = ""
+                  Version = "1"
+                  Inputs = []
+                  Steps = [] }
+
+            let feedback: Reflection.Feedback =
+                { Type = Reflection.FeedbackType.Optimization
+                  Score = 0.5
+                  Comment = "c"
+                  Suggestion = Some "s" }
+
+            let! _ = optimizer.OptimizeAsync(workflow, feedback)
+
+            match llm.Single.ResponseFormat with
+            | Some ResponseFormat.Json -> ()
+            | other ->
+                failwithf
+                    "Optimizer must stay on ResponseFormat.Json — Workflow is not strict-mode expressible. Got %A"
+                    other
+        }
+
     // ── Schema well-formedness: these guard the two Engine sites, whose call
     //    sites sit in private functions behind the full evolution loop, and they
     //    guard every site against the strict-mode 400 that OpenAI returns for a
@@ -131,7 +171,7 @@ module EvolutionConstrainedDecodingTests =
           "taskGenerationSchema", EvolutionSchemas.taskGenerationSchema
           "evaluationSchema", EvolutionSchemas.evaluationSchema
           "reflectionSchema", EvolutionSchemas.reflectionSchema
-          "optimizerSchema", EvolutionSchemas.optimizerSchema
+          // No optimizerSchema — Workflow is not strict-mode expressible; see EvolutionSchemas.
           "symbolicReflectionSchema", EvolutionSchemas.symbolicReflectionSchema ]
 
     [<Fact>]
@@ -149,10 +189,20 @@ module EvolutionConstrainedDecodingTests =
         let rec check (path: string) (el: JsonElement) =
             if el.ValueKind = JsonValueKind.Object then
                 let mutable typeProp = JsonElement()
+
+                // `type` may be a string or an array of strings — a nullable object is
+                // {"type":["object","null"]}. The first version of this check only
+                // matched the string form, so nullable-object subschemas were skipped
+                // entirely, which is exactly how an open-ended `additionalProperties`
+                // map got past it.
                 let isObjectSchema =
                     el.TryGetProperty("type", &typeProp)
-                    && typeProp.ValueKind = JsonValueKind.String
-                    && typeProp.GetString() = "object"
+                    && (match typeProp.ValueKind with
+                        | JsonValueKind.String -> typeProp.GetString() = "object"
+                        | JsonValueKind.Array ->
+                            typeProp.EnumerateArray()
+                            |> Seq.exists (fun t -> t.ValueKind = JsonValueKind.String && t.GetString() = "object")
+                        | _ -> false)
 
                 let mutable props = JsonElement()
                 let hasProps = el.TryGetProperty("properties", &props)
@@ -160,10 +210,13 @@ module EvolutionConstrainedDecodingTests =
                 if isObjectSchema && hasProps then
                     let mutable addl = JsonElement()
 
+                    // Must be literally `false`. A subschema like
+                    // {"additionalProperties":{"type":"string"}} is an open-ended map,
+                    // which strict mode rejects outright.
                     Assert.True(
                         el.TryGetProperty("additionalProperties", &addl)
                         && addl.ValueKind = JsonValueKind.False,
-                        $"{path}: object schema must set additionalProperties:false for strict mode"
+                        $"{path}: object schema must set additionalProperties:false for strict mode (open-ended maps are not expressible)"
                     )
 
                     let declared =

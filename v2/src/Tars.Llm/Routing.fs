@@ -231,8 +231,12 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
 /// compiler-checked so `supports` cannot silently acquire a missing case when a
 /// backend is added.
 type ConstraintNeed =
-    /// A real grammar engine is required (EBNF/CFG, or regex — see `ofRequest`).
-    | NeedsCfg
+    /// An EBNF/CFG grammar must be enforced by the decoder.
+    | NeedsGrammar
+    /// A regex must be enforced. Deliberately NOT folded in with NeedsGrammar:
+    /// vLLM enforces regex, llama.cpp does not, so one bucket would have claimed
+    /// support llama.cpp lacks and suppressed the downgrade warning.
+    | NeedsRegex
     /// A JSON schema is required; most OpenAI-wire backends can enforce this.
     | NeedsJsonSchema
     | NoNeed
@@ -256,10 +260,8 @@ module ConstraintNeed =
     let ofRequest (req: LlmRequest) : ConstraintNeed =
         match req.ResponseFormat with
         | Some(ResponseFormat.Constrained(Grammar.JsonSchema _)) -> NeedsJsonSchema
-        // Regex shares the CFG bucket: enforcing it needs the same grammar engine,
-        // and no call site emits it today.
-        | Some(ResponseFormat.Constrained(Grammar.Ebnf _))
-        | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> NeedsCfg
+        | Some(ResponseFormat.Constrained(Grammar.Ebnf _)) -> NeedsGrammar
+        | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> NeedsRegex
         | _ -> NoNeed
 
     /// Whether a backend can actually enforce the need — by capability, not by
@@ -277,16 +279,36 @@ module ConstraintNeed =
             | Ollama _
             | OpenAI _
             | DockerModelRunner _ -> true
-            // These degrade to prompt hints — see AnthropicClient / GoogleGeminiClient.
+            // AnthropicClient only appends a prompt hint — it enforces nothing.
+            | Anthropic _
+            // GoogleGeminiClient DOES send the schema, as generationConfig.responseSchema.
+            // But that field is an OpenAPI-subset Schema with no `additionalProperties`
+            // and a scalar `type`, and every schema we author carries
+            // additionalProperties:false (strict mode requires it). Gemini rejects
+            // unknown fields, so our schemas 400 rather than degrade. Reported as a
+            // downgrade because we cannot enforce them there — not because Gemini
+            // lacks the capability in general.
+            | GoogleGemini _
+            // LlamaSharpService never reads ResponseFormat at all.
+            | LlamaSharp _ -> false
+        | NeedsGrammar ->
+            match backend with
+            // vLLM via structured_outputs.grammar; llama.cpp via top-level GBNF.
+            | Vllm _
+            | LlamaCpp _ -> true
+            // Ollama has no raw GBNF API — schema only.
+            | Ollama _
+            | OpenAI _
+            | DockerModelRunner _
             | Anthropic _
             | GoogleGemini _
             | LlamaSharp _ -> false
-        | NeedsCfg ->
+        | NeedsRegex ->
             match backend with
-            // vLLM via structured_outputs.grammar; llama.cpp via GBNF.
-            | Vllm _
-            | LlamaCpp _ -> true
-            // Ollama has no raw GBNF/regex API — schema only.
+            // vLLM only. LlamaCppClient maps Regex to nothing, so claiming support
+            // here would drop the pattern *and* silence the warning.
+            | Vllm _ -> true
+            | LlamaCpp _
             | Ollama _
             | OpenAI _
             | DockerModelRunner _

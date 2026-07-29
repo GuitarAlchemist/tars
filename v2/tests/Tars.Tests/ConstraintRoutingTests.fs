@@ -38,9 +38,9 @@ module ConstraintRoutingTests =
     [<Fact>]
     let ``ofRequest classifies each grammar kind`` () =
         Assert.Equal(NeedsJsonSchema, ConstraintNeed.ofRequest (req (Some(Constrained(JsonSchema "{}")))))
-        Assert.Equal(NeedsCfg, ConstraintNeed.ofRequest (req (Some(Constrained(Ebnf "root ::= 'x'")))))
-        // Regex shares the CFG bucket — it needs the same grammar engine.
-        Assert.Equal(NeedsCfg, ConstraintNeed.ofRequest (req (Some(Constrained(Regex "[0-9]+")))))
+        Assert.Equal(NeedsGrammar, ConstraintNeed.ofRequest (req (Some(Constrained(Ebnf "root ::= digit")))))
+        // Regex is its own need: vLLM enforces it, llama.cpp does not.
+        Assert.Equal(NeedsRegex, ConstraintNeed.ofRequest (req (Some(Constrained(Regex "[0-9]+")))))
         Assert.Equal(NoNeed, ConstraintNeed.ofRequest (req (Some ResponseFormat.Json)))
         Assert.Equal(NoNeed, ConstraintNeed.ofRequest (req None))
 
@@ -55,10 +55,16 @@ module ConstraintRoutingTests =
         Assert.False(ConstraintNeed.supports (GoogleGemini "m") NeedsJsonSchema)
 
         // Raw grammars need a real grammar engine.
-        Assert.True(ConstraintNeed.supports (Vllm "m") NeedsCfg)
-        Assert.True(ConstraintNeed.supports (LlamaCpp("m", None)) NeedsCfg)
-        Assert.False(ConstraintNeed.supports (Ollama "m") NeedsCfg)
-        Assert.False(ConstraintNeed.supports (OpenAI "m") NeedsCfg)
+        Assert.True(ConstraintNeed.supports (Vllm "m") NeedsGrammar)
+        Assert.True(ConstraintNeed.supports (LlamaCpp("m", None)) NeedsGrammar)
+        Assert.False(ConstraintNeed.supports (Ollama "m") NeedsGrammar)
+        Assert.False(ConstraintNeed.supports (OpenAI "m") NeedsGrammar)
+
+        // Regex is NOT the same capability: LlamaCppClient maps Regex to nothing, so
+        // folding it in with grammars would claim support it lacks and, worse, suppress
+        // the downgrade warning for a constraint that silently vanishes.
+        Assert.True(ConstraintNeed.supports (Vllm "m") NeedsRegex)
+        Assert.False(ConstraintNeed.supports (LlamaCpp("m", None)) NeedsRegex)
 
         // NoNeed is always satisfiable, including on backends that enforce nothing.
         Assert.True(ConstraintNeed.supports (Anthropic "m") NoNeed)
