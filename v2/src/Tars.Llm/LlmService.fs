@@ -87,7 +87,12 @@ module LlmService =
             member _.RouteAsync(req: LlmRequest) : AsyncResult<RoutedBackend, LlmError> =
                 asyncResult {
                     let req = enrichRequest cfg.Routing req
-                    return ConstraintDowngradeLog.routeAndWarn cfg.Routing req
+                    // No warning here: RouteAsync is a query ("which backend would
+                    // serve this?"), not an execution. Callers that ask and then
+                    // complete — CliReasoner does — otherwise get two warnings for
+                    // one logical request. The warning belongs on the paths that
+                    // actually send a downgraded constraint to a backend.
+                    return (chooseBackendWithConstraints cfg.Routing req).Routed
                 }
 
         interface ILlmService with
@@ -110,7 +115,8 @@ module LlmService =
             member _.RouteAsync(req: LlmRequest) : Task<RoutedBackend> =
                 task {
                     let req = enrichRequest cfg.Routing req
-                    return ConstraintDowngradeLog.routeAndWarn cfg.Routing req
+                    // Query, not execution — see the functional RouteAsync above.
+                    return (chooseBackendWithConstraints cfg.Routing req).Routed
                 }
 
         interface ICancellableLlmService with

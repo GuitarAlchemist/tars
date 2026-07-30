@@ -366,12 +366,22 @@ module ConstraintDowngradeLog =
 
     let private defaultSink (msg: string) = eprintfn "%s" msg
 
-    let mutable private sink: string -> unit = defaultSink
+    /// AsyncLocal, not a plain mutable: a process-global sink is a test-isolation
+    /// hazard. xUnit runs distinct test collections in parallel, so one test
+    /// redirecting the sink to its own buffer would capture another's warnings
+    /// and drop its own. AsyncLocal scopes the override to the execution context
+    /// that set it and flows into that context's continuations, so a redirect in
+    /// one test is invisible to every other.
+    let private scopedSink = new System.Threading.AsyncLocal<(string -> unit) option>()
 
     /// Redirect warnings (tests capture; hosts can forward to their logger).
-    let setSink (f: string -> unit) = sink <- f
+    /// Scoped to the calling execution context, not the process.
+    let setSink (f: string -> unit) = scopedSink.Value <- Some f
 
-    let resetSink () = sink <- defaultSink
+    let resetSink () = scopedSink.Value <- None
+
+    let private sink (msg: string) =
+        (scopedSink.Value |> Option.defaultValue defaultSink) msg
 
     let format (d: ConstraintDowngrade) =
         $"CONSTRAINT DOWNGRADE: {d.RequestedGrammar} grammar discarded — backend {d.Backend} cannot enforce it; falling back to JSON mode"

@@ -2,6 +2,7 @@ namespace Tars.Tests
 
 open System
 open System.Text.Json
+open System.Threading.Tasks
 open Xunit
 open Tars.Llm
 open Tars.Llm.Routing
@@ -165,3 +166,77 @@ module ConstraintRoutingTests =
     let ``JsonSchema still travels as response_format json_schema`` () =
         let body = serializedBody false (Some(Constrained(JsonSchema """{"type":"object"}""")))
         Assert.Contains("json_schema", body)
+
+    /// One constraint, one spelling. The first cut sent the schema twice on the
+    /// vLLM path — once as `structured_outputs.json`, once as `response_format`.
+    /// That was harmless only because response_format takes precedence, which is
+    /// a server-side detail no caller should depend on.
+    [<Fact>]
+    let ``vLLM sends a JSON schema once, via response_format only`` () =
+        let body = serializedBody true (Some(Constrained(JsonSchema """{"type":"object"}""")))
+        Assert.Contains("json_schema", body)
+        Assert.DoesNotContain("structured_outputs", body)
+
+    /// Grammars and regexes have no response_format spelling, so for those
+    /// structured_outputs must still be the carrier.
+    [<Fact>]
+    let ``vLLM still sends grammar and regex via structured_outputs`` () =
+        let ebnf = serializedBody true (Some(Constrained(Ebnf "root ::= digit")))
+        Assert.Contains("structured_outputs", ebnf)
+        Assert.Contains("grammar", ebnf)
+
+        let rx = serializedBody true (Some(Constrained(Regex "[0-9]+")))
+        Assert.Contains("structured_outputs", rx)
+        Assert.Contains("regex", rx)
+
+    // ── sink scoping and query-vs-execution ─────────────────────────────────
+
+    /// The sink used to be a process-global `mutable`. xUnit runs distinct test
+    /// collections in parallel, so one test's redirect could swallow another's
+    /// warnings and lose its own. AsyncLocal confines the override to the context
+    /// that set it: a nested context may reassign it without the parent seeing
+    /// either the reassignment or the warnings it captures.
+    [<Fact>]
+    let ``a sink redirect does not leak out of the context that set it`` () =
+        task {
+            let outer = ResizeArray<string>()
+            let inner = ResizeArray<string>()
+
+            try
+                ConstraintDowngradeLog.setSink outer.Add
+
+                do!
+                    Task.Run(fun () ->
+                        ConstraintDowngradeLog.setSink inner.Add
+
+                        ConstraintDowngradeLog.routeAndWarn ollamaOnly (req (Some(Constrained(Ebnf "root ::= digit"))))
+                        |> ignore)
+
+                ConstraintDowngradeLog.routeAndWarn ollamaOnly (req (Some(Constrained(Ebnf "root ::= digit"))))
+                |> ignore
+
+                // With a global mutable these would read 2 and 0: the nested
+                // assignment would still be in force for the outer warning.
+                Assert.Equal(1, inner.Count)
+                Assert.Equal(1, outer.Count)
+            finally
+                ConstraintDowngradeLog.resetSink ()
+        }
+
+    /// RouteAsync answers "which backend would serve this?" without sending
+    /// anything. Warning there means a caller that asks and then completes —
+    /// CliReasoner does exactly that — gets two warnings for one request.
+    [<Fact>]
+    let ``RouteAsync does not warn because it executes nothing`` () =
+        task {
+            let captured = ResizeArray<string>()
+
+            try
+                ConstraintDowngradeLog.setSink captured.Add
+                use http = new System.Net.Http.HttpClient()
+                let svc = LlmService.DefaultLlmService(http, { Routing = ollamaOnly }) :> ILlmService
+                let! _ = svc.RouteAsync(req (Some(Constrained(Ebnf "root ::= digit"))))
+                Assert.Empty(captured)
+            finally
+                ConstraintDowngradeLog.resetSink ()
+        }

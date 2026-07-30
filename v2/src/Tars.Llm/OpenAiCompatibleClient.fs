@@ -85,8 +85,13 @@ module OpenAiCompatibleClient =
             match req.ResponseFormat with
             | Some(ResponseFormat.Constrained(Grammar.Ebnf grammar)) -> Some(box {| grammar = grammar |})
             | Some(ResponseFormat.Constrained(Grammar.Regex pattern)) -> Some(box {| regex = pattern |})
-            | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
-                Some(box {| json = JsonSerializer.Deserialize<JsonElement>(schema) |})
+            // Deliberately NOT emitted for JsonSchema. `response_format` already
+            // carries the schema on the same request, and it is the portable
+            // spelling every OpenAI-compatible server understands. Sending both
+            // states one constraint twice in two dialects — harmless today only
+            // because response_format wins, which is a precedence detail nobody
+            // should have to rely on.
+            | Some(ResponseFormat.Constrained(Grammar.JsonSchema _))
             | _ -> None
 
     let private toOpenAiRole =
