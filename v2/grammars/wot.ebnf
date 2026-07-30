@@ -1,29 +1,167 @@
-(* Workflow of Thought DSL grammar for constrained LLM generation *)
-(* Used with vLLM guided_decoding to ensure valid WoT programs *)
+(* Workflow of Thought DSL — the language Tars.DSL.Wot.WotParser accepts.
 
-workflow    ::= meta? node+ edge*
-meta        ::= "META" "{" meta_field* "}"
-meta_field  ::= identifier ":" string_literal
+   SOUNDNESS CONTRACT
+   Every string this grammar generates must parse cleanly under WotParser.
+   The converse does NOT hold, deliberately: WotParser is forgiving — it
+   ignores unrecognised lines, tolerates missing sections, and accepts
+   unquoted values. This grammar describes the intended *well-formed subset*,
+   which is what a constrained decoder should be held to. Asserting the
+   reverse direction would mean encoding the parser's tolerance for garbage.
 
-node        ::= node_kind identifier title? "{" node_body "}"
-node_kind   ::= "REASON" | "WORK"
-title       ::= "title" ":" string_literal
+   Enforced by tests/Tars.Tests/WotGrammarConformanceTests.fs. Change
+   WotParser's accepted vocabulary and that harness fails until this agrees.
 
-node_body   ::= (input_decl | output_decl | tool_decl | transform_decl)*
-input_decl  ::= "input" ":" identifier ("," identifier)*
-output_decl ::= "output" ":" identifier ("," identifier)*
-tool_decl   ::= "tool" ":" identifier
-transform_decl ::= "transform" ":" transformation
+   WHY WHITESPACE IS EXPLICIT
+   This grammar exists to drive constrained decoding (vLLM structured
+   outputs, llama.cpp GBNF). Neither has a notion of implicit whitespace:
+   what the grammar does not say is legal, the decoder cannot emit. So `ws`
+   (optional) and `sp` (required) appear everywhere the parser tolerates or
+   demands spacing. `sp` is not decoration — WotParser's node/edge header
+   regexes use `\s+`, so `node"a"{` is a parse error while `node "a" {` is not.
 
-transformation ::= "Refine" | "Aggregate" | "Generate" | "Score" | "Critique" | "Merge"
+   WHY NEWLINES ARE EXPLICIT
+   WotParser is a line-based state machine, not a token stream:
+     - a section header must be the last token on its line, ending in "{"
+       (`startsWith "meta" line && line.EndsWith("{")`)
+     - a closing brace must stand alone on its line (`elif line = "}"`)
+     - `checks` must end its line with "[", and the matching "]" stands alone
+     - an `args = { ... }` object must fit entirely on one line — it is parsed
+       from that single line and is never continued
+   The previous version of this file modelled none of this and used a syntax
+   (META/REASON/EDGE with ":" separators) that WotParser never accepted at
+   all, so any decoder constrained by it emitted 100% unparseable output.
 
-edge        ::= "EDGE" identifier "->" identifier condition?
-condition   ::= "when" expression
+   Text is matched after CRLF normalisation, because WotParser reads through
+   File.ReadAllLines, which strips carriage returns before any rule sees them.
 
-expression  ::= identifier comparator value
-comparator  ::= "==" | "!=" | ">" | "<" | ">=" | "<="
-value       ::= string_literal | number | "true" | "false"
+   String bodies may contain `${name}` interpolation references. Those are
+   ordinary string content — the parser resolves them after parsing, so they
+   need no production of their own.
+*)
 
-identifier     ::= [a-zA-Z_] [a-zA-Z0-9_]*
-string_literal ::= '"' [^"]* '"'
-number         ::= [0-9]+ ("." [0-9]+)?
+file            ::= trivia meta_block? trivia inputs_block? trivia policy_block? trivia workflow_block trivia
+
+(* ── whitespace, line structure, trivia ───────────────────────────────── *)
+hs              ::= " " | "\t"
+ws              ::= hs*
+sp              ::= hs+
+nl              ::= "\n"
+eol             ::= ws nl
+not_nl          ::= [^\n]
+blank_line      ::= ws nl
+comment_line    ::= ws "//" not_nl* nl
+trivia          ::= (blank_line | comment_line)*
+
+eq              ::= ws "=" ws
+colon           ::= ws ":" ws
+comma           ::= ws "," ws
+close_brace     ::= ws "}" eol
+close_bracket   ::= ws "]" eol
+
+(* ── meta ─────────────────────────────────────────────────────────────── *)
+meta_block      ::= ws "meta" ws "{" eol (trivia meta_field)* trivia close_brace
+meta_field      ::= ws meta_key eq string_literal eol
+meta_key        ::= "name" | "version" | "risk" | "description"
+                  | "domain" | "difficulty"
+
+(* ── inputs: free-form keys, each a named value the workflow can read ──── *)
+inputs_block    ::= ws "inputs" ws "{" eol (trivia input_field)* trivia close_brace
+input_field     ::= ws identifier eq string_literal eol
+
+(* ── policy: execution budget and the tool allow-list ─────────────────── *)
+policy_block    ::= ws "policy" ws "{" eol (trivia policy_field)* trivia close_brace
+policy_field    ::= ws "allowed_tools" eq string_list eol
+                  | ws "max_tool_calls" eq integer eol
+                  | ws "max_tokens" eq integer eol
+                  | ws "max_time_ms" eq integer eol
+
+(* ── workflow: the node graph. The quoted name is optional and read for
+      documentation only — WotParser takes the workflow name from
+      meta.name, never from here. ─────────────────────────────────────── *)
+workflow_block  ::= ws "workflow" (sp string_literal)? ws "{" eol (trivia workflow_item)* trivia close_brace
+workflow_item   ::= node | parallel_block | edge
+
+(* A parallel block groups nodes for concurrent execution. Edges may not
+   appear inside it: WotParser only collects node ids while the block is
+   open, so an edge there would escape the group. *)
+parallel_block  ::= ws "parallel" ws "{" eol (trivia node)+ trivia close_brace
+
+(* ── node ──────────────────────────────────────────────────────────────
+   Three header forms, and only these three. Attribute order is fixed —
+   `agent` may not precede or replace `kind` — because WotParser matches
+   each whole header with a single regex rather than parsing attributes
+   independently. *)
+node            ::= node_header eol (trivia node_field)* trivia close_brace
+node_header     ::= ws "node" sp node_id sp "kind" eq quoted_kind sp "agent" eq quoted_name ws "{"
+                  | ws "node" sp node_id sp "kind" eq quoted_kind ws "{"
+                  | ws "node" sp node_id ws "{"
+
+(* Quotes around an id are optional — every id-matching regex in WotParser
+   spells them `"?`. The planner's own output in .wot/plans uses the bare
+   form (`node analyze_implementation kind="work" {`), so excluding it would
+   make this grammar reject the very generator it exists to constrain. *)
+node_id         ::= '"' identifier '"' | identifier
+quoted_name     ::= '"' identifier '"'
+
+(* An unrecognised kind silently degrades to `reason`, so the grammar admits
+   only the two intentional values. *)
+quoted_kind     ::= '"' node_kind '"'
+node_kind       ::= "reason" | "work"
+
+node_field      ::= ws "goal" eq string_literal eol
+                  | ws "output" eq string_literal eol
+                  | ws "input" eq (string_list | string_literal) eol
+                  | ws "invariants" eq string_list eol
+                  | ws "constraints" eq string_list eol
+                  | ws "tool" eq string_literal eol
+                  | ws "verdict" eq string_literal eol
+                  | ws "condition" eq string_literal eol
+                  | ws "kind" eq quoted_kind eol
+                  | ws "args" eq args_object eol
+                  | checks_block
+
+(* ── checks: one JSON-ish object per line. `checks [` and `checks = [` are
+      both accepted — WotParser only requires the line to end in "[". A
+      trailing comma after an item is tolerated. ──────────────────────── *)
+checks_block    ::= ws "checks" (eq | ws) "[" eol (trivia check_item)* trivia close_bracket
+check_item      ::= ws check_object ws ","? eol
+
+check_object    ::= "{" ws check_type_non_empty comma check_value ws "}"
+                  | "{" ws check_type_contains comma check_value comma check_needle ws "}"
+                  | "{" ws check_type_regex comma check_value comma check_pattern ws "}"
+                  | "{" ws check_type_schema comma check_value comma check_schema ws "}"
+                  | "{" ws check_type_tool comma check_tool comma check_args comma check_check ws "}"
+
+check_type_non_empty ::= '"type"' colon '"non_empty"'
+check_type_contains  ::= '"type"' colon '"contains"'
+check_type_regex     ::= '"type"' colon '"regex"'
+check_type_schema    ::= '"type"' colon '"schema"'
+check_type_tool      ::= '"type"' colon '"tool_result"'
+
+(* Every one of these is extracted with `"([^"]+)"`, so the value must be
+   non-empty — an empty string would make the field invisible to the parser
+   and the check would be silently dropped. *)
+check_value     ::= '"value"' colon json_string
+check_needle    ::= '"needle"' colon json_string
+check_pattern   ::= '"pattern"' colon json_string
+check_schema    ::= '"schema"' colon json_string
+check_tool      ::= '"tool"' colon json_string
+check_args      ::= '"args"' colon args_object
+check_check     ::= '"check"' colon json_string
+
+(* ── edge: plain successor link. WotParser has no `when`/condition support
+      on edges — a per-node `condition` field carries that instead. ───── *)
+edge            ::= ws "edge" sp node_id ws "->" ws node_id eol
+
+(* ── shared terminals ─────────────────────────────────────────────────── *)
+args_object     ::= "{" ws (arg_pair (comma arg_pair)*)? ws "}"
+arg_pair        ::= json_string colon json_string
+
+string_list     ::= "[" ws (string_literal (list_sep string_literal)*)? ws "]"
+list_sep        ::= ws ("," | ";") ws
+
+identifier      ::= [A-Za-z0-9_\-]+
+string_literal  ::= '"' not_quote* '"'
+json_string     ::= '"' not_quote+ '"'
+not_quote       ::= [^"\n]
+integer         ::= [0-9]+

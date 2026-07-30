@@ -135,10 +135,16 @@
     <Compile Include="LocalModelPoolTests.fs" />
     <Compile Include="ToolInvokerTests.fs" />
     <Compile Include="ReasonFeedbackTests.fs" />
+    <Compile Include="WotGrammarConformanceTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="WorkflowOfThought\fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The grammar under test, and the parser source it must stay in step with.
+         WotGrammarConformanceTests reads both: the grammar to recognise fixtures,
+         the parser source to detect keys added to one side but not the other. -->
+    <Content Include="..\..\grammars\wot.ebnf" Link="grammars\wot.ebnf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\src\Tars.DSL\Wot\WotParser.fs" Link="sources\WotParser.fs" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
