@@ -1,0 +1,75 @@
+// Full-surface conformance fixture: exercises every construct declared in
+// grammars/wot.ebnf. Both WotParser and the EBNF recognizer must accept it.
+// The .wot/ corpus is gitignored, so this tracked file is the real gate.
+meta {
+  name = "full_surface"
+  version = "1.0.0"
+  risk = "low"
+  description = "Exercises every construct in grammars/wot.ebnf"
+  domain = "conformance"
+  difficulty = "easy"
+}
+
+inputs {
+  topic = "conformance"
+  expected_answer = "42"
+}
+
+policy {
+  allowed_tools = ["web_search", "math_eval"]
+  max_tool_calls = 3
+  max_tokens = 2048
+  max_time_ms = 60000
+}
+
+workflow "full_surface" {
+
+  // long node header: id + kind + agent, in that fixed order
+  node "plan" kind="reason" agent="Planner" {
+    goal = "Plan the work for ${topic}"
+    output = "plan"
+    invariants = ["no_speculation"]
+    constraints = ["show_reasoning_before_solution"]
+  }
+
+  // parallel group: nodes only, no edges inside
+  parallel {
+    node "search" kind="work" {
+      input = ["plan"]
+      tool = "web_search"
+      args = { "query": "${topic} latest" }
+      output = "hits"
+    }
+
+    node "recall" kind="reason" {
+      input = ["plan"]
+      goal = "Recall what is already known about ${topic}"
+      output = "recalled"
+    }
+  }
+
+  // short node header: no kind, no agent — kind defaults to reason
+  node "compute" {
+    input = ["hits", "recalled"]
+    goal = "Compute the answer"
+    output = "computed_answer"
+    condition = "hits_non_empty"
+    verdict = "accept"
+  }
+
+  // scalar input form, and every check type
+  node "verify" kind="work" {
+    input = "computed_answer"
+    output = "final_verdict"
+    checks = [
+      { "type": "non_empty", "value": "${computed_answer}" },
+      { "type": "contains", "value": "${computed_answer}", "needle": "${expected_answer}" },
+      { "type": "regex", "value": "${computed_answer}", "pattern": "[0-9]+" },
+      { "type": "schema", "value": "${computed_answer}", "schema": "number" },
+      { "type": "tool_result", "tool": "math_eval", "args": { "expression": "${computed_answer}" }, "check": "0" }
+    ]
+  }
+
+  edge "plan" -> "compute"
+  edge "compute" -> "verify"
+}
