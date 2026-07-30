@@ -39,6 +39,14 @@ jobs:
   # SDK if absent). Promote to required only once it's proven stable.
   build-selfhosted:
 
+    # Opt-in: skipped unless the repo variable SELFHOSTED_RUNNER_ENABLED is "true".
+    # `continue-on-error` only covers a job that RUNS and fails — when no self-hosted
+    # runner is registered the job never starts, so it sits `queued` until Actions
+    # expires it 24h later. That left a permanently-pending check on every PR: it
+    # never blocked a merge (`build` is the only required context) but it did make
+    # every PR read as UNSTABLE/BLOCKED, which is noise that hides real failures.
+    # Set the variable when AW-STEF is online: gh variable set SELFHOSTED_RUNNER_ENABLED --body true
+    if: vars.SELFHOSTED_RUNNER_ENABLED == 'true'
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 30
     # Don't fail other jobs / the run's required status on self-hosted hiccups.
