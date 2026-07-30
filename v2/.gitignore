@@ -15,6 +15,11 @@
 *.log
 *.tmp
 *.trsx
+# ...except test fixtures, which are part of the suite rather than runtime
+# output. Without this, a new .wot.trsx fixture is silently untracked and any
+# test asserting over it passes locally and is vacuous in CI. sample.wot.trsx
+# predates this rule and is tracked only because it was force-added.
+!tests/Tars.Tests/WorkflowOfThought/fixtures/*.trsx
 log_output_*
 benchmark_results_*.csv
 build_*.txt
