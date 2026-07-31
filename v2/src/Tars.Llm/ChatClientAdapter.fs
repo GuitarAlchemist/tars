@@ -39,6 +39,21 @@ module internal ChatClientMapping =
         { Role = fromAIRole msg.Role
           Content = msg.Text |> Option.ofObj |> Option.defaultValue "" }
 
+    /// Wire names for the constraints M.E.AI has no first-class channel for.
+    /// EBNF and regex have no `ChatResponseFormat` equivalent, so they ride in
+    /// `AdditionalProperties` under the same names `OpenAiCompatibleClient` uses.
+    [<Literal>]
+    let GrammarKey = "structured_outputs_grammar"
+
+    [<Literal>]
+    let RegexKey = "structured_outputs_regex"
+
+    let private tryParseSchema (schema: string) =
+        try
+            Some(System.Text.Json.JsonDocument.Parse(schema).RootElement)
+        with _ ->
+            None
+
     /// Build M.E.AI ChatOptions from an LlmRequest
     let toChatOptions (req: LlmRequest) : ChatOptions =
         let opts = ChatOptions()
@@ -50,40 +65,74 @@ module internal ChatClientMapping =
         if not req.Stop.IsEmpty then
             opts.StopSequences <- req.Stop |> ResizeArray
 
+        let carry key (value: string) =
+            let dict = Dictionary<string, obj>()
+            dict.[key] <- box value
+            opts.AdditionalProperties <- AdditionalPropertiesDictionary(dict)
+
         match req.ResponseFormat with
         | Some ResponseFormat.Json -> opts.ResponseFormat <- ChatResponseFormat.Json
         | Some (ResponseFormat.Constrained (Grammar.JsonSchema schema)) ->
-            // Pass JSON schema through MAF as JSON mode + schema in AdditionalProperties
-            opts.ResponseFormat <- ChatResponseFormat.Json
-            opts.AdditionalProperties <-
-                let dict = System.Collections.Generic.Dictionary<string, obj>()
-                dict.["structured_outputs_json"] <- box schema
-                dict :> System.Collections.Generic.IDictionary<string, obj>
-                |> System.Collections.ObjectModel.ReadOnlyDictionary
-                |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
+            // `ForJsonSchema` is the channel providers actually enforce. This used
+            // to set bare JSON mode and hide the schema in AdditionalProperties,
+            // where no stock M.E.AI provider looks — so the schema was requested
+            // and never applied. Unparseable schemas degrade to plain JSON mode
+            // rather than throwing out of a format mapping.
+            match tryParseSchema schema with
+            | Some element ->
+                opts.ResponseFormat <-
+                    ChatResponseFormat.ForJsonSchema(element, "tars_structured_output", "TARS constrained response schema")
+            | None -> opts.ResponseFormat <- ChatResponseFormat.Json
         | Some (ResponseFormat.Constrained (Grammar.Ebnf grammar)) ->
-            // Pass EBNF grammar through AdditionalProperties for backends that support it
-            opts.AdditionalProperties <-
-                let dict = System.Collections.Generic.Dictionary<string, obj>()
-                // Lockstep with OpenAiCompatibleClient's structured_outputs naming —
-                // two pipelines must not emit different wire shapes for one Grammar.
-                // Backend selection is the server's job, so no backend key here.
-                dict.["structured_outputs_grammar"] <- box grammar
-                dict :> System.Collections.Generic.IDictionary<string, obj>
-                |> System.Collections.ObjectModel.ReadOnlyDictionary
-                |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
-        | Some (ResponseFormat.Constrained (Grammar.Regex pattern)) ->
-            opts.AdditionalProperties <-
-                let dict = System.Collections.Generic.Dictionary<string, obj>()
-                dict.["structured_outputs_regex"] <- box pattern
-                dict :> System.Collections.Generic.IDictionary<string, obj>
-                |> System.Collections.ObjectModel.ReadOnlyDictionary
-                |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
+            // No first-class M.E.AI channel for EBNF; travels as an additional
+            // property, named in lockstep with OpenAiCompatibleClient so the two
+            // pipelines never emit different wire shapes for one Grammar.
+            // Backend selection is the server's job, so no backend key here.
+            carry GrammarKey grammar
+        | Some (ResponseFormat.Constrained (Grammar.Regex pattern)) -> carry RegexKey pattern
         | _ ->
             if req.JsonMode then
                 opts.ResponseFormat <- ChatResponseFormat.Json
 
         opts
+
+    /// Recover a TARS ResponseFormat from M.E.AI ChatOptions — the inverse of
+    /// `toChatOptions`, and the half that was missing.
+    ///
+    /// The trap: `ChatResponseFormat.ForJsonSchema` returns a NEW
+    /// `ChatResponseFormatJson`, not the `ChatResponseFormat.Json` singleton, so a
+    /// reference comparison against that singleton is false in precisely the case
+    /// that carries a schema. The old mapping did exactly that, and concluded "not
+    /// JSON at all" for every schema-constrained request MAF issued.
+    let fromChatOptions (options: ChatOptions) : ResponseFormat option =
+        let carried key =
+            match options.AdditionalProperties with
+            | null -> None
+            | props ->
+                match props.TryGetValue key with
+                | true, (:? string as s) when not (String.IsNullOrWhiteSpace s) -> Some s
+                | _ -> None
+
+        carried GrammarKey
+        |> Option.map (Grammar.Ebnf >> ResponseFormat.Constrained)
+        |> Option.orElseWith (fun () ->
+            carried RegexKey |> Option.map (Grammar.Regex >> ResponseFormat.Constrained))
+        |> Option.orElseWith (fun () ->
+            match box options.ResponseFormat with
+            | null -> None
+            | :? ChatResponseFormatJson as json ->
+                match Option.ofNullable json.Schema with
+                | Some schema -> Some(ResponseFormat.Constrained(Grammar.JsonSchema(schema.GetRawText())))
+                | None -> Some ResponseFormat.Json
+            | _ -> Some ResponseFormat.Text)
+
+    /// Whether a recovered format also implies the legacy `JsonMode` flag. Both
+    /// exist on LlmRequest; backends read one or the other, so they must agree.
+    let impliesJsonMode (format: ResponseFormat) =
+        match format with
+        | ResponseFormat.Json
+        | ResponseFormat.Constrained (Grammar.JsonSchema _) -> true
+        | _ -> false
 
     /// Convert an M.E.AI ChatResponse to a TARS LlmResponse
     let toLlmResponse (resp: ChatResponse) : LlmResponse =
@@ -136,6 +185,8 @@ type LlmServiceChatClient(inner: ILlmService) =
                 let mutable req = Prompt.ofMessages tarsMessages
 
                 if not (isNull options) then
+                    let format = ChatClientMapping.fromChatOptions options
+
                     req <-
                         { req with
                             Temperature =
@@ -159,9 +210,11 @@ type LlmServiceChatClient(inner: ILlmService) =
                             Stop =
                                 if isNull options.StopSequences then req.Stop
                                 else options.StopSequences |> Seq.toList
+                            ResponseFormat = format |> Option.orElse req.ResponseFormat
                             JsonMode =
-                                if isNull (box options.ResponseFormat) then req.JsonMode
-                                else obj.ReferenceEquals(options.ResponseFormat, ChatResponseFormat.Json) }
+                                match format with
+                                | Some f -> ChatClientMapping.impliesJsonMode f
+                                | None -> req.JsonMode }
 
                 let! llmResp = inner.CompleteAsync(req)
 
@@ -205,6 +258,10 @@ type LlmServiceChatClient(inner: ILlmService) =
                         |> Prompt.withStream true
 
                     if not (isNull options) then
+                        // Constraints must survive streaming too: a MAF agent that
+                        // streams is the common case, not the exception.
+                        let format = ChatClientMapping.fromChatOptions options
+
                         req <-
                             { req with
                                 Temperature =
@@ -219,7 +276,12 @@ type LlmServiceChatClient(inner: ILlmService) =
                                 Model =
                                     options.ModelId
                                     |> Option.ofObj
-                                    |> Option.orElse req.Model }
+                                    |> Option.orElse req.Model
+                                ResponseFormat = format |> Option.orElse req.ResponseFormat
+                                JsonMode =
+                                    match format with
+                                    | Some f -> ChatClientMapping.impliesJsonMode f
+                                    | None -> req.JsonMode }
 
                     let buffer = System.Collections.Concurrent.ConcurrentQueue<string>()
                     let mutable finished = false

@@ -137,6 +137,7 @@
     <Compile Include="ReasonFeedbackTests.fs" />
     <Compile Include="WotGrammarConformanceTests.fs" />
     <Compile Include="Article4BoundaryTests.fs" />
+    <Compile Include="ChatClientFormatTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
