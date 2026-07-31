@@ -37,7 +37,7 @@ open Tars.Evolution.WeightedGrammar
 /// tests are that guard.
 
 let private rule name weight alpha beta : WeightedRule =
-    { PatternId = $"pid_{name}"
+    { PatternId = PromotionPipeline.patternIdOf name
       PatternName = name
       Level = PromotionLevel.Implementation
       RawScore = 5
@@ -82,7 +82,7 @@ let ``classifyWeighted reorders candidates without changing the set`` () =
     let records =
         [ "alpha_pattern"; "beta_pattern"; "gamma_pattern" ]
         |> List.map (fun n ->
-            { PatternId = $"pid_{n}"
+            { PatternId = PromotionPipeline.patternIdOf n
               PatternName = n
               OccurrenceCount = 5
               CurrentLevel = PromotionLevel.Implementation
@@ -125,30 +125,13 @@ let ``classifyWeighted reorders candidates without changing the set`` () =
 /// human.
 [<Fact>]
 let ``promotion outcomes do not depend on learned weights`` () =
-    // The records must be pre-seeded. `extractInto` mints PatternId as a random
-    // Guid prefix for any name it has not seen, so weights keyed to a guessed id
-    // silently match nothing, every weight falls back to 0.0, and the sort is
-    // stable — the first version of this test seeded weights that had no effect
-    // at all and passed even with a top-N truncation injected. Seeding the
-    // recurrence records first pins the ids the weights are keyed to.
-    let seedRecord name : RecurrenceRecord =
-        { PatternId = $"pid_{name}"
-          PatternName = name
-          OccurrenceCount = 0
-          CurrentLevel = PromotionLevel.Implementation
-          AverageScore = 0.0
-          TaskIds = []
-          Contexts = []
-          PromotionHistory = [ (PromotionLevel.Implementation, DateTime.UtcNow) ]
-          FirstSeen = DateTime.UtcNow
-          LastSeen = DateTime.UtcNow }
-
+    // Weights are keyed with `PromotionPipeline.patternIdOf`, the same function
+    // `extractInto` uses. That matters: an earlier version of this test guessed
+    // ids as "pid_{name}", which matched nothing, so every weight fell back to
+    // 0.0 and the sort stayed stable — it passed even with a top-N truncation
+    // injected. Sharing the identity function is what makes the seeding real.
     let runWith (weights: WeightedRule list) =
         let store = InMemoryPromotionStore() :> IPromotionStore
-
-        for name in [ "alpha_pattern"; "beta_pattern"; "gamma_pattern" ] do
-            store.UpsertRecurrence(seedRecord name)
-
         store.SaveWeights weights
         PromotionPipeline.run store 3 (artifacts ()) |> approvedNames
 

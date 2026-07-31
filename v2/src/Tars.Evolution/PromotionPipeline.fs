@@ -28,6 +28,35 @@ let private jsonOptions =
 /// to live here — and leaked across tests — now lives inside the store.
 let defaultStore : IPromotionStore = DiskPromotionStore() :> IPromotionStore
 
+/// Stable pattern identity, derived from the pattern name.
+///
+/// This was `Guid.NewGuid().ToString("N").[..7]` — a fresh random id minted for
+/// each newly-seen name. Weights are keyed by PatternId while the store keys
+/// recurrence by PatternName, so a random id left the two correlatable only
+/// through whichever store instance happened to mint it. Rebuild or lose
+/// recurrence state while weights.json survives and every lookup in
+/// `classifyWeighted` misses, each rule falls back to `Option.defaultValue 0.0`,
+/// ranking silently degrades to input order, and the previous weights are
+/// orphaned permanently — `SaveWeights` appends and never prunes.
+///
+/// PatternName is already the store's key (`recurrence.[record.PatternName]`),
+/// so a random id carried no information the name did not. Deriving it makes the
+/// identity stable across stores, processes and resets.
+///
+/// Not a migration: records already in a store are returned by
+/// `TryGetRecurrence` and keep whatever id they were persisted with, so existing
+/// weights keep matching. Only newly-seen names take the derived form.
+///
+/// SHA-256 rather than `String.GetHashCode`, which is randomised per process and
+/// would reintroduce exactly the instability this removes.
+let patternIdOf (patternName: string) : string =
+    use sha = System.Security.Cryptography.SHA256.Create()
+
+    sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes patternName)
+    |> Array.take 4
+    |> Array.map (fun b -> b.ToString("x2"))
+    |> String.concat ""
+
 // ─────────────────────────────────────────────────────────────────────
 // Step 1: INSPECT — Analyze completed work artifacts
 // ─────────────────────────────────────────────────────────────────────
@@ -59,7 +88,7 @@ let extractInto (store: IPromotionStore) (artifacts: TraceArtifact list) : Recur
             match store.TryGetRecurrence name with
             | Some r -> r
             | None ->
-                { PatternId = Guid.NewGuid().ToString("N").[..7]
+                { PatternId = patternIdOf name
                   PatternName = name
                   FirstSeen = DateTime.UtcNow
                   LastSeen = DateTime.UtcNow
