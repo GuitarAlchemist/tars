@@ -66,12 +66,38 @@ let private schemaText = """{"type":"object","properties":{"answer":{"type":"str
 let private schemaElement () =
     JsonDocument.Parse(schemaText).RootElement
 
+/// `GetRawText()` returns the original span verbatim — whitespace included — so
+/// comparing two schemas by raw text is a whitespace-sensitive string compare that
+/// happens to pass only while both sides travel an identical path. Re-serializing
+/// normalizes, which is what a schema comparison should have been doing.
+let private normalizeJson (json: string) =
+    JsonSerializer.Serialize(JsonDocument.Parse(json).RootElement)
+
 let private captureWith (options: ChatOptions) =
     let inner = CapturingLlmService()
     let client = new LlmServiceChatClient(inner) :> IChatClient
     let messages = [ ChatMessage(ChatRole.User, "hi") ] :> IEnumerable<ChatMessage>
     client.GetResponseAsync(messages, options, CancellationToken.None).GetAwaiter().GetResult() |> ignore
     Assert.True(inner.Captured.IsSome, "the adapter never reached the inner service")
+    inner.Captured.Value
+
+/// Same, through the streaming entry point. The streaming path builds its request
+/// separately from the non-streaming one, so it can drift independently — and it
+/// maps the options lazily, inside GetAsyncEnumerator, so nothing is captured until
+/// the sequence is actually enumerated.
+let private captureStreaming (options: ChatOptions) =
+    let inner = CapturingLlmService()
+    let client = new LlmServiceChatClient(inner) :> IChatClient
+    let messages = [ ChatMessage(ChatRole.User, "hi") ] :> IEnumerable<ChatMessage>
+    let updates = client.GetStreamingResponseAsync(messages, options, CancellationToken.None)
+    let e = updates.GetAsyncEnumerator(CancellationToken.None)
+
+    try
+        e.MoveNextAsync().AsTask().GetAwaiter().GetResult() |> ignore
+    finally
+        e.DisposeAsync().AsTask().GetAwaiter().GetResult()
+
+    Assert.True(inner.Captured.IsSome, "the streaming adapter never reached the inner service")
     inner.Captured.Value
 
 // ── ChatOptions -> LlmRequest (the MAF direction) ───────────────────────────
@@ -85,11 +111,7 @@ let ``a schema-constrained ChatOptions survives as a constrained LlmRequest`` ()
 
     match req.ResponseFormat with
     | Some (ResponseFormat.Constrained (Grammar.JsonSchema recovered)) ->
-        // Compare parsed, not textual: JsonElement round-trips without whitespace.
-        Assert.Equal(
-            JsonDocument.Parse(schemaText).RootElement.GetRawText(),
-            JsonDocument.Parse(recovered).RootElement.GetRawText()
-        )
+        Assert.Equal(normalizeJson schemaText, normalizeJson recovered)
     | other -> failwith $"expected a JsonSchema constraint, got %A{other}"
 
     // The legacy flag must agree with the format, or backends reading it disagree
@@ -174,7 +196,9 @@ let ``a JSON schema goes out on the channel providers enforce`` () =
     match box opts.ResponseFormat with
     | :? ChatResponseFormatJson as json ->
         Assert.True(json.Schema.HasValue, "the schema was dropped on the way to the provider")
-        Assert.Contains("answer", json.Schema.Value.GetRawText())
+        // The whole schema, not merely a substring of it: `Contains` would pass on a
+        // wrapped or mangled schema that still mentioned the property name.
+        Assert.Equal(normalizeJson schemaText, normalizeJson (json.Schema.Value.GetRawText()))
     | other -> failwith $"expected ChatResponseFormatJson, got %A{other}"
 
 [<Fact>]
@@ -228,10 +252,7 @@ let ``every constraint survives a round trip regardless of JsonMode`` (kind: str
     match original, recovered with
     | ResponseFormat.Constrained (Grammar.JsonSchema a),
       Some (ResponseFormat.Constrained (Grammar.JsonSchema b)) ->
-        Assert.Equal(
-            JsonDocument.Parse(a).RootElement.GetRawText(),
-            JsonDocument.Parse(b).RootElement.GetRawText()
-        )
+        Assert.Equal(normalizeJson a, normalizeJson b)
     | a, b -> Assert.Equal(Some a, b)
 
 /// The specific inversion: an explicit request for prose, with the legacy flag also
@@ -263,6 +284,54 @@ let ``JsonMode alone still produces JSON mode`` () =
         |> ChatClientMapping.toChatOptions
 
     Assert.Equal(Some ResponseFormat.Json, ChatClientMapping.fromChatOptions opts)
+
+// ── the streaming path maps formats independently ───────────────────────────
+
+/// Streaming builds its own request, so "constraints survive streaming" needs its
+/// own guard — gutting that mapping is invisible to every non-streaming test.
+[<Theory>]
+[<InlineData("schema")>]
+[<InlineData("json")>]
+[<InlineData("text")>]
+[<InlineData("ebnf")>]
+let ``constraints survive the streaming path too`` (kind: string) =
+    let options = ChatOptions()
+
+    match kind with
+    | "schema" -> options.ResponseFormat <- ChatResponseFormat.ForJsonSchema(schemaElement (), "s", "d")
+    | "json" -> options.ResponseFormat <- ChatResponseFormat.Json
+    | "text" -> options.ResponseFormat <- ChatResponseFormat.Text
+    | _ ->
+        let dict = Dictionary<string, obj>()
+        dict.["structured_outputs_grammar"] <- box "root ::= \"a\""
+        options.AdditionalProperties <- AdditionalPropertiesDictionary(dict)
+
+    let streamed = (captureStreaming options).ResponseFormat
+    let direct = (captureWith options).ResponseFormat
+
+    Assert.True(streamed.IsSome, "the streaming path dropped the format entirely")
+
+    // Pinned against the non-streaming path rather than a literal, so the two
+    // cannot drift apart without a test noticing.
+    Assert.Equal(direct, streamed)
+
+/// Documents what streaming still drops, so a future reader can tell "deliberate"
+/// from "forgotten". If these ever start surviving, this test should be deleted.
+[<Fact>]
+let ``streaming still drops stop sequences and seed`` () =
+    let options = ChatOptions()
+    options.StopSequences <- ResizeArray [ "STOP" ]
+    options.Seed <- Nullable 42L
+
+    let req = captureStreaming options
+
+    Assert.Empty(req.Stop)
+    Assert.True(req.Seed.IsNone)
+
+    // The non-streaming path does carry them — that asymmetry is the point.
+    let direct = captureWith options
+    Assert.True(([ "STOP" ] = direct.Stop), "the non-streaming path dropped stop sequences too")
+    Assert.Equal(Some 42, direct.Seed)
 
 // ── precedence when both channels are populated ─────────────────────────────
 
@@ -298,6 +367,29 @@ let ``a grammar outranks a bare JSON response format`` () =
     | other -> failwith $"expected the grammar to win, got %A{other}"
 
 // ── malformed input must not escape as an exception ─────────────────────────
+
+/// `carried` only accepts a non-blank string. A grammar key holding anything else
+/// must fall through to the typed channel rather than being read as a constraint —
+/// AdditionalProperties is `obj`-valued, and a JSON round trip through MCP or A2A
+/// delivers a JsonElement under that key, not a string.
+[<Theory>]
+[<InlineData(0)>]
+[<InlineData(1)>]
+[<InlineData(2)>]
+let ``a non-string or blank grammar key is ignored`` (variant: int) =
+    let options = ChatOptions()
+    options.ResponseFormat <- ChatResponseFormat.Json
+    let dict = Dictionary<string, obj>()
+
+    dict.["structured_outputs_grammar"] <-
+        match variant with
+        | 0 -> box 42
+        | 1 -> box (JsonDocument.Parse("\"root ::= \\\"a\\\"\"").RootElement)
+        | _ -> box "   "
+
+    options.AdditionalProperties <- AdditionalPropertiesDictionary(dict)
+
+    Assert.Equal(Some ResponseFormat.Json, ChatClientMapping.fromChatOptions options)
 
 /// M.E.AI accepts `ForJsonSchema(default)` with no validation, yielding
 /// `Schema.HasValue = true` with `ValueKind = Undefined`, on which `GetRawText()`
