@@ -315,23 +315,57 @@ let ``constraints survive the streaming path too`` (kind: string) =
     // cannot drift apart without a test noticing.
     Assert.Equal(direct, streamed)
 
-/// Documents what streaming still drops, so a future reader can tell "deliberate"
-/// from "forgotten". If these ever start surviving, this test should be deleted.
+/// Streaming used to drop stop sequences and seed, so an identical ChatOptions
+/// produced two different requests depending only on whether the caller streamed.
+/// Pinned against the non-streaming path rather than literals, so the two cannot
+/// diverge again without failing here.
 [<Fact>]
-let ``streaming still drops stop sequences and seed`` () =
+let ``streaming carries the same sampling controls as the direct path`` () =
     let options = ChatOptions()
     options.StopSequences <- ResizeArray [ "STOP" ]
     options.Seed <- Nullable 42L
+    options.Temperature <- Nullable 0.5f
+    options.MaxOutputTokens <- Nullable 256
 
-    let req = captureStreaming options
-
-    Assert.Empty(req.Stop)
-    Assert.True(req.Seed.IsNone)
-
-    // The non-streaming path does carry them — that asymmetry is the point.
+    let streamed = captureStreaming options
     let direct = captureWith options
-    Assert.True(([ "STOP" ] = direct.Stop), "the non-streaming path dropped stop sequences too")
-    Assert.Equal(Some 42, direct.Seed)
+
+    // `Assert.Equal<string>` over seqs, not `Assert.True (a = b)`: xUnit reports a
+    // structural diff on failure, where the boolean form just says "false".
+    Assert.Equal<string>(List.toSeq [ "STOP" ], List.toSeq streamed.Stop)
+    Assert.Equal(Some 42, streamed.Seed)
+
+    Assert.Equal<string>(List.toSeq direct.Stop, List.toSeq streamed.Stop)
+    Assert.Equal(direct.Seed, streamed.Seed)
+    Assert.Equal(direct.Temperature, streamed.Temperature)
+    Assert.Equal(direct.MaxTokens, streamed.MaxTokens)
+
+/// M.E.AI seeds are int64 and LlmRequest.Seed is int, so a plain cast truncates:
+/// `int 4294967297L` is `1`. Sending seed 1 when the caller asked for 4294967297
+/// silently destroys the reproducibility that is a seed's entire purpose, so an
+/// unrepresentable seed is dropped rather than mangled.
+[<Theory>]
+[<InlineData(4294967297L)>] // 2^32 + 1 -> would truncate to 1
+[<InlineData(-9007199254740993L)>] // -(2^53 + 1) -> would truncate to -1
+[<InlineData(2147483648L)>] // Int32.MaxValue + 1
+let ``a seed that cannot be represented is dropped, not truncated`` (seed: int64) =
+    let options = ChatOptions()
+    options.Seed <- Nullable seed
+
+    Assert.True((captureWith options).Seed.IsNone, "an out-of-range seed was silently truncated")
+    Assert.True((captureStreaming options).Seed.IsNone, "streaming silently truncated an out-of-range seed")
+
+/// The boundaries themselves must still pass through.
+[<Theory>]
+[<InlineData(0L)>]
+[<InlineData(2147483647L)>] // Int32.MaxValue
+[<InlineData(-2147483648L)>] // Int32.MinValue
+let ``a representable seed survives exactly`` (seed: int64) =
+    let options = ChatOptions()
+    options.Seed <- Nullable seed
+
+    Assert.Equal(Some(int seed), (captureWith options).Seed)
+    Assert.Equal(Some(int seed), (captureStreaming options).Seed)
 
 // ── precedence when both channels are populated ─────────────────────────────
 

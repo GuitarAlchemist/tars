@@ -156,6 +156,23 @@ module internal ChatClientMapping =
                 carried RegexKey |> Option.map (Grammar.Regex >> ResponseFormat.Constrained))
             |> Option.orElse typed
 
+    /// M.E.AI seeds are `int64`; `LlmRequest.Seed` is `int`. A plain `int` cast
+    /// truncates silently — `int 4294967297L` is `1` — so a caller asking for a
+    /// 64-bit seed would get a DIFFERENT seed than they requested, defeating the
+    /// only thing a seed is for. Out-of-range seeds are dropped instead: no seed is
+    /// honest, a wrong seed is not.
+    let seedOf (options: ChatOptions) (fallback: int option) =
+        options.Seed
+        |> Option.ofNullable
+        |> Option.filter (fun s -> s >= int64 Int32.MinValue && s <= int64 Int32.MaxValue)
+        |> Option.map int
+        |> Option.orElse fallback
+
+    /// Stop sequences, evaluated eagerly into an immutable list.
+    let stopOf (options: ChatOptions) (fallback: string list) =
+        if isNull options.StopSequences then fallback
+        else options.StopSequences |> Seq.toList
+
     /// Apply a recovered format to a request, setting `ResponseFormat` and the
     /// legacy `JsonMode` flag together.
     ///
@@ -241,14 +258,8 @@ type LlmServiceChatClient(inner: ILlmService) =
                                 options.ModelId
                                 |> Option.ofObj
                                 |> Option.orElse req.Model
-                            Seed =
-                                options.Seed
-                                |> Option.ofNullable
-                                |> Option.map int
-                                |> Option.orElse req.Seed
-                            Stop =
-                                if isNull options.StopSequences then req.Stop
-                                else options.StopSequences |> Seq.toList }
+                            Seed = ChatClientMapping.seedOf options req.Seed
+                            Stop = ChatClientMapping.stopOf options req.Stop }
                         |> ChatClientMapping.applyFormat options
 
                 let! llmResp = inner.CompleteAsync(req)
@@ -307,7 +318,13 @@ type LlmServiceChatClient(inner: ILlmService) =
                                 Model =
                                     options.ModelId
                                     |> Option.ofObj
-                                    |> Option.orElse req.Model }
+                                    |> Option.orElse req.Model
+                                // Streaming carries the same sampling controls as the
+                                // non-streaming path. Dropping them here meant an
+                                // identical ChatOptions produced two different requests
+                                // depending only on whether the caller streamed.
+                                Stop = ChatClientMapping.stopOf options req.Stop
+                                Seed = ChatClientMapping.seedOf options req.Seed }
                             |> ChatClientMapping.applyFormat options
 
                     let buffer = System.Collections.Concurrent.ConcurrentQueue<string>()
