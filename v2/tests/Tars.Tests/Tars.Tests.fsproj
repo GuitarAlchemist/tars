@@ -136,6 +136,7 @@
     <Compile Include="ToolInvokerTests.fs" />
     <Compile Include="ReasonFeedbackTests.fs" />
     <Compile Include="WotGrammarConformanceTests.fs" />
+    <Compile Include="Article4BoundaryTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
