@@ -33,11 +33,21 @@ A type test does not separate them either. The only thing that distinguishes
 `ChatClientAdapter.fs` decided JSON mode with a reference comparison against the
 singleton. That is false exactly when a schema is present — i.e. the check
 inverted its own purpose: the *more* constrained the request, the *less*
-constrained it went out. Requests from MAF agents were serialised with
-`JsonMode = false` and no `ResponseFormat` at all.
+constrained it went out, with `JsonMode = false` and no `ResponseFormat` at all.
 
 Nothing errors when this happens. The model returns plausible free-form text, the
 JSON parser mostly copes, and the failure looks like ordinary model flakiness.
+
+**Blast radius was zero, and that is its own lesson.** The adapter pair has no
+production callers: `LlmServiceChatClient` is reached only through
+`ToolAwareChatClient`, whose sole reference outside its own file is a comment in
+`Agent.fs` — the live `agent run` path routes tools through `WoTExecutor`. Check
+callers before characterising impact; "this is on the MAF path" was true of the
+code and false of the runtime.
+
+Whoever wires that adapter up should know the surrounding pipeline is inert too:
+`options.Tools` is never mapped into `req.Tools`, and no `FunctionCallContent` is
+ever produced, so `.UseFunctionInvocation()` has nothing to invoke.
 
 ## Second trap: AdditionalProperties is not a wire channel
 
