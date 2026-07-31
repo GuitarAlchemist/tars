@@ -10,17 +10,23 @@ open Xunit
 open Tars.Llm
 open Tars.Llm.Routing
 
-/// The MAF path runs TARS backends through `LlmServiceChatClient`: an agent hands
-/// M.E.AI a `ChatOptions`, the adapter turns it back into an `LlmRequest`, and the
-/// backend serialises whatever it finds there.
+/// `LlmServiceChatClient` exposes a TARS backend as an M.E.AI `IChatClient`: a
+/// caller hands it a `ChatOptions`, the adapter turns it back into an `LlmRequest`,
+/// and the backend serialises whatever it finds there.
 ///
-/// That reverse mapping had no tests, and was wrong in a way nothing could notice
-/// at runtime: `ChatResponseFormat.ForJsonSchema` returns a *new*
+/// Scope, so these tests are not read as more than they are: the adapter pair has
+/// no production callers today. `LlmServiceChatClient` is reached only through
+/// `ToolAwareChatClient`, whose sole reference outside its own file is a comment in
+/// `Agent.fs` — the live `agent run` path routes tools through `WoTExecutor`
+/// instead. So this is protective coverage on infrastructure that is wired but not
+/// yet used, not a guard on a live request path.
+///
+/// It still matters, because the mapping was wrong in a way nothing could notice at
+/// runtime: `ChatResponseFormat.ForJsonSchema` returns a *new*
 /// `ChatResponseFormatJson` rather than the `ChatResponseFormat.Json` singleton, so
 /// the old `obj.ReferenceEquals(options.ResponseFormat, ChatResponseFormat.Json)`
-/// evaluated to false for every schema-constrained request. The agent asked for
-/// structured output; the request went out with `JsonMode = false`, no schema, and
-/// no error anywhere. These tests pin the mapping in both directions.
+/// evaluated to false for every schema-constrained request. Anything wiring this
+/// adapter up would have gotten silently unconstrained requests.
 
 /// Captures the LlmRequest the adapter builds, so the ChatOptions -> LlmRequest
 /// direction can be asserted without a backend.
@@ -114,7 +120,10 @@ let ``text format does not turn into JSON mode`` () =
 let ``an EBNF grammar carried in AdditionalProperties is recovered`` () =
     let options = ChatOptions()
     let dict = Dictionary<string, obj>()
-    dict.[ChatClientMapping.GrammarKey] <- box "root ::= \"yes\" | \"no\""
+    // The literal, not the constant: using `ChatClientMapping.GrammarKey` here would
+    // make the test tautological — rename the constant and the wire shape changes
+    // while the test still passes.
+    dict.["structured_outputs_grammar"] <- box "root ::= \"yes\" | \"no\""
     options.AdditionalProperties <- AdditionalPropertiesDictionary(dict)
 
     let req = captureWith options
@@ -123,15 +132,17 @@ let ``an EBNF grammar carried in AdditionalProperties is recovered`` () =
     | Some (ResponseFormat.Constrained (Grammar.Ebnf g)) -> Assert.Contains("root ::=", g)
     | other -> failwith $"expected an Ebnf constraint, got %A{other}"
 
-    // EBNF is not JSON — flagging JsonMode here would make a backend request
-    // `response_format: json_object` alongside a grammar that emits "yes".
+    // EBNF is not JSON. This does NOT stop a backend emitting JSON mode for a
+    // grammar — Ollama coerces `Constrained _` to "json" from ResponseFormat alone
+    // (OllamaClient.fs:186), which is the declared downgrade policy in Routing.fs.
+    // It only pins that the two fields never state different things.
     Assert.False(req.JsonMode, "an EBNF-constrained request was marked as JSON mode")
 
 [<Fact>]
 let ``a regex constraint carried in AdditionalProperties is recovered`` () =
     let options = ChatOptions()
     let dict = Dictionary<string, obj>()
-    dict.[ChatClientMapping.RegexKey] <- box "^[0-9]{4}$"
+    dict.["structured_outputs_regex"] <- box "^[0-9]{4}$"
     options.AdditionalProperties <- AdditionalPropertiesDictionary(dict)
 
     let req = captureWith options
@@ -182,21 +193,35 @@ let ``an unparseable schema degrades to JSON mode instead of throwing`` () =
 
 /// The two adapters are inverses in principle; nothing checked that they were in
 /// practice, and they were not.
+///
+/// `jsonMode` is varied deliberately. `toChatOptions` consults `req.JsonMode` in its
+/// fall-through arm, so a format with no arm of its own is silently rewritten by it
+/// — which is exactly how `Text` used to invert into `Json`. A round trip that only
+/// ever passes `JsonMode = false` cannot see that class of bug.
 [<Theory>]
-[<InlineData("json")>]
-[<InlineData("schema")>]
-[<InlineData("ebnf")>]
-[<InlineData("regex")>]
-let ``every constraint survives a round trip through both adapters`` (kind: string) =
+[<InlineData("json", true)>]
+[<InlineData("json", false)>]
+[<InlineData("text", true)>]
+[<InlineData("text", false)>]
+[<InlineData("schema", true)>]
+[<InlineData("schema", false)>]
+[<InlineData("ebnf", true)>]
+[<InlineData("ebnf", false)>]
+[<InlineData("regex", true)>]
+[<InlineData("regex", false)>]
+let ``every constraint survives a round trip regardless of JsonMode`` (kind: string, jsonMode: bool) =
     let original =
         match kind with
         | "json" -> ResponseFormat.Json
+        | "text" -> ResponseFormat.Text
         | "schema" -> ResponseFormat.Constrained(Grammar.JsonSchema schemaText)
         | "ebnf" -> ResponseFormat.Constrained(Grammar.Ebnf "root ::= \"a\"")
         | _ -> ResponseFormat.Constrained(Grammar.Regex "^a$")
 
     let recovered =
-        { LlmRequest.Default with ResponseFormat = Some original }
+        { LlmRequest.Default with
+            ResponseFormat = Some original
+            JsonMode = jsonMode }
         |> ChatClientMapping.toChatOptions
         |> ChatClientMapping.fromChatOptions
 
@@ -208,3 +233,96 @@ let ``every constraint survives a round trip through both adapters`` (kind: stri
             JsonDocument.Parse(b).RootElement.GetRawText()
         )
     | a, b -> Assert.Equal(Some a, b)
+
+/// The specific inversion: an explicit request for prose, with the legacy flag also
+/// set, must not come back demanding JSON.
+[<Fact>]
+let ``Text with JsonMode set does not invert into JSON`` () =
+    let opts =
+        { LlmRequest.Default with
+            ResponseFormat = Some ResponseFormat.Text
+            JsonMode = true }
+        |> ChatClientMapping.toChatOptions
+
+    Assert.Equal(Some ResponseFormat.Text, ChatClientMapping.fromChatOptions opts)
+
+    // And it must reach the wire as text: OpenAiCompatibleClient maps Text -> no
+    // response_format, but Json -> {"type":"json_object"}.
+    match box opts.ResponseFormat with
+    | :? ChatResponseFormatText -> ()
+    | other -> failwith $"expected ChatResponseFormatText, got %A{other}"
+
+/// JsonMode with no ResponseFormat is the one case where the legacy flag is still
+/// load-bearing — every backend consults it in its `None` branch.
+[<Fact>]
+let ``JsonMode alone still produces JSON mode`` () =
+    let opts =
+        { LlmRequest.Default with
+            ResponseFormat = None
+            JsonMode = true }
+        |> ChatClientMapping.toChatOptions
+
+    Assert.Equal(Some ResponseFormat.Json, ChatClientMapping.fromChatOptions opts)
+
+// ── precedence when both channels are populated ─────────────────────────────
+
+/// `toChatOptions` never emits both, so this only arises from an external producer
+/// — e.g. a caller using M.E.AI's own `GetResponseAsync<T>` (which sets
+/// ForJsonSchema) on options that already carry a grammar key. The explicit typed
+/// schema must win; silently discarding it is how a caller ends up unconstrained
+/// without being told.
+[<Fact>]
+let ``an explicit schema outranks a grammar carried alongside it`` () =
+    let options = ChatOptions()
+    options.ResponseFormat <- ChatResponseFormat.ForJsonSchema(schemaElement (), "s", "d")
+    let dict = Dictionary<string, obj>()
+    dict.["structured_outputs_grammar"] <- box "root ::= \"a\""
+    options.AdditionalProperties <- AdditionalPropertiesDictionary(dict)
+
+    match ChatClientMapping.fromChatOptions options with
+    | Some (ResponseFormat.Constrained (Grammar.JsonSchema _)) -> ()
+    | other -> failwith $"the caller's explicit schema was discarded, got %A{other}"
+
+/// But a bare `Json` is weaker than a grammar — it says "some JSON", the grammar
+/// says exactly what. Letting bare JSON win would discard the stronger constraint.
+[<Fact>]
+let ``a grammar outranks a bare JSON response format`` () =
+    let options = ChatOptions()
+    options.ResponseFormat <- ChatResponseFormat.Json
+    let dict = Dictionary<string, obj>()
+    dict.["structured_outputs_grammar"] <- box "root ::= \"a\""
+    options.AdditionalProperties <- AdditionalPropertiesDictionary(dict)
+
+    match ChatClientMapping.fromChatOptions options with
+    | Some (ResponseFormat.Constrained (Grammar.Ebnf _)) -> ()
+    | other -> failwith $"expected the grammar to win, got %A{other}"
+
+// ── malformed input must not escape as an exception ─────────────────────────
+
+/// M.E.AI accepts `ForJsonSchema(default)` with no validation, yielding
+/// `Schema.HasValue = true` with `ValueKind = Undefined`, on which `GetRawText()`
+/// throws. An adapter must not turn that into an exception out of GetResponseAsync.
+[<Fact>]
+let ``an Undefined schema degrades instead of throwing`` () =
+    let options = ChatOptions()
+    options.ResponseFormat <- ChatResponseFormat.ForJsonSchema(Unchecked.defaultof<JsonElement>, "s", "d")
+
+    Assert.Equal(Some ResponseFormat.Json, ChatClientMapping.fromChatOptions options)
+
+/// A JSON schema must be an object. These all parse, so a parse-only guard lets
+/// them through and the provider 400s instead of degrading.
+[<Theory>]
+[<InlineData("null")>]
+[<InlineData("42")>]
+[<InlineData("[1,2]")>]
+[<InlineData("\"hello\"")>]
+let ``a non-object schema degrades to plain JSON mode`` (schema: string) =
+    let opts =
+        { LlmRequest.Default with
+            ResponseFormat = Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) }
+        |> ChatClientMapping.toChatOptions
+
+    match box opts.ResponseFormat with
+    | :? ChatResponseFormatJson as json ->
+        Assert.False(json.Schema.HasValue, $"'{schema}' was accepted as a JSON schema")
+    | other -> failwith $"expected ChatResponseFormatJson, got %A{other}"
