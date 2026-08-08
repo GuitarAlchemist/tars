@@ -11,6 +11,7 @@
     <Compile Include="JsonParsing.fs" />
     <Compile Include="Routing.fs" />
     <Compile Include="LlmServiceTypes.fs" />
+    <Compile Include="StructuredGeneration.fs" />
     <Compile Include="OllamaClient.fs" />
     <Compile Include="OllamaClientAsync.fs" />
     <Compile Include="OpenAiCompatibleClient.fs" />
