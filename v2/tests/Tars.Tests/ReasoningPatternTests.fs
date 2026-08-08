@@ -17,6 +17,7 @@ type ReasoningPatternTests() =
 
         let plan = compiler.CompilePattern(pattern, goal)
 
+        Assert.Equal(PatternKind.ChainOfThought, plan.Metadata.Kind)
         Assert.Equal(4, plan.Nodes.Length)
         Assert.Equal(3, plan.Edges.Length)
 
@@ -38,6 +39,7 @@ type ReasoningPatternTests() =
 
         let plan = compiler.CompilePattern(pattern, goal)
 
+        Assert.Equal(PatternKind.ReAct, plan.Metadata.Kind)
         Assert.Equal(4, plan.Nodes.Length)
         // draft -> critique -> refine -> final_check
         Assert.Equal(3, plan.Edges.Length)
@@ -57,6 +59,8 @@ type ReasoningPatternTests() =
         let goal = "Design a logo"
 
         let plan = compiler.CompilePattern(pattern, goal)
+
+        Assert.Equal(PatternKind.GraphOfThoughts, plan.Metadata.Kind)
 
         // 5 steps defined in pattern but compilation creates a synthetic start node if multiple roots?
         // Let's check logic:
