@@ -1,0 +1,24 @@
+{
+  "report_id": "77ae348f-cd31-412e-a74c-836ef0a4cb1b",
+  "scope": "trend-series",
+  "timestamp": "2026-06-25T11:00:00Z",
+  "runs_analyzed": [
+    "4b7b25ae-e6b0-4f51-b844-3069cb919240",
+    "f29bf91c-1da2-49da-8b2a-19df38ea0e1c",
+    "9ba34c10-e7f0-466c-9be3-ef88e7d23f4b"
+  ],
+  "drift_detected": false,
+  "regressions": [
+    {
+      "metric": "duration_ms",
+      "baseline_value": 11500,
+      "observed_value": 12840,
+      "percentage_change": 11.65,
+      "severity": "low"
+    }
+  ],
+  "insights": [
+    "Test execution time has increased slightly (11.6%) due to local disk cache warming, but is well below the 300 second threshold limit.",
+    "Token usage efficiency remained stable at ~1500 tokens per run, indicating highly consistent prompt selection."
+  ]
+}

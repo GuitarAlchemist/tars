@@ -1,0 +1,34 @@
+{
+  "scorecard_id": "89df31ab-3290-48be-9b1f-e3cb27eef811",
+  "run_id": "4b7b25ae-e6b0-4f51-b844-3069cb919240",
+  "timestamp": "2026-06-25T10:05:00Z",
+  "evaluator_version": "ix-eval-v1.4.2",
+  "overall_score": 0.98,
+  "decision_gate": "promote",
+  "metrics": {
+    "semantic_drift": 0.02,
+    "reasoning_depth": 0.85,
+    "tool_efficiency": 1.0,
+    "error_density": 0.0
+  },
+  "criteria": [
+    {
+      "name": "goal-alignment",
+      "weight": 0.4,
+      "score": 1.0,
+      "feedback": "The run achieved the goal exactly. Tested v2/ and extracted warning metrics successfully."
+    },
+    {
+      "name": "resource-conservation",
+      "weight": 0.3,
+      "score": 0.95,
+      "feedback": "Token consumption and duration are well within the safe bounds of the free-local budget tier."
+    },
+    {
+      "name": "security-scrubbing",
+      "weight": 0.3,
+      "score": 1.0,
+      "feedback": "Verified that zero secrets or environment variables were written or leaked in the trace log."
+    }
+  ]
+}
