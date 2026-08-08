@@ -539,3 +539,98 @@ module WotGrammarConformanceTests =
             List.isEmpty missing,
             $"""WotParser recognises keys absent from grammars/wot.ebnf: {String.Join(", ", missing)}"""
         )
+
+    [<Fact>]
+    let ``parser rejects an unknown node kind loudly`` () =
+        let text =
+            String.Join(
+                "\n",
+                [ "meta {"; "  name = \"t\""; "}"; "workflow {"; "  node \"n\" kind=\"invalid_kind\" {"; "  }"; "}"; "" ]
+            )
+        let lines = (normalize text).Split('\n') |> Array.toList
+        match WotParser.parseLines lines with
+        | Error errs ->
+            Assert.NotEmpty(errs)
+            Assert.Contains(errs, fun e -> e.Message.Contains("Unsupported node kind"))
+        | Ok _ ->
+            Assert.Fail("WotParser should have failed on invalid kind")
+
+    [<Fact>]
+    let ``grammar and parser accept empty one-line blocks`` () =
+        let text =
+            String.Join(
+                "\n",
+                [ "meta {}"
+                  "inputs {}"
+                  "policy {}"
+                  "workflow {}"
+                  "" ]
+            )
+        Assert.True(grammarAccepts text, "grammar rejects empty one-line blocks")
+        Assert.True(parserAccepts text, "WotParser rejects empty one-line blocks")
+
+    [<Fact>]
+    let ``next edge shorthand parses successfully and generates workflow edges`` () =
+        let text =
+            String.Join(
+                "\n",
+                [ "meta {"
+                  "  name = \"test\""
+                  "}"
+                  "workflow {"
+                  "  node \"start\" {"
+                  "    next = \"end\""
+                  "  }"
+                  "  node \"end\" {"
+                  "    output = \"done\""
+                  "  }"
+                  "}"
+                  "" ]
+            )
+        Assert.True(grammarAccepts text, "grammar rejects workflow with next shorthand")
+        let lines = (normalize text).Split('\n') |> Array.toList
+        match WotParser.parseLines lines with
+        | Error errs ->
+            let errMsg = String.Join("; ", errs |> List.map (fun e -> e.Message))
+            Assert.Fail($"WotParser failed to parse next shorthand: {errMsg}")
+        | Ok wf ->
+            Assert.Single(wf.Edges) |> ignore
+            let edge = wf.Edges |> List.head
+            Assert.Equal("start", fst edge)
+            Assert.Equal("end", snd edge)
+
+    [<Fact>]
+    let ``tool_result with arguments parses checks and preserves args dictionary`` () =
+        let text =
+            String.Join(
+                "\n",
+                [ "meta {"
+                  "  name = \"test\""
+                  "}"
+                  "workflow {"
+                  "  node \"verify\" {"
+                  "    checks ["
+                  "      { \"type\": \"tool_result\", \"tool\": \"test_tool\", \"args\": { \"param1\": \"val1\", \"param2\": \"val2\" }, \"check\": \"output\" }"
+                  "    ]"
+                  "  }"
+                  "}"
+                  "" ]
+            )
+        Assert.True(grammarAccepts text, "grammar rejects tool_result check with args")
+        let lines = (normalize text).Split('\n') |> Array.toList
+        match WotParser.parseLines lines with
+        | Error errs ->
+            let errMsg = String.Join("; ", errs |> List.map (fun e -> e.Message))
+            Assert.Fail($"WotParser failed to parse check with args: {errMsg}")
+        | Ok wf ->
+            let node = wf.Nodes |> List.find (fun n -> n.Id = "verify")
+            Assert.Single(node.Checks) |> ignore
+            match node.Checks |> List.head with
+            | Tars.Core.WorkflowOfThought.WotCheck.ToolResult(tool, args, check) ->
+                Assert.Equal("test_tool", tool)
+                Assert.Equal("output", check)
+                Assert.Equal(2, args.Count)
+                Assert.Equal("val1", args.["param1"])
+                Assert.Equal("val2", args.["param2"])
+            | _ ->
+                Assert.Fail("Expected ToolResult check kind")

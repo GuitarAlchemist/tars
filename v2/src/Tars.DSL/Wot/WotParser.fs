@@ -72,7 +72,7 @@ module WotParser =
         let rxPattern = Regex(@"""pattern""\s*:\s*""([^""]+)""", RegexOptions.Compiled)
         let rxSchema = Regex(@"""schema""\s*:\s*""([^""]+)""", RegexOptions.Compiled)
         let rxTool = Regex(@"""tool""\s*:\s*""([^""]+)""", RegexOptions.Compiled)
-        let rxArgs = Regex(@"""args""\s*:\s*(\{.*?\})""", RegexOptions.Compiled)
+        let rxArgs = Regex(@"""args""\s*:\s*(\{.*?\})", RegexOptions.Compiled)
         let rxCheck = Regex(@"""check""\s*:\s*""([^""]+)""", RegexOptions.Compiled)
 
         for i, line in List.indexed lines do
@@ -198,7 +198,8 @@ module WotParser =
           ChecksLines: string list
           Verdict: string option
           Agent: string option
-          Condition: string option }
+          Condition: string option
+          Next: string list }
 
     let private emptyNode id =
         { Id = id
@@ -213,7 +214,8 @@ module WotParser =
           ChecksLines = []
           Verdict = None
           Agent = None
-          Condition = None }
+          Condition = None
+          Next = [] }
 
     let parseLines (lines: string list) : Result<DslWorkflow, ParseError list> =
             let errors = ResizeArray<ParseError>()
@@ -287,7 +289,15 @@ module WotParser =
 
                 if isBlank line || line.StartsWith("//") then
                     () // ignore
-                else if
+                elif Regex.IsMatch(line, @"^inputs\s*\{\s*\}$") then
+                    ()
+                elif Regex.IsMatch(line, @"^meta\s*\{\s*\}$") then
+                    ()
+                elif Regex.IsMatch(line, @"^policy\s*\{\s*\}$") then
+                    ()
+                elif Regex.IsMatch(line, @"^workflow(\s+[^\{\}]+)?\s*\{\s*\}$") then
+                    ()
+                elif
                     // Section switches
                     startsWith "meta" line && line.EndsWith("{")
                 then
@@ -405,6 +415,12 @@ module WotParser =
                                 let kind = mWithAgent.Groups.[2].Value
                                 let agent = mWithAgent.Groups.[3].Value
 
+                                if kind <> "work" && kind <> "reason" then
+                                    errors.Add(
+                                        { Line = lineNo
+                                          Message = $"Unsupported node kind '{kind}'" }
+                                    )
+
                                 currentNode <-
                                     Some
                                         { (emptyNode id) with
@@ -418,6 +434,13 @@ module WotParser =
                                 if mLong.Success then
                                     let id = mLong.Groups.[1].Value
                                     let kind = mLong.Groups.[2].Value
+
+                                    if kind <> "work" && kind <> "reason" then
+                                        errors.Add(
+                                            { Line = lineNo
+                                              Message = $"Unsupported node kind '{kind}'" }
+                                        )
+
                                     currentNode <- Some { (emptyNode id) with Kind = kind }
                                 else
                                     // Try short header: node "id" {
@@ -471,7 +494,16 @@ module WotParser =
                                 else
                                     // parse node key-values
                                     match parseKeyValue line with
-                                    | Some("kind", v) -> currentNode <- Some { nb with Kind = v }
+                                    | Some("kind", v) ->
+                                        if v <> "work" && v <> "reason" then
+                                            errors.Add(
+                                                { Line = lineNo
+                                                  Message = $"Unsupported node kind '{v}'" }
+                                            )
+                                        currentNode <- Some { nb with Kind = v }
+                                    | Some("next", v) ->
+                                        let targets = if v.StartsWith("[") then parseStringList v else [ v ]
+                                        currentNode <- Some { nb with Next = targets }
                                     | Some("goal", v) -> currentNode <- Some { nb with Goal = Some v }
                                     | Some("output", v) -> currentNode <- Some { nb with Output = Some v }
                                     | Some("input", v) ->
@@ -639,6 +671,11 @@ module WotParser =
                           EvidenceRefs = []
                           Metadata = Map.empty })
                 |> Seq.toList
+
+            // Add edges from `next` property
+            for nb in nodes do
+                for target in nb.Next do
+                    edges.Add(nb.Id, target)
 
             let wfEdges = edges |> Seq.map (fun (a, b) -> a, b) |> Seq.toList
 
