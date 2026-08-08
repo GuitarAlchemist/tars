@@ -102,7 +102,7 @@ type ChromaClient(baseUrl: string) =
 // ChromaDB Plan Storage
 // ============================================================================
 
-/// ChromaDB implementation of IPlanStorage
+/// ChromaDB implementation of IPlanStore
 /// Enables semantic search: "Find plans similar to this goal"
 type ChromaPlanStorage(chromaUrl: string, ?collectionName: string) =
     let client = new ChromaClient(chromaUrl)
@@ -137,7 +137,7 @@ type ChromaPlanStorage(chromaUrl: string, ?collectionName: string) =
               "step_count", box plan.Steps.Length
               "has_assumptions", box (not plan.Assumptions.IsEmpty) ]
 
-    interface IPlanStorage with
+    interface IPlanStore with
         member _.SavePlan(plan) =
             task {
                 try

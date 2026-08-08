@@ -36,7 +36,7 @@ module LedgerIngestion =
                 | None -> Pending, None, None, None
 
             let contentHash =
-                EvidenceStore.ComputeHash($"{taskDef.Goal}\n{result.Output}")
+                EvidenceCandidate.ComputeHash($"{taskDef.Goal}\n{result.Output}")
 
             let segments =
                 [ taskDef.Goal
@@ -80,7 +80,7 @@ module LedgerIngestion =
             match evaluation with
             | Some e when result.Success && e.Passed ->
                 let agentId = toKnowledgeAgentId result.ExecutorId
-                let goalHash = EvidenceStore.ComputeHash(taskDef.Goal)
+                let goalHash = EvidenceCandidate.ComputeHash(taskDef.Goal)
                 let subject = $"task:{taskDef.Id}"
                 let obj = $"goal:{goalHash}"
 

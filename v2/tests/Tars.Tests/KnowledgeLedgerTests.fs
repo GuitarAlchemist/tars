@@ -196,7 +196,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
             do! LedgerIngestion.recordTaskResult ledger None taskDef result (fun _ -> ())
 
             let subject = $"task:{taskDef.Id}"
-            let expectedObj = $"goal:{EvidenceStore.ComputeHash taskDef.Goal}"
+            let expectedObj = $"goal:{EvidenceCandidate.ComputeHash taskDef.Goal}"
 
             let matches =
                 ledger.Query(?subject = Some subject)

@@ -6,15 +6,15 @@ open System
 open System.Collections.Generic
 open System.Threading.Tasks
 
-/// Interface for persistent ledger storage
-type ILedgerStorage =
+/// Interface for persistent belief log storage
+type IBeliefLog =
     abstract member Append: entry: BeliefEventEntry -> Task<Result<unit, string>>
     abstract member GetEvents: since: DateTime option -> Task<BeliefEventEntry list>
     abstract member GetEventsByBelief: beliefId: BeliefId -> Task<BeliefEventEntry list>
     abstract member GetSnapshot: unit -> Task<Belief list>
 
 /// Interface for evidence and ingestion storage (Phase 9)
-type IEvidenceStorage =
+type IEvidenceStore =
     abstract member SaveCandidate: candidate: EvidenceCandidate -> Task<Result<unit, string>>
     abstract member SaveProposal: proposal: ProposedAssertion * evidenceId: Guid option -> Task<Result<unit, string>>
     abstract member GetPendingCandidates: unit -> Task<EvidenceCandidate list>
@@ -38,7 +38,7 @@ type InMemoryLedgerStorage() =
     let planEvents = ResizeArray<PlanEvent>()
     let planLock = obj ()
 
-    interface ILedgerStorage with
+    interface IBeliefLog with
         member _.Append(entry) =
             task {
                 lock syncLock (fun () -> events.Add(entry))
@@ -104,7 +104,7 @@ type InMemoryLedgerStorage() =
                 return beliefs.Values |> Seq.toList
             }
 
-    interface IEvidenceStorage with
+    interface IEvidenceStore with
         member _.SaveCandidate(candidate) =
             task {
                 lock candidateLock (fun () -> candidates.[candidate.Id] <- candidate)
@@ -151,7 +151,7 @@ type InMemoryLedgerStorage() =
                         | _ -> [])
             }
 
-    interface IPlanStorage with
+    interface IPlanStore with
         member _.SavePlan(plan) =
             task {
                 lock planLock (fun () ->
