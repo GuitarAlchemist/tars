@@ -15,13 +15,6 @@ open System.Text.Json.Serialization
 // State: injectable promotion store (recurrence + lineage + weights)
 // ─────────────────────────────────────────────────────────────────────
 
-/// JSON options for the directory-scoped helpers at the bottom of this file.
-let private jsonOptions =
-    let o = JsonSerializerOptions(JsonSerializerDefaults.General)
-    o.Converters.Add(JsonFSharpConverter())
-    o.WriteIndented <- true
-    o
-
 /// Process-global disk-backed store rooted at ~/.tars/promotion. This is the
 /// default for production callers; tests inject an `InMemoryPromotionStore`
 /// to stay hermetic. The global mutable ConcurrentDictionary state that used
@@ -330,21 +323,13 @@ let getLineageRecords () : LineageRecord list =
 
 /// Read recurrence records straight from a specific promotion directory.
 let recurrenceRecordsFrom (promotionDir: string) : RecurrenceRecord list =
-    try
-        let path = Path.Combine(promotionDir, "recurrence.json")
-        if File.Exists path then
-            JsonSerializer.Deserialize<RecurrenceRecord list>(File.ReadAllText path, jsonOptions)
-        else []
-    with _ -> []
+    let store = DiskPromotionStore(promotionDir) :> IPromotionStore
+    store.GetRecurrence()
 
 /// Read lineage records straight from a specific promotion directory.
 let lineageRecordsFrom (promotionDir: string) : LineageRecord list =
-    try
-        let path = Path.Combine(promotionDir, "lineage.json")
-        if File.Exists path then
-            JsonSerializer.Deserialize<LineageRecord list>(File.ReadAllText path, jsonOptions)
-        else []
-    with _ -> []
+    let store = DiskPromotionStore(promotionDir) :> IPromotionStore
+    store.GetLineage()
 
 /// Persist recurrence + lineage stores to a specific promotion directory.
 let saveStoresTo
@@ -352,13 +337,12 @@ let saveStoresTo
     (recurrence: RecurrenceRecord list)
     (lineage: LineageRecord list)
     : unit =
-    Directory.CreateDirectory promotionDir |> ignore
-    File.WriteAllText(
-        Path.Combine(promotionDir, "recurrence.json"),
-        JsonSerializer.Serialize(recurrence, jsonOptions))
-    File.WriteAllText(
-        Path.Combine(promotionDir, "lineage.json"),
-        JsonSerializer.Serialize(lineage, jsonOptions))
+    let store = DiskPromotionStore(promotionDir) :> IPromotionStore
+    for r in recurrence do
+        store.UpsertRecurrence r
+    for l in lineage do
+        store.AddLineage l
+    store.Flush()
 
 /// Get patterns at a specific promotion level
 let getPatternsAtLevel (level: PromotionLevel) : RecurrenceRecord list =

@@ -253,14 +253,19 @@ module WeightedGrammar =
         opts.WriteIndented <- true
         opts
 
-    /// Save weighted rules to ~/.tars/promotion/weights.json
-    let save (rules: WeightedRule list) : unit =
+    /// Save weighted rules to a specific promotion directory's weights.json.
+    /// Lets callers (notably hermetic tests) write to an isolated store instead of
+    /// the shared ~/.tars one.
+    let saveTo (dir: string) (rules: WeightedRule list) : unit =
         try
-            Directory.CreateDirectory(weightsDir) |> ignore
+            Directory.CreateDirectory(dir) |> ignore
             let dtos = rules |> List.map toDto
             let json = JsonSerializer.Serialize(dtos, jsonOptions)
-            File.WriteAllText(weightsPath, json)
+            File.WriteAllText(Path.Combine(dir, "weights.json"), json)
         with _ -> () // graceful degradation
+
+    /// Save weighted rules to ~/.tars/promotion/weights.json
+    let save (rules: WeightedRule list) : unit = saveTo weightsDir rules
 
     /// Load weighted rules from a specific promotion directory's weights.json.
     /// Lets callers (notably hermetic tests) read an isolated store instead of
