@@ -87,15 +87,7 @@ Output ONLY valid JSON.
             try
                 let! resp = llm.CompleteAsync req
 
-                // Robust JSON extraction (same as SelfImprovement)
-                let mutable text = resp.Text.Trim()
-                let firstBrace = text.IndexOf('{')
-                let lastBrace = text.LastIndexOf('}')
-
-                if firstBrace >= 0 && lastBrace > firstBrace then
-                    text <- text.Substring(firstBrace, lastBrace - firstBrace + 1)
-
-                use doc = JsonDocument.Parse(text)
+                use doc = StructuredOutput.parseJson resp.Text
                 let root = doc.RootElement
 
                 // Parse Trigger
