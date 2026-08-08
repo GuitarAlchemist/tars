@@ -65,8 +65,8 @@ type GoldenRun(output: ITestOutputHelper) =
         proc.BeginOutputReadLine()
         proc.BeginErrorReadLine()
 
-        // Wait for a reasonable time (e.g., 10 seconds)
-        let finished = proc.WaitForExit(15000)
+        // Wait for a reasonable time (e.g., 45 seconds to account for dotnet compilation)
+        let finished = proc.WaitForExit(45000)
 
         let outputStr = outputSb.ToString()
         let errorStr = errorSb.ToString()
