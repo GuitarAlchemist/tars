@@ -19,6 +19,7 @@ module LedgerIngestion =
 
     let recordTaskResult
         (ledger: KnowledgeLedger)
+        (evidenceStore: IEvidenceStore option)
         (runId: RunId option)
         (taskDef: TaskDefinition)
         (result: TaskResult)
@@ -69,13 +70,13 @@ module LedgerIngestion =
                   VerifiedBy = verifiedBy
                   RejectionReason = rejectionReason }
 
-            match ledger.Storage with
-            | :? IEvidenceStorage as store ->
+            match evidenceStore with
+            | Some store ->
                 let! saveResult = store.SaveCandidate(candidate)
                 match saveResult with
                 | Result.Ok () -> ()
                 | Result.Error e -> logger $"[Ledger] Evidence candidate save failed: {e}"
-            | _ -> ()
+            | None -> ()
 
             match evaluation with
             | Some e when result.Success && e.Passed ->

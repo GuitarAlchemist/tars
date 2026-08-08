@@ -98,6 +98,7 @@ module EvolutionBenchmarkTests =
                   MemoryBuffer = None
                   EpisodeService = None
                   Ledger = None
+                  EvidenceStore = None
                   Evaluator = None
                   RunId = None
                   Logger = fun msg -> printfn $"LOG: %s{msg}"

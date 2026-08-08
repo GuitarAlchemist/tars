@@ -188,10 +188,10 @@ type InMemoryLedgerStorage() =
             }
 
 
-/// Composite storage that writes to multiple backends (e.g., Postgres + Fuseki)
+/// Composite belief log that writes to multiple backends (e.g., Postgres + Fuseki)
 /// Reads are always served from the primary storage.
-type CompositeLedgerStorage(primary: ILedgerStorage, secondaries: ILedgerStorage list) =
-    interface ILedgerStorage with
+type CompositeBeliefLog(primary: IBeliefLog, secondaries: IBeliefLog list) =
+    interface IBeliefLog with
         member _.Append(entry) =
             task {
                 // Write to primary first
@@ -213,57 +213,10 @@ type CompositeLedgerStorage(primary: ILedgerStorage, secondaries: ILedgerStorage
         member _.GetEventsByBelief(beliefId) = primary.GetEventsByBelief(beliefId)
         member _.GetSnapshot() = primary.GetSnapshot()
 
-    interface IEvidenceStorage with
-        member _.SaveCandidate(c) =
-            match primary with
-            | :? IEvidenceStorage as es -> es.SaveCandidate(c)
-            | _ -> Task.FromResult(Error "Primary storage does not support IEvidenceStorage")
-
-        member _.SaveProposal(p, e) =
-            match primary with
-            | :? IEvidenceStorage as es -> es.SaveProposal(p, e)
-            | _ -> Task.FromResult(Error "Primary storage does not support IEvidenceStorage")
-
-        member _.GetPendingCandidates() =
-            match primary with
-            | :? IEvidenceStorage as es -> es.GetPendingCandidates()
-            | _ -> Task.FromResult([])
-
-        member _.GetProposalsByEvidence(e) =
-            match primary with
-            | :? IEvidenceStorage as es -> es.GetProposalsByEvidence(e)
-            | _ -> Task.FromResult([])
-
-    interface IPlanStorage with
-        member _.SavePlan(p) =
-            match primary with
-            | :? IPlanStorage as ps -> ps.SavePlan(p)
-            | _ -> Task.FromResult(Error "Primary storage does not support IPlanStorage")
-
-        member _.UpdatePlan(p) =
-            match primary with
-            | :? IPlanStorage as ps -> ps.UpdatePlan(p)
-            | _ -> Task.FromResult(Error "Primary storage does not support IPlanStorage")
-
-        member _.GetPlan(id) =
-            match primary with
-            | :? IPlanStorage as ps -> ps.GetPlan(id)
-            | _ -> Task.FromResult(None)
-
-        member _.GetPlansByStatus(s) =
-            match primary with
-            | :? IPlanStorage as ps -> ps.GetPlansByStatus(s)
-            | _ -> Task.FromResult([])
-
-        member _.AppendEvent(e) =
-            match primary with
-            | :? IPlanStorage as ps -> ps.AppendEvent(e)
-            | _ -> Task.FromResult(Error "Primary storage does not support IPlanStorage")
-
 
 /// The Knowledge Ledger - append-only event log for beliefs
 /// "Symbols are earned, not assumed"
-type KnowledgeLedger(storage: ILedgerStorage) =
+type KnowledgeLedger(storage: IBeliefLog) =
     let graph = BeliefGraph()
     let mutable lastSync = DateTime.MinValue
     let graphLock = obj ()

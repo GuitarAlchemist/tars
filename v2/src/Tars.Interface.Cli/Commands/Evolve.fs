@@ -380,7 +380,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
             | None -> RichOutput.info $"🧠 Capability index: {config.Memory.VectorStorePath} (agent_capabilities)"
 
         try
-            let! ledgerOpt =
+            let! ledgerAndStoreOpt =
                 task {
                     let init (ledger: KnowledgeLedger) =
                         task {
@@ -388,11 +388,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
                             return ledger
                         }
 
-                    let tryInit ledger =
+                    let tryInit ledger store =
                         task {
                             try
                                 let! ready = init ledger
-                                return Some ready
+                                return Some (ready, store)
                             with ex ->
                                 logger.Warning("Knowledge ledger init failed: {Message}", ex.Message)
                                 return None
@@ -400,16 +400,21 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
                     match config.Memory.PostgresConnectionString with
                     | Some connStr ->
-                        let storage =
-                            PostgresLedgerStorage.createWithConnectionString connStr :> ILedgerStorage
+                        let storage = PostgresLedgerStorage.createWithConnectionString connStr
+                        let! res = tryInit (KnowledgeLedger(storage :> IBeliefLog)) (storage :> IEvidenceStore)
 
-                        let! ledger = tryInit (KnowledgeLedger(storage))
-
-                        match ledger with
-                        | Some _ -> return ledger
-                        | None -> return! tryInit (KnowledgeLedger.createInMemory ())
-                    | None -> return! tryInit (KnowledgeLedger.createInMemory ())
+                        match res with
+                        | Some _ -> return res
+                        | None ->
+                            let inMem = InMemoryLedgerStorage()
+                            return! tryInit (KnowledgeLedger(inMem :> IBeliefLog)) (inMem :> IEvidenceStore)
+                    | None ->
+                        let inMem = InMemoryLedgerStorage()
+                        return! tryInit (KnowledgeLedger(inMem :> IBeliefLog)) (inMem :> IEvidenceStore)
                 }
+
+            let ledgerOpt = ledgerAndStoreOpt |> Option.map fst
+            let evidenceStoreOpt = ledgerAndStoreOpt |> Option.map snd
 
             let runId = ledgerOpt |> Option.map (fun _ -> RunId.New())
 
@@ -539,6 +544,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                             logger.Warning("Graphiti ingestion unavailable: {Message}", ex.Message)
                             None
                   Ledger = ledgerOpt
+                  EvidenceStore = evidenceStoreOpt
                   Evaluator = Some evaluator
                   RunId = runId
                   Logger =

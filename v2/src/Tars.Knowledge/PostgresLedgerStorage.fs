@@ -290,7 +290,7 @@ type PostgresLedgerStorage(connectionString: string) =
 
         member this.GetSnapshot() =
             task {
-                let! events = (this :> ILedgerStorage).GetEvents(None)
+                let! events = (this :> IBeliefLog).GetEvents(None)
 
                 let beliefs = Dictionary<BeliefId, Belief>()
 
