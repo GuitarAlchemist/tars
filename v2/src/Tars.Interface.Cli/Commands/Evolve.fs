@@ -519,43 +519,46 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 { Registry = registry
                   Llm = llmService
                   VectorStore = vectorStore
-                  SemanticMemory = Some kernel.SemanticMemory
-                  Epistemic = epistemic
-                  PreLlm = Some preLlmPipeline
-                  Budget = Some budget
-                  OutputGuard = Some outputGuard
-                  KnowledgeBase = Some knowledgeBase
-                  KnowledgeGraph = Some knowledgeGraph
-                  MemoryBuffer = Some memoryBuffer
-                  EpisodeService =
-                    match options.DisableGraphiti, config.Memory.GraphitiUrl with
-                    | true, _ -> None
-                    | _, None -> None
-                    | _, Some url ->
-                        try
-                            RichOutput.info $"Graphiti enabled at {url}"
-                            Some(createServiceWithUrl url)
-                        with ex ->
-                            logger.Warning("Graphiti ingestion unavailable: {Message}", ex.Message)
-                            None
-                  Ledger = ledgerOpt
-                  Evaluator = Some evaluator
-                  RunId = runId
                   Logger =
                     fun s ->
                         logger.Information("{Evolution}", s)
 
                         if options.Verbose then
                             RichOutput.dim $"   [LOG] {s}"
-                  Verbose = options.Verbose
-                  ShowSemanticMessage =
-                    match options.Quiet with
-                    | true -> (fun _ _ -> ())
-                    | false -> DemoVisualization.showSemanticMessage
-                  Focus = options.Focus
-                  ToolRegistry = Some toolRegistry
-                  ResearchEnhanced = options.ResearchEnhanced
-                  SelfImprovement = options.SelfImprovement }
+                  Memory =
+                    { SemanticMemory = Some kernel.SemanticMemory
+                      KnowledgeBase = Some knowledgeBase
+                      KnowledgeGraph = Some knowledgeGraph
+                      MemoryBuffer = Some memoryBuffer
+                      EpisodeService =
+                        match options.DisableGraphiti, config.Memory.GraphitiUrl with
+                        | true, _ -> None
+                        | _, None -> None
+                        | _, Some url ->
+                            try
+                                RichOutput.info $"Graphiti enabled at {url}"
+                                Some(createServiceWithUrl url)
+                            with ex ->
+                                logger.Warning("Graphiti ingestion unavailable: {Message}", ex.Message)
+                                None
+                      Ledger = ledgerOpt }
+                  Governance =
+                    { Epistemic = epistemic
+                      PreLlm = Some preLlmPipeline
+                      Budget = Some budget
+                      OutputGuard = Some outputGuard
+                      Evaluator = Some evaluator }
+                  Options =
+                    { RunId = runId
+                      Verbose = options.Verbose
+                      ShowSemanticMessage =
+                        match options.Quiet with
+                        | true -> (fun _ _ -> ())
+                        | false -> DemoVisualization.showSemanticMessage
+                      Focus = options.Focus
+                      ToolRegistry = Some toolRegistry
+                      ResearchEnhanced = options.ResearchEnhanced
+                      SelfImprovement = options.SelfImprovement } }
 
             // Load Plan if provided
             let initialTasks =

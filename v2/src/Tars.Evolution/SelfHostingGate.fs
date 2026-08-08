@@ -430,47 +430,6 @@ module SelfHostingGate =
                 recordWin task
                 Promoted(branch, rationale))
 
-    /// Run the full hermetic gate for `task` against `repoRoot`. Creates a
-    /// detached worktree at HEAD, captures baseline outcomes, applies the edit,
-    /// captures variant outcomes, decides, and on Accept commits the edit to a
-    /// fresh `self-improve/<id>` branch (the worktree's own branch). The worktree
-    /// directory is always removed; an accepted branch ref survives.
-    let runGate (repoRoot: string) (testProject: string) (task: GateTask) : GateVerdict =
-        if isTestFile task.TargetFile then
-            Rejected "target is a test file (hermetic boundary)"
-        else
-            let id = Guid.NewGuid().ToString("n").Substring(0, 8)
-            let branch = sprintf "self-improve/%s" id
-            let wt = Path.Combine(Path.GetTempPath(), sprintf "tars_selfheal_%s" id)
-            let git args =
-                let code, _, err = run repoRoot "git" args
-                if code <> 0 then failwithf "git %s failed: %s" args (err.Trim())
-            try
-                try
-                    git (sprintf "worktree add --detach \"%s\" HEAD" wt)
-                    let baseline = runTests wt testProject (sprintf "base_%s.trx" id)
-                    if not (applyEdit wt task) then
-                        Rejected "edit precondition failed (OldText missing or not unique)"
-                    else
-                        let variant = runTests wt testProject (sprintf "var_%s.trx" id)
-                        match decide task.TargetTest baseline variant with
-                        | Reject reason -> Rejected reason
-                        | Accept rationale ->
-                            // Promote: turn the verified worktree into a branch commit.
-                            let gitWt a =
-                                let code, _, err = run wt "git" a
-                                if code <> 0 then failwithf "git %s failed: %s" a (err.Trim())
-                            gitWt (sprintf "checkout -b %s" branch)
-                            gitWt (sprintf "add \"%s\"" task.TargetFile)
-                            gitWt (sprintf "commit -m \"self-improve: %s\"" (task.Rationale.Replace("\"", "'")))
-                            // Verified win → SFT training data (ADR 0003).
-                            recordWin task
-                            Promoted(branch, rationale)
-                with ex ->
-                    Rejected(sprintf "gate error: %s" ex.Message)
-            finally
-                try run repoRoot "git" (sprintf "worktree remove --force \"%s\"" wt) |> ignore with _ -> ()
-
     /// Generate up to `n` candidate edits for the failing test. Proposal 0 is
     /// greedy (temperature 0 — the model's best single guess); the rest are sampled
     /// (temperature 0.6, distinct seeds) for diversity (ADR 0002 D5). Parse failures
