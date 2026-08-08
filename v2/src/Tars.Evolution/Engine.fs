@@ -21,30 +21,39 @@ module Engine =
         | Belief of collection: string * id: string * vector: float32[] * payload: Map<string, string>
         | Legacy of collection: string * id: string * vector: float32[] * payload: Map<string, string>
 
+    type MemoryServices =
+        { SemanticMemory: ISemanticMemory option
+          KnowledgeBase: KnowledgeBase option
+          KnowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option
+          MemoryBuffer: BufferAgent<MemoryItem> option
+          EpisodeService: IEpisodeIngestionService option
+          Ledger: KnowledgeLedger option }
+
+    type GovernanceServices =
+        { Epistemic: IEpistemicGovernor option
+          PreLlm: PreLlmPipeline option
+          Budget: BudgetGovernor option
+          OutputGuard: IOutputGuard option
+          Evaluator: IEvaluationStrategy option }
+
+    type RunOptions =
+        { RunId: RunId option
+          Verbose: bool
+          ShowSemanticMessage: Message -> bool -> unit
+          Focus: string option
+          ToolRegistry: Tars.Tools.ToolRegistry option
+          ResearchEnhanced: bool
+          SelfImprovement: bool }
+
     /// The context for the evolution engine
     type EvolutionContext =
         { Registry: IAgentRegistry
           Llm: ILlmService
           VectorStore: IVectorStore
-          SemanticMemory: ISemanticMemory option
-          Epistemic: IEpistemicGovernor option
-          PreLlm: PreLlmPipeline option
-          Budget: BudgetGovernor option
-          OutputGuard: IOutputGuard option
-          KnowledgeBase: KnowledgeBase option
-          KnowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option
-          MemoryBuffer: BufferAgent<MemoryItem> option // Added Capacitor
-          EpisodeService: IEpisodeIngestionService option // Graphiti integration
-          Ledger: KnowledgeLedger option
-          Evaluator: IEvaluationStrategy option
-          RunId: RunId option
           Logger: string -> unit
-          Verbose: bool
-          ShowSemanticMessage: Message -> bool -> unit
-          Focus: string option
-          ToolRegistry: Tars.Tools.ToolRegistry option // Added for hot reload of tools
-          ResearchEnhanced: bool // Research-enhanced curriculum (Phase 18)
-          SelfImprovement: bool } // Neuro-Symbolic Self-Improvement (Phase 15)
+          Memory: MemoryServices
+          Governance: GovernanceServices
+          Options: RunOptions }
 
     let private scoreTask
         (ctx: EvolutionContext)
@@ -253,13 +262,13 @@ Do any of the known beliefs contradict executing this task? Respond in JSON: {{"
         task {
             // Check Budget Criticality
             let isCritical =
-                match ctx.Budget with
+                match ctx.Governance.Budget with
                 | Some b -> b.IsCritical(0.1) // Less than 10% remaining
                 | None -> false
 
             // Epistemic Governor: Get Curriculum Suggestions
             let! suggestion =
-                match ctx.Epistemic with
+                match ctx.Governance.Epistemic with
                 | Some governor ->
                     task {
                         try
@@ -351,7 +360,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
             | Some agent ->
                 // 2. Initialize Graph Executor
                 let graphExecutor =
-                    GraphExecutor(ctx.Registry, ctx.Llm, ctx.Budget, ctx.OutputGuard, ctx.Logger)
+                    GraphExecutor(ctx.Registry, ctx.Llm, ctx.Governance.Budget, ctx.Governance.OutputGuard, ctx.Logger)
 
                 // 3. Create Request Message with JSON requirement
                 let msg =
@@ -369,7 +378,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                       Metadata = Map.ofList [ ("response_format", "json"); ("json_mode", "true") ] }
 
                 // Show semantic message in demo mode
-                ctx.ShowSemanticMessage msg ctx.Verbose
+                ctx.Options.ShowSemanticMessage msg ctx.Options.Verbose
                 let agentWithMsg = agent.ReceiveMessage(msg)
 
                 // 4. Run Execution
@@ -556,7 +565,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                             // Budget-aware priority report
                             let remainingTokens =
-                                ctx.Budget
+                                ctx.Governance.Budget
                                 |> Option.bind (fun b -> b.Remaining.MaxTokens |> Option.map (fun t -> int t))
 
                             ctx.Logger(TaskPrioritization.priorityReport topK state.CompletedTasks remainingTokens)
@@ -614,17 +623,17 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                 // 2. Initialize Graph Executor
                 let graphExecutor =
-                    GraphExecutor(ctx.Registry, ctx.Llm, ctx.Budget, ctx.OutputGuard, ctx.Logger)
+                    GraphExecutor(ctx.Registry, ctx.Llm, ctx.Governance.Budget, ctx.Governance.OutputGuard, ctx.Logger)
 
                 // 3. Construct the Task Prompt
                 let! codeContext =
-                    match ctx.Epistemic with
+                    match ctx.Governance.Epistemic with
                     | Some governor -> governor.GetRelatedCodeContext(taskDef.Goal)
                     | None -> Task.FromResult ""
 
                 // 3.1 Retrieve Semantic Memory (Lessons Learned)
                 let! memories =
-                    match ctx.SemanticMemory with
+                    match ctx.Memory.SemanticMemory with
                     | Some smem ->
                         let query =
                             { TaskId = ""
@@ -666,7 +675,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 let goalLower = taskDef.Goal.ToLowerInvariant()
 
                 let relevantBeliefs =
-                    match ctx.Ledger with
+                    match ctx.Memory.Ledger with
                     | Some ledger ->
                         ledger.Query()
                         |> Seq.filter (fun b ->
@@ -734,7 +743,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             $"\nKnown Beliefs:\n{lines}\n"
 
                     let toolList =
-                        match ctx.ToolRegistry with
+                        match ctx.Options.ToolRegistry with
                         | Some r ->
                             r.GetAll()
                             |> List.map (fun t -> $"- {t.Name}: {t.Description}")
@@ -781,7 +790,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
 
                     // Pre-LLM Pipeline Check
                     let! (finalPrompt, isSafe) =
-                        match ctx.PreLlm with
+                        match ctx.Governance.PreLlm with
                         | Some pipeline ->
                             task {
                                 let! pCtx = pipeline.ExecuteAsync(taskPrompt)
@@ -819,7 +828,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                               Metadata = Map.empty }
 
                         // 4. Send message to Executor - show semantic message
-                        ctx.ShowSemanticMessage msg ctx.Verbose
+                        ctx.Options.ShowSemanticMessage msg ctx.Options.Verbose
                         DemoVisualization.showTaskStart taskDef.Goal taskDef.Constraints
 
                         let agentWithMsg = executor.ReceiveMessage(msg)
@@ -1005,7 +1014,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                                             // 6.1 Epistemic Verification (if available)
                                             let! (verificationFeedback, isVerified) =
                                                 task {
-                                                    match ctx.Epistemic with
+                                                    match ctx.Governance.Epistemic with
                                                     | Some governor ->
                                                         try
                                                             // Generate minimal variants for quick check
@@ -1085,7 +1094,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                                                     (Some verificationFeedback)
 
                                                 // Phase 6.8: Epistemic Reflection Recording
-                                                match ctx.EpisodeService with
+                                                match ctx.Memory.EpisodeService with
                                                 | Some svc ->
                                                     let episode =
                                                         Tars.Core.Episode.Reflection(
@@ -1183,7 +1192,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
 
             do!
                 SymbolicMemory.logFailure
-                    (ctx.RunId
+                    (ctx.Options.RunId
                      |> Option.map (fun (RunId.RunId r) -> r)
                      |> Option.defaultValue (Guid.NewGuid()))
                     None
@@ -1192,9 +1201,9 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                 |> Async.StartAsTask
 
             // 2. Identify target file for mutation
-            // We look at ctx.Focus or try to find a .trsx file mentioned in the trace
+            // We look at ctx.Options.Focus or try to find a .trsx file mentioned in the trace
             let targetFile =
-                match ctx.Focus with
+                match ctx.Options.Focus with
                 | Some f when f.EndsWith(".trsx") -> Some f
                 | _ ->
                     // Fallback: look for any .trsx in the current working directory if it's a small project
@@ -1210,7 +1219,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                         path
                         failedResult.Output
                         (String.concat "\n" failedResult.ExecutionTrace)
-                        (ctx.RunId
+                        (ctx.Options.RunId
                          |> Option.map (fun (RunId.RunId r) -> r)
                          |> Option.defaultValue (Guid.NewGuid()))
 
@@ -1236,7 +1245,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                 let! result = executeTask ctx state taskDef
 
                 let! evaluation =
-                    match ctx.Evaluator with
+                    match ctx.Governance.Evaluator with
                     | Some evaluator ->
                         task {
                             try
@@ -1261,8 +1270,8 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                     { resultWithEvaluation with
                         Success = result.Success && evaluationPassed }
 
-                match ctx.Ledger with
-                | Some ledger -> do! LedgerIngestion.recordTaskResult ledger ctx.RunId taskDef finalResult ctx.Logger
+                match ctx.Memory.Ledger with
+                | Some ledger -> do! LedgerIngestion.recordTaskResult ledger ctx.Options.RunId taskDef finalResult ctx.Logger
                 | None -> ()
 
                 let resultForDisplay =
@@ -1277,7 +1286,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                     let mutable newBeliefs = state.ActiveBeliefs
 
                     // Epistemic Governor: Extract Principle
-                    match ctx.Epistemic with
+                    match ctx.Governance.Epistemic with
                     | Some governor ->
                         try
                             let! belief = governor.ExtractPrinciple(taskDef.Goal, finalResult.Output)
@@ -1293,14 +1302,14 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                                       "confidence", string belief.Confidence
                                       "derived_from", string taskDef.Id ]
 
-                            match ctx.MemoryBuffer with
+                            match ctx.Memory.MemoryBuffer with
                             | Some buffer ->
                                 buffer.Accumulate(Belief("tars-beliefs", string belief.Id, embedding, payload))
                             | None ->
                                 do! ctx.VectorStore.SaveAsync("tars-beliefs", string belief.Id, embedding, payload)
 
                             // Phase 6.8: Record Belief Update to Knowledge Graph
-                            match ctx.EpisodeService with
+                            match ctx.Memory.EpisodeService with
                             | Some svc ->
                                 let episode =
                                     Tars.Core.Episode.BeliefUpdate(
@@ -1316,12 +1325,12 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                             // Update Active Beliefs (keep last 10)
                             newBeliefs <- (belief.Statement :: newBeliefs) |> List.truncate 10
 
-                            match ctx.Ledger with
+                            match ctx.Memory.Ledger with
                             | Some ledger ->
                                 do!
                                     LedgerIngestion.recordEpistemicBelief
                                         ledger
-                                        ctx.RunId
+                                        ctx.Options.RunId
                                         belief
                                         (Some taskDef.Id)
                                         ctx.Logger
@@ -1341,7 +1350,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                           StepOutputs = Map.empty }
 
                     // Save to Semantic Memory (Grow)
-                    match ctx.SemanticMemory with
+                    match ctx.Memory.SemanticMemory with
                     | Some smem ->
                         try
                             let! schemaId = smem.Grow(trace, obj ())
@@ -1352,7 +1361,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
 
                     // Save to Knowledge            // Ingest trace into KG
                     // Save to Knowledge            // Ingest trace into KG
-                    match ctx.KnowledgeGraph with
+                    match ctx.Memory.KnowledgeGraph with
                     | Some kg ->
                         try
                             let taskEntity =
@@ -1428,7 +1437,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                                   "output", resultWithEvaluation.Output
                                   "generation", string state.Generation ]
 
-                        match ctx.MemoryBuffer with
+                        match ctx.Memory.MemoryBuffer with
                         | Some buffer ->
                             buffer.Accumulate(Legacy("tars-evolution-memory", string taskDef.Id, embedding, payload))
                         | None ->
@@ -1454,7 +1463,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
 
                     // Feature C: Epistemic Verification Checkpoint
                     let! isVerified =
-                        match ctx.Epistemic, resultWithEvaluation.Success with
+                        match ctx.Governance.Epistemic, resultWithEvaluation.Success with
                         | Some governor, true ->
                             task {
                                 try
@@ -1498,7 +1507,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                         verifiedResult.Duration
 
                     // Capture episode to Graphiti knowledge graph
-                    match ctx.EpisodeService with
+                    match ctx.Memory.EpisodeService with
                     | Some svc ->
                         let episode =
                             Tars.Core.Episode.AgentInteraction(
@@ -1523,7 +1532,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                 else
                     // Retail Darwin logic (Phase 15)
                     let! mutation =
-                        if ctx.SelfImprovement then
+                        if ctx.Options.SelfImprovement then
                             runDarwinLoop ctx state taskDef resultForDisplay
                         else
                             Task.FromResult None
