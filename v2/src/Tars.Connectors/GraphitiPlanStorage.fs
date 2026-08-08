@@ -7,7 +7,7 @@ open System.Text.Json
 open Tars.Knowledge
 open Tars.Connectors.Graphiti
 
-/// Graphiti implementation of IPlanStorage
+/// Graphiti implementation of IPlanStore
 /// Stores plans as temporal entities in the knowledge graph
 type GraphitiPlanStorage(graphitiUrl: string, ?groupId: string) =
     let client = new GraphitiClient(Uri(graphitiUrl))
@@ -81,7 +81,7 @@ RISK FACTORS:
           SourceDescription = Some eventType
           Uuid = None }
 
-    interface IPlanStorage with
+    interface IPlanStore with
         member _.SavePlan(plan) =
             task {
                 try

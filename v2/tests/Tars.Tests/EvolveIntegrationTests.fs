@@ -109,6 +109,7 @@ module EvolveIntegrationTests =
                   MemoryBuffer = None
                   EpisodeService = None
                   Ledger = Some ledger
+                  EvidenceStore = Some (ledger.Storage :?> IEvidenceStore)
                   Evaluator = None
                   RunId = None
                   Logger = fun _ -> ()

@@ -36,7 +36,7 @@ type FusekiStorage(endpointUri: Uri, auth: string option) =
         | Implements -> ns + "implements"
         | Custom s -> ns + s.Replace(" ", "_")
 
-    interface ILedgerStorage with
+    interface IBeliefLog with
         member _.Append(entry: BeliefEventEntry) =
             task {
                 try

@@ -188,6 +188,7 @@ module EvolutionTests =
               MemoryBuffer = None
               EpisodeService = None // Graphiti integration
               Ledger = None
+              EvidenceStore = None
               Evaluator = None
               RunId = None
               Logger = (fun _ -> ())

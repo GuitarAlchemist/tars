@@ -36,6 +36,7 @@ module Engine =
           MemoryBuffer: BufferAgent<MemoryItem> option // Added Capacitor
           EpisodeService: IEpisodeIngestionService option // Graphiti integration
           Ledger: KnowledgeLedger option
+          EvidenceStore: IEvidenceStore option
           Evaluator: IEvaluationStrategy option
           RunId: RunId option
           Logger: string -> unit
@@ -1262,7 +1263,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                         Success = result.Success && evaluationPassed }
 
                 match ctx.Ledger with
-                | Some ledger -> do! LedgerIngestion.recordTaskResult ledger ctx.RunId taskDef finalResult ctx.Logger
+                | Some ledger -> do! LedgerIngestion.recordTaskResult ledger ctx.EvidenceStore ctx.RunId taskDef finalResult ctx.Logger
                 | None -> ()
 
                 let resultForDisplay =

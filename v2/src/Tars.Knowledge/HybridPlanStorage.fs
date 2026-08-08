@@ -17,11 +17,11 @@ type PlanStorageBackend =
     | Hybrid of primary: PlanStorageBackend * secondary: PlanStorageBackend list
 
 /// Coordinator that writes to multiple backends with eventual consistency
-type HybridPlanStorage(primary: IPlanStorage, ?secondaries: IPlanStorage list) =
+type HybridPlanStorage(primary: IPlanStore, ?secondaries: IPlanStore list) =
     let secondary = defaultArg secondaries []
 
     /// Write to all backends (fire and forget for secondaries)
-    let writeToAll (operation: IPlanStorage -> Task<Result<unit, string>>) =
+    let writeToAll (operation: IPlanStore -> Task<Result<unit, string>>) =
         task {
             // Primary write (wait for result)
             let! primaryResult = operation primary
@@ -38,7 +38,7 @@ type HybridPlanStorage(primary: IPlanStorage, ?secondaries: IPlanStorage list) =
             return primaryResult
         }
 
-    interface IPlanStorage with
+    interface IPlanStore with
         member _.SavePlan(plan) =
             writeToAll (fun store -> store.SavePlan(plan))
 
@@ -64,23 +64,23 @@ type HybridPlanStorage(primary: IPlanStorage, ?secondaries: IPlanStorage list) =
 module HybridPlanStorage =
 
     /// Create storage from backend specification
-    let rec createStorage (backend: PlanStorageBackend) : IPlanStorage =
+    let rec createStorage (backend: PlanStorageBackend) : IPlanStore =
         match backend with
-        | InMemory -> InMemoryLedgerStorage() :> IPlanStorage
+        | InMemory -> InMemoryLedgerStorage() :> IPlanStore
 
-        | PostgreSQL -> PostgresLedgerStorage.create () :> IPlanStorage
+        | PostgreSQL -> PostgresLedgerStorage.create () :> IPlanStore
 
-        | Graphiti url -> GraphitiPlanStorage.create (url) :> IPlanStorage
+        | Graphiti url -> GraphitiPlanStorage.create (url) :> IPlanStore
 
-        | ChromaDB url -> ChromaPlanStorage.create (url) :> IPlanStorage
+        | ChromaDB url -> ChromaPlanStorage.create (url) :> IPlanStore
 
         | Hybrid(primary, secondaryBackends) ->
             let primaryStorage = createStorage primary
             let secondaryStorages = secondaryBackends |> List.map createStorage
-            HybridPlanStorage(primaryStorage, secondaryStorages) :> IPlanStorage
+            HybridPlanStorage(primaryStorage, secondaryStorages) :> IPlanStore
 
     /// Create default hybrid (PostgreSQL + Graphiti + ChromaDB)
-    let createDefault (?pgConnString: string, ?graphitiUrl: string, ?chromaUrl: string) : IPlanStorage =
+    let createDefault (?pgConnString: string, ?graphitiUrl: string, ?chromaUrl: string) : IPlanStore =
 
         let pg =
             match pgConnString with
@@ -89,27 +89,27 @@ module HybridPlanStorage =
 
         let secondaries =
             [ match graphitiUrl with
-              | Some url -> yield GraphitiPlanStorage.create (url) :> IPlanStorage
+              | Some url -> yield GraphitiPlanStorage.create (url) :> IPlanStore
               | None -> ()
 
               match chromaUrl with
-              | Some url -> yield ChromaPlanStorage.create (url) :> IPlanStorage
+              | Some url -> yield ChromaPlanStorage.create (url) :> IPlanStore
               | None -> () ]
 
-        HybridPlanStorage(pg :> IPlanStorage, secondaries) :> IPlanStorage
+        HybridPlanStorage(pg :> IPlanStore, secondaries) :> IPlanStore
 
     /// Create for development (In-Memory only)
-    let createDevelopment () : IPlanStorage = InMemoryLedgerStorage() :> IPlanStorage
+    let createDevelopment () : IPlanStore = InMemoryLedgerStorage() :> IPlanStore
 
     /// Create for production (Full hybrid stack)
-    let createProduction (pgConnString: string) (graphitiUrl: string) (chromaUrl: string) : IPlanStorage =
+    let createProduction (pgConnString: string) (graphitiUrl: string) (chromaUrl: string) : IPlanStore =
 
         let primary = PostgresLedgerStorage.createWithConnectionString (pgConnString)
         let graphiti = GraphitiPlanStorage.create (graphitiUrl)
         let chroma = ChromaPlanStorage.create (chromaUrl)
 
-        HybridPlanStorage(primary :> IPlanStorage, [ graphiti :> IPlanStorage; chroma :> IPlanStorage ]) :> IPlanStorage
+        HybridPlanStorage(primary :> IPlanStore, [ graphiti :> IPlanStore; chroma :> IPlanStore ]) :> IPlanStore
 
     /// Create with custom configuration
-    let create (primary: IPlanStorage) (secondaries: IPlanStorage list) : IPlanStorage =
-        HybridPlanStorage(primary, secondaries) :> IPlanStorage
+    let create (primary: IPlanStore) (secondaries: IPlanStore list) : IPlanStore =
+        HybridPlanStorage(primary, secondaries) :> IPlanStore

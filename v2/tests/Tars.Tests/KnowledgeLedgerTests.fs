@@ -193,10 +193,11 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
                   Duration = TimeSpan.Zero
                   Evaluation = Some evaluation }
 
-            do! LedgerIngestion.recordTaskResult ledger None taskDef result (fun _ -> ())
+            let evidenceStore = ledger.Storage :?> IEvidenceStore
+            do! LedgerIngestion.recordTaskResult ledger (Some evidenceStore) None taskDef result (fun _ -> ())
 
             let subject = $"task:{taskDef.Id}"
-            let expectedObj = $"goal:{EvidenceStore.ComputeHash taskDef.Goal}"
+            let expectedObj = $"goal:{EvidenceCandidate.ComputeHash taskDef.Goal}"
 
             let matches =
                 ledger.Query(?subject = Some subject)
@@ -242,7 +243,8 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
                   Duration = TimeSpan.Zero
                   Evaluation = Some evaluation }
 
-            do! LedgerIngestion.recordTaskResult ledger None taskDef result (fun _ -> ())
+            let evidenceStore2 = ledger.Storage :?> IEvidenceStore
+            do! LedgerIngestion.recordTaskResult ledger (Some evidenceStore2) None taskDef result (fun _ -> ())
 
             let subject = $"task:{taskDef.Id}"
             let matches = ledger.Query(?subject = Some subject) |> Seq.toList
@@ -257,7 +259,7 @@ type KnowledgeLedgerTests(output: ITestOutputHelper) =
 
             let storage =
                 match ledger.Storage with
-                | :? IEvidenceStorage as store -> store
+                | :? IEvidenceStore as store -> store
                 | _ -> failwith "Evidence storage not available"
 
             let evidenceA = Guid.NewGuid()
@@ -322,7 +324,7 @@ type PostgresLedgerStorageTests(output: ITestOutputHelper) =
                 output.WriteLine("Skipping Postgres test because TARS_POSTGRES_CONNECTION is not set")
             else
                 let storage = PostgresLedgerStorage.createWithConnectionString connStr
-                let ledger = KnowledgeLedger(storage :> ILedgerStorage)
+                let ledger = KnowledgeLedger(storage :> IBeliefLog)
                 do! ledger.Initialize()
 
                 let belief = Belief.fromTriple "TARS" Supports "Persistence"
@@ -335,7 +337,7 @@ type PostgresLedgerStorageTests(output: ITestOutputHelper) =
                 let! history = ledger.GetHistory(belief.Id)
                 Assert.NotEmpty(history)
 
-                let evidenceStore = storage :> IEvidenceStorage
+                let evidenceStore = storage :> IEvidenceStore
 
                 let candidate =
                     { Id = Guid.NewGuid()
