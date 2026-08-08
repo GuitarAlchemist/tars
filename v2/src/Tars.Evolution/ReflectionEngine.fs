@@ -132,46 +132,29 @@ Reflect on this execution. Output JSON:
 
             try
                 let! resp = llm.CompleteAsync req
-                let text = resp.Text.Trim()
-                let firstBrace = text.IndexOf('{')
-                let lastBrace = text.LastIndexOf('}')
+                use doc = StructuredOutput.parseJson resp.Text
+                let root = doc.RootElement
 
-                if firstBrace >= 0 && lastBrace > firstBrace then
-                    let json = text.Substring(firstBrace, lastBrace - firstBrace + 1)
-                    let doc = JsonDocument.Parse(json)
-                    let root = doc.RootElement
+                let getStr (name: string) (fallback: string) =
+                    let mutable p = JsonElement()
+                    if root.TryGetProperty(name, &p) then p.GetString() else fallback
 
-                    let getStr (name: string) (fallback: string) =
-                        let mutable p = JsonElement()
-                        if root.TryGetProperty(name, &p) then p.GetString() else fallback
+                let getArr (name: string) =
+                    let mutable p = JsonElement()
+                    if root.TryGetProperty(name, &p) && p.ValueKind = JsonValueKind.Array then
+                        p.EnumerateArray() |> Seq.map (fun e -> e.GetString()) |> Seq.toList
+                    else []
 
-                    let getArr (name: string) =
-                        let mutable p = JsonElement()
-                        if root.TryGetProperty(name, &p) && p.ValueKind = JsonValueKind.Array then
-                            p.EnumerateArray() |> Seq.map (fun e -> e.GetString()) |> Seq.toList
-                        else []
-
-                    return
-                        { RunId = Guid.NewGuid().ToString("N").Substring(0, 12)
-                          Goal = goal
-                          IntendedStrategy = getStr "intended_strategy" "unknown"
-                          ActualBehavior = getStr "actual_behavior" "unknown"
-                          Outcome = classifyOutcome comparison
-                          Surprises = getArr "surprises"
-                          LessonsLearned = getArr "lessons_learned"
-                          SuggestedImprovements = getArr "suggested_improvements"
-                          Timestamp = DateTime.UtcNow }
-                else
-                    return
-                        { RunId = Guid.NewGuid().ToString("N").Substring(0, 12)
-                          Goal = goal
-                          IntendedStrategy = "planned execution"
-                          ActualBehavior = sprintf "%d/%d steps completed" comparison.ExecutedSteps comparison.PlannedSteps
-                          Outcome = classifyOutcome comparison
-                          Surprises = []
-                          LessonsLearned = []
-                          SuggestedImprovements = []
-                          Timestamp = DateTime.UtcNow }
+                return
+                    { RunId = Guid.NewGuid().ToString("N").Substring(0, 12)
+                      Goal = goal
+                      IntendedStrategy = getStr "intended_strategy" "unknown"
+                      ActualBehavior = getStr "actual_behavior" "unknown"
+                      Outcome = classifyOutcome comparison
+                      Surprises = getArr "surprises"
+                      LessonsLearned = getArr "lessons_learned"
+                      SuggestedImprovements = getArr "suggested_improvements"
+                      Timestamp = DateTime.UtcNow }
             with _ ->
                 return
                     { RunId = Guid.NewGuid().ToString("N").Substring(0, 12)

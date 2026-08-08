@@ -86,15 +86,7 @@ OUTPUT FORMAT (JSON ONLY):
             try
                 let! resp = llm.CompleteAsync req |> Async.AwaitTask
 
-                // Robust extraction
-                let mutable text = resp.Text.Trim()
-                let firstBrace = text.IndexOf('{')
-                let lastBrace = text.LastIndexOf('}')
-
-                if firstBrace >= 0 && lastBrace > firstBrace then
-                    text <- text.Substring(firstBrace, lastBrace - firstBrace + 1)
-
-                use doc = JsonDocument.Parse(text)
+                use doc = StructuredOutput.parseJson resp.Text
                 let root = doc.RootElement
 
                 let synth = root.GetProperty("synthesis")

@@ -458,7 +458,7 @@ module PatternCompiler =
                 let compiler = this :> IPatternCompiler
                 match kind with
                 | ChainOfThought -> compiler.CompileChainOfThought(5, goal)
-                | ReAct -> compiler.CompileReAct([ "search"; "calculate"; "read" ], 10, goal)
+                | ReAct -> compiler.CompileReAct([ "search"; "calculate"; "read"; "write" ], 10, goal)
                 | GraphOfThoughts -> compiler.CompileGraphOfThoughts(3, 3, goal)
                 | TreeOfThoughts -> compiler.CompileTreeOfThoughts(3, 2, goal)
                 | PlanAndExecute -> compiler.CompileChainOfThought(3, goal)
