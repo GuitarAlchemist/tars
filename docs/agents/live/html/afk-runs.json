@@ -1,0 +1,20 @@
+[
+  {
+    "issue": "#115",
+    "title": "PR exists but needs revision before merge.",
+    "agent": "Jules",
+    "pr": "#129",
+    "state": "needs-agent-revision",
+    "risk": "medium",
+    "last_signal": "2026-06-28T13:02:41Z",
+    "next_action": "Agent should patch workflow path handling and avoid overwriting merged skill docs.",
+    "evidence": [
+      "review_comment: Skill path should load <skill>.skill.md"
+    ],
+    "is_stale": false,
+    "is_blocked": false,
+    "is_duplicate": false,
+    "ci_failing": false,
+    "needs_human_review": false
+  }
+]
