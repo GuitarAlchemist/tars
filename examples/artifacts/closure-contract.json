@@ -1,0 +1,21 @@
+{
+  "contract_id": "c85d898a-449e-4e42-a8c4-6fa629a43fe8",
+  "parent_issue": "GuitarAlchemist/tars#70",
+  "goal": "Verify all F# unit tests pass in v2/ and output any compilation warnings as structured telemetry.",
+  "schema_version": "1.0.0",
+  "timestamp": "2026-06-25T10:00:00Z",
+  "constraints": {
+    "max_duration_seconds": 300,
+    "budget_tier": "free-local",
+    "max_llm_calls": 3,
+    "token_budget": 50000
+  },
+  "required_skills": [
+    "standard.run_command",
+    "semantic.read_code"
+  ],
+  "invariants": [
+    "Do not modify files in blocked paths like .github/workflows/",
+    "Never leak raw API secrets in any command output"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "run_id": "4b7b25ae-e6b0-4f51-b844-3069cb919240",
+  "contract_id": "c85d898a-449e-4e42-a8c4-6fa629a43fe8",
+  "status": "success",
+  "duration_ms": 12840,
+  "timestamp_start": "2026-06-25T10:00:05Z",
+  "timestamp_end": "2026-06-25T10:00:18Z",
+  "llm_call_count": 1,
+  "tokens_used": {
+    "prompt_tokens": 1200,
+    "completion_tokens": 350,
+    "total_tokens": 1550
+  },
+  "output_artifacts": [
+    {
+      "filepath": "test_reports/dotnet-test-run.xml",
+      "description": "NUnit test results summary from dotnet test command",
+      "sha256_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
