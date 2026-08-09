@@ -438,6 +438,7 @@ module WotGrammarConformanceTests =
     [<InlineData("verdict", "    verdict = \"accept\"")>]
     [<InlineData("condition", "    condition = \"ready\"")>]
     [<InlineData("kind in body", "    kind = \"work\"")>]
+    [<InlineData("next scalar", "    next = \"m\"")>]
     [<InlineData("args", "    args = { \"query\": \"x\" }")>]
     [<InlineData("comment", "    // just a comment")>]
     let ``node field the grammar admits is accepted by WotParser`` (label: string) (field: string) =
@@ -500,8 +501,8 @@ module WotGrammarConformanceTests =
 
     [<Fact>]
     let ``grammar rejects an unknown node kind`` () =
-        // An unrecognised kind silently degrades to `reason` in WotParser, so
-        // the grammar must not let a decoder emit one.
+        // An unrecognised kind is a parse error in WotParser, so the grammar
+        // must not let a decoder emit one.
         let text =
             String.Join(
                 "\n",
@@ -540,20 +541,27 @@ module WotGrammarConformanceTests =
             $"""WotParser recognises keys absent from grammars/wot.ebnf: {String.Join(", ", missing)}"""
         )
 
-    [<Fact>]
-    let ``parser rejects an unknown node kind loudly`` () =
+    /// WotParser writes `Kind` from three places — the header with an agent, the
+    /// header without one, and the in-body `kind =` field. All three must reject
+    /// an unknown kind, otherwise the loud failure depends on which spelling the
+    /// decoder happened to emit.
+    [<Theory>]
+    [<InlineData("header with agent", "  node \"n\" kind=\"invalid_kind\" agent=\"P\" {", "")>]
+    [<InlineData("header without agent", "  node \"n\" kind=\"invalid_kind\" {", "")>]
+    [<InlineData("in-body kind field", "  node \"n\" {", "    kind = \"invalid_kind\"")>]
+    let ``parser rejects an unknown node kind loudly`` (label: string) (header: string) (field: string) =
+        let body = if field = "" then [] else [ field ]
+
         let text =
-            String.Join(
-                "\n",
-                [ "meta {"; "  name = \"t\""; "}"; "workflow {"; "  node \"n\" kind=\"invalid_kind\" {"; "  }"; "}"; "" ]
-            )
+            String.Join("\n", [ "meta {"; "  name = \"t\""; "}"; "workflow {"; header ] @ body @ [ "  }"; "}"; "" ])
+
         let lines = (normalize text).Split('\n') |> Array.toList
         match WotParser.parseLines lines with
         | Error errs ->
             Assert.NotEmpty(errs)
             Assert.Contains(errs, fun e -> e.Message.Contains("Unsupported node kind"))
         | Ok _ ->
-            Assert.Fail("WotParser should have failed on invalid kind")
+            Assert.Fail($"WotParser should have failed on invalid kind via the {label}")
 
     [<Fact>]
     let ``grammar and parser accept empty one-line blocks`` () =
@@ -634,3 +642,151 @@ module WotGrammarConformanceTests =
                 Assert.Equal("val2", args.["param2"])
             | _ ->
                 Assert.Fail("Expected ToolResult check kind")
+
+    /// The shape above is the only one with no `}` inside a value, and it is the
+    /// one shape the tracked corpus never uses. `${name}` interpolation
+    /// (`wot.ebnf:36-39`) and a literal `}` are both ordinary string content, so
+    /// the args object cannot be delimited by a lazy `\{.*?\}` capture — that
+    /// stops at the first `}` and drops every pair without reporting anything.
+    [<Theory>]
+    [<InlineData("interpolated value", "${computed_answer}")>]
+    [<InlineData("value containing a closing brace", "a}b")>]
+    let ``tool_result args survive a value that contains a closing brace``
+        (label: string)
+        (value: string)
+        =
+        let checkLine =
+            "      { \"type\": \"tool_result\", \"tool\": \"math_eval\", \"args\": { \"expression\": \""
+            + value
+            + "\" }, \"check\": \"0\" }"
+
+        let text =
+            String.Join(
+                "\n",
+                [ "meta {"
+                  "  name = \"t\""
+                  "}"
+                  "workflow {"
+                  "  node \"verify\" {"
+                  "    checks ["
+                  checkLine
+                  "    ]"
+                  "  }"
+                  "}"
+                  "" ]
+            )
+
+        Assert.True(grammarAccepts text, $"grammar rejects tool_result args ({label})")
+
+        let lines = (normalize text).Split('\n') |> Array.toList
+
+        match WotParser.parseLines lines with
+        | Error errs ->
+            let errMsg = String.Join("; ", errs |> List.map (fun e -> e.Message))
+            Assert.Fail($"WotParser rejected tool_result args ({label}): {errMsg}")
+        | Ok wf ->
+            let node = wf.Nodes |> List.find (fun n -> n.Id = "verify")
+
+            match node.Checks |> List.head with
+            | Tars.Core.WorkflowOfThought.WotCheck.ToolResult(_, args, _) ->
+                Assert.True(args.ContainsKey "expression", $"tool_result args silently dropped ({label})")
+                Assert.Equal(value, args.["expression"])
+            | _ -> Assert.Fail("Expected ToolResult check kind")
+
+    /// `fixture is accepted by both the grammar and WotParser` asserts acceptance
+    /// only and never inspects `Checks`, so a check whose arguments are discarded
+    /// still passes it. This locks the repository's one tracked `tool_result`
+    /// that carries args — the case the silent drop was reported against.
+    [<Fact>]
+    let ``full_surface fixture preserves its tool_result check arguments`` () =
+        let path = fixturePath "full_surface.wot.trsx"
+        Assert.True(File.Exists path, $"missing fixture: {path}")
+
+        match WotParser.parseFile path with
+        | Error errs ->
+            let errMsg = String.Join("; ", errs |> List.map (fun e -> e.Message))
+            Assert.Fail($"WotParser rejected full_surface.wot.trsx: {errMsg}")
+        | Ok wf ->
+            let toolResults =
+                wf.Nodes
+                |> List.collect (fun n -> n.Checks)
+                |> List.choose (function
+                    | Tars.Core.WorkflowOfThought.WotCheck.ToolResult(tool, args, _) -> Some(tool, args)
+                    | _ -> None)
+
+            Assert.Equal(1, toolResults.Length)
+            let tool, args = List.head toolResults
+            Assert.Equal("math_eval", tool)
+            Assert.True(args.ContainsKey "expression", "full_surface tool_result args were silently dropped")
+            Assert.Equal("${computed_answer}", args.["expression"])
+
+    /// `next` and an explicit `edge` can state the same link, and both spellings
+    /// are grammar-legal in one file. Materialising the edge twice parses `Ok`
+    /// and then fails `Graph.validateChain` (`edges = nodes - 1`) with a message
+    /// that names neither `next` nor the duplicate.
+    [<Fact>]
+    let ``next duplicating an explicit edge yields one edge and still compiles`` () =
+        let text =
+            String.Join(
+                "\n",
+                [ "meta {"
+                  "  name = \"t\""
+                  "}"
+                  "workflow {"
+                  "  node \"a\" {"
+                  "    next = \"b\""
+                  "  }"
+                  "  node \"b\" {"
+                  "    output = \"o\""
+                  "  }"
+                  "  edge \"a\" -> \"b\""
+                  "}"
+                  "" ]
+            )
+
+        Assert.True(grammarAccepts text, "grammar rejects a workflow stating one link both ways")
+
+        let lines = (normalize text).Split('\n') |> Array.toList
+
+        match WotParser.parseLines lines with
+        | Error errs ->
+            let errMsg = String.Join("; ", errs |> List.map (fun e -> e.Message))
+            Assert.Fail($"WotParser rejected a redundant next/edge pair: {errMsg}")
+        | Ok wf ->
+            Assert.Equal(1, wf.Edges.Length)
+            let a, b = List.head wf.Edges
+            Assert.Equal("a", a)
+            Assert.Equal("b", b)
+
+            match WotCompiler.compileWorkflowToPlanParsed wf with
+            | Error errs ->
+                let errMsg = String.Join("; ", errs |> List.map string)
+                Assert.Fail($"a redundant next/edge pair failed to compile: {errMsg}")
+            | Ok plan -> Assert.Equal(2, plan.Steps.Length)
+
+    /// The empty one-line forms are top-level block alternatives
+    /// (`wot.ebnf:63,70,75,85`). Recognising them wherever they appear makes a
+    /// line the parser previously reported disappear instead — the silent-drop
+    /// class these fixes exist to remove.
+    [<Theory>]
+    [<InlineData("inputs {}", "    inputs {}")>]
+    [<InlineData("meta {}", "    meta {}")>]
+    [<InlineData("policy {}", "    policy {}")>]
+    [<InlineData("workflow {}", "    workflow {}")>]
+    let ``an empty one-line block nested in a node body is still rejected`` (label: string) (field: string) =
+        let text =
+            String.Join(
+                "\n",
+                [ "meta {"; "  name = \"t\""; "}"; "workflow {"; "  node \"n\" {"; field; "  }"; "}"; "" ]
+            )
+
+        Assert.False(grammarAccepts text, $"grammar admits `{label}` inside a node body")
+        Assert.False(parserAccepts text, $"WotParser silently accepted `{label}` inside a node body")
+
+    [<Fact>]
+    let ``an empty one-line block nested in a meta block is still rejected`` () =
+        let text =
+            String.Join("\n", [ "meta {"; "  name = \"t\""; "  policy {}"; "}"; "workflow {"; "}"; "" ])
+
+        Assert.False(grammarAccepts text, "grammar admits `policy {}` inside a meta block")
+        Assert.False(parserAccepts text, "WotParser silently accepted `policy {}` inside a meta block")

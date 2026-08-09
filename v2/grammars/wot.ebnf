@@ -107,8 +107,8 @@ node_header     ::= ws "node" sp node_id sp "kind" eq quoted_kind sp "agent" eq 
 node_id         ::= '"' identifier '"' | identifier
 quoted_name     ::= '"' identifier '"'
 
-(* An unrecognised kind silently degrades to `reason`, so the grammar admits
-   only the two intentional values. *)
+(* An unrecognised kind is a parse error, so the grammar admits only the two
+   intentional values. *)
 quoted_kind     ::= '"' node_kind '"'
 node_kind       ::= "reason" | "work"
 
