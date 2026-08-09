@@ -41,6 +41,11 @@ module WeightedGrammar =
         SuccessRate: float
         /// How many times this rule has been selected for use
         SelectionCount: int
+        /// Decayed empirical success pseudo-count. The Beta(1,1) prior is added at
+        /// read time (see `posterior`), never stored, so decay cannot erode it.
+        Alpha: float
+        /// Decayed empirical failure pseudo-count.
+        Beta: float
         /// Who/what assigned this weight
         Source: RuleSource
         /// When the weight was last updated
@@ -99,11 +104,28 @@ module WeightedGrammar =
         : float * float =
         // Effective prior observations (decayed)
         let effectiveCount = float priorCount * decayFactor
-        let alpha = priorRate * effectiveCount + (if success then 1.0 else 0.0)
-        let beta = (1.0 - priorRate) * effectiveCount + (if success then 0.0 else 1.0)
+        // Beta(1,1) prior pseudo-counts (the +1 terms) keep a single observation from
+        // yielding certainty: a fresh rule with one success gives 2/3, not 1.0.
+        let alpha = 1.0 + priorRate * effectiveCount + (if success then 1.0 else 0.0)
+        let beta = 1.0 + (1.0 - priorRate) * effectiveCount + (if success then 0.0 else 1.0)
         let newRate = alpha / (alpha + beta)
         let newConfidence = min 1.0 ((alpha + beta) / (alpha + beta + 10.0)) // asymptotic to 1
         (newRate, newConfidence)
+
+    /// Beta posterior for a rule, adding the Beta(1,1) prior at read time (never stored).
+    let posterior (r: WeightedRule) : float * float = (r.Alpha + 1.0, r.Beta + 1.0)
+
+    /// Posterior mean success rate — the quantity ranking should use.
+    let posteriorMean (r: WeightedRule) : float =
+        let a, b = posterior r
+        a / (a + b)
+
+    /// Posterior standard deviation — shrinks with observation count, so
+    /// confidence = 1 - 2·std rises as evidence accumulates.
+    let posteriorStd (r: WeightedRule) : float =
+        let a, b = posterior r
+        let s = a + b
+        sqrt (a * b / (s * s * (s + 1.0)))
 
     // =========================================================================
     // Weight management
@@ -129,22 +151,36 @@ module WeightedGrammar =
                   Confidence = scoreToLogit s
                   SuccessRate = r.AverageScore
                   SelectionCount = 0
+                  // No execution outcomes yet — pure Beta(1,1) prior until observed.
+                  Alpha = 0.0
+                  Beta = 0.0
                   Source = Tars
                   LastUpdated = DateTime.UtcNow })
 
-    /// Update a rule's weight after observing an execution outcome.
+    /// Update a rule after observing an execution outcome. Decays the empirical
+    /// counts (discounted TS: effective sample size bounded at 1/(1-γ)) and folds in
+    /// the observation, then derives SuccessRate/Confidence/Weight from the posterior.
+    /// Operates on stored Alpha/Beta directly — never re-derives counts from the mean —
+    /// so the Beta(1,1) prior is applied once at read time, not compounded per update.
     let updateWeight
         (config: WeightConfig)
         (rule: WeightedRule)
         (success: bool)
         : WeightedRule =
-        let newRate, newConf =
-            bayesianUpdate rule.SuccessRate rule.SelectionCount success config.DecayFactor
-        { rule with
-            SuccessRate = newRate
-            Confidence = newConf
-            SelectionCount = rule.SelectionCount + 1
-            LastUpdated = DateTime.UtcNow }
+        let g = config.DecayFactor
+        let updated =
+            { rule with
+                Alpha = rule.Alpha * g + (if success then 1.0 else 0.0)
+                Beta = rule.Beta * g + (if success then 0.0 else 1.0)
+                SelectionCount = rule.SelectionCount + 1
+                LastUpdated = DateTime.UtcNow }
+        let mean = posteriorMean updated
+        { updated with
+            SuccessRate = mean
+            Confidence = 1.0 - 2.0 * posteriorStd updated |> max 0.0 |> min 1.0
+            // Fold the posterior mean into Weight — the field classifyWeighted ranks by —
+            // so execution outcomes move promotion order (fixes the live r = -0.85 inversion).
+            Weight = max config.MinWeight mean }
 
     /// Weighted random selection using accumulated probability.
     let selectWeighted (rules: WeightedRule list) (rng: Random) : WeightedRule option =
@@ -202,6 +238,8 @@ module WeightedGrammar =
         Confidence: float
         SuccessRate: float
         SelectionCount: int
+        Alpha: float
+        Beta: float
         Source: string
         LastUpdated: string
     }
@@ -215,6 +253,8 @@ module WeightedGrammar =
           Confidence = r.Confidence
           SuccessRate = r.SuccessRate
           SelectionCount = r.SelectionCount
+          Alpha = r.Alpha
+          Beta = r.Beta
           Source = match r.Source with
                    | Tars -> "tars" | GuitarAlchemist -> "guitar_alchemist"
                    | MachinDeOuf -> "ix" | Evolved -> "evolved" | Manual -> "manual"
@@ -230,6 +270,12 @@ module WeightedGrammar =
             match dto.Source with
             | "guitar_alchemist" -> GuitarAlchemist | "ix" -> MachinDeOuf
             | "evolved" -> Evolved | "manual" -> Manual | _ -> Tars
+        // Migrate legacy weights.json: STJ defaults missing Alpha/Beta to 0.0, so when
+        // the pair is empty reconstruct decayed counts from the persisted rate × count.
+        let alpha, beta =
+            if dto.Alpha + dto.Beta > 0.0 then dto.Alpha, dto.Beta
+            else dto.SuccessRate * float dto.SelectionCount,
+                 (1.0 - dto.SuccessRate) * float dto.SelectionCount
         { PatternId = dto.PatternId
           PatternName = dto.PatternName
           Level = level
@@ -238,6 +284,8 @@ module WeightedGrammar =
           Confidence = dto.Confidence
           SuccessRate = dto.SuccessRate
           SelectionCount = dto.SelectionCount
+          Alpha = alpha
+          Beta = beta
           Source = source
           LastUpdated = try DateTime.Parse(dto.LastUpdated) with _ -> DateTime.UtcNow }
 

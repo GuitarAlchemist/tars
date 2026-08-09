@@ -392,11 +392,13 @@ Do not use 'open' statements — write self-contained code."""
     let recordOutcomes (selector: IPatternSelector) (summary: BenchmarkRunSummary) : unit =
         for attempt in summary.Attempts do
             selector.RecordOutcome
-                { PatternKind = Custom $"benchmark:{attempt.Category}"
-                  Goal = attempt.ProblemId
-                  Success = attempt.Validated
-                  DurationMs = attempt.GenerationTimeMs + attempt.ValidationTimeMs
-                  Timestamp = attempt.Timestamp }
+                { PatternOutcome.Create(
+                    Custom $"benchmark:{attempt.Category}",
+                    attempt.ProblemId,
+                    attempt.Validated,
+                    attempt.GenerationTimeMs + attempt.ValidationTimeMs) with
+                    Timestamp = attempt.Timestamp
+                    ModelId = (if summary.ModelUsed = "default" then None else Some summary.ModelUsed) }
 
     /// Persist results to ~/.tars/benchmark_results/.
     let saveResults (summary: BenchmarkRunSummary) : string =

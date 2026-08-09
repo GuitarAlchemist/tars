@@ -39,6 +39,32 @@ module internal ChatClientMapping =
         { Role = fromAIRole msg.Role
           Content = msg.Text |> Option.ofObj |> Option.defaultValue "" }
 
+    /// Wire names for the constraints M.E.AI has no first-class channel for.
+    /// Private to this adapter pair: no provider reads them, and they are NOT the
+    /// shape `OpenAiCompatibleClient` puts on the wire (that is a nested
+    /// `structured_outputs: { grammar = ... }` object). They exist only so the
+    /// write and read halves here cannot drift apart.
+    [<Literal>]
+    let GrammarKey = "structured_outputs_grammar"
+
+    [<Literal>]
+    let RegexKey = "structured_outputs_regex"
+
+    /// A JSON schema must be a JSON *object*. `"null"`, `"42"` and `"[1,2]"` all
+    /// parse happily and would sail through as a schema, producing
+    /// `json_schema: { schema: null }` and a 400 at the provider rather than the
+    /// intended degrade to plain JSON mode.
+    let private tryParseSchema (schema: string) =
+        try
+            let root = System.Text.Json.JsonDocument.Parse(schema).RootElement
+
+            if root.ValueKind = System.Text.Json.JsonValueKind.Object then
+                Some root
+            else
+                None
+        with _ ->
+            None
+
     /// Build M.E.AI ChatOptions from an LlmRequest
     let toChatOptions (req: LlmRequest) : ChatOptions =
         let opts = ChatOptions()
@@ -50,39 +76,121 @@ module internal ChatClientMapping =
         if not req.Stop.IsEmpty then
             opts.StopSequences <- req.Stop |> ResizeArray
 
+        let carry key (value: string) =
+            let dict = Dictionary<string, obj>()
+            dict.[key] <- box value
+            opts.AdditionalProperties <- AdditionalPropertiesDictionary(dict)
+
         match req.ResponseFormat with
         | Some ResponseFormat.Json -> opts.ResponseFormat <- ChatResponseFormat.Json
+        // Text must be stated, not left to the catch-all: falling through would let
+        // `req.JsonMode` overwrite it, turning an explicit request for prose into
+        // one demanding JSON.
+        | Some ResponseFormat.Text -> opts.ResponseFormat <- ChatResponseFormat.Text
         | Some (ResponseFormat.Constrained (Grammar.JsonSchema schema)) ->
-            // Pass JSON schema through MAF as JSON mode + schema in AdditionalProperties
-            opts.ResponseFormat <- ChatResponseFormat.Json
-            opts.AdditionalProperties <-
-                let dict = System.Collections.Generic.Dictionary<string, obj>()
-                dict.["json_schema"] <- box schema
-                dict :> System.Collections.Generic.IDictionary<string, obj>
-                |> System.Collections.ObjectModel.ReadOnlyDictionary
-                |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
+            // `ForJsonSchema` is the channel providers actually enforce;
+            // AdditionalProperties is not, so a schema left there is never applied.
+            // A schema we cannot use degrades to plain JSON mode rather than
+            // throwing out of a format mapping.
+            match tryParseSchema schema with
+            | Some element ->
+                opts.ResponseFormat <-
+                    ChatResponseFormat.ForJsonSchema(element, "tars_structured_output", "TARS constrained response schema")
+            | None -> opts.ResponseFormat <- ChatResponseFormat.Json
         | Some (ResponseFormat.Constrained (Grammar.Ebnf grammar)) ->
-            // Pass EBNF grammar through AdditionalProperties for backends that support it
-            opts.AdditionalProperties <-
-                let dict = System.Collections.Generic.Dictionary<string, obj>()
-                dict.["guided_decoding_backend"] <- box "xgrammar"
-                dict.["guided_decoding_grammar"] <- box grammar
-                dict :> System.Collections.Generic.IDictionary<string, obj>
-                |> System.Collections.ObjectModel.ReadOnlyDictionary
-                |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
-        | Some (ResponseFormat.Constrained (Grammar.Regex pattern)) ->
-            opts.AdditionalProperties <-
-                let dict = System.Collections.Generic.Dictionary<string, obj>()
-                dict.["guided_decoding_backend"] <- box "outlines"
-                dict.["guided_decoding_regex"] <- box pattern
-                dict :> System.Collections.Generic.IDictionary<string, obj>
-                |> System.Collections.ObjectModel.ReadOnlyDictionary
-                |> (fun d -> System.Collections.Generic.Dictionary(d) |> AdditionalPropertiesDictionary)
-        | _ ->
+            // Backend selection is the server's job, so no backend key here.
+            carry GrammarKey grammar
+        | Some (ResponseFormat.Constrained (Grammar.Regex pattern)) -> carry RegexKey pattern
+        | None ->
             if req.JsonMode then
                 opts.ResponseFormat <- ChatResponseFormat.Json
 
         opts
+
+    /// Recover a TARS ResponseFormat from M.E.AI ChatOptions — the inverse of
+    /// `toChatOptions`.
+    ///
+    /// The trap this exists to avoid: `ChatResponseFormat.ForJsonSchema` returns a
+    /// NEW `ChatResponseFormatJson`, not the `ChatResponseFormat.Json` singleton, so
+    /// a reference comparison against that singleton is false in precisely the case
+    /// that carries a schema. Distinguish on `.Schema`, never on identity.
+    ///
+    /// Precedence, for options that carry both channels — `toChatOptions` never
+    /// emits both, so this only arises from an external producer:
+    ///   1. a schema-bearing ResponseFormat — the most specific constraint, and one
+    ///      the caller set through the typed API on purpose
+    ///   2. the grammar/regex side channel — used only because M.E.AI has no slot
+    ///      for them, so it should not beat an explicit schema
+    ///   3. a bare Json/Text ResponseFormat — weaker than a grammar, so it loses
+    let fromChatOptions (options: ChatOptions) : ResponseFormat option =
+        let carried key =
+            match options.AdditionalProperties with
+            | null -> None
+            | props ->
+                match props.TryGetValue key with
+                | true, (:? string as s) when not (String.IsNullOrWhiteSpace s) -> Some s
+                | _ -> None
+
+        // `Undefined` is reachable: M.E.AI accepts `ForJsonSchema(default)` without
+        // validation, and GetRawText() throws on it. A schema we cannot read is no
+        // schema, not an exception escaping the adapter.
+        let schemaOf (json: ChatResponseFormatJson) =
+            Option.ofNullable json.Schema
+            |> Option.filter (fun s -> s.ValueKind <> System.Text.Json.JsonValueKind.Undefined)
+
+        let typed =
+            match box options.ResponseFormat with
+            | null -> None
+            | :? ChatResponseFormatJson as json ->
+                match schemaOf json with
+                | Some schema -> Some(ResponseFormat.Constrained(Grammar.JsonSchema(schema.GetRawText())))
+                | None -> Some ResponseFormat.Json
+            | _ -> Some ResponseFormat.Text
+
+        match typed with
+        | Some (ResponseFormat.Constrained (Grammar.JsonSchema _)) -> typed
+        | _ ->
+            carried GrammarKey
+            |> Option.map (Grammar.Ebnf >> ResponseFormat.Constrained)
+            |> Option.orElseWith (fun () ->
+                carried RegexKey |> Option.map (Grammar.Regex >> ResponseFormat.Constrained))
+            |> Option.orElse typed
+
+    /// M.E.AI seeds are `int64`; `LlmRequest.Seed` is `int`. A plain `int` cast
+    /// truncates silently — `int 4294967297L` is `1` — so a caller asking for a
+    /// 64-bit seed would get a DIFFERENT seed than they requested, defeating the
+    /// only thing a seed is for. Out-of-range seeds are dropped instead: no seed is
+    /// honest, a wrong seed is not.
+    let seedOf (options: ChatOptions) (fallback: int option) =
+        options.Seed
+        |> Option.ofNullable
+        |> Option.filter (fun s -> s >= int64 Int32.MinValue && s <= int64 Int32.MaxValue)
+        |> Option.map int
+        |> Option.orElse fallback
+
+    /// Stop sequences, evaluated eagerly into an immutable list.
+    let stopOf (options: ChatOptions) (fallback: string list) =
+        if isNull options.StopSequences then fallback
+        else options.StopSequences |> Seq.toList
+
+    /// Apply a recovered format to a request, setting `ResponseFormat` and the
+    /// legacy `JsonMode` flag together.
+    ///
+    /// Both fields live on LlmRequest and every backend matches `ResponseFormat`
+    /// first, consulting `JsonMode` only in the `None` branch — so `JsonMode` is
+    /// dead whenever `ResponseFormat` is set. It is maintained here anyway so the
+    /// two never state different things to a future reader or backend.
+    let applyFormat (options: ChatOptions) (req: LlmRequest) =
+        match fromChatOptions options with
+        | None -> req
+        | Some format ->
+            { req with
+                ResponseFormat = Some format
+                JsonMode =
+                    match format with
+                    | ResponseFormat.Json
+                    | ResponseFormat.Constrained (Grammar.JsonSchema _) -> true
+                    | _ -> false }
 
     /// Convert an M.E.AI ChatResponse to a TARS LlmResponse
     let toLlmResponse (resp: ChatResponse) : LlmResponse =
@@ -150,17 +258,9 @@ type LlmServiceChatClient(inner: ILlmService) =
                                 options.ModelId
                                 |> Option.ofObj
                                 |> Option.orElse req.Model
-                            Seed =
-                                options.Seed
-                                |> Option.ofNullable
-                                |> Option.map int
-                                |> Option.orElse req.Seed
-                            Stop =
-                                if isNull options.StopSequences then req.Stop
-                                else options.StopSequences |> Seq.toList
-                            JsonMode =
-                                if isNull (box options.ResponseFormat) then req.JsonMode
-                                else obj.ReferenceEquals(options.ResponseFormat, ChatResponseFormat.Json) }
+                            Seed = ChatClientMapping.seedOf options req.Seed
+                            Stop = ChatClientMapping.stopOf options req.Stop }
+                        |> ChatClientMapping.applyFormat options
 
                 let! llmResp = inner.CompleteAsync(req)
 
@@ -218,7 +318,14 @@ type LlmServiceChatClient(inner: ILlmService) =
                                 Model =
                                     options.ModelId
                                     |> Option.ofObj
-                                    |> Option.orElse req.Model }
+                                    |> Option.orElse req.Model
+                                // Streaming carries the same sampling controls as the
+                                // non-streaming path. Dropping them here meant an
+                                // identical ChatOptions produced two different requests
+                                // depending only on whether the caller streamed.
+                                Stop = ChatClientMapping.stopOf options req.Stop
+                                Seed = ChatClientMapping.seedOf options req.Seed }
+                            |> ChatClientMapping.applyFormat options
 
                     let buffer = System.Collections.Concurrent.ConcurrentQueue<string>()
                     let mutable finished = false

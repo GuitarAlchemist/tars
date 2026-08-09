@@ -22,6 +22,8 @@ module ReplicatorDynamicsTests =
           Confidence = 0.75
           SuccessRate = successRate
           SelectionCount = selections
+          Alpha = successRate * float selections
+          Beta = (1.0 - successRate) * float selections
           Source = Tars
           LastUpdated = DateTime.UtcNow }
 

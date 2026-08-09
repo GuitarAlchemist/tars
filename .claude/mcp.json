@@ -2,16 +2,13 @@
   "mcpServers": {
     "tars": {
       "type": "stdio",
-      "command": "dotnet",
+      "command": "C:\\Users\\spare\\.tars\\mcp\\Tars.Interface.Cli.exe",
       "args": [
-        "run",
-        "--project",
-        "v2/src/Tars.Interface.Cli/Tars.Interface.Cli.fsproj",
-        "--",
         "mcp",
         "server"
       ],
-      "cwd": "C:\\Users\\spare\\source\\repos\\tars"
+      "cwd": "C:\\Users\\spare\\source\\repos\\tars",
+      "_comment": "Runs from a published copy, NOT `dotnet run` against the repo. `dotnet run` executes out of v2/src/Tars.Interface.Cli/bin/<config>/ and holds file handles there for the process lifetime — the same directory dotnet build writes to — so every build failed with MSB3027 while the MCP server was up. Claude Code restarts MCP servers automatically, so killing the process never helped. Refresh after changing CLI code with: dotnet publish v2/src/Tars.Interface.Cli/Tars.Interface.Cli.fsproj -c Release -o C:/Users/spare/.tars/mcp -p:NuGetAudit=false"
     },
     "ix": {
       "command": "cargo",

@@ -168,3 +168,7 @@ metascript_test_results_*.json
 
 # /teach generated courses (personal, regenerable)
 learning/
+
+# Claude Octopus per-session runtime state (session timestamps, machine-local
+# project_id, zeroed counters) — regenerated per session, useless on another machine.
+.claude-octopus/

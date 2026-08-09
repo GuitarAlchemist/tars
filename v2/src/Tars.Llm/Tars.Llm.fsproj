@@ -6,6 +6,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- ChatClientMapping stays internal: it is an implementation detail of the
+         M.E.AI adapters, not API. Tests need it directly because the format
+         mapping is exactly the part that broke silently when only exercised
+         end-to-end. -->
+    <InternalsVisibleTo Include="Tars.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="LlmErrors.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="JsonParsing.fs" />

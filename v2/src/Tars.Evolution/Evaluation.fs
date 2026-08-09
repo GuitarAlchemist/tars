@@ -107,7 +107,7 @@ type SemanticEvaluation(llm: ILlmService, ?minConfidence: float, ?logger: string
                       Messages = [ { Role = Role.User; Content = prompt } ]
                       Tools = []
                       ToolChoice = None
-                      ResponseFormat = Some ResponseFormat.Json
+                      ResponseFormat = Some (ResponseFormat.Constrained (Grammar.JsonSchema EvolutionSchemas.evaluationSchema))
                       Stream = false
                       JsonMode = true
                       Seed = None

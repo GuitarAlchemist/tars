@@ -193,3 +193,77 @@ let ``EvolutionMetadata.empty has correct defaults`` () =
     Assert.Equal(0.0, meta.Confidence)
     Assert.Empty(meta.MutationHistory)
     Assert.Empty(meta.Effects)
+
+// =============================================================================
+// Pattern identity stability
+// =============================================================================
+// PatternId used to be `Guid.NewGuid().ToString("N").[..7]`. Weights are keyed
+// by PatternId while the store keys recurrence by PatternName, so a random id
+// made the two correlatable only through the store instance that minted it.
+
+[<Fact>]
+let ``patternIdOf is deterministic for the same name`` () =
+    let a = PromotionPipeline.patternIdOf "extract_method"
+    let b = PromotionPipeline.patternIdOf "extract_method"
+    Assert.Equal(a, b)
+    Assert.Equal(8, a.Length)
+    Assert.NotEqual<string>(a, PromotionPipeline.patternIdOf "extract_method ")
+    Assert.NotEqual<string>(a, PromotionPipeline.patternIdOf "inline_method")
+
+[<Fact>]
+let ``two independent stores agree on a pattern's identity`` () =
+    // The property that matters: an id minted in one store is the id another
+    // store mints for the same name. Under the old random scheme these differed,
+    // so weights could never be carried between stores — or survive a reset.
+    let artifacts name : PromotionPipeline.TraceArtifact list =
+        [ for i in 1..3 ->
+            { TaskId = $"t{i}"
+              PatternName = name
+              PatternTemplate = "tmpl"
+              Context = "ctx"
+              Score = 0.8
+              Timestamp = DateTime.UtcNow
+              RollbackExpansion = None } ]
+
+    let idFrom () =
+        let store = InMemoryPromotionStore() :> IPromotionStore
+        PromotionPipeline.extractInto store (artifacts "shared_pattern")
+        |> List.head
+        |> fun r -> r.PatternId
+
+    Assert.Equal(idFrom (), idFrom ())
+    Assert.Equal(PromotionPipeline.patternIdOf "shared_pattern", idFrom ())
+
+[<Fact>]
+let ``weights stay matched to records after recurrence state is rebuilt`` () =
+    // The failure this prevents: recurrence.json is lost or rebuilt while
+    // weights.json survives. Under random ids every lookup in classifyWeighted
+    // missed, every rule fell back to 0.0, ranking silently degraded to input
+    // order, and the old weights were orphaned forever — SaveWeights appends
+    // and never prunes.
+    let artifacts : PromotionPipeline.TraceArtifact list =
+        [ for i in 1..3 ->
+            { TaskId = $"t{i}"
+              PatternName = "durable_pattern"
+              PatternTemplate = "tmpl"
+              Context = "ctx"
+              Score = 0.8
+              Timestamp = DateTime.UtcNow
+              RollbackExpansion = None } ]
+
+    let firstStore = InMemoryPromotionStore() :> IPromotionStore
+    PromotionPipeline.run firstStore 3 artifacts |> ignore
+    let carriedWeights = firstStore.LoadWeights()
+    Assert.NotEmpty(carriedWeights)
+
+    // Fresh store: weights carried over, recurrence starts empty.
+    let rebuilt = InMemoryPromotionStore() :> IPromotionStore
+    rebuilt.SaveWeights carriedWeights
+    let records = PromotionPipeline.extractInto rebuilt artifacts
+
+    let record = records |> List.find (fun r -> r.PatternName = "durable_pattern")
+
+    Assert.True(
+        carriedWeights |> List.exists (fun w -> w.PatternId = record.PatternId),
+        "weights orphaned after a recurrence rebuild — pattern identity is not stable"
+    )

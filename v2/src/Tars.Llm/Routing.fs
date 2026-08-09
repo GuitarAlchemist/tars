@@ -227,6 +227,173 @@ let chooseBackend (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
 
         | DefaultHint -> localRoute cfg.DefaultOllamaModel
 
+/// What decode-time constraint a request actually needs. Closed and
+/// compiler-checked so `supports` cannot silently acquire a missing case when a
+/// backend is added.
+type ConstraintNeed =
+    /// An EBNF/CFG grammar must be enforced by the decoder.
+    | NeedsGrammar
+    /// A regex must be enforced. Deliberately NOT folded in with NeedsGrammar:
+    /// vLLM enforces regex, llama.cpp does not, so one bucket would have claimed
+    /// support llama.cpp lacks and suppressed the downgrade warning.
+    | NeedsRegex
+    /// A JSON schema is required; most OpenAI-wire backends can enforce this.
+    | NeedsJsonSchema
+    | NoNeed
+
+/// A constraint the chosen backend cannot enforce. This travels in the routing
+/// *result* rather than being logged here: `chooseBackend` is pure, and the
+/// `ILogger` lives at the service boundary.
+type ConstraintDowngrade = { RequestedGrammar: string; Backend: string }
+
+/// `chooseBackend`'s result plus whatever constraint had to be given up to use it.
+/// A separate wrapper on purpose — `RoutedBackend` has ~34 construction sites
+/// across src and tests, and is the return type of `ILlmService.RouteAsync`, so
+/// adding a field there would be a breaking change for no benefit.
+type ChosenBackend =
+    { Routed: RoutedBackend
+      Downgrade: ConstraintDowngrade option }
+
+module ConstraintNeed =
+
+    /// Classify what a request needs the decoder to enforce.
+    let ofRequest (req: LlmRequest) : ConstraintNeed =
+        match req.ResponseFormat with
+        | Some(ResponseFormat.Constrained(Grammar.JsonSchema _)) -> NeedsJsonSchema
+        | Some(ResponseFormat.Constrained(Grammar.Ebnf _)) -> NeedsGrammar
+        | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> NeedsRegex
+        | _ -> NoNeed
+
+    /// Whether a backend can actually enforce the need — by capability, not by
+    /// provider name. Every case is spelled out so adding an `LlmBackend` case
+    /// fails the build here rather than silently defaulting to "unsupported".
+    let supports (backend: LlmBackend) (need: ConstraintNeed) : bool =
+        match need with
+        | NoNeed -> true
+        | NeedsJsonSchema ->
+            match backend with
+            // Ollama compiles a JSON schema to GBNF server-side; the OpenAI wire
+            // protocol carries it as response_format.json_schema.
+            | Vllm _
+            | LlamaCpp _
+            | Ollama _
+            | OpenAI _
+            | DockerModelRunner _ -> true
+            // AnthropicClient only appends a prompt hint — it enforces nothing.
+            | Anthropic _
+            // GoogleGeminiClient DOES send the schema, as generationConfig.responseSchema.
+            // But that field is an OpenAPI-subset Schema with no `additionalProperties`
+            // and a scalar `type`, and every schema we author carries
+            // additionalProperties:false (strict mode requires it). Gemini rejects
+            // unknown fields, so our schemas 400 rather than degrade. Reported as a
+            // downgrade because we cannot enforce them there — not because Gemini
+            // lacks the capability in general.
+            | GoogleGemini _
+            // LlamaSharpService never reads ResponseFormat at all.
+            | LlamaSharp _ -> false
+        | NeedsGrammar ->
+            match backend with
+            // vLLM via structured_outputs.grammar; llama.cpp via top-level GBNF.
+            | Vllm _
+            | LlamaCpp _ -> true
+            // Ollama has no raw GBNF API — schema only.
+            | Ollama _
+            | OpenAI _
+            | DockerModelRunner _
+            | Anthropic _
+            | GoogleGemini _
+            | LlamaSharp _ -> false
+        | NeedsRegex ->
+            match backend with
+            // vLLM only. LlamaCppClient maps Regex to nothing, so claiming support
+            // here would drop the pattern *and* silence the warning.
+            | Vllm _ -> true
+            | LlamaCpp _
+            | Ollama _
+            | OpenAI _
+            | DockerModelRunner _
+            | Anthropic _
+            | GoogleGemini _
+            | LlamaSharp _ -> false
+
+/// The grammar kind a request asked for, named as it appears in logs and tests.
+let private requestedGrammarName (req: LlmRequest) =
+    match req.ResponseFormat with
+    | Some(ResponseFormat.Constrained(Grammar.Ebnf _)) -> "ebnf"
+    | Some(ResponseFormat.Constrained(Grammar.Regex _)) -> "regex"
+    | Some(ResponseFormat.Constrained(Grammar.JsonSchema _)) -> "json_schema"
+    | _ -> "none"
+
+let private backendName (backend: LlmBackend) =
+    match backend with
+    | Ollama _ -> "Ollama"
+    | Vllm _ -> "Vllm"
+    | OpenAI _ -> "OpenAI"
+    | GoogleGemini _ -> "GoogleGemini"
+    | Anthropic _ -> "Anthropic"
+    | DockerModelRunner _ -> "DockerModelRunner"
+    | LlamaCpp _ -> "LlamaCpp"
+    | LlamaSharp _ -> "LlamaSharp"
+
+/// Route, and report whether the chosen backend can enforce the requested
+/// constraint. Still pure — callers that do not care about constraints keep using
+/// `chooseBackend` unchanged.
+let chooseBackendWithConstraints (cfg: RoutingConfig) (req: LlmRequest) : ChosenBackend =
+    let routed = chooseBackend cfg req
+    let need = ConstraintNeed.ofRequest req
+
+    let downgrade =
+        if ConstraintNeed.supports routed.Backend need then
+            None
+        else
+            Some
+                { RequestedGrammar = requestedGrammarName req
+                  Backend = backendName routed.Backend }
+
+    { Routed = routed; Downgrade = downgrade }
+
+/// Where constraint downgrades get reported. Routing stays pure, so the warning
+/// is emitted here at the service boundary instead.
+///
+/// A swappable sink rather than an ILogger because Tars.Llm has no logging
+/// dependency at all and LlmServiceConfig carries only Routing — introducing DI
+/// for one warning would be a larger change than the feature. Defaults to stderr.
+///
+/// Deliberately logged on *every* downgraded request, not sampled or rate-limited:
+/// silent degradation is the defect this whole slice exists to remove, and a
+/// warning that fires once at startup is indistinguishable from silence.
+module ConstraintDowngradeLog =
+
+    let private defaultSink (msg: string) = eprintfn "%s" msg
+
+    /// AsyncLocal, not a plain mutable: a process-global sink is a test-isolation
+    /// hazard. xUnit runs distinct test collections in parallel, so one test
+    /// redirecting the sink to its own buffer would capture another's warnings
+    /// and drop its own. AsyncLocal scopes the override to the execution context
+    /// that set it and flows into that context's continuations, so a redirect in
+    /// one test is invisible to every other.
+    let private scopedSink = new System.Threading.AsyncLocal<(string -> unit) option>()
+
+    /// Redirect warnings (tests capture; hosts can forward to their logger).
+    /// Scoped to the calling execution context, not the process.
+    let setSink (f: string -> unit) = scopedSink.Value <- Some f
+
+    let resetSink () = scopedSink.Value <- None
+
+    let private sink (msg: string) =
+        (scopedSink.Value |> Option.defaultValue defaultSink) msg
+
+    let format (d: ConstraintDowngrade) =
+        $"CONSTRAINT DOWNGRADE: {d.RequestedGrammar} grammar discarded — backend {d.Backend} cannot enforce it; falling back to JSON mode"
+
+    let warn (d: ConstraintDowngrade) = sink (format d)
+
+    /// Route, reporting any downgrade. The one call the service paths use.
+    let routeAndWarn (cfg: RoutingConfig) (req: LlmRequest) : RoutedBackend =
+        let chosen = chooseBackendWithConstraints cfg req
+        chosen.Downgrade |> Option.iter warn
+        chosen.Routed
+
 module RoutingConfig =
     /// <summary>
     /// Creates a RoutingConfig from a TarsConfig.

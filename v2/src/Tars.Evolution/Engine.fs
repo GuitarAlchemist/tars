@@ -212,7 +212,7 @@ Do any of the known beliefs contradict executing this task? Respond in JSON: {{"
                       Messages = [ { Role = Role.User; Content = prompt } ]
                       Tools = []
                       ToolChoice = None
-                      ResponseFormat = Some ResponseFormat.Json
+                      ResponseFormat = Some (ResponseFormat.Constrained (Grammar.JsonSchema EvolutionSchemas.contradictionSchema))
                       Stream = false
                       JsonMode = true
                       Seed = None
@@ -452,7 +452,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                       Messages = [ { Role = Role.User; Content = prompt } ]
                                       Tools = []
                                       ToolChoice = None
-                                      ResponseFormat = Some ResponseFormat.Json
+                                      ResponseFormat = Some (ResponseFormat.Constrained (Grammar.JsonSchema EvolutionSchemas.taskGenerationSchema))
                                       Stream = false
                                       JsonMode = true
                                       Seed = None

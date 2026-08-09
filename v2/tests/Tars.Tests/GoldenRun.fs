@@ -65,8 +65,13 @@ type GoldenRun(output: ITestOutputHelper) =
         proc.BeginOutputReadLine()
         proc.BeginErrorReadLine()
 
-        // Wait for a reasonable time (e.g., 10 seconds)
-        let finished = proc.WaitForExit(15000)
+        // `dotnet run` does an implicit restore + incremental build before it executes
+        // anything, so this budget covers MSBuild evaluation of the whole solution, not
+        // just demo-ping's own runtime (which is ~3s). Measured at 29s on a warm dev
+        // machine, well past the 15s this used to allow — the test failed locally while
+        // the command it runs exited 0 with the expected output. Generous on purpose:
+        // this asserts demo-ping works end to end, and is not a performance budget.
+        let finished = proc.WaitForExit(180000)
 
         let outputStr = outputSb.ToString()
         let errorStr = errorSb.ToString()
