@@ -57,6 +57,49 @@ module WotParser =
             |> Array.filter (fun x -> x <> "")
             |> Array.toList
 
+    let private rxArgsKey = Regex(@"""args""\s*:\s*(?=\{)", RegexOptions.Compiled)
+
+    /// Returns the `{ ... }` object that follows `"args":` on a check line.
+    ///
+    /// A regex cannot delimit it: `}` is ordinary string content, and the DSL's
+    /// own `${name}` interpolation puts one inside almost every real value, so a
+    /// lazy `\{.*?\}` capture closes on the interpolation brace and the pairs are
+    /// dropped without any error being reported. Scanning tracks quoting, which
+    /// is what actually separates a structural brace from a textual one.
+    let private extractArgsObject (line: string) : string option =
+        let m = rxArgsKey.Match(line)
+
+        if not m.Success then
+            None
+        else
+            let start = m.Index + m.Length // the '{' the lookahead asserted
+            let mutable i = start
+            let mutable depth = 0
+            let mutable inQuote = false
+            let mutable closeAt = -1
+
+            while closeAt < 0 && i < line.Length do
+                let c = line[i]
+
+                if inQuote then
+                    if c = '"' then inQuote <- false
+                elif c = '"' then
+                    inQuote <- true
+                elif c = '{' then
+                    depth <- depth + 1
+                elif c = '}' then
+                    depth <- depth - 1
+
+                    if depth = 0 then
+                        closeAt <- i
+
+                i <- i + 1
+
+            if closeAt < 0 then
+                None // unterminated object: no args, as before
+            else
+                Some(line.Substring(start, closeAt - start + 1))
+
     let private parseChecksList (lines: string list) (startLineNo: int) : Result<WotCheck list, ParseError list> =
         // Expected each item as JSON-ish object on a single line:
         // { "type": "non_empty", "value": "${analysis_md}" }
@@ -72,7 +115,6 @@ module WotParser =
         let rxPattern = Regex(@"""pattern""\s*:\s*""([^""]+)""", RegexOptions.Compiled)
         let rxSchema = Regex(@"""schema""\s*:\s*""([^""]+)""", RegexOptions.Compiled)
         let rxTool = Regex(@"""tool""\s*:\s*""([^""]+)""", RegexOptions.Compiled)
-        let rxArgs = Regex(@"""args""\s*:\s*(\{.*?\})""", RegexOptions.Compiled)
         let rxCheck = Regex(@"""check""\s*:\s*""([^""]+)""", RegexOptions.Compiled)
 
         for i, line in List.indexed lines do
@@ -151,10 +193,10 @@ module WotParser =
                         else
                             // Very basic arg parsing: find "args": { "key": "value" }
                             let mutable args = Map.empty
-                            let margs = rxArgs.Match(line)
 
-                            if margs.Success then
-                                let argsJson = margs.Groups.[1].Value
+                            match extractArgsObject line with
+                            | None -> ()
+                            | Some argsJson ->
                                 // Naive key-value extraction from the small JSON block
                                 let pairRx = Regex(@"""([^""]+)""\s*:\s*""([^""]+)""")
                                 let ms = pairRx.Matches(argsJson)
@@ -198,7 +240,8 @@ module WotParser =
           ChecksLines: string list
           Verdict: string option
           Agent: string option
-          Condition: string option }
+          Condition: string option
+          Next: string list }
 
     let private emptyNode id =
         { Id = id
@@ -213,7 +256,8 @@ module WotParser =
           ChecksLines = []
           Verdict = None
           Agent = None
-          Condition = None }
+          Condition = None
+          Next = [] }
 
     let parseLines (lines: string list) : Result<DslWorkflow, ParseError list> =
             let errors = ResizeArray<ParseError>()
@@ -287,7 +331,19 @@ module WotParser =
 
                 if isBlank line || line.StartsWith("//") then
                     () // ignore
-                else if
+                // Empty one-line blocks. These are top-level block alternatives
+                // (see grammars/wot.ebnf), so the guard is scoped to the point
+                // where a block may open: recognising them inside an open block
+                // would swallow a malformed line the section arms report.
+                elif
+                    section = Section.NoSection
+                    && (Regex.IsMatch(line, @"^inputs\s*\{\s*\}$")
+                        || Regex.IsMatch(line, @"^meta\s*\{\s*\}$")
+                        || Regex.IsMatch(line, @"^policy\s*\{\s*\}$")
+                        || Regex.IsMatch(line, @"^workflow(\s+[^\{\}]+)?\s*\{\s*\}$"))
+                then
+                    ()
+                elif
                     // Section switches
                     startsWith "meta" line && line.EndsWith("{")
                 then
@@ -405,6 +461,12 @@ module WotParser =
                                 let kind = mWithAgent.Groups.[2].Value
                                 let agent = mWithAgent.Groups.[3].Value
 
+                                if kind <> "work" && kind <> "reason" then
+                                    errors.Add(
+                                        { Line = lineNo
+                                          Message = $"Unsupported node kind '{kind}'" }
+                                    )
+
                                 currentNode <-
                                     Some
                                         { (emptyNode id) with
@@ -418,6 +480,13 @@ module WotParser =
                                 if mLong.Success then
                                     let id = mLong.Groups.[1].Value
                                     let kind = mLong.Groups.[2].Value
+
+                                    if kind <> "work" && kind <> "reason" then
+                                        errors.Add(
+                                            { Line = lineNo
+                                              Message = $"Unsupported node kind '{kind}'" }
+                                        )
+
                                     currentNode <- Some { (emptyNode id) with Kind = kind }
                                 else
                                     // Try short header: node "id" {
@@ -471,7 +540,16 @@ module WotParser =
                                 else
                                     // parse node key-values
                                     match parseKeyValue line with
-                                    | Some("kind", v) -> currentNode <- Some { nb with Kind = v }
+                                    | Some("kind", v) ->
+                                        if v <> "work" && v <> "reason" then
+                                            errors.Add(
+                                                { Line = lineNo
+                                                  Message = $"Unsupported node kind '{v}'" }
+                                            )
+                                        currentNode <- Some { nb with Kind = v }
+                                    | Some("next", v) ->
+                                        let targets = if v.StartsWith("[") then parseStringList v else [ v ]
+                                        currentNode <- Some { nb with Next = targets }
                                     | Some("goal", v) -> currentNode <- Some { nb with Goal = Some v }
                                     | Some("output", v) -> currentNode <- Some { nb with Output = Some v }
                                     | Some("input", v) ->
@@ -639,6 +717,14 @@ module WotParser =
                           EvidenceRefs = []
                           Metadata = Map.empty })
                 |> Seq.toList
+
+            // Add edges from `next` property. `next` and an explicit `edge` are
+            // two spellings of the same link, so a file that uses both must not
+            // materialise the edge twice — Graph.validateChain counts edges.
+            for nb in nodes do
+                for target in nb.Next do
+                    if not (edges.Contains((nb.Id, target))) then
+                        edges.Add(nb.Id, target)
 
             let wfEdges = edges |> Seq.map (fun (a, b) -> a, b) |> Seq.toList
 

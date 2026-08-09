@@ -60,16 +60,19 @@ close_bracket   ::= ws "]" eol
 
 (* ── meta ─────────────────────────────────────────────────────────────── *)
 meta_block      ::= ws "meta" ws "{" eol (trivia meta_field)* trivia close_brace
+                  | ws "meta" ws "{" ws "}" eol
 meta_field      ::= ws meta_key eq string_literal eol
 meta_key        ::= "name" | "version" | "risk" | "description"
                   | "domain" | "difficulty"
 
 (* ── inputs: free-form keys, each a named value the workflow can read ──── *)
 inputs_block    ::= ws "inputs" ws "{" eol (trivia input_field)* trivia close_brace
+                  | ws "inputs" ws "{" ws "}" eol
 input_field     ::= ws identifier eq string_literal eol
 
 (* ── policy: execution budget and the tool allow-list ─────────────────── *)
 policy_block    ::= ws "policy" ws "{" eol (trivia policy_field)* trivia close_brace
+                  | ws "policy" ws "{" ws "}" eol
 policy_field    ::= ws "allowed_tools" eq string_list eol
                   | ws "max_tool_calls" eq integer eol
                   | ws "max_tokens" eq integer eol
@@ -79,6 +82,7 @@ policy_field    ::= ws "allowed_tools" eq string_list eol
       documentation only — WotParser takes the workflow name from
       meta.name, never from here. ─────────────────────────────────────── *)
 workflow_block  ::= ws "workflow" (sp string_literal)? ws "{" eol (trivia workflow_item)* trivia close_brace
+                  | ws "workflow" (sp string_literal)? ws "{" ws "}" eol
 workflow_item   ::= node | parallel_block | edge
 
 (* A parallel block groups nodes for concurrent execution. Edges may not
@@ -103,8 +107,8 @@ node_header     ::= ws "node" sp node_id sp "kind" eq quoted_kind sp "agent" eq 
 node_id         ::= '"' identifier '"' | identifier
 quoted_name     ::= '"' identifier '"'
 
-(* An unrecognised kind silently degrades to `reason`, so the grammar admits
-   only the two intentional values. *)
+(* An unrecognised kind is a parse error, so the grammar admits only the two
+   intentional values. *)
 quoted_kind     ::= '"' node_kind '"'
 node_kind       ::= "reason" | "work"
 
@@ -117,6 +121,7 @@ node_field      ::= ws "goal" eq string_literal eol
                   | ws "verdict" eq string_literal eol
                   | ws "condition" eq string_literal eol
                   | ws "kind" eq quoted_kind eol
+                  | ws "next" eq (string_list | string_literal) eol
                   | ws "args" eq args_object eol
                   | checks_block
 
