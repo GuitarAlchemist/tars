@@ -178,13 +178,7 @@ module ClaudeCodeBridge =
             let patternKind = selector.Recommend(goal, cogState)
 
             // Compile plan based on selected pattern
-            let plan =
-                match patternKind with
-                | ChainOfThought -> compiler.CompileChainOfThought(maxSteps, goal)
-                | ReAct -> compiler.CompileReAct([ "search"; "read"; "write" ], maxSteps, goal)
-                | GraphOfThoughts -> compiler.CompileGraphOfThoughts(3, 3, goal)
-                | TreeOfThoughts -> compiler.CompileTreeOfThoughts(3, 2, goal)
-                | _ -> compiler.CompileChainOfThought(maxSteps, goal)
+            let plan = compiler.CompileFor(patternKind, goal)
 
             let planId = plan.Id.ToString()
 

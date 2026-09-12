@@ -195,3 +195,23 @@ let buildCycleOutput
 /// Serialize a CycleOutput to JSON
 let cycleToJson (output: CycleOutput) : string =
     toJson output
+
+/// <summary>
+/// Extracts and parses robust JSON from LLM responses, stripping conversational filler
+/// and markdown block wrappers using Tars.Llm.JsonParsing.
+/// </summary>
+let parseJson (text: string) : JsonDocument =
+    match Tars.Llm.JsonParsing.tryParseElement text with
+    | Ok elem ->
+        JsonDocument.Parse(elem.GetRawText())
+    | Error firstError ->
+        // Fallback to simpler/original firstBrace/lastBrace extraction if tryParseElement fails
+        let mutable cleaned = text.Trim()
+        let firstBrace = cleaned.IndexOf('{')
+        let lastBrace = cleaned.LastIndexOf('}')
+        if firstBrace >= 0 && lastBrace > firstBrace then
+            cleaned <- cleaned.Substring(firstBrace, lastBrace - firstBrace + 1)
+        try
+            JsonDocument.Parse(cleaned)
+        with ex ->
+            failwithf "Failed to parse JSON: %s (Fallback error: %s)" firstError ex.Message
