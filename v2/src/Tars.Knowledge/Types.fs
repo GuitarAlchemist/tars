@@ -255,6 +255,12 @@ type EvidenceCandidate =
       VerifiedBy: AgentId option
       RejectionReason: string option }
 
+    static member ComputeHash(content: string) =
+        use sha = System.Security.Cryptography.SHA256.Create()
+        let bytes = System.Text.Encoding.UTF8.GetBytes(content)
+        let hash = sha.ComputeHash(bytes)
+        Convert.ToHexString(hash).ToLowerInvariant()
+
 // =============================================================================
 // PLAN - Hypotheses about future actions
 // =============================================================================
@@ -369,7 +375,7 @@ module Plan =
 open System.Threading.Tasks
 
 /// Interface for plan storage (Phase 9.3)
-type IPlanStorage =
+type IPlanStore =
     abstract member SavePlan: plan: Plan -> Task<Result<unit, string>>
     abstract member UpdatePlan: plan: Plan -> Task<Result<unit, string>>
     abstract member GetPlan: planId: PlanId -> Task<Plan option>

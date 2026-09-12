@@ -20,7 +20,6 @@
     <Compile Include="CognitiveStateManager.fs" />
     <Compile Include="WoTExecutor.fs" />
     <Compile Include="AdaptiveExecutor.fs" />
-    <Compile Include="WoTController.fs" />
     <Compile Include="TarsWoTAgent.fs" />
     <Compile Include="ToolAwareChatClient.fs" />
     <Compile Include="AgentOrchestrator.fs" />
@@ -41,7 +40,6 @@
     <Compile Include="EpistemicGovernor.fs" />
     <Compile Include="CapabilityStore.fs" />
     <Compile Include="AstIngestor.fs" />
-    <Compile Include="CodeGraphIngestor.fs" />
     <Compile Include="Inference.fs" />
     <Compile Include="OutputGuardAnalyzerLlm.fs" />
     <Compile Include="EntityExtractor.fs" />

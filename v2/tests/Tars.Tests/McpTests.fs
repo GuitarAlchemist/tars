@@ -87,3 +87,16 @@ module McpTests =
             let tool = Assert.Single(toolsResult.Tools)
             Assert.Equal("test-tool", tool.Name)
         }
+
+    [<Fact>]
+    let ``McpPatternResources createTools returns seven registered tools`` () =
+        let tools = Tars.Evolution.McpPatternResources.createTools None
+        Assert.Equal(7, tools.Length)
+        let toolNames = tools |> List.map (fun t -> t.Name) |> Set.ofList
+        Assert.Contains("list_patterns", toolNames)
+        Assert.Contains("get_pattern", toolNames)
+        Assert.Contains("suggest_pattern", toolNames)
+        Assert.Contains("pattern_library_stats", toolNames)
+        Assert.Contains("promotion_status", toolNames)
+        Assert.Contains("promotion_lineage", toolNames)
+        Assert.Contains("run_promotion_pipeline", toolNames)

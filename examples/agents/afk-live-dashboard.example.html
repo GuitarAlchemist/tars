@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AFK Live Agent Board - Interactive Mockup</title>
+    <style>
+        :root {
+            --bg-color: #f6f8fa;
+            --text-color: #1f2328;
+            --border-color: #d0d7de;
+            --card-bg: #ffffff;
+            --column-bg: #f1f2f4;
+            --link-color: #0969da;
+            --header-bg: #24292f;
+            --header-text: #ffffff;
+
+            --risk-low: #2da44e;
+            --risk-medium: #bf8700;
+            --risk-high: #cf222e;
+
+            --tag-bg: #ddf4ff;
+            --tag-text: #0969da;
+
+            --alert-bg: #fff8c5;
+            --alert-text: #9a6700;
+            --alert-border: #d4a72c;
+
+            --error-bg: #ffebe9;
+            --error-text: #cf222e;
+            --error-border: #ff8182;
+
+            --success-bg: #dafbe1;
+            --success-text: #1a7f37;
+            --success-border: #4ac26b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0 0 40px 0;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        }
+
+        header h1 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 26px;
+            font-weight: 600;
+        }
+
+        .summary {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .summary-item {
+            background: rgba(255, 255, 255, 0.15);
+            color: var(--header-text);
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .last-updated {
+            font-size: 13px;
+            color: #c9d1d9;
+            margin: 0;
+        }
+
+        /* Board Layout */
+        .board {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding: 0 24px 20px 24px;
+            flex-grow: 1;
+            scroll-behavior: smooth;
+        }
+
+        .column {
+            background-color: var(--column-bg);
+            border-radius: 8px;
+            min-width: 310px;
+            max-width: 310px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+        }
+
+        .column h2 {
+            font-size: 14px;
+            padding: 12px 16px;
+            margin: 0;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color: #57606a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .column h2::after {
+            content: attr(data-count);
+            background: rgba(0, 0, 0, 0.08);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .cards {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            max-height: calc(100vh - 240px);
+            flex-grow: 1;
+        }
+
+        /* Card Styling */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            box-shadow: 0 1px 3px rgba(31, 35, 40, 0.08);
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .card:hover, .card:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(31, 35, 40, 0.12);
+            outline: none;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .card-title {
+            font-weight: 600;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .card-title a {
+            color: var(--text-color);
+            text-decoration: none;
+        }
+
+        .card-title a:hover, .card-title a:focus {
+            color: var(--link-color);
+            text-decoration: underline;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .tag {
+            background-color: var(--tag-bg);
+            color: var(--tag-text);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .risk-low { border-left: 4px solid var(--risk-low); }
+        .risk-medium { border-left: 4px solid var(--risk-medium); }
+        .risk-high { border-left: 4px solid var(--risk-high); }
+
+        .tag.risk-low { background-color: #dafbe1; color: var(--risk-low); }
+        .tag.risk-medium { background-color: #fff8c5; color: #9a6700; }
+        .tag.risk-high { background-color: #ffebe9; color: var(--risk-high); }
+
+        .card-body {
+            color: #57606a;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .card-body strong {
+            color: var(--text-color);
+        }
+
+        .card-links {
+            margin-top: 4px;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border-color);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            align-items: center;
+        }
+
+        .card-links a {
+            color: var(--link-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .card-links a:hover, .card-links a:focus {
+            text-decoration: underline;
+        }
+
+        /* Alerts and Markers */
+        .marker-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .marker {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .marker-warning {
+            background-color: var(--alert-bg);
+            color: var(--alert-text);
+            border: 1px solid var(--alert-border);
+        }
+
+        .marker-error {
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            border: 1px solid var(--error-border);
+        }
+
+        .marker-success {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid var(--success-border);
+        }
+
+        .empty-state {
+            color: #57606a;
+            font-style: italic;
+            text-align: center;
+            padding: 24px 0;
+            border: 1px dashed var(--border-color);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        footer {
+            text-align: center;
+            padding: 24px;
+            font-size: 12px;
+            color: #57606a;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+    <header role="banner">
+        <h1>AFK Live Agent Board - Self-Contained Interactive Mockup</h1>
+        <div class="summary" id="summary-counts" aria-live="polite">
+            <div class="summary-item">Loading summary...</div>
+        </div>
+        <p class="last-updated">Mockup Refreshed: <span id="last-updated-time">Never</span></p>
+    </header>
+
+    <main class="board" id="board-container" aria-label="Agent Work Board">
+        <section class="column" data-state="queued" aria-labelledby="col-queued">
+            <h2 id="col-queued">Queued</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="delegated" aria-labelledby="col-delegated">
+            <h2 id="col-delegated">Delegated</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="agent-working" aria-labelledby="col-agent-working">
+            <h2 id="col-agent-working">Agent Working</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="pr-opened" aria-labelledby="col-pr-opened">
+            <h2 id="col-pr-opened">PR Open</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="needs-agent-revision" aria-labelledby="col-needs-agent-revision">
+            <h2 id="col-needs-agent-revision">Needs Revision</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="needs-human-review" aria-labelledby="col-needs-human-review">
+            <h2 id="col-needs-human-review">Human Review</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="ci-green" aria-labelledby="col-ci-green">
+            <h2 id="col-ci-green">CI Green</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="blocked" aria-labelledby="col-blocked">
+            <h2 id="col-blocked">Blocked</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="done" aria-labelledby="col-done">
+            <h2 id="col-done">Done</h2>
+            <div class="cards" role="list"></div>
+        </section>
+    </main>
+
+    <footer role="contentinfo">
+        <p>This is a mock demonstration file showing various states of the parallel control plane. For active state, open <a href="../../docs/agents/live/html/index.html">docs/agents/live/html/index.html</a>.</p>
+    </footer>
+
+    <script>
+        // Inline mock database representing diverse examples (stale, blocked, duplicate, etc.)
+        const mockRuns = [
+            {
+                "issue": "#115",
+                "title": "Inject declared cloud-agent skills into Jules prompt",
+                "agent": "Jules",
+                "pr": "#129",
+                "state": "needs-agent-revision",
+                "risk": "medium",
+                "last_signal": "2026-06-28T13:02:41Z",
+                "next_action": "Fix skill path to <skill>.skill.md",
+                "evidence": ["review comment", "changed files", "CI status"],
+                "is_stale": false,
+                "is_blocked": false,
+                "is_duplicate": false,
+                "ci_failing": true,
+                "needs_human_review": false
+            },
+            {
+                "issue": "#136",
+                "title": "Define AFK JSON/JSONL state artifacts",
+                "agent": "Codex",
+                "pr": "#140",
+                "state": "pr-opened",
+                "risk": "low",
+                "last_signal": "2026-06-28T14:10:00Z",
+                "next_action": "Wait for review",
+                "evidence": ["PR open"],
+                "is_stale": false,
+                "is_blocked": false,
+                "is_duplicate": false,
+                "ci_failing": false,
+                "needs_human_review": true
+            },
+            {
+                "issue": "#132",
+                "title": "Fix agent memory leak in test suite",
+                "agent": "Claude",
+                "pr": null,
+                "state": "agent-working",
+                "risk": "high",
+                "last_signal": "2026-06-28T14:15:00Z",
+                "next_action": "Run tests locally",
+                "evidence": [],
+                "is_stale": false,
+                "is_blocked": false,
+                "is_duplicate": false,
+                "ci_failing": false,
+                "needs_human_review": false
+            },
+            {
+                "issue": "#99",
+                "title": "Implement multi-agent routing selector",
+                "agent": "Jules",
+                "pr": "#101",
+                "state": "blocked",
+                "risk": "high",
+                "last_signal": "2026-06-25T10:00:00Z",
+                "next_action": "Requires resolution of upstream dependency Issue #88",
+                "evidence": ["blocker label applied"],
+                "is_stale": false,
+                "is_blocked": true,
+                "is_duplicate": false,
+                "ci_failing": false,
+                "needs_human_review": false
+            },
+            {
+                "issue": "#112",
+                "title": "Refactor state vector indexing",
+                "agent": "Codex",
+                "pr": "#113",
+                "state": "done",
+                "risk": "low",
+                "last_signal": "2026-06-27T09:30:00Z",
+                "next_action": "PR merged successfully",
+                "evidence": ["merge commit"],
+                "is_stale": false,
+                "is_blocked": false,
+                "is_duplicate": false,
+                "ci_failing": false,
+                "needs_human_review": false
+            },
+            {
+                "issue": "#120",
+                "title": "Duplicate work: optimize LLM request context size",
+                "agent": "Claude",
+                "pr": "#122",
+                "state": "needs-agent-revision",
+                "risk": "medium",
+                "last_signal": "2026-06-28T02:00:00Z",
+                "next_action": "Superseded by Codex PR #123",
+                "evidence": ["duplicate label"],
+                "is_stale": true,
+                "is_blocked": false,
+                "is_duplicate": true,
+                "ci_failing": false,
+                "needs_human_review": false
+            },
+            {
+                "issue": "#142",
+                "title": "Integrate AFK board into CI system",
+                "agent": "Jules",
+                "pr": null,
+                "state": "queued",
+                "risk": "low",
+                "last_signal": "2026-06-28T15:00:00Z",
+                "next_action": "Waiting on dispatcher run",
+                "evidence": [],
+                "is_stale": false,
+                "is_blocked": false,
+                "is_duplicate": false,
+                "ci_failing": false,
+                "needs_human_review": false
+            }
+        ];
+
+        function escapeHTML(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function formatRef(ref) {
+            if (!ref) return '';
+            const val = String(ref).trim();
+            if (val.startsWith('#') || isNaN(val)) {
+                return val;
+            }
+            return '#' + val;
+        }
+
+        function createCardHTML(run) {
+            const risk = escapeHTML(run.risk || 'low');
+            const riskClass = `risk-${risk.toLowerCase()}`;
+            const agent = escapeHTML(run.agent || 'Unknown');
+
+            const tags = [];
+            if (agent) tags.push(`<span class="tag">Agent: ${agent}</span>`);
+
+            let markersHTML = '';
+            const markers = [];
+
+            if (run.is_stale || run.state === 'stale') {
+                markers.push('<div class="marker marker-warning">⚠️ Stale</div>');
+            }
+            if (run.is_blocked || run.state === 'blocked') {
+                markers.push('<div class="marker marker-error">🚫 Blocked</div>');
+            }
+            if (run.is_duplicate || run.state === 'duplicate' || run.state === 'duplicate-agent-pr') {
+                markers.push('<div class="marker marker-warning">📋 Duplicate</div>');
+            }
+            if (run.ci_failing || run.state === 'ci-failing') {
+                markers.push('<div class="marker marker-error">❌ CI Failing</div>');
+            }
+            if (run.needs_human_review || run.state === 'needs-human-review' || run.state === 'human-review') {
+                markers.push('<div class="marker marker-warning">👀 Needs Human Review</div>');
+            }
+            if (run.state === 'ci-green') {
+                markers.push('<div class="marker marker-success">✅ CI Green</div>');
+            }
+
+            if (markers.length > 0) {
+                markersHTML = `<div class="marker-container">${markers.join('')}</div>`;
+            }
+
+            let linksHTML = '';
+            const links = [];
+
+            const issue = formatRef(run.issue);
+            const pr = formatRef(run.pr);
+
+            if (run.issue) {
+                const issueUrl = `https://github.com/GuitarAlchemist/tars/issues/${String(run.issue).replace('#', '')}`;
+                links.push(`<a href="${issueUrl}" target="_blank" rel="noopener noreferrer">${issue}</a>`);
+            }
+            if (run.pr) {
+                links.push(`<a href="#" onclick="alert('This is a mockup link'); return false;">PR ${pr}</a>`);
+            }
+
+            if (run.evidence && run.evidence.length > 0) {
+                const evidenceLinks = run.evidence.map(e => `<span>${escapeHTML(e)}</span>`).join(' &middot; ');
+                links.push(`<span class="evidence-links">Evidence: ${evidenceLinks}</span>`);
+            }
+
+            if (links.length > 0) {
+                linksHTML = `<div class="card-links">${links.join(' | ')}</div>`;
+            }
+
+            const signalTime = run.last_signal || run.last_signal_at;
+            const lastSignal = signalTime ? escapeHTML(new Date(signalTime).toLocaleString()) : 'Unknown';
+            const nextAction = escapeHTML(run.next_action || 'None specified');
+            const title = escapeHTML(run.title || run.summary || 'Untitled Work');
+
+            return `
+                <div class="card ${riskClass}" role="listitem" tabindex="0">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            ${title}
+                        </h3>
+                    </div>
+                    <div class="card-meta">
+                        ${tags.join('')}
+                        <span class="tag ${riskClass}">Risk: ${risk}</span>
+                    </div>
+                    ${markersHTML}
+                    <div class="card-body">
+                        <div><strong>Last signal:</strong> ${lastSignal}</div>
+                        <div><strong>Next action:</strong> ${nextAction}</div>
+                    </div>
+                    ${linksHTML}
+                </div>
+            `;
+        }
+
+        function renderBoard(data) {
+            const columns = document.querySelectorAll('.column');
+            columns.forEach(col => {
+                const cardsContainer = col.querySelector('.cards');
+                if (cardsContainer) {
+                    cardsContainer.innerHTML = '';
+                }
+            });
+
+            const summaryCounts = {
+                total: 0,
+                blocked: 0,
+                needs_review: 0,
+                ci_failing: 0,
+                stale: 0,
+                done: 0
+            };
+
+            data.forEach(run => {
+                summaryCounts.total++;
+                if (run.is_blocked || run.state === 'blocked') summaryCounts.blocked++;
+                if (run.needs_human_review || run.state === 'needs-human-review' || run.state === 'human-review') summaryCounts.needs_review++;
+                if (run.ci_failing || run.state === 'ci-failing') summaryCounts.ci_failing++;
+                if (run.is_stale || run.state === 'stale') summaryCounts.stale++;
+                if (run.state === 'done') summaryCounts.done++;
+
+                let state = (run.state || 'queued').toLowerCase();
+                if (state === 'pr-open') state = 'pr-opened';
+                if (state === 'human-review') state = 'needs-human-review';
+
+                const columnContainer = document.querySelector(`.column[data-state="${state}"] .cards`);
+
+                if (columnContainer) {
+                    columnContainer.insertAdjacentHTML('beforeend', createCardHTML(run));
+                } else {
+                    const queuedCol = document.querySelector(`.column[data-state="queued"] .cards`);
+                    if (queuedCol) {
+                        queuedCol.insertAdjacentHTML('beforeend', createCardHTML(run));
+                    }
+                }
+            });
+
+            columns.forEach(col => {
+                const cardsContainer = col.querySelector('.cards');
+                const header = col.querySelector('h2');
+
+                if (cardsContainer) {
+                    const cardCount = cardsContainer.querySelectorAll('.card').length;
+                    if (header) {
+                        header.setAttribute('data-count', cardCount);
+                    }
+                    if (cardCount === 0) {
+                        cardsContainer.innerHTML = '<div class="empty-state">No work in this state</div>';
+                    }
+                }
+            });
+
+            const summaryContainer = document.getElementById('summary-counts');
+            if (summaryContainer) {
+                summaryContainer.innerHTML = `
+                    <div class="summary-item" tabindex="0">Total Runs: ${summaryCounts.total}</div>
+                    <div class="summary-item" tabindex="0">Needs Review: ${summaryCounts.needs_review}</div>
+                    <div class="summary-item" tabindex="0">Blocked: ${summaryCounts.blocked}</div>
+                    <div class="summary-item" tabindex="0">CI Failing: ${summaryCounts.ci_failing}</div>
+                    <div class="summary-item" tabindex="0">Stale: ${summaryCounts.stale}</div>
+                    <div class="summary-item" tabindex="0">Done: ${summaryCounts.done}</div>
+                `;
+            }
+
+            const timeContainer = document.getElementById('last-updated-time');
+            if (timeContainer) {
+                timeContainer.textContent = new Date().toLocaleString();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderBoard(mockRuns);
+        });
+    </script>
+</body>
+</html>

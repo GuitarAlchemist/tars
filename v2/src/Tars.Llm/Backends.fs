@@ -19,13 +19,22 @@ type ILlmBackend =
 /// duplicated across DefaultLlmService.
 module Backends =
 
-    let private openAiCompatible (http: HttpClient) (endpoint: Uri) (model: string) (apiKey: string option) =
+    /// `vllmExtensions` gates vLLM-only top-level request params. Vllm, OpenAI and
+    /// DockerModelRunner all resolve to this adapter, but OpenAI proper rejects
+    /// unknown top-level parameters — so only the Vllm case opts in.
+    let private openAiCompatible
+        (vllmExtensions: bool)
+        (http: HttpClient)
+        (endpoint: Uri)
+        (model: string)
+        (apiKey: string option)
+        =
         { new ILlmBackend with
             member _.Complete req =
-                OpenAiCompatibleClient.sendChatAsync http endpoint model apiKey req
+                OpenAiCompatibleClient.sendChatAsyncWith vllmExtensions http endpoint model apiKey req
 
             member _.Stream(req, onToken) =
-                OpenAiCompatibleClient.sendChatStreamAsync http endpoint model apiKey req onToken }
+                OpenAiCompatibleClient.sendChatStreamAsyncWith vllmExtensions http endpoint model apiKey req onToken }
 
     let private ollama (http: HttpClient) (endpoint: Uri) (model: string) (apiKey: string option) =
         { new ILlmBackend with
@@ -70,9 +79,9 @@ module Backends =
     let resolve (cfg: LlmServiceConfig) (http: HttpClient) (routed: RoutedBackend) : ILlmBackend =
         match routed.Backend with
         | Ollama model -> ollama http routed.Endpoint model routed.ApiKey
-        | Vllm model
+        | Vllm model -> openAiCompatible true http routed.Endpoint model routed.ApiKey
         | OpenAI model
-        | DockerModelRunner model -> openAiCompatible http routed.Endpoint model routed.ApiKey
+        | DockerModelRunner model -> openAiCompatible false http routed.Endpoint model routed.ApiKey
         | GoogleGemini model -> gemini http routed.Endpoint model routed.ApiKey
         | Anthropic model -> anthropic http routed.Endpoint model routed.ApiKey
         | LlamaCpp(model, config) -> llamaCpp http routed.Endpoint model config routed.ApiKey

@@ -173,12 +173,8 @@ type TarsWoTAgent
             let! result = executor.Execute(plan, ctx)
 
             // 5. Record outcome so pattern selection learns from real results
-            selector.RecordOutcome
-                { PatternKind = patternKind
-                  Goal = goal
-                  Success = result.Success
-                  DurationMs = result.Metrics.TotalDurationMs
-                  Timestamp = DateTime.UtcNow }
+            selector.RecordOutcome(
+                PatternOutcome.Create(patternKind, goal, result.Success, result.Metrics.TotalDurationMs))
 
             return result
         }
@@ -221,12 +217,8 @@ type TarsWoTAgent
             let! result = executor.ExecuteWithProgress(plan, ctx, onProgress)
 
             // Record outcome so pattern selection learns from real results
-            selector.RecordOutcome
-                { PatternKind = patternKind
-                  Goal = goal
-                  Success = result.Success
-                  DurationMs = result.Metrics.TotalDurationMs
-                  Timestamp = DateTime.UtcNow }
+            selector.RecordOutcome(
+                PatternOutcome.Create(patternKind, goal, result.Success, result.Metrics.TotalDurationMs))
 
             return result
         }

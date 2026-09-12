@@ -41,7 +41,7 @@ type MultiBackendPlanStorageTests() =
     member _.``In-Memory storage should save and retrieve plan``() =
         task {
             // Arrange
-            let storage = InMemoryLedgerStorage() :> IPlanStorage
+            let storage = InMemoryLedgerStorage() :> IPlanStore
             let plan = createTestPlan "Test in-memory storage"
 
             // Act
@@ -60,7 +60,7 @@ type MultiBackendPlanStorageTests() =
     member _.``In-Memory storage should filter plans by status``() =
         task {
             // Arrange
-            let storage = InMemoryLedgerStorage() :> IPlanStorage
+            let storage = InMemoryLedgerStorage() :> IPlanStore
             let draftPlan = createTestPlan "Draft plan"
 
             let activePlan =
@@ -84,7 +84,7 @@ type MultiBackendPlanStorageTests() =
     member _.``In-Memory storage should update existing plan``() =
         task {
             // Arrange
-            let storage = InMemoryLedgerStorage() :> IPlanStorage
+            let storage = InMemoryLedgerStorage() :> IPlanStore
             let plan = createTestPlan "Original goal"
 
             // Act
@@ -108,7 +108,7 @@ type MultiBackendPlanStorageTests() =
     member _.``In-Memory storage should append plan events``() =
         task {
             // Arrange
-            let storage = InMemoryLedgerStorage() :> IPlanStorage
+            let storage = InMemoryLedgerStorage() :> IPlanStore
             let plan = createTestPlan "Test event storage"
             let planId = plan.Id
 
@@ -125,7 +125,7 @@ type MultiBackendPlanStorageTests() =
     member _.``Plan with assumptions should serialize correctly``() =
         task {
             // Arrange
-            let storage = InMemoryLedgerStorage() :> IPlanStorage
+            let storage = InMemoryLedgerStorage() :> IPlanStore
             let beliefId1 = BeliefId.New()
             let beliefId2 = BeliefId.New()
 
@@ -148,7 +148,7 @@ type MultiBackendPlanStorageTests() =
     member _.``Plan with all status types should work``() =
         task {
             // Arrange
-            let storage = InMemoryLedgerStorage() :> IPlanStorage
+            let storage = InMemoryLedgerStorage() :> IPlanStore
 
             let statuses =
                 [ PlanStatus.Draft

@@ -52,7 +52,7 @@ Three repos via MCP/CLI bridges: **tars** (this repo, agent system), **ix** (`~/
 - `diag reasoning` needs Postgres (`evolve` handles absence gracefully).
 - Tars.LSP removed from solution (OmniSharp .NET 10 compat); project files still on disk.
 
-For governance details, use `demerzel-*` skills.
+For governance details, see the Demerzel repo (`~/source/repos/Demerzel`). No `demerzel-*` skills are installed in this repo.
 
 ## Karpathy 4 Rules — AI coding discipline
 
@@ -68,7 +68,7 @@ Self-improvement reflex: when the user corrects you, invoke `/correct` so the ru
 ## Session continuity (Cherny pattern)
 
 - `/digest` — captures meaningful session state (cursor, in-flight, hypotheses, success criteria) to `state/digests/latest.md`. Auto-fallback via `.claude/hooks/precompact-digest.ps1`; auto-injected on next session via `.claude/hooks/sessionstart-digest.ps1`. See `.claude/skills/digest/SKILL.md`.
-- `/learnings` — captures surprises (non-obvious facts worth grep-finding later) into `docs/solutions/<category>/<date>-<topic>.md`.
+- Learnings — surprises (non-obvious facts worth grep-finding later) are captured into `docs/solutions/<category>/<date>-<topic>.md`. Convention only: no `/learnings` skill is installed — write the file directly.
 - `/correct` — turns user corrections into permanent rules in this CLAUDE.md.
 
 The hooks are validated in CI by `.github/workflows/karpathy-cherny-discipline.yml`.
@@ -100,7 +100,7 @@ structural-quality machinery. (The `/teach` skill IS adopted — see
 
 ## Agent skills
 
-Per-repo config for the installed aihero/mattpocock engineering skills (`grill-with-docs`, `grill-me`, `to-prd`, `to-issues`, `tdd`, `improve-codebase-architecture`, `teach`), installed project-scoped into `.claude/skills/` via `npx skills@latest add mattpocock/skills --copy` (MIT; Socket/Snyk clean). Configured 2026-06-14 via `/setup-matt-pocock-skills`.
+Per-repo config for the installed aihero/mattpocock engineering skills (`grill-with-docs`, `grill-me`, `to-prd`, `to-issues`, `tdd`, `improve-codebase-architecture`, `teach`), installed project-scoped into `.claude/skills/` via `npx skills@latest add mattpocock/skills --copy` (MIT; Socket/Snyk clean). Configured 2026-06-14 via `/setup-matt-pocock-skills`. The repo's own `correct` and `digest` skills live alongside them; the conventions below hold regardless of which skill pack a session has.
 
 ### Issue tracker
 

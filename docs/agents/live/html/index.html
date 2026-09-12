@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AFK Live Agent Board</title>
+    <link rel="stylesheet" href="afk-board.css">
+    <!-- Basic fallback in case JS fails -->
+    <noscript>
+        <meta http-equiv="refresh" content="60">
+        <style>
+            .board { display: none; }
+            .noscript-msg { display: block !important; padding: 20px; background: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 6px; margin-bottom: 20px; }
+        </style>
+    </noscript>
+</head>
+<body>
+    <header role="banner">
+        <h1>AFK Live Agent Board</h1>
+        <div class="summary" id="summary-counts" aria-live="polite">
+            <div class="summary-item">Loading summary...</div>
+        </div>
+        <p class="last-updated">Last refreshed: <span id="last-updated-time">Never</span></p>
+    </header>
+
+    <div class="noscript-msg" style="display: none;">
+        <h2>JavaScript is Disabled</h2>
+        <p>The dynamic dashboard requires JavaScript to fetch and render the latest <code>afk-runs.json</code> state. Please enable JavaScript.</p>
+        <p>Alternatively, you can inspect the <a href="afk-runs.json">afk-runs.json</a> file directly for the raw state data.</p>
+    </div>
+
+    <main class="board" id="board-container" aria-label="Agent Work Board">
+        <!-- Columns represent swimlanes for agent state tracking -->
+        <section class="column" data-state="queued" aria-labelledby="col-queued">
+            <h2 id="col-queued">Queued</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="delegated" aria-labelledby="col-delegated">
+            <h2 id="col-delegated">Delegated</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="agent-working" aria-labelledby="col-agent-working">
+            <h2 id="col-agent-working">Agent Working</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="pr-opened" aria-labelledby="col-pr-opened">
+            <h2 id="col-pr-opened">PR Open</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="needs-agent-revision" aria-labelledby="col-needs-agent-revision">
+            <h2 id="col-needs-agent-revision">Needs Revision</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="needs-human-review" aria-labelledby="col-needs-human-review">
+            <h2 id="col-needs-human-review">Human Review</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="ci-green" aria-labelledby="col-ci-green">
+            <h2 id="col-ci-green">CI Green</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="blocked" aria-labelledby="col-blocked">
+            <h2 id="col-blocked">Blocked</h2>
+            <div class="cards" role="list"></div>
+        </section>
+        <section class="column" data-state="done" aria-labelledby="col-done">
+            <h2 id="col-done">Done</h2>
+            <div class="cards" role="list"></div>
+        </section>
+    </main>
+
+    <footer role="contentinfo">
+        <p>This board is part of the cloud-agent observability layer of TARS. Data is generated and updated automatically from agent state artifacts.</p>
+    </footer>
+
+    <script src="afk-board.js"></script>
+</body>
+</html>

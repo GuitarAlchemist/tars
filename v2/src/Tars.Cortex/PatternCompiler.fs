@@ -406,11 +406,19 @@ module PatternCompiler =
                     let newEdges = multiple |> List.map (fun r -> edge startNode.Id r.Id (Some "start"))
                     (startNode :: nodes), (edges @ newEdges), startNode.Id
 
+        let mappedKind =
+            match pattern.Kind with
+            | ReasoningPattern.PatternKind.Linear -> ChainOfThought
+            | ReasoningPattern.PatternKind.TreeSearch -> TreeOfThoughts
+            | ReasoningPattern.PatternKind.Loop -> ReAct
+            | ReasoningPattern.PatternKind.Graph -> GraphOfThoughts
+            | ReasoningPattern.PatternKind.Parallel -> Custom "Parallel"
+
         { Id = Guid.NewGuid()
           Nodes = finalNodes
           Edges = finalEdges
           EntryNode = entryId
-          Metadata = metadata WorkflowOfThought goal nodes.Length
+          Metadata = metadata mappedKind goal nodes.Length
           Policy = [] }
 
     // =========================================================================
@@ -458,7 +466,7 @@ module PatternCompiler =
                 let compiler = this :> IPatternCompiler
                 match kind with
                 | ChainOfThought -> compiler.CompileChainOfThought(5, goal)
-                | ReAct -> compiler.CompileReAct([ "search"; "calculate"; "read" ], 10, goal)
+                | ReAct -> compiler.CompileReAct([ "search"; "calculate"; "read"; "write" ], 10, goal)
                 | GraphOfThoughts -> compiler.CompileGraphOfThoughts(3, 3, goal)
                 | TreeOfThoughts -> compiler.CompileTreeOfThoughts(3, 2, goal)
                 | PlanAndExecute -> compiler.CompileChainOfThought(3, goal)

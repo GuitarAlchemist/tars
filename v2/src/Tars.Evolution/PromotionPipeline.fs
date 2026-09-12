@@ -15,18 +15,40 @@ open System.Text.Json.Serialization
 // State: injectable promotion store (recurrence + lineage + weights)
 // ─────────────────────────────────────────────────────────────────────
 
-/// JSON options for the directory-scoped helpers at the bottom of this file.
-let private jsonOptions =
-    let o = JsonSerializerOptions(JsonSerializerDefaults.General)
-    o.Converters.Add(JsonFSharpConverter())
-    o.WriteIndented <- true
-    o
-
 /// Process-global disk-backed store rooted at ~/.tars/promotion. This is the
 /// default for production callers; tests inject an `InMemoryPromotionStore`
 /// to stay hermetic. The global mutable ConcurrentDictionary state that used
 /// to live here — and leaked across tests — now lives inside the store.
 let defaultStore : IPromotionStore = DiskPromotionStore() :> IPromotionStore
+
+/// Stable pattern identity, derived from the pattern name.
+///
+/// This was `Guid.NewGuid().ToString("N").[..7]` — a fresh random id minted for
+/// each newly-seen name. Weights are keyed by PatternId while the store keys
+/// recurrence by PatternName, so a random id left the two correlatable only
+/// through whichever store instance happened to mint it. Rebuild or lose
+/// recurrence state while weights.json survives and every lookup in
+/// `classifyWeighted` misses, each rule falls back to `Option.defaultValue 0.0`,
+/// ranking silently degrades to input order, and the previous weights are
+/// orphaned permanently — `SaveWeights` appends and never prunes.
+///
+/// PatternName is already the store's key (`recurrence.[record.PatternName]`),
+/// so a random id carried no information the name did not. Deriving it makes the
+/// identity stable across stores, processes and resets.
+///
+/// Not a migration: records already in a store are returned by
+/// `TryGetRecurrence` and keep whatever id they were persisted with, so existing
+/// weights keep matching. Only newly-seen names take the derived form.
+///
+/// SHA-256 rather than `String.GetHashCode`, which is randomised per process and
+/// would reintroduce exactly the instability this removes.
+let patternIdOf (patternName: string) : string =
+    use sha = System.Security.Cryptography.SHA256.Create()
+
+    sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes patternName)
+    |> Array.take 4
+    |> Array.map (fun b -> b.ToString("x2"))
+    |> String.concat ""
 
 // ─────────────────────────────────────────────────────────────────────
 // Step 1: INSPECT — Analyze completed work artifacts
@@ -59,7 +81,7 @@ let extractInto (store: IPromotionStore) (artifacts: TraceArtifact list) : Recur
             match store.TryGetRecurrence name with
             | Some r -> r
             | None ->
-                { PatternId = Guid.NewGuid().ToString("N").[..7]
+                { PatternId = patternIdOf name
                   PatternName = name
                   FirstSeen = DateTime.UtcNow
                   LastSeen = DateTime.UtcNow
@@ -143,7 +165,7 @@ let propose (template: string) (rollback: string option) (candidate: PromotionCa
 let validateDeterministic (existing: RecurrenceRecord list) (candidate: PromotionCandidate) : PromotionCriteria =
     let r = candidate.Record
     { MinOccurrences = r.OccurrenceCount >= 3
-      RemovesComplexity = candidate.PatternTemplate.Length > 0
+      RemovesComplexity = not (String.IsNullOrWhiteSpace candidate.PatternTemplate) && candidate.PatternTemplate <> candidate.Record.PatternName
       MoreReadable = true  // Default true, LLM can override
       StableSemantics = r.Contexts |> List.distinct |> List.length <= r.OccurrenceCount
       AutoValidatable = candidate.RollbackExpansion.IsSome
@@ -330,21 +352,13 @@ let getLineageRecords () : LineageRecord list =
 
 /// Read recurrence records straight from a specific promotion directory.
 let recurrenceRecordsFrom (promotionDir: string) : RecurrenceRecord list =
-    try
-        let path = Path.Combine(promotionDir, "recurrence.json")
-        if File.Exists path then
-            JsonSerializer.Deserialize<RecurrenceRecord list>(File.ReadAllText path, jsonOptions)
-        else []
-    with _ -> []
+    let store = DiskPromotionStore(promotionDir) :> IPromotionStore
+    store.GetRecurrence()
 
 /// Read lineage records straight from a specific promotion directory.
 let lineageRecordsFrom (promotionDir: string) : LineageRecord list =
-    try
-        let path = Path.Combine(promotionDir, "lineage.json")
-        if File.Exists path then
-            JsonSerializer.Deserialize<LineageRecord list>(File.ReadAllText path, jsonOptions)
-        else []
-    with _ -> []
+    let store = DiskPromotionStore(promotionDir) :> IPromotionStore
+    store.GetLineage()
 
 /// Persist recurrence + lineage stores to a specific promotion directory.
 let saveStoresTo
@@ -352,13 +366,12 @@ let saveStoresTo
     (recurrence: RecurrenceRecord list)
     (lineage: LineageRecord list)
     : unit =
-    Directory.CreateDirectory promotionDir |> ignore
-    File.WriteAllText(
-        Path.Combine(promotionDir, "recurrence.json"),
-        JsonSerializer.Serialize(recurrence, jsonOptions))
-    File.WriteAllText(
-        Path.Combine(promotionDir, "lineage.json"),
-        JsonSerializer.Serialize(lineage, jsonOptions))
+    let store = DiskPromotionStore(promotionDir) :> IPromotionStore
+    for r in recurrence do
+        store.UpsertRecurrence r
+    for l in lineage do
+        store.AddLineage l
+    store.Flush()
 
 /// Get patterns at a specific promotion level
 let getPatternsAtLevel (level: PromotionLevel) : RecurrenceRecord list =
