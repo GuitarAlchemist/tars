@@ -178,13 +178,7 @@ module ClaudeCodeBridge =
             let patternKind = selector.Recommend(goal, cogState)
 
             // Compile plan based on selected pattern
-            let plan =
-                match patternKind with
-                | ChainOfThought -> compiler.CompileChainOfThought(maxSteps, goal)
-                | ReAct -> compiler.CompileReAct([ "search"; "read"; "write" ], maxSteps, goal)
-                | GraphOfThoughts -> compiler.CompileGraphOfThoughts(3, 3, goal)
-                | TreeOfThoughts -> compiler.CompileTreeOfThoughts(3, 2, goal)
-                | _ -> compiler.CompileChainOfThought(maxSteps, goal)
+            let plan = compiler.CompileFor(patternKind, goal)
 
             let planId = plan.Id.ToString()
 
@@ -423,12 +417,8 @@ module ClaudeCodeBridge =
                     (DateTime.UtcNow - activePlan.StartedAt).TotalMilliseconds |> int64
 
                 // Record outcome for pattern learning
-                selector.RecordOutcome
-                    { PatternKind = activePlan.PatternKind
-                      Goal = activePlan.Goal
-                      Success = success
-                      DurationMs = duration
-                      Timestamp = DateTime.UtcNow }
+                selector.RecordOutcome(
+                    PatternOutcome.Create(activePlan.PatternKind, activePlan.Goal, success, duration))
 
                 // Check golden regression (best-effort)
                 let regressionMsg =

@@ -71,7 +71,7 @@ Output JSON only:
                           Messages = [ { Role = Role.User; Content = prompt } ]
                           Tools = []
                           ToolChoice = None
-                          ResponseFormat = Some ResponseFormat.Json
+                          ResponseFormat = Some (ResponseFormat.Constrained (Grammar.JsonSchema EvolutionSchemas.reflectionSchema))
                           Stream = false
                           JsonMode = true
                           Seed = None

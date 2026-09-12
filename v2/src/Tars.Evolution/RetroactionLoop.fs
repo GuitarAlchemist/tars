@@ -189,6 +189,26 @@ module RetroactionLoop =
                         | Ok path ->
                             Console.WriteLine($"[Retroaction] Pattern saved: {path}")
                             newPattern <- Some scoredPattern
+
+                            // Close the loop: distill trace into typed production and add/update weighted grammar rules
+                            match GrammarDistillation.distillTrace trace problem.Description with
+                            | Some production ->
+                                Console.WriteLine($"[Retroaction] Distilled TypedProduction '{production.Id}' from trace.")
+                                let weightedRule = GrammarDistillation.toWeightedRule production
+
+                                try
+                                    let store = PromotionPipeline.defaultStore
+                                    let currentWeights = store.LoadWeights ()
+                                    let updatedWeights =
+                                        if currentWeights |> List.exists (fun w -> w.PatternId = weightedRule.PatternId) then
+                                            currentWeights |> List.map (fun w -> if w.PatternId = weightedRule.PatternId then { weightedRule with SelectionCount = w.SelectionCount + 1 } else w)
+                                        else
+                                            weightedRule :: currentWeights
+                                    store.SaveWeights updatedWeights
+                                    Console.WriteLine($"[Retroaction] Evolved weighted rule '{weightedRule.PatternId}' saved to promotion weights.")
+                                with ex ->
+                                    Console.WriteLine($"[Retroaction] Failed to save evolved weighted rule: {ex.Message}")
+                            | None -> ()
                         | Error err ->
                             Console.WriteLine($"[Retroaction] Failed to save pattern: {err}")
                     | Error err ->
@@ -292,15 +312,10 @@ Output JSON ONLY, no explanation.
 
                 try
                     let! resp = llm.CompleteAsync req |> Async.AwaitTask
-                    let mutable text = resp.Text.Trim()
-                    let firstBrace = text.IndexOf('{')
-                    let lastBrace = text.LastIndexOf('}')
-
-                    if firstBrace >= 0 && lastBrace > firstBrace then
-                        text <- text.Substring(firstBrace, lastBrace - firstBrace + 1)
 
                     // Validate it's parseable JSON
-                    use _doc = JsonDocument.Parse(text)
+                    use doc = StructuredOutput.parseJson resp.Text
+                    let text = doc.RootElement.GetRawText()
 
                     let variant =
                         { original with

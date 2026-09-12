@@ -261,3 +261,51 @@ module InvariantTests =
             Assert.Equal("tokens", resource)
             Assert.Equal(1000, limit)
         | _ -> Assert.True(false, "Wrong invariant type")
+
+    [<Fact>]
+    let ``Verification verify CustomOp non_empty check`` () =
+        async {
+            let op = Tars.Cortex.WoTTypes.VerificationOp.CustomOp "non_empty"
+            let dummyExecutor _ _ = async { return Result.Ok "" }
+
+            let! resOk = Tars.Cortex.Verification.verify "some content" op dummyExecutor
+            let! resFail = Tars.Cortex.Verification.verify "   " op dummyExecutor
+
+            match resOk, resFail with
+            | Result.Ok true, Result.Ok false -> Assert.True(true)
+            | _ -> failwith $"Unexpected results: %A{resOk}, %A{resFail}"
+        } |> Async.StartAsTask
+
+    [<Fact>]
+    let ``Verification verify CustomOp threshold check`` () =
+        async {
+            let op = Tars.Cortex.WoTTypes.VerificationOp.CustomOp "threshold:metric:50.0"
+            let dummyExecutor _ _ = async { return Result.Ok "" }
+
+            let! resOk = Tars.Cortex.Verification.verify "75.0" op dummyExecutor
+            let! resFail = Tars.Cortex.Verification.verify "25.0" op dummyExecutor
+
+            match resOk, resFail with
+            | Result.Ok true, Result.Ok false -> Assert.True(true)
+            | _ -> failwith $"Unexpected results: %A{resOk}, %A{resFail}"
+        } |> Async.StartAsTask
+
+    [<Fact>]
+    let ``Verification verify Schema match check`` () =
+        async {
+            let schema = """{ "type": "object", "required": ["name", "age"], "properties": { "name": { "type": "string" }, "age": { "type": "number" } } }"""
+            let op = Tars.Cortex.WoTTypes.VerificationOp.Schema schema
+            let dummyExecutor _ _ = async { return Result.Ok "" }
+
+            let validJson = """{ "name": "TARS", "age": 2 }"""
+            let invalidJsonType = """{ "name": "TARS", "age": "two" }"""
+            let invalidJsonMissing = """{ "name": "TARS" }"""
+
+            let! resOk = Tars.Cortex.Verification.verify validJson op dummyExecutor
+            let! resFailType = Tars.Cortex.Verification.verify invalidJsonType op dummyExecutor
+            let! resFailMissing = Tars.Cortex.Verification.verify invalidJsonMissing op dummyExecutor
+
+            match resOk, resFailType, resFailMissing with
+            | Result.Ok true, Result.Ok false, Result.Ok false -> Assert.True(true)
+            | _ -> failwith $"Unexpected results: %A{resOk}, %A{resFailType}, %A{resFailMissing}"
+        } |> Async.StartAsTask

@@ -935,15 +935,6 @@ Respond with ONLY the number of your choice."""
         (context: Tars.Core.AgentContext)
         : Async<WoTResult> =
         async {
-            let plan =
-                match pattern with
-                | ChainOfThought -> compiler.CompileChainOfThought(5, goal)
-                | ReAct -> compiler.CompileReAct([ "search"; "calculate"; "read" ], 10, goal)
-                | GraphOfThoughts -> compiler.CompileGraphOfThoughts(3, 3, goal)
-                | TreeOfThoughts -> compiler.CompileTreeOfThoughts(3, 2, goal)
-                | WorkflowOfThought -> failwith "WoT requires explicit nodes"
-                | PlanAndExecute -> compiler.CompileChainOfThought(3, goal)
-                | Custom _ -> compiler.CompileChainOfThought(3, goal)
-
+            let plan = compiler.CompileFor(pattern, goal)
             return! executor.Execute(plan, context)
         }
