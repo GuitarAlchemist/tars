@@ -39,8 +39,8 @@ let defaultOptions =
       Verify = false
       RunId = None }
 
-let private createLedger (config: Tars.Core.TarsConfig) (usePostgres: bool) =
-    let primaryStorage =
+let private createLedgerAndStore (config: Tars.Core.TarsConfig) (usePostgres: bool) =
+    let (primaryBeliefLog, evidenceStore) =
         if usePostgres then
             try
                 let connStr =
@@ -51,12 +51,15 @@ let private createLedger (config: Tars.Core.TarsConfig) (usePostgres: bool) =
                         |> Option.defaultValue PostgresLedgerStorage.defaultConnectionString
                     )
 
-                PostgresLedgerStorage.createWithConnectionString connStr :> ILedgerStorage
+                let storage = PostgresLedgerStorage.createWithConnectionString connStr
+                (storage :> IBeliefLog, storage :> IEvidenceStore)
             with ex ->
                 AnsiConsole.MarkupLine($"[yellow]⚠️ Postgres unavailable ({ex.Message}), using in-memory[/]")
-                InMemoryLedgerStorage() :> ILedgerStorage
+                let storage = InMemoryLedgerStorage()
+                (storage :> IBeliefLog, storage :> IEvidenceStore)
         else
-            InMemoryLedgerStorage() :> ILedgerStorage
+            let storage = InMemoryLedgerStorage()
+            (storage :> IBeliefLog, storage :> IEvidenceStore)
 
     let fusekiEndpoint =
         Environment.GetEnvironmentVariable("TARS_FUSEKI_ENDPOINT") |> Option.ofObj
@@ -69,18 +72,18 @@ let private createLedger (config: Tars.Core.TarsConfig) (usePostgres: bool) =
         | Some uriStr ->
             try
                 let uri = Uri(uriStr)
-                let fuseki = FusekiStorage(uri, fusekiAuth) :> ILedgerStorage
+                let fuseki = FusekiStorage(uri, fusekiAuth) :> IBeliefLog
                 AnsiConsole.MarkupLine($"[blue]🔗 Fuseki replication enabled:[/] {uriStr}")
-                CompositeLedgerStorage(primaryStorage, [ fuseki ]) :> ILedgerStorage
+                CompositeBeliefLog(primaryBeliefLog, [ fuseki ]) :> IBeliefLog
             with ex ->
                 AnsiConsole.MarkupLine(
                     $"[yellow]⚠️ Fuseki configuration invalid ({ex.Message}), skipping replication[/]"
                 )
 
-                primaryStorage
-        | None -> primaryStorage
+                primaryBeliefLog
+        | None -> primaryBeliefLog
 
-    KnowledgeLedger(storage)
+    KnowledgeLedger(storage), Some evidenceStore
 
 let private parseRelation (s: string) : RelationType =
     match s.ToLowerInvariant() with
@@ -304,7 +307,7 @@ let private runHistory (ledger: KnowledgeLedger) (beliefIdStr: string) =
         | Error message -> AnsiConsole.MarkupLine($"[red]{message}[/]")
     }
 
-let private runFetch (ledger: KnowledgeLedger) (topic: string) =
+let private runFetch (ledger: KnowledgeLedger) (evidenceStoreOpt: IEvidenceStore option) (topic: string) =
     task {
         AnsiConsole.MarkupLine($"\n[blue]📚 Fetching Wikipedia summary for:[/] [white]{topic}[/]")
         use client = new System.Net.Http.HttpClient()
@@ -362,8 +365,8 @@ let private runFetch (ledger: KnowledgeLedger) (topic: string) =
                     else
                         pageUrl
 
-                match ledger.Storage with
-                | :? IEvidenceStorage as store ->
+                match evidenceStoreOpt with
+                | Some store ->
                     let hash =
                         use sha = System.Security.Cryptography.SHA256.Create()
                         let bytes = System.Text.Encoding.UTF8.GetBytes(json)
@@ -387,7 +390,7 @@ let private runFetch (ledger: KnowledgeLedger) (topic: string) =
 
                     let! _ = store.SaveCandidate(candidate)
                     AnsiConsole.MarkupLine($"[grey]Evidence candidate saved ({candidate.Id})[/]")
-                | _ -> ()
+                | None -> ()
 
                 AnsiConsole.Write(Panel(extract, Header = PanelHeader(title), Border = BoxBorder.Rounded))
                 AnsiConsole.MarkupLine($"[grey]Source: {pageUrl}[/]")
@@ -397,6 +400,7 @@ let private runFetch (ledger: KnowledgeLedger) (topic: string) =
 
 let private runPropose
     (ledger: KnowledgeLedger)
+    (evidenceStoreOpt: IEvidenceStore option)
     (config: Tars.Core.TarsConfig)
     (topic: string)
     (showPrompt: bool)
@@ -545,8 +549,8 @@ Return ONLY a JSON array of triples:
                             else
                                 arrayOrSingle.EnumerateArray() |> Seq.cast<JsonElement>
 
-                        match ledger.Storage with
-                        | :? IEvidenceStorage as store ->
+                        match evidenceStoreOpt with
+                        | Some store ->
                             for item in items do
                                 let s = getString "subject" item
                                 let p = getString "predicate" item
@@ -558,44 +562,6 @@ Return ONLY a JSON array of triples:
                                     && not (String.IsNullOrWhiteSpace p)
                                     && not (String.IsNullOrWhiteSpace o)
                                 then
-                                    let verificationStatus =
-                                        if verify then
-                                            let verifier = VerifierAgent(ledger)
-
-                                            let result =
-                                                // Create a temporary ProposedAssertion for verification
-                                                let pA =
-                                                    { Id = Guid.NewGuid()
-                                                      Subject = s
-                                                      Predicate = p
-                                                      Object = o
-                                                      Confidence = c
-                                                      SourceSection = extract
-                                                      ExtractorAgent = AgentId "wikipedia-extractor"
-                                                      ExtractedAt = DateTime.UtcNow }
-
-                                                verifier.Verify(pA) |> Async.RunSynchronously // We are in a task block, but Verify is async. Ideally await it properly.
-
-                                            match result with
-                                            | Accepted _ -> "[green]✓ Verified[/]"
-                                            | Denied r -> $"[red]✗ {r}[/]"
-                                            | Conflict(_, _) -> "[bold red]✗ Conflict[/]"
-                                        else
-                                            ""
-
-                                    if verify then
-                                        table.AddRow(
-                                            Markup.Escape(s),
-                                            Markup.Escape(p),
-                                            Markup.Escape(o),
-                                            $"{c:P0}",
-                                            verificationStatus
-                                        )
-                                        |> ignore
-                                    else
-                                        table.AddRow(Markup.Escape(s), Markup.Escape(p), Markup.Escape(o), $"{c:P0}")
-                                        |> ignore
-
                                     let verificationStatus =
                                         if verify then
                                             let verifier = VerifierAgent(ledger)
@@ -646,7 +612,7 @@ Return ONLY a JSON array of triples:
 
                                     let! _ = store.SaveProposal(proposal, None)
                                     ()
-                        | _ ->
+                        | None ->
                             for item in items do
                                 let s = getString "subject" item
                                 let p = getString "predicate" item
@@ -866,7 +832,7 @@ let private printHelp () =
 
 let run (config: Tars.Core.TarsConfig) (options: KnowOptions) : Task<int> =
     task {
-        let ledger = createLedger config options.UsePostgres
+        let ledger, evidenceStoreOpt = createLedgerAndStore config options.UsePostgres
 
         try
             do! ledger.Initialize()
@@ -899,11 +865,11 @@ let run (config: Tars.Core.TarsConfig) (options: KnowOptions) : Task<int> =
                 | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars know history <belief-id>[/]")
             | "fetch" ->
                 match options.Query with
-                | Some t -> do! runFetch ledger t
+                | Some t -> do! runFetch ledger evidenceStoreOpt t
                 | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars know fetch <topic>[/]")
             | "propose" ->
                 match options.Query with
-                | Some t -> do! runPropose ledger config t options.ShowPrompt options.Verify
+                | Some t -> do! runPropose ledger evidenceStoreOpt config t options.ShowPrompt options.Verify
                 | None -> AnsiConsole.MarkupLine("[yellow]Usage: tars know propose <topic>[/]")
             | "ingest-run" ->
                 match options.Path with

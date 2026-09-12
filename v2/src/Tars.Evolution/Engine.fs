@@ -27,7 +27,8 @@ module Engine =
           KnowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option
           MemoryBuffer: BufferAgent<MemoryItem> option
           EpisodeService: IEpisodeIngestionService option
-          Ledger: KnowledgeLedger option }
+          Ledger: KnowledgeLedger option
+          EvidenceStore: IEvidenceStore option }
 
     type GovernanceServices =
         { Epistemic: IEpistemicGovernor option
@@ -1271,7 +1272,7 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
                         Success = result.Success && evaluationPassed }
 
                 match ctx.Memory.Ledger with
-                | Some ledger -> do! LedgerIngestion.recordTaskResult ledger ctx.Options.RunId taskDef finalResult ctx.Logger
+                | Some ledger -> do! LedgerIngestion.recordTaskResult ledger ctx.Memory.EvidenceStore ctx.Options.RunId taskDef finalResult ctx.Logger
                 | None -> ()
 
                 let resultForDisplay =

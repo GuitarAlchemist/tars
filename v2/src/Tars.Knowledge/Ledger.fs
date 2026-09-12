@@ -6,15 +6,15 @@ open System
 open System.Collections.Generic
 open System.Threading.Tasks
 
-/// Interface for persistent ledger storage
-type ILedgerStorage =
+/// Interface for persistent belief log storage
+type IBeliefLog =
     abstract member Append: entry: BeliefEventEntry -> Task<Result<unit, string>>
     abstract member GetEvents: since: DateTime option -> Task<BeliefEventEntry list>
     abstract member GetEventsByBelief: beliefId: BeliefId -> Task<BeliefEventEntry list>
     abstract member GetSnapshot: unit -> Task<Belief list>
 
 /// Interface for evidence and ingestion storage (Phase 9)
-type IEvidenceStorage =
+type IEvidenceStore =
     abstract member SaveCandidate: candidate: EvidenceCandidate -> Task<Result<unit, string>>
     abstract member SaveProposal: proposal: ProposedAssertion * evidenceId: Guid option -> Task<Result<unit, string>>
     abstract member GetPendingCandidates: unit -> Task<EvidenceCandidate list>
@@ -38,7 +38,7 @@ type InMemoryLedgerStorage() =
     let planEvents = ResizeArray<PlanEvent>()
     let planLock = obj ()
 
-    interface ILedgerStorage with
+    interface IBeliefLog with
         member _.Append(entry) =
             task {
                 lock syncLock (fun () -> events.Add(entry))
@@ -104,7 +104,7 @@ type InMemoryLedgerStorage() =
                 return beliefs.Values |> Seq.toList
             }
 
-    interface IEvidenceStorage with
+    interface IEvidenceStore with
         member _.SaveCandidate(candidate) =
             task {
                 lock candidateLock (fun () -> candidates.[candidate.Id] <- candidate)
@@ -151,7 +151,7 @@ type InMemoryLedgerStorage() =
                         | _ -> [])
             }
 
-    interface IPlanStorage with
+    interface IPlanStore with
         member _.SavePlan(plan) =
             task {
                 lock planLock (fun () ->
@@ -188,10 +188,10 @@ type InMemoryLedgerStorage() =
             }
 
 
-/// Composite storage that writes to multiple backends (e.g., Postgres + Fuseki)
+/// Composite belief log that writes to multiple backends (e.g., Postgres + Fuseki)
 /// Reads are always served from the primary storage.
-type CompositeLedgerStorage(primary: ILedgerStorage, secondaries: ILedgerStorage list) =
-    interface ILedgerStorage with
+type CompositeBeliefLog(primary: IBeliefLog, secondaries: IBeliefLog list) =
+    interface IBeliefLog with
         member _.Append(entry) =
             task {
                 // Write to primary first
@@ -213,57 +213,10 @@ type CompositeLedgerStorage(primary: ILedgerStorage, secondaries: ILedgerStorage
         member _.GetEventsByBelief(beliefId) = primary.GetEventsByBelief(beliefId)
         member _.GetSnapshot() = primary.GetSnapshot()
 
-    interface IEvidenceStorage with
-        member _.SaveCandidate(c) =
-            match primary with
-            | :? IEvidenceStorage as es -> es.SaveCandidate(c)
-            | _ -> Task.FromResult(Error "Primary storage does not support IEvidenceStorage")
-
-        member _.SaveProposal(p, e) =
-            match primary with
-            | :? IEvidenceStorage as es -> es.SaveProposal(p, e)
-            | _ -> Task.FromResult(Error "Primary storage does not support IEvidenceStorage")
-
-        member _.GetPendingCandidates() =
-            match primary with
-            | :? IEvidenceStorage as es -> es.GetPendingCandidates()
-            | _ -> Task.FromResult([])
-
-        member _.GetProposalsByEvidence(e) =
-            match primary with
-            | :? IEvidenceStorage as es -> es.GetProposalsByEvidence(e)
-            | _ -> Task.FromResult([])
-
-    interface IPlanStorage with
-        member _.SavePlan(p) =
-            match primary with
-            | :? IPlanStorage as ps -> ps.SavePlan(p)
-            | _ -> Task.FromResult(Error "Primary storage does not support IPlanStorage")
-
-        member _.UpdatePlan(p) =
-            match primary with
-            | :? IPlanStorage as ps -> ps.UpdatePlan(p)
-            | _ -> Task.FromResult(Error "Primary storage does not support IPlanStorage")
-
-        member _.GetPlan(id) =
-            match primary with
-            | :? IPlanStorage as ps -> ps.GetPlan(id)
-            | _ -> Task.FromResult(None)
-
-        member _.GetPlansByStatus(s) =
-            match primary with
-            | :? IPlanStorage as ps -> ps.GetPlansByStatus(s)
-            | _ -> Task.FromResult([])
-
-        member _.AppendEvent(e) =
-            match primary with
-            | :? IPlanStorage as ps -> ps.AppendEvent(e)
-            | _ -> Task.FromResult(Error "Primary storage does not support IPlanStorage")
-
 
 /// The Knowledge Ledger - append-only event log for beliefs
 /// "Symbols are earned, not assumed"
-type KnowledgeLedger(storage: ILedgerStorage) =
+type KnowledgeLedger(storage: IBeliefLog) =
     let graph = BeliefGraph()
     let mutable lastSync = DateTime.MinValue
     let graphLock = obj ()
