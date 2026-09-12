@@ -141,7 +141,7 @@ type PostgresLedgerStorage(connectionString: string) =
             return! executeNonQuery sql []
         }
 
-    interface ILedgerStorage with
+    interface IBeliefLog with
         member _.Append(entry) =
             task {
                 let! schemaResult = ensureSchema ()
@@ -290,7 +290,7 @@ type PostgresLedgerStorage(connectionString: string) =
 
         member this.GetSnapshot() =
             task {
-                let! events = (this :> ILedgerStorage).GetEvents(None)
+                let! events = (this :> IBeliefLog).GetEvents(None)
 
                 let beliefs = Dictionary<BeliefId, Belief>()
 
@@ -317,7 +317,7 @@ type PostgresLedgerStorage(connectionString: string) =
                 return beliefs.Values |> Seq.toList
             }
 
-    interface IEvidenceStorage with
+    interface IEvidenceStore with
         member _.SaveCandidate(candidate) =
             task {
                 let! _ = ensureSchema ()
@@ -456,7 +456,7 @@ type PostgresLedgerStorage(connectionString: string) =
                 return results |> Seq.toList
             }
 
-    interface IPlanStorage with
+    interface IPlanStore with
         member _.SavePlan(plan) =
             task {
                 let! _ = ensureSchema ()

@@ -233,13 +233,31 @@ module WoTTypes =
 
     /// <summary>
     /// A recorded outcome of a pattern selection and execution.
+    /// Provenance covariates (CycleId/ModelId/SelectorStrategy) are optional so a
+    /// learning curve can be attributed to a cycle and model; absent on legacy rows.
     /// </summary>
     type PatternOutcome =
         { PatternKind: PatternKind
           Goal: string
           Success: bool
           DurationMs: int64
-          Timestamp: DateTime }
+          Timestamp: DateTime
+          CycleId: string option
+          ModelId: string option
+          SelectorStrategy: string option }
+
+        /// Construct an outcome with empty provenance. Call sites that don't yet
+        /// thread cycle/model/strategy use this so future field additions never
+        /// break a record literal again.
+        static member Create(patternKind, goal, success, durationMs) =
+            { PatternKind = patternKind
+              Goal = goal
+              Success = success
+              DurationMs = durationMs
+              Timestamp = DateTime.UtcNow
+              CycleId = None
+              ModelId = None
+              SelectorStrategy = None }
 
     // =========================================================================
     // Enhanced Cognitive State

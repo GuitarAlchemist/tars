@@ -219,6 +219,12 @@ module McpServerCommand =
                     registry.Register(tool)
                 logger.Information("Registered {Count} chatbot-claims bridge tools", claimTools.Length)
 
+                // --- Register MCP pattern resource tools ---
+                let patternTools = Tars.Evolution.McpPatternResources.createTools None
+                for tool in patternTools do
+                    registry.Register(tool)
+                logger.Information("Registered {Count} MCP pattern resource tools", patternTools.Length)
+
             with ex ->
                 logger.Error("Failed to register tools: {Error}", ex.Message)
             // We don't throw, just continue with partial tools

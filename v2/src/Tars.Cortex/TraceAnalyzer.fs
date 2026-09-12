@@ -182,3 +182,71 @@ let analyzeTraces (traces: ExecutionTrace list) =
     let analyses = traces |> List.map analyzeTrace
     let patterns = findPatterns traces
     (analyses, patterns)
+
+// ============================================================================
+// Adapter Functions for Live Trace Types
+// ============================================================================
+
+open Tars.Cortex.WoTTypes
+open Tars.Core.WorkflowOfThought
+
+/// Convert a WoTTrace (from Tars.Cortex.WoTTypes) to an ExecutionTrace
+let fromWoTTrace (trace: WoTTrace) : ExecutionTrace =
+    let steps =
+        trace.Steps
+        |> List.mapi (fun idx step ->
+            let duration =
+                match step.Status with
+                | Tars.Cortex.WoTTypes.Completed(_, ms) -> TimeSpan.FromMilliseconds(float ms)
+                | Tars.Cortex.WoTTypes.Failed(_, ms) -> TimeSpan.FromMilliseconds(float ms)
+                | _ -> TimeSpan.Zero
+            { Index = idx
+              Action = step.NodeId
+              Input = step.Input
+              Output = step.Output
+              Duration = duration
+              TokensUsed = step.TokensUsed })
+    { Id = trace.RunId.ToString()
+      StartTime = trace.StartedAt
+      EndTime = trace.CompletedAt |> Option.defaultValue DateTime.UtcNow
+      Steps = steps
+      FinalResult = trace.Steps |> List.tryLast |> Option.bind (fun s -> s.Output)
+      Success = trace.FinalStatus = "Success" }
+
+/// Convert a CanonicalTraceEvent list to an ExecutionTrace
+let fromCanonicalTraceEvents (id: string) (success: bool) (events: CanonicalTraceEvent list) : ExecutionTrace =
+    let steps =
+        events
+        |> List.mapi (fun idx ev ->
+            let tokens = ev.Usage |> Option.map (fun u -> u.Prompt + u.Completion)
+            { Index = idx
+              Action = ev.StepId
+              Input = ev.ResolvedArgs |> Option.map (fun args -> sprintf "%A" args)
+              Output = ev.Outputs |> List.tryHead
+              Duration = TimeSpan.Zero
+              TokensUsed = tokens })
+    { Id = id
+      StartTime = DateTime.UtcNow
+      EndTime = DateTime.UtcNow
+      Steps = steps
+      FinalResult = events |> List.tryLast |> Option.bind (fun ev -> ev.Outputs |> List.tryHead)
+      Success = success }
+
+/// Convert a TraceEvent list to an ExecutionTrace
+let fromTraceEvents (id: string) (success: bool) (events: TraceEvent list) : ExecutionTrace =
+    let steps =
+        events
+        |> List.mapi (fun idx ev ->
+            let tokens = ev.Usage |> Option.map (fun u -> u.Prompt + u.Completion)
+            { Index = idx
+              Action = ev.StepId
+              Input = ev.ResolvedArgs |> Option.map (fun args -> sprintf "%A" args)
+              Output = ev.Outputs |> List.tryHead
+              Duration = TimeSpan.FromMilliseconds(float ev.DurationMs)
+              TokensUsed = tokens })
+    { Id = id
+      StartTime = events |> List.tryHead |> Option.map (fun ev -> ev.StartedAtUtc) |> Option.defaultValue DateTime.UtcNow
+      EndTime = events |> List.tryLast |> Option.map (fun ev -> ev.EndedAtUtc) |> Option.defaultValue DateTime.UtcNow
+      Steps = steps
+      FinalResult = events |> List.tryLast |> Option.bind (fun ev -> ev.Outputs |> List.tryHead)
+      Success = success }

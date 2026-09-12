@@ -6,7 +6,7 @@ open System
 open System.Threading.Tasks
 
 /// The Plan Manager - manages hypothesis-driven plans
-type PlanManager(storage: IPlanStorage, ledger: KnowledgeLedger) =
+type PlanManager(storage: IPlanStore, ledger: KnowledgeLedger) =
 
     /// Create a new plan
     member this.CreatePlan(goal: string, steps: PlanStep list, assumptions: BeliefId list, agentId: AgentId) =
@@ -241,9 +241,10 @@ type PlanManager(storage: IPlanStorage, ledger: KnowledgeLedger) =
 
 /// Factory for creating plan managers
 module PlanManager =
-    /// Create with in-memory storage (assumes ledger implements IPlanStorage)
+    /// Create with in-memory storage (assumes ledger implements IPlanStore)
     let createInMemory (ledger: KnowledgeLedger) =
-        // Cast the ledger's storage to IPlanStorage.
-        // This assumes InMemoryLedgerStorage is used and it implements IPlanStorage.
-        let storage = ledger.Storage :?> IPlanStorage
-        PlanManager(storage, ledger)
+        // Cast the ledger's storage to IPlanStore safely.
+        // This assumes InMemoryLedgerStorage is used and it implements IPlanStore.
+        match ledger.Storage with
+        | :? IPlanStore as storage -> PlanManager(storage, ledger)
+        | _ -> failwith "The underlying ledger storage does not implement IPlanStore"

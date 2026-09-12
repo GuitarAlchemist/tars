@@ -52,6 +52,11 @@ type AgentOrchestrator() =
         }
         agents.[agent.Name] <- reg
 
+    /// Register by declared first-class skills — routes on the `AgentSkill` union so
+    /// promoted skill cases gain a consumer, while the underlying match stays string-keyed.
+    member this.Register(agent: AIAgent, skills: Tars.Core.AgentSkill list, ?priority: int) =
+        this.Register(agent, skills |> List.map Tars.Core.AgentSkill.toKeyword, ?priority = priority)
+
     /// Find the best agent for a goal based on keyword matching.
     member _.Route(goal: string) : AgentRegistration option =
         let goalLower = goal.ToLowerInvariant()

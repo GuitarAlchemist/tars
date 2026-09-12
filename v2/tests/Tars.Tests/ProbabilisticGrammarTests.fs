@@ -39,6 +39,8 @@ module ProbabilisticGrammarTests =
           Confidence = 0.75
           SuccessRate = 0.8
           SelectionCount = 10
+          Alpha = 8.0
+          Beta = 2.0
           Source = Tars
           LastUpdated = DateTime.UtcNow }
 
@@ -156,11 +158,19 @@ module ProbabilisticGrammarTests =
 
     [<Fact>]
     let ``updateWeight increases weight on success`` () =
+        // Directional monotonicity: a success must rank the rule strictly above the
+        // same rule after a failure (both regularized by the Beta(1,1) prior), and the
+        // ranking Weight must track it. Comparing against the raw stored rate would be
+        // wrong under regularization — a single success from an already-high raw rate
+        // can pull the posterior mean slightly down toward the prior.
         let rule = mkWeightedRule "p1" "test" 0.5
-        let updated = updateWeight defaultConfig rule true
-        Assert.True(updated.SuccessRate > rule.SuccessRate,
-            sprintf "Success rate should increase: %.4f -> %.4f" rule.SuccessRate updated.SuccessRate)
-        Assert.Equal(rule.SelectionCount + 1, updated.SelectionCount)
+        let onSuccess = updateWeight defaultConfig rule true
+        let onFailure = updateWeight defaultConfig rule false
+        Assert.True(onSuccess.SuccessRate > onFailure.SuccessRate,
+            sprintf "success must outrank failure: %.4f vs %.4f" onSuccess.SuccessRate onFailure.SuccessRate)
+        Assert.True(onSuccess.Weight > onFailure.Weight,
+            sprintf "ranking Weight must track the posterior: %.4f vs %.4f" onSuccess.Weight onFailure.Weight)
+        Assert.Equal(rule.SelectionCount + 1, onSuccess.SelectionCount)
 
     [<Fact>]
     let ``updateWeight decreases weight on failure`` () =

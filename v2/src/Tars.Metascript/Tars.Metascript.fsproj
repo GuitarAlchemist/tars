@@ -10,6 +10,7 @@
     <Compile Include="Domain.fs" />
     <Compile Include="V1.fs" />
     <Compile Include="V1Parser.fs" />
+    <Compile Include="GrammarDistiller.fs" />
     <Compile Include="MetascriptRegistry.fs" />
     <Compile Include="V1Executor.fs" />
     <Compile Include="Validation.fs" />

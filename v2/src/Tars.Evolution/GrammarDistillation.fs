@@ -292,6 +292,8 @@ module GrammarDistillation =
           Confidence = min 1.0 (float production.TraceCount / 10.0)
           SuccessRate = production.SuccessRate
           SelectionCount = production.TraceCount
+          Alpha = production.SuccessRate * float production.TraceCount
+          Beta = (1.0 - production.SuccessRate) * float production.TraceCount
           Source = WeightedGrammar.Evolved
           LastUpdated = production.LastUpdated }
 
