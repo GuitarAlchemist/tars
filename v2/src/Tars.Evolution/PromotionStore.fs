@@ -58,7 +58,7 @@ type InMemoryPromotionStore() =
 /// Lazily loads recurrence + lineage from disk on first access and flushes
 /// them back after each decision, preserving the pipeline's prior behavior.
 /// Weights are delegated to `WeightedGrammar` (weights.json in the same dir).
-type DiskPromotionStore() =
+type DiskPromotionStore(?promotionDir: string) =
     let recurrence = ConcurrentDictionary<string, RecurrenceRecord>()
     let lineage = ConcurrentDictionary<string, LineageRecord>()
 
@@ -70,9 +70,12 @@ type DiskPromotionStore() =
 
     let getPromotionDir () =
         let dir =
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".tars", "promotion")
+            match promotionDir with
+            | Some d -> d
+            | None ->
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".tars", "promotion")
         if not (Directory.Exists dir) then
             Directory.CreateDirectory dir |> ignore
         dir
@@ -141,6 +144,6 @@ type DiskPromotionStore() =
         member _.AddLineage(record) =
             ensureLoaded ()
             lineage.[record.Id] <- record
-        member _.LoadWeights() = WeightedGrammar.load ()
-        member _.SaveWeights(w) = WeightedGrammar.save w
+        member _.LoadWeights() = WeightedGrammar.loadFrom (getPromotionDir ())
+        member _.SaveWeights(w) = WeightedGrammar.saveTo (getPromotionDir ()) w
         member _.Flush() = flush ()
