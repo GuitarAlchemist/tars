@@ -19,18 +19,7 @@ module CompileListDriftTests =
     /// Paths relative to `v2/`. Sorted. Captured 2026-09-12 from
     /// `dotnet msbuild -getItem:Compile`, not from this file's own parser.
     let private knownExclusions: string list =
-        [ "src/Tars.Cortex/AdvancedPrompting.fs"
-          "src/Tars.Cortex/AgentLifecycleAgent.fs"
-          "src/Tars.Cortex/ArchitecturalReflection.fs"
-          "src/Tars.Cortex/CognitiveGrounding.fs"
-          "src/Tars.Cortex/ContextManager.fs"
-          "src/Tars.Cortex/DiagnosticsAgent.fs"
-          "src/Tars.Cortex/LedgerAwarePrompting.fs"
-          "src/Tars.Cortex/MemoryScoringAgent.fs"
-          "src/Tars.Cortex/Retrieval.fs"
-          "src/Tars.Cortex/TermFrequencyStore.fs"
-          "src/Tars.Cortex/TokenCounting.fs"
-          "src/Tars.Evolution/NeuroSymbolicIntegration.fs"
+        [ "src/Tars.Evolution/NeuroSymbolicIntegration.fs"
           "src/Tars.Interface.Cli/AgentLifecycleBackgroundService.fs"
           "src/Tars.Interface.Cli/Commands/CritiqueCmd.fs"
           "src/Tars.Interface.Cli/Commands/ExtendCommand.fs"
@@ -50,8 +39,7 @@ module CompileListDriftTests =
           "src/Tars.Knowledge/HybridPlanStorage.fs"
           "src/Tars.Knowledge/IngestionPipeline.fs"
           "src/Tars.Knowledge/ReflectionAgent.fs"
-          "src/Tars.Knowledge/WikipediaExtractor.fs"
-          "tests/Tars.Tests/ContextEngineeringTests.fs" ]
+          "src/Tars.Knowledge/WikipediaExtractor.fs" ]
 
     type private ProjectScan =
         { Project: string
