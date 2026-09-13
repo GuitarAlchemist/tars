@@ -1,3 +1,11 @@
+> **Archived 2026-09-13 (#224, #85).** This plan is superseded, not active work.
+>
+> **Shipped and built:** `src/Tars.LinkedData/` (`RdfParser`, `SparqlClient`, `QueryTemplates`, `DatasetCatalog`, plus `FusekiStorage`, `RdfMapper` and SPARQL query/update clients). It is used by `Tars.Connectors`, by the `ingest_rdf` MCP tool (`Tars.Tools/SymbolicTools.fs`) and by `tars know` ingestion (`Commands/KnowCmd.fs`).
+>
+> **Never wired, deleted:** the `ingest-rdf` and `query-sparql` CLI commands (`IngestRdfCommand.fs`, `QuerySparqlCommand.fs`) were never in the CLI compile list; `tars know` and `ingest_rdf` cover ingestion.
+>
+> **Never built:** `UriResolver`, `RdfImporter`, `DcatParser`, `ChangeDetector`, `IncrementalSync`, `Scheduler`, `SyncCommand`. Open a new issue under the roadmap (#70) if incremental LOD sync becomes needed.
+
 # TARS v2 - RDF/Linked Data Ingestion Plan
 
 ## 🌐 Vision: Ground TARS in the Linked Open Data Cloud

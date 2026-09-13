@@ -36,11 +36,9 @@ module CompileListDriftTests =
           "src/Tars.Interface.Cli/Commands/ExtendCommand.fs"
           "src/Tars.Interface.Cli/Commands/GroundingCommands.fs"
           "src/Tars.Interface.Cli/Commands/IngestCommand.fs"
-          "src/Tars.Interface.Cli/Commands/IngestRdfCommand.fs"
           "src/Tars.Interface.Cli/Commands/LlamaServer.fs"
           "src/Tars.Interface.Cli/Commands/LlmTest.fs"
           "src/Tars.Interface.Cli/Commands/LodCommand.fs"
-          "src/Tars.Interface.Cli/Commands/QuerySparqlCommand.fs"
           "src/Tars.Interface.Cli/Commands/ReflectCommand.fs"
           "src/Tars.Interface.Cli/Commands/ResearchSynthesis.fs"
           "src/Tars.Interface.Cli/Commands/Run.fs"
@@ -53,25 +51,7 @@ module CompileListDriftTests =
           "src/Tars.Knowledge/IngestionPipeline.fs"
           "src/Tars.Knowledge/ReflectionAgent.fs"
           "src/Tars.Knowledge/WikipediaExtractor.fs"
-          "tests/Tars.Tests/ConstitutionTests.fs"
-          "tests/Tars.Tests/ContextCompressionTests.fs"
-          "tests/Tars.Tests/ContextEngineeringTests.fs"
-          "tests/Tars.Tests/EvolutionFixesTests.fs"
-          "tests/Tars.Tests/FSharpToolsTests.fs"
-          "tests/Tars.Tests/FunctionalPatternsTests.fs"
-          "tests/Tars.Tests/GroundingTests.fs"
-          "tests/Tars.Tests/IntegrationTests.fs"
-          "tests/Tars.Tests/KnowledgeTests.fs"
-          "tests/Tars.Tests/MetricsTests.fs"
-          "tests/Tars.Tests/OfflineEval.fs"
-          "tests/Tars.Tests/PreLlmPipelineTests.fs"
-          "tests/Tars.Tests/RdfParserTests.fs"
-          "tests/Tars.Tests/RefactoringTaskTests.fs"
-          "tests/Tars.Tests/SelfExtensionTests.fs"
-          "tests/Tars.Tests/ToleranceAndGuardTests.fs"
-          "tests/Tars.Tests/ToleranceEngineeringTests.fs"
-          "tests/Tars.Tests/ValidationTests.fs"
-          "tests/Tars.Tests/WotIntegrationTests.fs" ]
+          "tests/Tars.Tests/ContextEngineeringTests.fs" ]
 
     type private ProjectScan =
         { Project: string

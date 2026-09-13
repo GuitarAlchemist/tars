@@ -69,6 +69,18 @@ module TestHelpers =
     /// Guard for tests that depend on Redis/Sider.
     let requireRedis () = redisAvailable.Value
 
+    /// Checks if Ollama is reachable on localhost:11434.
+    let ollamaAvailable =
+        lazy (
+            try
+                use client = new System.Net.Sockets.TcpClient()
+                client.Connect("127.0.0.1", 11434)
+                true
+            with _ -> false)
+
+    /// Guard for tests that call a live local LLM through Ollama.
+    let requireOllama () = ollamaAvailable.Value
+
     /// Create a modern Belief record for testing
     let createTestBelief (id: BeliefId) (subject: string) (predicate: RelationType) (object: string) =
         { Id = id

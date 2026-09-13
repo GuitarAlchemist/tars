@@ -74,9 +74,7 @@ module ToleranceAndGuardTests =
                   BudgetGovernor = None
                   OutputGuard = None
                   CancellationToken = System.Threading.CancellationToken.None
-                  Logger = logger
-                  ToleranceMetrics = None
-                  ToleranceProfile = None }
+                  Logger = logger }
 
             let thinkingAgent = { agent with State = Thinking history }
 
@@ -92,48 +90,4 @@ module ToleranceAndGuardTests =
             // The logs should show multiple "Agent ... is thinking" entries or protocol violations
             let violationCount = logMessages |> List.filter (fun m -> m.Contains("[Protocol]")) |> List.length
             Assert.Equal(3, violationCount)
-        }
-
-    [<Fact>]
-    let ``Entropy penalty triggers tolerance retry for repetitive output`` () =
-        task {
-            // Highly repetitive output should trigger entropy penalty
-            let repetitiveResponse = "word word word word word word word word word word"
-            let agent = createTestAgent ()
-            let history = []
-            
-            let mutable logMessages = []
-            let logger msg = logMessages <- logMessages @ [msg]
-
-            let metrics = MetricsAggregator()
-            // Profile that requires 0.80 confidence, Base is 0.70, Entropy penalty -0.30 -> Net 0.40
-            // This should trigger BelowTolerance(0.40, Retry 3)
-            let profile = Custom { 
-                ConfidenceThreshold = 0.80
-                MaxVariance = 0.20
-                MaxRetries = 3
-                HumanReviewThreshold = 0.30
-                SafetyFactor = 1.0
-                AllowDegraded = false
-            }
-
-            let ctx: GraphRuntime.GraphContext =
-                { Registry = Unchecked.defaultof<_>
-                  Llm = createMockLlm repetitiveResponse
-                  MaxSteps = 10
-                  BudgetGovernor = None
-                  OutputGuard = None
-                  CancellationToken = System.Threading.CancellationToken.None
-                  Logger = logger
-                  ToleranceMetrics = Some metrics
-                  ToleranceProfile = Some profile }
-
-            let thinkingAgent = { agent with State = Thinking history }
-
-            let! _ = GraphRuntime.step thinkingAgent ctx
-
-            // Verify entropy-induced tolerance retry was logged
-            // Check for "Below tolerance: conf=0.30"
-            Assert.Contains(logMessages, fun (m: string) -> m.Contains("[Tolerance] \ud83d\udd34 Below tolerance: conf=0.30"))
-            Assert.Contains(logMessages, fun (m: string) -> m.Contains("[Tolerance] \ud83d\udd04 Retrying due to low confidence"))
         }
