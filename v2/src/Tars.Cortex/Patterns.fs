@@ -914,14 +914,23 @@ module Patterns =
                     Result.Error firstError
 
     let private parseThoughts (text: string) =
+        // Models often emphasise the header (`**THOUGHT 1:**`) and open with a preamble
+        // ("Here are three thoughts:"), which must not become a thought itself (#263).
+        let isHeader (line: string) =
+            line.TrimStart('*', '#', ' ').StartsWith("THOUGHT", StringComparison.OrdinalIgnoreCase)
+
         let lines = text.Split([| '\n' |], StringSplitOptions.RemoveEmptyEntries)
+        let hasHeaders = lines |> Array.exists (fun l -> isHeader (l.Trim()))
+        let mutable seenHeader = false
         let mutable thoughts = []
         let mutable currentThought = StringBuilder()
 
         for line in lines do
             let trimmed = line.Trim()
 
-            if trimmed.StartsWith("THOUGHT", StringComparison.OrdinalIgnoreCase) then
+            if isHeader trimmed then
+                seenHeader <- true
+
                 if currentThought.Length > 0 then
                     thoughts <- currentThought.ToString().Trim() :: thoughts
                     currentThought.Clear() |> ignore
@@ -929,7 +938,9 @@ module Patterns =
                 let colonIdx = trimmed.IndexOf(':')
 
                 if colonIdx > 0 && colonIdx < trimmed.Length - 1 then
-                    currentThought.Append(trimmed.Substring(colonIdx + 1).Trim()) |> ignore
+                    currentThought.Append(trimmed.Substring(colonIdx + 1).Trim().TrimStart('*').Trim()) |> ignore
+            elif hasHeaders && not seenHeader then
+                ()
             else if currentThought.Length > 0 || trimmed.Length > 20 then
                 if currentThought.Length > 0 then
                     currentThought.Append(" ") |> ignore
@@ -2096,12 +2107,12 @@ Output ONLY the synthesized solution."""
                                 | Some toolInfo -> contextPrelude + "\nTool output:\n" + toolInfo
                                 | None -> contextPrelude
 
+                            // Always synthesize, even from a single survivor: a thought is one
+                            // step toward the goal, not an answer to it (#263).
                             let! finalNode =
                                 async {
-                                    if refined.Length >= 2 then
+                                    if not refined.IsEmpty then
                                         return! aggregateThoughts llm ctx policyConfig goal contextWithTool refined
-                                    elif refined.Length = 1 then
-                                        return refined.Head
                                     else
                                         return
                                             { Id = Guid.NewGuid()
