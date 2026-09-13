@@ -19,8 +19,7 @@ module CompileListDriftTests =
     /// Paths relative to `v2/`. Sorted. Captured 2026-09-12 from
     /// `dotnet msbuild -getItem:Compile`, not from this file's own parser.
     let private knownExclusions: string list =
-        [ "src/Tars.Core/Example.fs"
-          "src/Tars.Cortex/AdvancedPrompting.fs"
+        [ "src/Tars.Cortex/AdvancedPrompting.fs"
           "src/Tars.Cortex/AgentLifecycleAgent.fs"
           "src/Tars.Cortex/ArchitecturalReflection.fs"
           "src/Tars.Cortex/CognitiveGrounding.fs"
@@ -42,7 +41,6 @@ module CompileListDriftTests =
           "src/Tars.Interface.Cli/Commands/LlmTest.fs"
           "src/Tars.Interface.Cli/Commands/LodCommand.fs"
           "src/Tars.Interface.Cli/Commands/QuerySparqlCommand.fs"
-          "src/Tars.Interface.Cli/Commands/RefactorCommand.fs"
           "src/Tars.Interface.Cli/Commands/ReflectCommand.fs"
           "src/Tars.Interface.Cli/Commands/ResearchSynthesis.fs"
           "src/Tars.Interface.Cli/Commands/Run.fs"
@@ -55,9 +53,6 @@ module CompileListDriftTests =
           "src/Tars.Knowledge/IngestionPipeline.fs"
           "src/Tars.Knowledge/ReflectionAgent.fs"
           "src/Tars.Knowledge/WikipediaExtractor.fs"
-          "src/Tars.Metascript/IrCompiler.fs"
-          "src/Tars.Metascript/TrsxParser.fs"
-          "tests/Tars.Tests/CognitionCompilerTests.fs"
           "tests/Tars.Tests/ConstitutionTests.fs"
           "tests/Tars.Tests/ContextCompressionTests.fs"
           "tests/Tars.Tests/ContextEngineeringTests.fs"
