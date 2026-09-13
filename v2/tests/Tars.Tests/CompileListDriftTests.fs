@@ -16,30 +16,9 @@ open Xunit
 /// new failure — a new entry means a file is being added to the tree dead on arrival.
 module CompileListDriftTests =
 
-    /// Paths relative to `v2/`. Sorted. Captured 2026-09-12 from
-    /// `dotnet msbuild -getItem:Compile`, not from this file's own parser.
-    let private knownExclusions: string list =
-        [ "src/Tars.Evolution/NeuroSymbolicIntegration.fs"
-          "src/Tars.Interface.Cli/AgentLifecycleBackgroundService.fs"
-          "src/Tars.Interface.Cli/Commands/CritiqueCmd.fs"
-          "src/Tars.Interface.Cli/Commands/ExtendCommand.fs"
-          "src/Tars.Interface.Cli/Commands/GroundingCommands.fs"
-          "src/Tars.Interface.Cli/Commands/IngestCommand.fs"
-          "src/Tars.Interface.Cli/Commands/LlamaServer.fs"
-          "src/Tars.Interface.Cli/Commands/LlmTest.fs"
-          "src/Tars.Interface.Cli/Commands/LodCommand.fs"
-          "src/Tars.Interface.Cli/Commands/ReflectCommand.fs"
-          "src/Tars.Interface.Cli/Commands/ResearchSynthesis.fs"
-          "src/Tars.Interface.Cli/Commands/Run.fs"
-          "src/Tars.Interface.Cli/Commands/SearchCodeCommand.fs"
-          "src/Tars.Interface.Cli/Commands/TestGrammar.fs"
-          "src/Tars.Interface.Cli/InfrastructureServer.fs"
-          "src/Tars.Interface.Cli/ReflectionBackgroundService.fs"
-          "src/Tars.Interface.Cli/ReflectionService.fs"
-          "src/Tars.Knowledge/HybridPlanStorage.fs"
-          "src/Tars.Knowledge/IngestionPipeline.fs"
-          "src/Tars.Knowledge/ReflectionAgent.fs"
-          "src/Tars.Knowledge/WikipediaExtractor.fs" ]
+    /// Paths relative to `v2/`. Burned down to empty on 2026-09-13 (from 64 files):
+    /// every F# file on disk is now compiled. Keep it empty.
+    let private knownExclusions: string list = []
 
     type private ProjectScan =
         { Project: string
