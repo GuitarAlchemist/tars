@@ -19,7 +19,6 @@
     <Compile Include="MacroRegistry.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Engine.fs" />
-    <!-- <Compile Include="MetascriptTools.fs" /> -->
   </ItemGroup>
 
   <ItemGroup>
