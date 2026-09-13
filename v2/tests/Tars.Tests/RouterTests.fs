@@ -10,6 +10,18 @@ open Serilog
 
 type RouterTests(output: ITestOutputHelper) =
 
+    /// Delivery is asynchronous. Wait for the handler to signal instead of sleeping a
+    /// fixed 500 ms, which flaked on slow CI runners. The timeout only bounds a real
+    /// failure; a passing run returns as soon as the message lands.
+    let waitForDelivery (signal: TaskCompletionSource<unit>) =
+        task {
+            let! winner = Task.WhenAny(signal.Task, Task.Delay(TimeSpan.FromSeconds 10.0))
+            return obj.ReferenceEquals(winner, signal.Task)
+        }
+
+    let newSignal () =
+        TaskCompletionSource<unit>(TaskCreationOptions.RunContinuationsAsynchronously)
+
     [<Fact>]
     member _.``Can route message via Alias``() =
         task {
@@ -40,8 +52,14 @@ type RouterTests(output: ITestOutputHelper) =
             let mutable received2 = false
 
             // Subscribe agents
-            let _ = bus.Subscribe(agentId1.ToString(), fun _ -> task { received1 <- true })
-            let _ = bus.Subscribe(agentId2.ToString(), fun _ -> task { received2 <- true })
+            let signal1 = ref (newSignal ())
+            let signal2 = ref (newSignal ())
+
+            let _ =
+                bus.Subscribe(agentId1.ToString(), fun _ -> task { received1 <- true; signal1.Value.TrySetResult() |> ignore })
+
+            let _ =
+                bus.Subscribe(agentId2.ToString(), fun _ -> task { received2 <- true; signal2.Value.TrySetResult() |> ignore })
 
             // 1. Point "Coder" to Agent 1
             router.SetRoute("Coder", Pinned(AgentId agentId1))
@@ -63,15 +81,17 @@ type RouterTests(output: ITestOutputHelper) =
 
             // Act 1
             do! bus.PublishAsync(msg1)
-            do! Task.Delay(500) // Allow processing
+            let! delivered1 = waitForDelivery signal1.Value
 
             // Assert 1
-            Assert.True(received1, "Agent 1 should have received the message")
+            Assert.True(delivered1 && received1, "Agent 1 should have received the message")
             Assert.False(received2, "Agent 2 should NOT have received the message")
 
             // Reset
             received1 <- false
             received2 <- false
+            signal1.Value <- newSignal ()
+            signal2.Value <- newSignal ()
 
             // 2. Switch "Coder" to Agent 2
             router.SetRoute("Coder", Pinned(AgentId agentId2))
@@ -84,11 +104,11 @@ type RouterTests(output: ITestOutputHelper) =
 
             // Act 2
             do! bus.PublishAsync(msg2)
-            do! Task.Delay(500)
+            let! delivered2 = waitForDelivery signal2.Value
 
             // Assert 2
+            Assert.True(delivered2 && received2, "Agent 2 should have received the message")
             Assert.False(received1, "Agent 1 should NOT have received the message")
-            Assert.True(received2, "Agent 2 should have received the message")
 
             output.WriteLine("Routing test passed.")
         }
@@ -120,7 +140,10 @@ type RouterTests(output: ITestOutputHelper) =
             let mutable received = false
 
             // Subscribe agent
-            let _ = bus.Subscribe(agentId.ToString(), fun _ -> task { received <- true })
+            let signal = newSignal ()
+
+            let _ =
+                bus.Subscribe(agentId.ToString(), fun _ -> task { received <- true; signal.TrySetResult() |> ignore })
 
             // Point "Intent:Coding" to Agent
             router.SetRoute("Intent:Coding", Pinned(AgentId agentId))
@@ -142,9 +165,9 @@ type RouterTests(output: ITestOutputHelper) =
 
             // Act
             do! bus.PublishAsync(msg)
-            do! Task.Delay(500)
+            let! delivered = waitForDelivery signal
 
             // Assert
-            Assert.True(received, "Agent should have received the message via Intent routing")
+            Assert.True(delivered && received, "Agent should have received the message via Intent routing")
             output.WriteLine("Intent routing test passed.")
         }
