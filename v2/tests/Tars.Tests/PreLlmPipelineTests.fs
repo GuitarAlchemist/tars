@@ -87,5 +87,5 @@ module PreLlmPipelineTests =
             let! result = pipeline.ExecuteAsync("write a safe function")
 
             Assert.True(result.IsSafe)
-            Assert.Equal(Some AgentIntent.Coding, result.Intent)
+            Assert.Equal(Some AgentDomain.Coding, result.Intent)
         }

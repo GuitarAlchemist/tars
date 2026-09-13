@@ -51,7 +51,6 @@
     <Compile Include="OutputGuardLlmTests.fs" />
     <Compile Include="PolicyEngineTests.fs" />
     <Compile Include="KnowledgeLedgerTests.fs" />
-    <!-- <Compile Include="EvolutionFixesTests.fs" /> -->
     <Compile Include="EvolveIntegrationTests.fs" />
     <Compile Include="ReasoningDiagTests.fs" />
     <Compile Include="PuzzleTests.fs" />
@@ -139,6 +138,20 @@
     <Compile Include="Article4BoundaryTests.fs" />
     <Compile Include="ChatClientFormatTests.fs" />
     <Compile Include="CompileListDriftTests.fs" />
+    <Compile Include="ConstitutionTests.fs" />
+    <Compile Include="ContextCompressionTests.fs" />
+    <Compile Include="FSharpToolsTests.fs" />
+    <Compile Include="KnowledgeTests.fs" />
+    <Compile Include="MetricsTests.fs" />
+    <Compile Include="OfflineEval.fs" />
+    <Compile Include="PreLlmPipelineTests.fs" />
+    <Compile Include="RdfParserTests.fs" />
+    <Compile Include="RefactoringTaskTests.fs" />
+    <Compile Include="SelfExtensionTests.fs" />
+    <Compile Include="ToleranceAndGuardTests.fs" />
+    <Compile Include="ToleranceEngineeringTests.fs" />
+    <Compile Include="ValidationTests.fs" />
+    <Compile Include="WotIntegrationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
