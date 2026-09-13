@@ -67,7 +67,8 @@ let ``ConstitutionLoader loads the shipped general_safety template`` () =
 [<Fact>]
 let ``ConstitutionLoader rejects a template with an unknown prohibition type`` () =
     let json =
-        """{ "role": "GeneralReasoning", "contract": { "prohibitions": [ { "type": "CannotFly" } ] } }"""
+        """{ "role": "GeneralReasoning",
+             "contract": { "prohibitions": [ { "type": "CannotFly" } ], "permissions": [], "resourceBounds": [] } }"""
 
     let path = IO.Path.Combine(IO.Path.GetTempPath(), $"tars-constitution-{Guid.NewGuid():N}.json")
     IO.File.WriteAllText(path, json)
@@ -75,6 +76,20 @@ let ``ConstitutionLoader rejects a template with an unknown prohibition type`` (
     match (try ConstitutionLoader.load path finally IO.File.Delete path) with
     | FSharp.Core.Error e -> e |> should contain "CannotFly"
     | FSharp.Core.Ok c -> failwithf "Should have rejected the unknown type: %A" c
+
+[<Fact>]
+let ``ConstitutionLoader rejects a template missing its permissions list`` () =
+    // An empty Permissions list is permissive mode, so a missing key must not load as one.
+    let json =
+        """{ "role": "GeneralReasoning",
+             "contract": { "prohibitions": [ { "type": "CannotModifyCore" } ], "resourceBounds": [] } }"""
+
+    let path = IO.Path.Combine(IO.Path.GetTempPath(), $"tars-constitution-{Guid.NewGuid():N}.json")
+    IO.File.WriteAllText(path, json)
+
+    match (try ConstitutionLoader.load path finally IO.File.Delete path) with
+    | FSharp.Core.Error e -> e |> should contain "permissions"
+    | FSharp.Core.Ok c -> failwithf "Should have rejected the missing permissions list: %A" c
 
 [<Fact>]
 let ``ConstitutionLoader round-trips a saved constitution`` () =

@@ -24,10 +24,12 @@ module ConstitutionLoader =
     let private fromTemplate (root: JsonElement) : AgentConstitution =
         let text (e: JsonElement) (name: string) = e.GetProperty(name).GetString()
 
+        // Every list is required: an empty Permissions list means permissive mode in
+        // ContractEnforcement, so a missing or misspelled key must not load as "allow all".
         let items (name: string) (map: JsonElement -> 'T) =
             match root.GetProperty("contract").TryGetProperty name with
             | true, arr -> [ for e in arr.EnumerateArray() -> map e ]
-            | _ -> []
+            | _ -> failwith $"Template contract is missing '{name}' (use [] for none)"
 
         let prohibition e =
             match text e "type" with
