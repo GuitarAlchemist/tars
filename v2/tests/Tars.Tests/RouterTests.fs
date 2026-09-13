@@ -62,7 +62,7 @@ type RouterTests(output: ITestOutputHelper) =
                 bus.Subscribe(agentId2.ToString(), fun _ -> task { received2 <- true; signal2.Value.TrySetResult() |> ignore })
 
             // 1. Point "Coder" to Agent 1
-            router.SetRoute("Coder", Pinned(AgentId agentId2))
+            router.SetRoute("Coder", Pinned(AgentId agentId1))
             output.WriteLine($"Routed 'Coder' to {agentId1}")
 
             let msg1 =
