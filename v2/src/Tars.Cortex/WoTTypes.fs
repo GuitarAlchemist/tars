@@ -264,20 +264,12 @@ module WoTTypes =
     // =========================================================================
 
     /// <summary>
-    /// Cognitive mode for WoT state (mirrors CognitiveAnalyzer.CognitiveMode)
-    /// </summary>
-    type WoTCognitiveMode =
-        | Exploratory
-        | Convergent
-        | Critical
-
-    /// <summary>
     /// Enhanced cognitive state that integrates with WoT execution.
     /// </summary>
     type WoTCognitiveState =
         {
             /// Current cognitive mode
-            Mode: WoTCognitiveMode
+            Mode: CognitiveMode
             /// System stability (0.0 - 1.0)
             Eigenvalue: float
             /// Information diversity (0.0 - 1.0)

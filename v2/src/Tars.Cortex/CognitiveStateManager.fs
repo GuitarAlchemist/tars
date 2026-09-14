@@ -24,22 +24,20 @@ module CognitiveStateManager =
         // Decay towards success/failure
         Math.Clamp(current * successFactor, 0.1, 1.0)
 
-    let private determineMode (state: WoTCognitiveState) (entropy: float) (eigenvalue: float) (result: WoTResult) : WoTCognitiveMode =
-        // Critical overrides everything
-        if not result.Success && int result.Errors.Length > 2 then
-            WoTCognitiveMode.Critical
-        // High entropy implies exploration
-        elif entropy > 0.7 then
-            WoTCognitiveMode.Exploratory
-        // High stability and constraints imply convergence
-        elif eigenvalue > 0.8 && (result.Metrics.ConstraintScore |> Option.defaultValue 0.0) > 0.8 then
-            WoTCognitiveMode.Convergent
-        // Default to keeping current or gently shifting
-        else
-            state.Mode
+    let private determineMode (state: WoTCognitiveState) (entropy: float) (eigenvalue: float) (result: WoTResult) : CognitiveMode =
+        let critical = not result.Success && result.Errors.Length > 2
+
+        // High stability and constraints imply convergence; otherwise keep the current mode
+        let settled =
+            if eigenvalue > 0.8 && (result.Metrics.ConstraintScore |> Option.defaultValue 0.0) > 0.8 then
+                CognitiveMode.Convergent
+            else
+                state.Mode
+
+        CognitiveMode.classify critical entropy settled
 
     let initialState : WoTCognitiveState =
-        { Mode = WoTCognitiveMode.Exploratory
+        { Mode = CognitiveMode.Exploratory
           Eigenvalue = 1.0
           Entropy = 0.5
           BranchingFactor = 1.0

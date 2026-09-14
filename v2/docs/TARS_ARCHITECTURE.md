@@ -361,10 +361,10 @@ type WoTResult =
 ### 6.2 Cognitive State
 
 ```fsharp
-type WoTCognitiveMode = Exploratory | Convergent | Critical
+type CognitiveMode = Exploratory | Convergent | Critical   // CognitiveMode.fs, with CognitiveMode.classify
 
 type WoTCognitiveState =
-    { Mode: WoTCognitiveMode
+    { Mode: CognitiveMode
       Eigenvalue: float           // System stability (0.0 - 1.0)
       Entropy: float              // Information diversity (0.0 - 1.0)
       BranchingFactor: float      // Reasoning graph complexity

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Include="ReasoningPattern.fs" />
+    <Compile Include="CognitiveMode.fs" />
     <Compile Include="WoTTypes.fs" />
     <Compile Include="Verification.fs" />
     <Compile Include="GoldenTraceStore.fs" />

@@ -30,6 +30,30 @@ module CognitiveMaturityTests =
         Assert.Equal(0.95, metrics.SynthesisQuality, 2)
 
     [<Fact>]
+    let ``CognitiveMode: critical overrides high entropy`` () =
+        Assert.Equal(Critical, CognitiveMode.classify true 0.95 Convergent)
+
+    [<Fact>]
+    let ``CognitiveMode: entropy above the threshold is exploratory`` () =
+        Assert.Equal(Exploratory, CognitiveMode.classify false (CognitiveMode.exploratoryEntropy + 0.01) Convergent)
+
+    [<Fact>]
+    let ``CognitiveMode: otherwise the caller's settled mode applies`` () =
+        Assert.Equal(Convergent, CognitiveMode.classify false CognitiveMode.exploratoryEntropy Convergent)
+        Assert.Equal(Exploratory, CognitiveMode.classify false 0.1 Exploratory)
+
+    [<Fact>]
+    let ``CognitiveAnalyzer: an idle registry is convergent`` () =
+        let kernel =
+            { new IAgentRegistry with
+                member _.GetAllAgents() = async { return [] }
+                member _.GetAgent _ = async { return None }
+                member _.FindAgents _ = async { return [] } }
+
+        let state = CognitiveAnalyzer(kernel).Analyze() |> Async.RunSynchronously
+        Assert.Equal(Convergent, state.Mode)
+
+    [<Fact>]
     let ``CognitiveAnalyzer: Reports GoT metrics`` () =
         let kernel = { new IAgentRegistry with 
             member _.GetAllAgents() = async { return [] }

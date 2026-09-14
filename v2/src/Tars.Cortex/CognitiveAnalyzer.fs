@@ -4,17 +4,6 @@ open System
 open Tars.Core
 
 /// <summary>
-/// Represents the cognitive mode of the system.
-/// </summary>
-type CognitiveMode =
-    /// <summary>High entropy, seeking new information.</summary>
-    | Exploratory
-    /// <summary>Low entropy, optimizing and executing.</summary>
-    | Convergent
-    /// <summary>System under stress or error state.</summary>
-    | Critical
-
-/// <summary>
 /// Snapshot of the system's cognitive state.
 /// </summary>
 type CognitiveState =
@@ -75,10 +64,7 @@ type CognitiveAnalyzer(kernel: IAgentRegistry, ?thoughtGraph: ThoughtGraph) =
                     float g.Edges.Length / float g.Nodes.Count
                 | _ -> 1.0
 
-            let mode =
-                if errorCount > 0.0 then Critical
-                elif entropy > 0.6 then Exploratory
-                else Convergent
+            let mode = CognitiveMode.classify (errorCount > 0.0) entropy Convergent
 
             return
                 { Mode = mode
