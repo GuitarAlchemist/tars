@@ -22,7 +22,7 @@ module SymbolicReflectionTests =
             mkStep "3" "Thought: Call tool\nToolCall(code_search, 'args')"
         ]
         
-        let report = SymbolicReflector.AnalyzeSteps(Guid.NewGuid(), steps)
+        let report = GraphSymbolicReflector.AnalyzeSteps(Guid.NewGuid(), steps)
         
         Assert.Contains(report.Observations, fun obs -> 
             match obs with
@@ -37,7 +37,7 @@ module SymbolicReflectionTests =
             mkStep "3" "Another Fail"
         ]
         
-        let report = SymbolicReflector.AnalyzeSteps(Guid.NewGuid(), steps)
+        let report = GraphSymbolicReflector.AnalyzeSteps(Guid.NewGuid(), steps)
         
         Assert.Contains(report.Observations, fun obs -> 
             match obs with
@@ -51,7 +51,7 @@ module SymbolicReflectionTests =
             mkStep "Rep" "Content Retry"
          ]
 
-         let report = SymbolicReflector.AnalyzeSteps(Guid.NewGuid(), steps)
+         let report = GraphSymbolicReflector.AnalyzeSteps(Guid.NewGuid(), steps)
          
          Assert.Contains(report.Observations, fun obs -> 
             match obs with

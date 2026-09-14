@@ -27,7 +27,7 @@
     <Compile Include="FusekiGraphService.fs" />
     <Compile Include="Redis\SwarmBus.fs" />
     <Compile Include="Redis\SwarmWorker.fs" />
-    <Compile Include="SymbolicReflector.fs" />
+    <Compile Include="GraphSymbolicReflector.fs" />
   </ItemGroup>
 
   <ItemGroup>
