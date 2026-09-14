@@ -3,7 +3,6 @@ namespace Tars.Cortex
 open System
 open System.Collections.Concurrent
 open System.IO
-open System.Numerics
 open System.Security.Cryptography
 open System.Text
 open System.Text.Json
@@ -20,60 +19,15 @@ type VectorEntry =
       CreatedAt: DateTime
       LastUsed: DateTime }
 
-/// Similarity computation utilities with SIMD optimization
+/// Similarity helpers for the vector stores
 module Similarity =
-    /// SIMD vector width for float32 operations
-    let private simdWidth = Vector<float32>.Count
-
-    /// Compute cosine similarity between two vectors using SIMD acceleration
+    /// Cosine similarity that scores mismatched lengths as 0 instead of throwing,
+    /// since stored vectors may come from different embedding models.
     let cosineSimilarity (a: float32[]) (b: float32[]) =
         if a.Length <> b.Length then
             0.0f
-        elif a.Length = 0 then
-            0.0f
         else
-            let mutable dotProduct = 0.0f
-            let mutable magnitudeA = 0.0f
-            let mutable magnitudeB = 0.0f
-
-            let length = a.Length
-            let simdLength = length - (length % simdWidth)
-
-            // SIMD-accelerated loop for aligned portion
-            if simdLength > 0 then
-                let mutable vDot = Vector<float32>.Zero
-                let mutable vMagA = Vector<float32>.Zero
-                let mutable vMagB = Vector<float32>.Zero
-
-                let mutable i = 0
-
-                while i < simdLength do
-                    let va = Vector<float32>(a, i)
-                    let vb = Vector<float32>(b, i)
-                    vDot <- vDot + va * vb
-                    vMagA <- vMagA + va * va
-                    vMagB <- vMagB + vb * vb
-                    i <- i + simdWidth
-
-                // Sum up SIMD vector lanes
-                for j in 0 .. simdWidth - 1 do
-                    dotProduct <- dotProduct + vDot[j]
-                    magnitudeA <- magnitudeA + vMagA[j]
-                    magnitudeB <- magnitudeB + vMagB[j]
-
-            // Handle remaining elements (scalar fallback)
-            for i in simdLength .. length - 1 do
-                dotProduct <- dotProduct + a[i] * b[i]
-                magnitudeA <- magnitudeA + a[i] * a[i]
-                magnitudeB <- magnitudeB + b[i] * b[i]
-
-            let magA = sqrt magnitudeA
-            let magB = sqrt magnitudeB
-
-            if magA = 0.0f || magB = 0.0f then
-                0.0f
-            else
-                dotProduct / (magA * magB)
+            MetricSpace.cosineSimilarity a b
 
     /// Convert cosine similarity to distance (for consistent API with ChromaDB)
     let similarityToDistance (similarity: float32) = 1.0f - similarity
