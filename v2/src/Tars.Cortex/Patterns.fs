@@ -510,59 +510,6 @@ module Patterns =
           Evidence: string option // Why this relationship exists
           CreatedAt: DateTime }
 
-    // ----- Node Types (for WoT Work Nodes) -----
-
-    /// Types of nodes in a Workflow-of-Thought (WoT) graph
-    /// Extends basic thought nodes with operational work nodes
-    type WoTNodeType =
-        | ThoughtNode // Reasoning step, claim, or sub-problem
-        | ToolNode // Web search, RAG, code execution, API call
-        | PolicyNode // PII check, legal clause, brand style, risk threshold
-        | RoleNode // Analyst, Reviewer, Approver, Human-in-the-loop
-        | MemoryNode // Past decisions, precedent cases, reusable snippets
-        | VerifierNode // Schema check, grammar, unit test, constraint solver
-        | CritiqueNode // Evaluation of another node's quality/correctness
-        | AggregationNode // Merges multiple nodes into synthesized output
-
-    /// Policy check status for policy nodes
-    type PolicyStatus =
-        | Pending // Not yet checked
-        | Passed // Policy constraint satisfied
-        | Failed of reason: string // Policy violated with reason
-        | Waived of by: string * reason: string // Explicitly waived by authority
-
-    /// A node in the WoT reasoning/workflow graph
-    type WoTNode =
-        { Id: Guid
-          NodeType: WoTNodeType
-          Content: string
-          Score: float option
-          PolicyStatus: PolicyStatus option
-          Metadata: Map<string, string> // Flexible key-value metadata
-          ParentIds: Guid list // Incoming edges (for quick traversal)
-          ChildIds: Guid list // Outgoing edges
-          Depth: int
-          CreatedAt: DateTime
-          CreatedBy: string option } // Agent/tool/human that created this
-
-    // ----- Controller Components -----
-
-    /// Router decisions in WoT execution
-    type RouterDecision =
-        | Expand of nodeId: Guid // Generate children from this node
-        | Merge of nodeIds: Guid list // Combine these nodes
-        | Rollback of toNodeId: Guid // Backtrack to this node
-        | Escalate of nodeId: Guid * reason: string // Send to human
-        | Finalize of nodeId: Guid // This is the answer
-        | CallTool of toolName: string * input: string // Invoke external tool
-        | ApplyPolicy of policyName: string * nodeId: Guid // Run policy check
-
-    /// Verification result from a verifier node
-    type VerificationResult =
-        | Valid
-        | Invalid of errors: string list
-        | PartiallyValid of warnings: string list
-
     // ----- Original GoT types (preserved for backward compatibility) -----
 
     /// A thought node in the reasoning graph (simplified view)
