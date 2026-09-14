@@ -5,7 +5,7 @@ open FsUnit
 open Tars.Core
 open System
 
-[<Fact(Skip = "Template schema does not match AgentConstitution - see #262")>]
+[<Fact>]
 let ``ConstitutionLoader parses General Safety template`` () =
     let json =
         """{
@@ -36,6 +36,73 @@ let ``ConstitutionLoader parses General Safety template`` () =
         c.Permissions |> should contain (Permission.ReadCode "*")
         c.HardResourceBounds |> should contain (ResourceLimit.MaxTokens 1000)
     | FSharp.Core.Error e -> failwithf "Failed to parse: %s" e
+
+[<Fact>]
+let ``ConstitutionLoader loads the shipped general_safety template`` () =
+    let rec v2Root (dir: IO.DirectoryInfo) =
+        if isNull dir then
+            failwith "Could not locate v2/ (no Tars.sln above the test directory)"
+        elif dir.GetFiles("Tars.sln").Length > 0 then
+            dir.FullName
+        else
+            v2Root dir.Parent
+
+    let root = v2Root (IO.DirectoryInfo(IO.Directory.GetCurrentDirectory()))
+    let path = IO.Path.Combine(root, "constitutions", "templates", "general_safety.json")
+
+    match ConstitutionLoader.load path with
+    | FSharp.Core.Ok c ->
+        c.NeuralRole |> should equal NeuralRole.GeneralReasoning
+
+        c.Prohibitions
+        |> should equal [ Prohibition.CannotModifyCore; Prohibition.CannotDeleteData; Prohibition.CannotAccessNetwork ]
+
+        c.Permissions |> should contain (Permission.ModifyCode "src/Tars.Playground/*")
+        c.Permissions |> should contain (Permission.CallTool "find_code_smells")
+
+        c.HardResourceBounds
+        |> should equal [ ResourceLimit.MaxTokens 8192; ResourceLimit.MaxCost 2.0m; ResourceLimit.MaxTimeMinutes 5 ]
+    | FSharp.Core.Error e -> failwithf "Failed to load shipped template: %s" e
+
+[<Fact>]
+let ``ConstitutionLoader rejects a template with an unknown prohibition type`` () =
+    let json =
+        """{ "role": "GeneralReasoning",
+             "contract": { "prohibitions": [ { "type": "CannotFly" } ], "permissions": [], "resourceBounds": [] } }"""
+
+    let path = IO.Path.Combine(IO.Path.GetTempPath(), $"tars-constitution-{Guid.NewGuid():N}.json")
+    IO.File.WriteAllText(path, json)
+
+    match (try ConstitutionLoader.load path finally IO.File.Delete path) with
+    | FSharp.Core.Error e -> e |> should contain "CannotFly"
+    | FSharp.Core.Ok c -> failwithf "Should have rejected the unknown type: %A" c
+
+[<Fact>]
+let ``ConstitutionLoader rejects a template missing its permissions list`` () =
+    // An empty Permissions list is permissive mode, so a missing key must not load as one.
+    let json =
+        """{ "role": "GeneralReasoning",
+             "contract": { "prohibitions": [ { "type": "CannotModifyCore" } ], "resourceBounds": [] } }"""
+
+    let path = IO.Path.Combine(IO.Path.GetTempPath(), $"tars-constitution-{Guid.NewGuid():N}.json")
+    IO.File.WriteAllText(path, json)
+
+    match (try ConstitutionLoader.load path finally IO.File.Delete path) with
+    | FSharp.Core.Error e -> e |> should contain "permissions"
+    | FSharp.Core.Ok c -> failwithf "Should have rejected the missing permissions list: %A" c
+
+[<Fact>]
+let ``ConstitutionLoader round-trips a saved constitution`` () =
+    let original = ConstitutionLoader.createDefault "agent-001"
+    let path = IO.Path.Combine(IO.Path.GetTempPath(), $"tars-constitution-{Guid.NewGuid():N}.json")
+
+    let roundTrip () =
+        ConstitutionLoader.save path original
+        |> Result.bind (fun () -> ConstitutionLoader.load path)
+
+    match (try roundTrip () finally IO.File.Delete path) with
+    | FSharp.Core.Ok loaded -> loaded |> should equal original
+    | FSharp.Core.Error e -> failwithf "Round trip failed: %s" e
 
 [<Fact>]
 let ``Enforcement blocks prohibited action`` () =
