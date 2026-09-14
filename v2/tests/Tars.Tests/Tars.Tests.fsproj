@@ -85,7 +85,7 @@
     <Compile Include="ReasoningPatternTests.fs" />
     <Compile Include="PatternSelectorTests.fs" />
     <Compile Include="OrchestratorTests.fs" />
-    <Compile Include="SelfImprovementTests.fs" />
+    <Compile Include="EpistemicLearningTests.fs" />
     <Compile Include="WorkingMemoryTests.fs" />
     <Compile Include="TaskPrioritizationTests.fs" />
     <Compile Include="HealthCheckTests.fs" />

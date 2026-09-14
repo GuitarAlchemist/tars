@@ -5,10 +5,10 @@ open Tars.Core
 // Note: Using Async internally and converting to Task at boundaries
 
 /// <summary>
-/// Self-Improvement module: Learn from successful task completions.
+/// Epistemic learning: extract beliefs and curriculum suggestions from task outcomes.
 /// Implements Phase 4 of the TARS Evolution plan.
 /// </summary>
-module SelfImprovement =
+module EpistemicLearning =
 
     // =========================================================================
     // Types
@@ -32,7 +32,7 @@ module SelfImprovement =
           StartedAt: DateTime }
 
     /// Configuration for self-improvement
-    type SelfImprovementConfig =
+    type EpistemicLearningConfig =
         { MinConfidenceForPrinciple: float
           MaxVariantsForVerification: int
           AutoLearnFromSuccess: bool }
@@ -69,7 +69,7 @@ module SelfImprovement =
     /// Learn from a completed task using the epistemic governor
     let learnFromTaskAsync
         (governor: IEpistemicGovernor)
-        (config: SelfImprovementConfig)
+        (config: EpistemicLearningConfig)
         (taskDesc: string)
         (solution: string)
         (session: LearningSession)
@@ -162,7 +162,7 @@ module SelfImprovement =
     /// Batch learn from multiple completed tasks
     let learnFromTasksAsync
         (governor: IEpistemicGovernor)
-        (config: SelfImprovementConfig)
+        (config: EpistemicLearningConfig)
         (tasks: (string * string) list)
         (session: LearningSession)
         : Async<LearningResult list * LearningSession> =
@@ -248,7 +248,7 @@ module SelfImprovement =
     /// Wrap an agent workflow to automatically learn from successful completions
     let withLearning
         (governor: IEpistemicGovernor)
-        (config: SelfImprovementConfig)
+        (config: EpistemicLearningConfig)
         (taskDescription: string)
         (workflow: AgentWorkflow<string>)
         (session: LearningSession ref)
@@ -259,7 +259,7 @@ module SelfImprovement =
 
                 match result with
                 | Success solution when config.AutoLearnFromSuccess ->
-                    ctx.Logger $"[SelfImprovement] Learning from successful task: %s{taskDescription}"
+                    ctx.Logger $"[EpistemicLearning] Learning from successful task: %s{taskDescription}"
 
                     let! (learningResult, newSession) =
                         learnFromTask governor config taskDescription solution !session
@@ -269,7 +269,7 @@ module SelfImprovement =
 
                     ctx.Logger(
                         sprintf
-                            "[SelfImprovement] Extracted EpistemicBelief: %s (confidence: %.2f)"
+                            "[EpistemicLearning] Extracted EpistemicBelief: %s (confidence: %.2f)"
                             (learningResult.ExtractedBelief
                              |> Option.map (fun b -> b.Statement)
                              |> Option.defaultValue "none")
@@ -283,7 +283,7 @@ module SelfImprovement =
                 | Success solution -> return Success(solution, None)
 
                 | PartialSuccess(solution, warnings) when config.AutoLearnFromSuccess ->
-                    ctx.Logger "[SelfImprovement] Partial success - still learning"
+                    ctx.Logger "[EpistemicLearning] Partial success - still learning"
 
                     let! (learningResult, newSession) =
                         learnFromTask governor config taskDescription solution !session
@@ -295,7 +295,7 @@ module SelfImprovement =
                 | PartialSuccess(solution, warnings) -> return PartialSuccess((solution, None), warnings)
 
                 | Failure errors ->
-                    ctx.Logger "[SelfImprovement] Task failed - no learning"
+                    ctx.Logger "[EpistemicLearning] Task failed - no learning"
                     return Failure errors
             }
 

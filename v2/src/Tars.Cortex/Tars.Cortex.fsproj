@@ -45,7 +45,7 @@
     <Compile Include="TraceAnalyzer.fs" />
     <Compile Include="PlannerPrompts.fs" />
     <Compile Include="Patterns.fs" />
-    <Compile Include="SelfImprovement.fs" />
+    <Compile Include="EpistemicLearning.fs" />
     <Compile Include="CodebaseRAG.fs" />
   </ItemGroup>
 
