@@ -53,7 +53,7 @@ type WotIntegrationTests(output: Xunit.Abstractions.ITestOutputHelper) =
           SymbolicReflector = None
           CancellationToken = System.Threading.CancellationToken.None }
 
-    [<Fact(Skip = "Final answer is a branch thought, not a solved answer - see #263")>]
+    [<Fact(Skip = "Live LLM answer-quality check: nondeterministic on small local models (~80% pass with llama3.2:3b). Remove Skip to run by hand; the synthesis regression (#263) is covered deterministically in PatternTests")>]
     member this.``WorkflowOfThought solves 2+2 with real LLM``() =
         task {
             if not (TestHelpers.requireOllama ()) then () else
@@ -121,7 +121,7 @@ type WotIntegrationTests(output: Xunit.Abstractions.ITestOutputHelper) =
                 Assert.True(ans.Contains("4"), $"Expected partial result to contain '4', but got: {ans}")
         }
 
-    [<Fact(Skip = "Final answer is a branch thought, not a solved answer - see #263")>]
+    [<Fact(Skip = "Live LLM answer-quality check: nondeterministic on small local models (~80% pass with llama3.2:3b). Remove Skip to run by hand; the synthesis regression (#263) is covered deterministically in PatternTests")>]
     member this.``WorkflowOfThought answers capital of France with real LLM``() =
         task {
             if not (TestHelpers.requireOllama ()) then () else

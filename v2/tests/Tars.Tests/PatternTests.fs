@@ -756,6 +756,60 @@ type PatternTests(output: ITestOutputHelper) =
         |> Async.RunSynchronously
 
     [<Fact>]
+    member _.``WorkflowOfThoughts: Synthesizes an answer from a single surviving thought``() =
+        async {
+            let ctx = createMockContext ()
+            let log = ResizeArray<string>()
+            let synthesisInputs = ResizeArray<string>()
+
+            let responder (req: LlmRequest) =
+                let system = req.SystemPrompt |> Option.defaultValue ""
+
+                if system.Contains("exploring multiple solution paths") then
+                    "Here are two different next-step thoughts to solve the goal:\n\n**THOUGHT 1:** Recall the country's seat of government\n**THOUGHT 2:** Check a reliable atlas for the capital"
+                elif system.Contains("strict evaluator") then
+                    """{"score":0.9,"confidence":0.8,"reasons":["clear"],"risks":[]}"""
+                elif system.Contains("Synthesize") then
+                    synthesisInputs.Add(req.Messages |> List.map (fun m -> m.Content) |> String.concat "\n")
+                    "Paris"
+                else
+                    "Fallback"
+
+            let llm = RecordingLlm(responder, log) :> ILlmService
+
+            let wotConfig =
+                { BaseConfig =
+                    { defaultGoTConfig with
+                        BranchingFactor = 2
+                        TopK = 1
+                        ScoreThreshold = 0.1
+                        MinConfidence = 0.1
+                        DiversityThreshold = 1.0
+                        DiversityPenalty = 0.0
+                        EnableCritique = false
+                        EnablePolicyChecks = false
+                        EnableMemoryRecall = false }
+                  RequiredPolicies = []
+                  AvailableTools = []
+                  RoleAssignments = Map.empty
+                  MemoryNamespace = None
+                  MaxEscalations = 0
+                  TimeoutMs = Some 10000 }
+
+            let! result = workflowOfThought llm wotConfig "What is the capital of France?" ctx
+
+            match result with
+            | Success answer -> Assert.Equal("Paris", answer)
+            | PartialSuccess(answer, _) -> Assert.Equal("Paris", answer)
+            | Failure errors -> Assert.Fail $"Unexpected failure: %A{errors}"
+
+            let synthesis = Assert.Single(synthesisInputs)
+            Assert.DoesNotContain("Here are two different", synthesis)
+            Assert.DoesNotContain("**", synthesis)
+        }
+        |> Async.RunSynchronously
+
+    [<Fact>]
     member _.``WorkflowOfThoughts: Required policies gate unsafe output``() =
         async {
             let ctx = createMockContext ()
