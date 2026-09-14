@@ -1,14 +1,14 @@
-module Tars.Tests.SelfImprovementTests
+module Tars.Tests.EpistemicLearningTests
 
 open System
 open System.Threading.Tasks
 open Xunit
 open Xunit.Abstractions
 open Tars.Core
-open Tars.Cortex.SelfImprovement
+open Tars.Cortex.EpistemicLearning
 
 /// Unit tests for the Self-Improvement module (Phase 4)
-type SelfImprovementTests(output: ITestOutputHelper) =
+type EpistemicLearningTests(output: ITestOutputHelper) =
 
     // Mock EpistemicGovernor for testing
     let createMockGovernor () =
