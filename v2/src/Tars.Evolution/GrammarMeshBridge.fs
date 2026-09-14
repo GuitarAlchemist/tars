@@ -83,11 +83,6 @@ module GrammarMeshBridge =
             | _ -> []
         with _ -> []
 
-    let private toIxConfig (c: MachinBridge.MachinConfig) : IxSkill.Config =
-        { CargoPath = c.SkillPath
-          Timeout = c.Timeout
-          RepoDir = c.WorkingDir }
-
     /// Run the grammar sweep. Uses the parallel ix mesh when the pipeline surface
     /// is available, else degrades to serial `MctsBridge.searchWotDerivation`.
     /// Winners route into promotion through the existing template→action path.
@@ -100,8 +95,6 @@ module GrammarMeshBridge =
         (maxNodes: int)
         (configs: SweepConfig list)
         : MeshOutcome =
-
-        let ixConfig = toIxConfig machinConfig
 
         // Serial degradation: run each config one-at-a-time through the existing
         // single-shot path. That path returns actions but no reward, so we rank by
@@ -129,7 +122,7 @@ module GrammarMeshBridge =
                 |> Option.defaultValue []
             { Best = best; Ranked = ranked |> List.map fst; UsedMesh = false }
 
-        if List.isEmpty configs || not (IxSkill.pipelineAvailable ixConfig) then
+        if List.isEmpty configs || not (MachinBridge.pipelineAvailable machinConfig) then
             serialFallback ()
         else
             let tmpDir =
@@ -144,7 +137,7 @@ module GrammarMeshBridge =
                 File.WriteAllText(grammarPath, JsonSerializer.Serialize(MctsBridge.templatesToEbnf templates))
 
                 let result =
-                    (IxSkill.runPipelineJson ixConfig yamlPath [ "grammar", grammarPath ])
+                    (MachinBridge.runPipelineJson machinConfig yamlPath [ "grammar", grammarPath ])
                         .GetAwaiter()
                         .GetResult()
 

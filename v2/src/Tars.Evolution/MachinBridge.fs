@@ -50,6 +50,18 @@ module MachinBridge =
         : Task<Result<string, string>> =
         IxSkill.runSkillJson (toIxConfig config) skill inputJson
 
+    /// Check if ix's `pipeline` surface is available.
+    let pipelineAvailable (config: MachinConfig) : bool =
+        IxSkill.pipelineAvailable (toIxConfig config)
+
+    /// Run an ix pipeline YAML with `--param name=@file` inputs, returning raw JSON stdout.
+    let runPipelineJson
+        (config: MachinConfig)
+        (yamlPath: string)
+        (paramFiles: (string * string) list)
+        : Task<Result<string, string>> =
+        IxSkill.runPipelineJson (toIxConfig config) yamlPath paramFiles
+
     /// Parse ix optimization output.
     let parseOptimizeOutput (output: string) : OptimizeResult =
         // ix output format:
