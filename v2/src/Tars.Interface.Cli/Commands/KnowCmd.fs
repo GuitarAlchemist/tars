@@ -891,7 +891,7 @@ let run (config: Tars.Core.TarsConfig) (options: KnowOptions) : Task<int> =
                         if String.IsNullOrEmpty fusekiUrl then
                             AnsiConsole.MarkupLine("[red]✗ Fuseki URL not configured (TARS_FUSEKI_URL).[/]")
                         else
-                            let reflector = Tars.Connectors.SymbolicReflector(Uri(fusekiUrl))
+                            let reflector = Tars.Connectors.GraphSymbolicReflector(Uri(fusekiUrl))
                             AnsiConsole.MarkupLine $"[blue]🔍 Reflecting on run:[/] [white]{guid}[/]"
                             let! res = reflector.ReflectOnRunAsync(guid)
 

@@ -5,8 +5,11 @@ open Tars.Core
 open Tars.Core.WorkflowOfThought
 open Tars.LinkedData
 
-/// Performs Symbolic Reflection over execution traces stored in the Knowledge Graph.
-type SymbolicReflector(endpointUri: Uri, ?authOpt: string) =
+/// Performs Symbolic Reflection over execution traces stored in the Knowledge Graph (SPARQL).
+/// Deliberately not an ISymbolicReflector: that seam passes the run's traces in, while this
+/// reads them back from the graph by run id (#249). The LLM-backed seam adapter is
+/// Tars.Evolution.SymbolicReflector.
+type GraphSymbolicReflector(endpointUri: Uri, ?authOpt: string) =
 
     let queryUri = Uri(endpointUri.ToString() + "/query")
     let systemAgentId = AgentId Guid.Empty
@@ -113,11 +116,6 @@ type SymbolicReflector(endpointUri: Uri, ?authOpt: string) =
             match res with
             | Result.Error err -> return Result.Error err
             | Result.Ok steps ->
-                let reflection = SymbolicReflector.AnalyzeSteps(runId, steps)
+                let reflection = GraphSymbolicReflector.AnalyzeSteps(runId, steps)
                 return Result.Ok reflection
         }
-
-    interface ISymbolicReflector with
-        member this.ReflectOnRunAsync(runId: Guid, traces: CanonicalTraceEvent list) =
-            // Legacy connector implementation ignores traces and fetches from graph
-            this.ReflectOnRunAsync(runId) |> Async.StartAsTask
