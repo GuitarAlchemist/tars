@@ -24,6 +24,20 @@ let ``cosineSimilarity returns -1.0 for opposite vectors`` () =
     Assert.Equal(-1.0f, similarity, 4)
 
 [<Fact>]
+let ``cosineSimilarity matches a scalar reference across SIMD and remainder lanes`` () =
+    let reference (a: float32[]) (b: float32[]) =
+        let dot = Array.fold2 (fun acc x y -> acc + float x * float y) 0.0 a b
+        let norm (v: float32[]) = sqrt (v |> Array.sumBy (fun x -> float x * float x))
+        dot / (norm a * norm b)
+
+    let rng = System.Random(42)
+
+    for dims in [ 3; 8; 37; 384; 1024 ] do
+        let a = Array.init dims (fun _ -> float32 (rng.NextDouble() - 0.5))
+        let b = Array.init dims (fun _ -> float32 (rng.NextDouble() - 0.5))
+        Assert.Equal(reference a b, float (MetricSpace.cosineSimilarity a b), 5)
+
+[<Fact>]
 let ``euclideanDistance calculates correctly`` () =
     let v1 = [| 1.0f; 5.0f |]
     let v2 = [| 4.0f; 1.0f |]

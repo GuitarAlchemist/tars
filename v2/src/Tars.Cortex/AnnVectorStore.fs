@@ -38,18 +38,6 @@ type AnnVectorStore(hashBits: int) =
                 h <- h ||| (1 <<< i)
         h
 
-    let cosineSimilarity (a: float32[]) (b: float32[]) =
-        if a.Length <> b.Length || a.Length = 0 then 0.0f else
-        let mutable dot = 0.0f
-        let mutable magA = 0.0f
-        let mutable magB = 0.0f
-        for i = 0 to a.Length - 1 do
-            dot <- dot + a[i] * b[i]
-            magA <- magA + a[i] * a[i]
-            magB <- magB + b[i] * b[i]
-        let denom = Math.Sqrt(float magA) * Math.Sqrt(float magB)
-        if denom = 0.0 then 0.0f else dot / float32 denom
-
     interface IVectorStore with
         member _.SaveAsync(collection: string, id: string, vector: float32[], payload: Map<string, string>) =
             task {
@@ -75,7 +63,7 @@ type AnnVectorStore(hashBits: int) =
                 let scored =
                     candidates
                     |> Seq.map (fun (id, vec, payload) ->
-                        let sim = cosineSimilarity queryVector vec
+                        let sim = Similarity.cosineSimilarity queryVector vec
                         let dist = 1.0f - sim
                         let cleanId =
                             if String.IsNullOrEmpty id then Guid.NewGuid().ToString("N") else id
