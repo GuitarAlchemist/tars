@@ -10,6 +10,25 @@ namespace Tars.Core
 
 module ContractEnforcement =
 
+    let private normalizePath (path: string) = path.Replace('\\', '/')
+
+    /// Matches a ReadCode/ModifyCode pattern against a path, whatever its separators (#272).
+    /// - `*` matches everything.
+    /// - A trailing `*` (`src/Tars.Playground/*`) matches paths under that prefix, anchored
+    ///   at a path-segment boundary so absolute paths match but `src/Tars.PlaygroundEvil/` does not.
+    /// - Any other pattern keeps the original substring match.
+    let private pathMatches (pattern: string) (path: string) =
+        let pattern = normalizePath pattern
+        let path = normalizePath path
+
+        if pattern = "*" then
+            true
+        elif pattern.EndsWith "*" then
+            let prefix = pattern.TrimEnd '*'
+            path.StartsWith prefix || path.Contains("/" + prefix)
+        else
+            path.Contains pattern
+
     /// Validates an intended action against the agent's constitution
     let validateAction (constitution: AgentConstitution) (action: AgentAction) : Result<unit, Violation> =
         // 1. Check Prohibitions (Negative Constraints - Highest Priority)
@@ -25,8 +44,9 @@ module ContractEnforcement =
                     | CannotDeleteData, GenericAction(name, _) when name.Contains("delete") -> true
                     | CannotAccessNetwork, NetworkRequest _ -> true
                     | CannotUseTool forbidden, ExecuteTool(name, _) -> name = forbidden
-                    | CannotAccessPath forbidden, ReadFile path -> path.StartsWith(forbidden)
-                    | CannotAccessPath forbidden, WriteFile path -> path.StartsWith(forbidden)
+                    | CannotAccessPath forbidden, ReadFile path
+                    | CannotAccessPath forbidden, WriteFile path ->
+                        (normalizePath path).StartsWith(normalizePath forbidden)
                     | _ -> false
 
                 if violates then
@@ -49,10 +69,8 @@ module ContractEnforcement =
                     |> List.exists (fun perm ->
                         match perm, action with
                         | All, _ -> true
-                        | ReadCode pattern, ReadFile path ->
-                            // Simple substring match for now, could be regex
-                            path.Contains(pattern) || pattern = "*"
-                        | ModifyCode pattern, WriteFile path -> path.Contains(pattern) || pattern = "*"
+                        | ReadCode pattern, ReadFile path -> pathMatches pattern path
+                        | ModifyCode pattern, WriteFile path -> pathMatches pattern path
                         | CallTool toolName, ExecuteTool(target, _) -> toolName = target || toolName = "*"
                         | SpawnAgent role, SpawnChild _ ->
                             // TODO: Check role match

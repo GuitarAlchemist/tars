@@ -37,8 +37,7 @@ let ``ConstitutionLoader parses General Safety template`` () =
         c.HardResourceBounds |> should contain (ResourceLimit.MaxTokens 1000)
     | FSharp.Core.Error e -> failwithf "Failed to parse: %s" e
 
-[<Fact>]
-let ``ConstitutionLoader loads the shipped general_safety template`` () =
+let private shippedTemplate (name: string) =
     let rec v2Root (dir: IO.DirectoryInfo) =
         if isNull dir then
             failwith "Could not locate v2/ (no Tars.sln above the test directory)"
@@ -48,7 +47,11 @@ let ``ConstitutionLoader loads the shipped general_safety template`` () =
             v2Root dir.Parent
 
     let root = v2Root (IO.DirectoryInfo(IO.Directory.GetCurrentDirectory()))
-    let path = IO.Path.Combine(root, "constitutions", "templates", "general_safety.json")
+    IO.Path.Combine(root, "constitutions", "templates", name)
+
+[<Fact>]
+let ``ConstitutionLoader loads the shipped general_safety template`` () =
+    let path = shippedTemplate "general_safety.json"
 
     match ConstitutionLoader.load path with
     | FSharp.Core.Ok c ->
@@ -118,6 +121,54 @@ let ``Enforcement blocks prohibited action`` () =
     | FSharp.Core.Error(Violation.ProhibitionViolated(Prohibition.CannotModifyCore, _)) -> ()
     | FSharp.Core.Ok() -> failwith "Should have violated prohibition"
     | _ -> failwith "Unexpected result"
+
+// Issue #272: glob permission patterns were compared as literal substrings.
+let private isOk result =
+    match result with
+    | FSharp.Core.Ok() -> true
+    | FSharp.Core.Error _ -> false
+
+let private modifyOnly (pattern: string) =
+    { AgentConstitution.Create(AgentId(Guid.NewGuid()), NeuralRole.GeneralReasoning) with
+        Permissions = [ Permission.ModifyCode pattern ] }
+
+[<Theory>]
+[<InlineData("src/Tars.Playground/Main.fs")>]
+[<InlineData("src/Tars.Playground/Nested/Deep.fs")>]
+[<InlineData(@"src\Tars.Playground\Main.fs")>]
+[<InlineData(@"C:\repos\tars\v2\src\Tars.Playground\Main.fs")>]
+let ``Trailing-star permission allows paths under its prefix`` (path: string) =
+    let c = modifyOnly "src/Tars.Playground/*"
+    Assert.True(isOk (ContractEnforcement.validateAction c (AgentAction.WriteFile path)), path)
+
+[<Theory>]
+[<InlineData("src/Tars.Core/Domain.fs")>]
+[<InlineData("src/Tars.PlaygroundEvil/Main.fs")>]
+[<InlineData("other/notsrc/Tars.Playground/Main.fs")>]
+let ``Trailing-star permission denies paths outside its prefix`` (path: string) =
+    let c = modifyOnly "src/Tars.Playground/*"
+    Assert.False(isOk (ContractEnforcement.validateAction c (AgentAction.WriteFile path)), path)
+
+[<Fact>]
+let ``Shipped general_safety template permits its playground and still blocks core`` () =
+    match ConstitutionLoader.load (shippedTemplate "general_safety.json") with
+    | FSharp.Core.Error e -> failwithf "Failed to load shipped template: %s" e
+    | FSharp.Core.Ok c ->
+        Assert.True(isOk (ContractEnforcement.validateAction c (AgentAction.WriteFile "src/Tars.Playground/Main.fs")))
+        Assert.False(isOk (ContractEnforcement.validateAction c (AgentAction.WriteFile "src/Tars.Core/Domain.fs")))
+        Assert.False(isOk (ContractEnforcement.validateAction c (AgentAction.WriteFile "src/Tars.Llm/Routing.fs")))
+
+[<Theory>]
+[<InlineData(@"C:\Windows\System32\drivers\etc\hosts")>]
+[<InlineData("C:/Windows/System32/drivers/etc/hosts")>]
+let ``Path prohibition applies whatever the separator`` (path: string) =
+    let c =
+        { AgentConstitution.Create(AgentId(Guid.NewGuid()), NeuralRole.GeneralReasoning) with
+            Prohibitions = [ Prohibition.CannotAccessPath "C:/Windows" ] }
+
+    match ContractEnforcement.validateAction c (AgentAction.ReadFile path) with
+    | FSharp.Core.Error(Violation.ProhibitionViolated(Prohibition.CannotAccessPath _, _)) -> ()
+    | other -> failwithf "Expected CannotAccessPath violation for %s, got %A" path other
 
 [<Fact>]
 let ``Enforcement allows permitted action when restrictive`` () =
