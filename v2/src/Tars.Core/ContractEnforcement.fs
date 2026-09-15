@@ -16,6 +16,7 @@ module ContractEnforcement =
     /// - `*` matches everything.
     /// - A trailing `*` (`src/Tars.Playground/*`) matches paths under that prefix, anchored
     ///   at a path-segment boundary so absolute paths match but `src/Tars.PlaygroundEvil/` does not.
+    ///   A path with a `..` segment never matches a prefix: it could climb out of it.
     /// - Any other pattern keeps the original substring match.
     let private pathMatches (pattern: string) (path: string) =
         let pattern = normalizePath pattern
@@ -25,7 +26,8 @@ module ContractEnforcement =
             true
         elif pattern.EndsWith "*" then
             let prefix = pattern.TrimEnd '*'
-            path.StartsWith prefix || path.Contains("/" + prefix)
+            let climbs = path.Split('/') |> Array.contains ".."
+            not climbs && (path.StartsWith prefix || path.Contains("/" + prefix))
         else
             path.Contains pattern
 

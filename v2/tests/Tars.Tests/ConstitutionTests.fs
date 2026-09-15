@@ -145,6 +145,7 @@ let ``Trailing-star permission allows paths under its prefix`` (path: string) =
 [<InlineData("src/Tars.Core/Domain.fs")>]
 [<InlineData("src/Tars.PlaygroundEvil/Main.fs")>]
 [<InlineData("other/notsrc/Tars.Playground/Main.fs")>]
+[<InlineData("src/Tars.Playground/../Tars.Llm/Routing.fs")>]
 let ``Trailing-star permission denies paths outside its prefix`` (path: string) =
     let c = modifyOnly "src/Tars.Playground/*"
     Assert.False(isOk (ContractEnforcement.validateAction c (AgentAction.WriteFile path)), path)
