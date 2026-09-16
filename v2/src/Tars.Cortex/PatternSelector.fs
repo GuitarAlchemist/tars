@@ -193,27 +193,32 @@ module PatternSelector =
         Contexts: string list
     }
 
+    /// Parse the index JSON written by Tars.Evolution.PromotionIndex. Missing fields fall back
+    /// to defaults, so a renamed field would fail silently; PromotionIndexTests round-trips the
+    /// writer through this reader to catch that drift (#265).
+    let parsePromotedEntries (json: string) : PromotedEntry list =
+        use doc = JsonDocument.Parse json
+        let entries = doc.RootElement.GetProperty("Entries")
+        [ for e in entries.EnumerateArray() do
+            { PatternName =
+                (try e.GetProperty("PatternName").GetString() with _ -> "")
+              LevelRank =
+                (try e.GetProperty("LevelRank").GetInt32() with _ -> 0)
+              Score =
+                (try e.GetProperty("Score").GetDouble() with _ -> 0.0)
+              Weight =
+                (try e.GetProperty("Weight").GetDouble() with _ -> 0.5)
+              Contexts =
+                (try [ for c in e.GetProperty("Contexts").EnumerateArray() do c.GetString() ]
+                 with _ -> []) } ]
+
     /// Load promoted patterns from the persisted index file on disk.
     let private loadPromotedEntries () : PromotedEntry list =
         try
             let path = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 ".tars", "promotion", "index.json")
-            if File.Exists path then
-                use doc = JsonDocument.Parse(File.ReadAllText path)
-                let entries = doc.RootElement.GetProperty("Entries")
-                [ for e in entries.EnumerateArray() do
-                    { PatternName =
-                        (try e.GetProperty("PatternName").GetString() with _ -> "")
-                      LevelRank =
-                        (try e.GetProperty("LevelRank").GetInt32() with _ -> 0)
-                      Score =
-                        (try e.GetProperty("Score").GetDouble() with _ -> 0.0)
-                      Weight =
-                        (try e.GetProperty("Weight").GetDouble() with _ -> 0.5)
-                      Contexts =
-                        (try [ for c in e.GetProperty("Contexts").EnumerateArray() do c.GetString() ]
-                         with _ -> []) } ]
+            if File.Exists path then parsePromotedEntries (File.ReadAllText path)
             else []
         with _ -> []
 

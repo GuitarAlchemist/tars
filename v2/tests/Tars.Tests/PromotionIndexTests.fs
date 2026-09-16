@@ -93,3 +93,45 @@ let ``PromotionIndex findForGoal scores GA patterns`` () =
 
         Assert.True(routingMatch.IsSome, "Expected a match for routing goal")
         Assert.True(skillMatch.IsSome, "Expected a match for skill goal"))
+
+// Issue #265: Tars.Cortex cannot reference Tars.Evolution, so PatternSelector re-reads the
+// index JSON by field name, with silent defaults. Write through PromotionIndex, read through
+// PatternSelector, using non-default values so a renamed field cannot pass as a default.
+[<Fact>]
+let ``PatternSelector reads back every field PromotionIndex writes`` () =
+    let dir = Path.Combine(Path.GetTempPath(), $"tars-promotion-roundtrip-{Guid.NewGuid():N}")
+
+    let entry: PromotionIndex.IndexEntry =
+        { PatternId = "ga.roundtrip"
+          PatternName = "ga.roundtrip"
+          Level = DslClause
+          LevelRank = PromotionLevel.rank DslClause
+          Score = 0.87
+          OccurrenceCount = 7
+          Contexts = [ "route a query"; "score a voicing" ]
+          RollbackExpansion = None
+          Weight = 0.31
+          LastPromoted = DateTime(2026, 9, 1) }
+
+    try
+        PromotionIndex.saveTo
+            dir
+            { Entries = [ entry ]
+              GeneratedAt = DateTime(2026, 9, 2)
+              PatternCount = 1 }
+
+        let json = File.ReadAllText(Path.Combine(dir, "index.json"))
+        let read = Tars.Cortex.PatternSelector.parsePromotedEntries json
+
+        let expected: Tars.Cortex.PatternSelector.PromotedEntry list =
+            [ { PatternName = entry.PatternName
+                LevelRank = entry.LevelRank
+                Score = entry.Score
+                Weight = entry.Weight
+                Contexts = entry.Contexts } ]
+
+        Assert.NotEqual(0, entry.LevelRank)
+        Assert.Equal<Tars.Cortex.PatternSelector.PromotedEntry list>(expected, read)
+    finally
+        if Directory.Exists dir then
+            Directory.Delete(dir, true)
