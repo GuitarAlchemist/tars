@@ -26,13 +26,10 @@ module PersistenceTests =
 
                 // Assert
                 Assert.NotEmpty(results)
-                let (resId, score, resPayload) = results.Head
-                Assert.Equal(id, resId)
-                Assert.Equal("value", resPayload["key"])
-                // Cosine similarity of identical vectors is 1.0, distance is 0.0 (or 1-sim depending on impl)
-                // Tars.Cortex.Similarity.similarityToDistance usually does 1 - sim.
-                // Let's check the implementation or just assert it's close to 0.
-                Assert.True(score < 0.001f, $"Score {score} should be near 0 for identical vectors")
+                let hit = results.Head
+                Assert.Equal(id, hit.Id)
+                Assert.Equal("value", hit.Payload["key"])
+                Assert.True(hit.Distance < 0.001f, $"Distance {hit.Distance} should be near 0 for identical vectors")
 
             finally
                 // Cleanup

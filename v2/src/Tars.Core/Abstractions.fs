@@ -3,13 +3,25 @@ namespace Tars.Core
 open System
 open System.Threading.Tasks
 
+/// One hit returned by IVectorStore.SearchAsync.
+type VectorMatch =
+    { Id: string
+      /// Cosine distance, 1 - cosine similarity: 0 means identical direction. Lower is closer.
+      Distance: float32
+      Payload: Map<string, string> }
+
+    /// Cosine similarity, 1 - Distance: 1 means identical direction. Higher is closer.
+    member this.Similarity = 1.0f - this.Distance
+
 /// Represents a vector database for long-term memory
 type IVectorStore =
     abstract member SaveAsync:
         collection: string * id: string * vector: float32[] * payload: Map<string, string> -> Task
 
+    /// Returns up to `limit` matches, nearest first (ascending VectorMatch.Distance).
+    /// Every adapter must report cosine distance, whatever its backend measures natively.
     abstract member SearchAsync:
-        collection: string * vector: float32[] * limit: int -> Task<(string * float32 * Map<string, string>) list>
+        collection: string * vector: float32[] * limit: int -> Task<VectorMatch list>
 
 /// Semantic capability index for routing to agents by capability description.
 type ICapabilityStore =

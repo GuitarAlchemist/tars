@@ -324,12 +324,12 @@ module CodebaseRAG =
                             
                             return 
                                 results
-                                |> List.choose (fun (id, score, _meta) ->
-                                    match chunks.TryGetValue(id) with
+                                |> List.choose (fun m ->
+                                    match chunks.TryGetValue(m.Id) with
                                     | true, chunk -> 
                                         Some {
                                             Chunk = chunk
-                                            Score = float score
+                                            Score = float m.Similarity // similarity: higher is better, like SearchKeyword (#244)
                                             Highlights = []
                                         }
                                     | false, _ -> None)

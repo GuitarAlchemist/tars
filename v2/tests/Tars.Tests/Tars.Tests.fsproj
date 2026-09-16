@@ -18,6 +18,7 @@
     <Compile Include="KernelTests.fs" />
     <Compile Include="GovernanceTests.fs" />
     <Compile Include="AgentWorkflowTests.fs" />
+    <Compile Include="CapabilityStoreTests.fs" />
     <Compile Include="KTheoryTests.fs" />
     <Compile Include="EventBusTests.fs" />
     <Compile Include="EvolutionTests.fs" />

@@ -67,8 +67,10 @@ type AnnVectorStore(hashBits: int) =
                         let dist = 1.0f - sim
                         let cleanId =
                             if String.IsNullOrEmpty id then Guid.NewGuid().ToString("N") else id
-                        (cleanId, dist, payload))
-                    |> Seq.sortBy (fun (_, d, _) -> d)
+                        { Id = cleanId
+                          Distance = dist
+                          Payload = payload })
+                    |> Seq.sortBy (fun m -> m.Distance)
                     |> Seq.truncate (max 1 limit)
                     |> Seq.toList
 

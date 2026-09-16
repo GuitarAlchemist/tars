@@ -128,11 +128,11 @@ type VectorStoreTests(output: ITestOutputHelper) =
 
             // Assert
             Assert.Single(results) |> ignore
-            let (id, distance, meta) = results.Head
-            Assert.Equal("doc1", id)
-            Assert.Equal(0.0f, distance, 5)  // Distance should be 0 for identical vector
-            Assert.Equal("Hello World", meta["text"])
-            output.WriteLine($"Found document: {id} with distance {distance}")
+            let hit = results.Head
+            Assert.Equal("doc1", hit.Id)
+            Assert.Equal(0.0f, hit.Distance, 5)  // Distance should be 0 for identical vector
+            Assert.Equal("Hello World", hit.Payload["text"])
+            output.WriteLine($"Found document: {hit.Id} with distance {hit.Distance}")
         }
 
     [<Fact>]
@@ -159,7 +159,7 @@ type VectorStoreTests(output: ITestOutputHelper) =
 
             // Assert
             Assert.Equal(3, results.Length)
-            let ids = results |> List.map (fun (id, _, _) -> id)
+            let ids = results |> List.map (fun m -> m.Id)
             Assert.Equal("identical", ids[0])  // Most similar (distance 0)
             Assert.Equal("similar", ids[1])    // Second most similar
             Assert.Equal("different", ids[2])  // Least similar (orthogonal)
@@ -425,11 +425,11 @@ type VectorStoreTests(output: ITestOutputHelper) =
                 let! results = vectorStore.SearchAsync(collection, vector, 10)
 
                 Assert.Single(results) |> ignore
-                let (id, distance, meta) = results.Head
-                Assert.Equal("doc1", id)
-                Assert.True(distance < 0.01f, "Distance should be near 0 for identical vector")
-                Assert.Equal("Hello SQLite", meta["text"])
-                output.WriteLine($"Found: {id} with distance {distance}")
+                let hit = results.Head
+                Assert.Equal("doc1", hit.Id)
+                Assert.True(hit.Distance < 0.01f, "Distance should be near 0 for identical vector")
+                Assert.Equal("Hello SQLite", hit.Payload["text"])
+                output.WriteLine($"Found: {hit.Id} with distance {hit.Distance}")
             finally
                 deleteIfExists dbPath
         }
@@ -456,7 +456,7 @@ type VectorStoreTests(output: ITestOutputHelper) =
                 let! results = vectorStore.SearchAsync(collection, queryVector, 10)
 
                 Assert.Equal(3, results.Length)
-                let ids = results |> List.map (fun (id, _, _) -> id)
+                let ids = results |> List.map (fun m -> m.Id)
                 Assert.Equal("identical", ids[0])
                 Assert.Equal("similar", ids[1])
                 Assert.Equal("different", ids[2])
@@ -527,8 +527,7 @@ type VectorStoreTests(output: ITestOutputHelper) =
                 let! results = vectorStore.SearchAsync(collection, vector2, 10)
 
                 Assert.Single(results) |> ignore
-                let (_, _, meta) = results.Head
-                Assert.Equal("2", meta["version"])
+                Assert.Equal("2", results.Head.Payload["version"])
                 output.WriteLine("Document updated successfully")
             finally
                 deleteIfExists dbPath
@@ -598,9 +597,8 @@ type VectorStoreTests(output: ITestOutputHelper) =
                 let! results = (store2 :> IVectorStore).SearchAsync(collection, vector, 10)
 
                 Assert.Single(results) |> ignore
-                let (id, _, meta) = results.Head
-                Assert.Equal("doc1", id)
-                Assert.Equal("persisted_value", meta["key"])
+                Assert.Equal("doc1", results.Head.Id)
+                Assert.Equal("persisted_value", results.Head.Payload["key"])
                 output.WriteLine("Data persisted successfully across instances")
             finally
                 deleteIfExists dbPath

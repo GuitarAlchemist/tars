@@ -119,7 +119,7 @@ type SqliteVectorStore(dbPath: string) =
                 cmd.Parameters.AddWithValue("@lim", scanLimit) |> ignore
                 
                 use! reader = cmd.ExecuteReaderAsync()
-                let results = ResizeArray<string * float32 * Map<string, string>>()
+                let results = ResizeArray<VectorMatch>()
                 
                 while reader.Read() do
                     let id = reader.GetString(0)
@@ -130,10 +130,10 @@ type SqliteVectorStore(dbPath: string) =
                     
                     let sim = Similarity.cosineSimilarity queryVector vec
                     let dist = Similarity.similarityToDistance sim
-                    results.Add((id, dist, meta))
+                    results.Add({ Id = id; Distance = dist; Payload = meta })
                 
                 return results 
-                       |> Seq.sortBy (fun (_, d, _) -> d) 
+                       |> Seq.sortBy (fun m -> m.Distance) 
                        |> Seq.truncate limit 
                        |> Seq.toList
             }

@@ -44,14 +44,14 @@ type PostgresVectorStoreTests() =
 
             let! results = store.SearchAsync(collection, v1, 1)
             Assert.NotEmpty(results)
-            let (rId, dist, rMeta) = results.Head
-            Assert.Equal(id, rId)
-            Assert.True(dist < 0.001f, $"Expected distance < 0.001, got {dist}")
-            Assert.Equal("hello world", rMeta["content"])
+            let hit = results.Head
+            Assert.Equal(id, hit.Id)
+            Assert.True(hit.Distance < 0.001f, $"Expected distance < 0.001, got {hit.Distance}")
+            Assert.Equal("hello world", hit.Payload["content"])
 
             do! store.SaveAsync(collection, "vec3", v3, Map [ "content", "similar" ])
             let! searchResults = store.SearchAsync(collection, v1, 2)
             Assert.Equal(2, searchResults.Length)
-            Assert.Equal("vec1", searchResults.Item(0) |> (fun (i, _, _) -> i))
-            Assert.Equal("vec3", searchResults.Item(1) |> (fun (i, _, _) -> i))
+            Assert.Equal("vec1", searchResults.Item(0).Id)
+            Assert.Equal("vec3", searchResults.Item(1).Id)
         }
