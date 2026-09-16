@@ -335,11 +335,24 @@ module SelfHostingGate =
         proc.WaitForExit()
         proc.ExitCode, outT.Result, errT.Result
 
+    /// Process execution: (workdir, executable, args) -> (exitCode, stdout, stderr).
+    type RunProcess = string -> string -> string -> int * string * string
+
+    /// The side effects of the gate orchestration. The real adapters start `git` /
+    /// `dotnet` and append to ~/.tars; tests script them instead, so the
+    /// worktree -> test -> decide -> promote flow runs without either (#245).
+    type GateEffects =
+        { Run: RunProcess
+          RecordWin: GateTask -> unit }
+
+    /// The real side effects.
+    let defaultEffects = { Run = run; RecordWin = recordWin }
+
     /// Run the test project in `workdir`, emitting a TRX, and return parsed
     /// outcomes. An empty map signals a build/run failure (a Reject signal).
-    let private runTests (workdir: string) (testProject: string) (trxName: string) : Map<string, string> =
+    let private runTests (fx: GateEffects) (workdir: string) (testProject: string) (trxName: string) : Map<string, string> =
         let _, _, _ =
-            run
+            fx.Run
                 workdir
                 "dotnet"
                 (sprintf
@@ -372,30 +385,31 @@ module SelfHostingGate =
 
     /// Create a detached worktree at HEAD, run `f` with its path, then always
     /// remove it (an accepted branch ref created inside `f` survives removal).
-    let private withWorktree (repoRoot: string) (f: string -> 'a) : 'a =
+    let private withWorktree (fx: GateEffects) (repoRoot: string) (f: string -> 'a) : 'a =
         let id = Guid.NewGuid().ToString("n").Substring(0, 8)
         let wt = Path.Combine(Path.GetTempPath(), sprintf "tars_selfheal_%s" id)
         lock gitWorktreeLock (fun () ->
-            let code, _, err = run repoRoot "git" (sprintf "worktree add --detach \"%s\" HEAD" wt)
+            let code, _, err = fx.Run repoRoot "git" (sprintf "worktree add --detach \"%s\" HEAD" wt)
             if code <> 0 then failwithf "git worktree add failed: %s" (err.Trim()))
         try
             f wt
         finally
             try
                 lock gitWorktreeLock (fun () ->
-                    run repoRoot "git" (sprintf "worktree remove --force \"%s\"" wt) |> ignore)
+                    fx.Run repoRoot "git" (sprintf "worktree remove --force \"%s\"" wt) |> ignore)
             with _ ->
                 ()
 
     /// Baseline outcomes at HEAD — identical for every proposal, so compute once
     /// and share across the best-of-N evaluations (ADR 0002 D5).
-    let private computeBaseline (repoRoot: string) (testProject: string) : Map<string, string> =
-        withWorktree repoRoot (fun wt -> runTests wt testProject "base.trx")
+    let private computeBaseline (fx: GateEffects) (repoRoot: string) (testProject: string) : Map<string, string> =
+        withWorktree fx repoRoot (fun wt -> runTests fx wt testProject "base.trx")
 
     /// Evaluate one proposal against a shared baseline in its own worktree:
     /// apply → variant `dotnet test` → `decide`. No promotion (the caller promotes
     /// the chosen winner). Pure-by-result; the worktree is always cleaned up.
     let private evaluateVariant
+        (fx: GateEffects)
         (repoRoot: string)
         (testProject: string)
         (baseline: Map<string, string>)
@@ -404,30 +418,30 @@ module SelfHostingGate =
         if isTestFile task.TargetFile then
             Reject "target is a test file (hermetic boundary)"
         else
-            withWorktree repoRoot (fun wt ->
+            withWorktree fx repoRoot (fun wt ->
                 if not (applyEdit wt task) then
                     Reject "edit precondition failed (OldText missing or not unique)"
                 else
                     let trx = sprintf "var_%s.trx" (Path.GetFileName wt)
-                    let variant = runTests wt testProject trx
+                    let variant = runTests fx wt testProject trx
                     decide task.TargetTest baseline variant)
 
     /// Promote a verified task: apply it in a fresh worktree, commit to a new
     /// `self-improve/<id>` branch, and record the SFT win (ADR 0003). The branch
     /// ref survives worktree removal.
-    let private promoteTask (repoRoot: string) (task: GateTask) (rationale: string) : GateVerdict =
+    let private promoteTask (fx: GateEffects) (repoRoot: string) (task: GateTask) (rationale: string) : GateVerdict =
         let branch = sprintf "self-improve/%s" (Guid.NewGuid().ToString("n").Substring(0, 8))
-        withWorktree repoRoot (fun wt ->
+        withWorktree fx repoRoot (fun wt ->
             if not (applyEdit wt task) then
                 Rejected "edit precondition failed at promote (concurrent change?)"
             else
                 let gitWt a =
-                    let code, _, err = run wt "git" a
+                    let code, _, err = fx.Run wt "git" a
                     if code <> 0 then failwithf "git %s failed: %s" a (err.Trim())
                 gitWt (sprintf "checkout -b %s" branch)
                 gitWt (sprintf "add \"%s\"" task.TargetFile)
                 gitWt (sprintf "commit -m \"self-improve: %s\"" (task.Rationale.Replace("\"", "'")))
-                recordWin task
+                fx.RecordWin task
                 Promoted(branch, rationale))
 
     /// Generate up to `n` candidate edits for the failing test. Proposal 0 is
@@ -515,8 +529,9 @@ module SelfHostingGate =
     /// `dotnet test` runs, and promote the first that passes the hermetic gate.
     /// If none pass, a single error-fed *repair* round (D5 tail) feeds the most
     /// informative rejection back to the model for one corrected attempt before
-    /// returning Rejected.
-    let runGateBestOfN
+    /// returning Rejected. `fx` supplies the process and SFT side effects.
+    let runGateBestOfNWith
+        (fx: GateEffects)
         (llm: ILlmService)
         (repoRoot: string)
         (testProject: string)
@@ -538,7 +553,7 @@ module SelfHostingGate =
                 if List.isEmpty viable then
                     return Rejected(sprintf "no applicable proposal from %d generation(s)" (List.length proposals))
                 else
-                    let baseline = computeBaseline repoRoot testProject
+                    let baseline = computeBaseline fx repoRoot testProject
                     if Map.isEmpty baseline then
                         return Rejected "baseline build/run produced no tests (build failure)"
                     else
@@ -555,7 +570,7 @@ module SelfHostingGate =
                                 |> Array.map (fun t ->
                                     async {
                                         do! Async.SwitchToThreadPool()
-                                        return (t, evaluateVariant repoRoot testProject baseline t)
+                                        return (t, evaluateVariant fx repoRoot testProject baseline t)
                                     })
                                 |> Async.Parallel
                             match decisions |> Array.tryPick (fun (t, d) -> match d with | Accept r -> Some(t, r) | _ -> None) with
@@ -568,7 +583,7 @@ module SelfHostingGate =
                                        |> Array.toList)
                             i <- i + conc
                         match winner with
-                        | Some(task, rationale) -> return promoteTask repoRoot task rationale
+                        | Some(task, rationale) -> return promoteTask fx repoRoot task rationale
                         | None ->
                             // D5 repair tail: seed one corrected attempt from the most
                             // informative rejection (the variant that got closest to green).
@@ -581,8 +596,8 @@ module SelfHostingGate =
                                     |> Option.filter (fun t -> (applyEditsPure content t.Edits).IsSome)
                                 with
                                 | Some t ->
-                                    match evaluateVariant repoRoot testProject baseline t with
-                                    | Accept r -> return promoteTask repoRoot t r
+                                    match evaluateVariant fx repoRoot testProject baseline t with
+                                    | Accept r -> return promoteTask fx repoRoot t r
                                     | Reject rr ->
                                         return
                                             Rejected(
@@ -603,6 +618,18 @@ module SelfHostingGate =
                                     Rejected(
                                         sprintf "best-of-%d: none passed (no reject reasons captured)" arr.Length)
         }
+
+    /// Best-of-N self-driving gate against real git, dotnet and ~/.tars.
+    let runGateBestOfN
+        (llm: ILlmService)
+        (repoRoot: string)
+        (testProject: string)
+        (targetTest: string)
+        (targetFile: string)
+        (n: int)
+        (maxConcurrency: int)
+        : Async<GateVerdict> =
+        runGateBestOfNWith defaultEffects llm repoRoot testProject targetTest targetFile n maxConcurrency
 
     /// Self-driving gate (single-shot): the LLM proposes one edit for a failing
     /// test, verified by the hermetic gate. Thin wrapper over best-of-N with N=1.

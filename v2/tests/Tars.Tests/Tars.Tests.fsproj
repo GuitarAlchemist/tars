@@ -125,6 +125,7 @@
     <Compile Include="GrammarMlBridgeTests.fs" />
     <Compile Include="GrammarMeshBridgeTests.fs" />
     <Compile Include="SelfHostingGateTests.fs" />
+    <Compile Include="SelfHostingGateOrchestrationTests.fs" />
     <Compile Include="SelfImproveBacklogTests.fs" />
     <Compile Include="SelfImproveRound3Tests.fs" />
     <Compile Include="EvolutionConstrainedDecodingTests.fs" />
