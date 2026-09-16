@@ -58,12 +58,13 @@ type CapabilityStore(vectorStore: IVectorStore, llm: ILlmService) =
         task {
             let! embedding = llm.EmbedAsync query
 
-            let! (results: (string * float32 * Map<string, string>) list) =
-                vectorStore.SearchAsync(collectionName, embedding, limit)
+            let! (results: VectorMatch list) = vectorStore.SearchAsync(collectionName, embedding, limit)
 
             return
                 results
-                |> List.choose (fun (id, score, payload) ->
+                |> List.choose (fun m ->
+                    let payload = m.Payload
+
                     let agentIdOpt =
                         payload
                         |> Map.tryFind "agent_id"
@@ -116,10 +117,13 @@ type CapabilityStore(vectorStore: IVectorStore, llm: ILlmService) =
                           Confidence = confidence
                           Reputation = reputation }
 
-                    // Blend vector similarity with reputation/confidence to bias towards reliable agents.
+                    // Blend vector similarity (higher is closer) with reputation/confidence to bias
+                    // towards reliable agents. The raw Distance would invert the ranking (#244).
                     let repScore = reputation |> Option.defaultValue 0.5
                     let confScore = confidence |> Option.defaultValue 0.5
-                    let adjustedScore = score + (float32 repScore * 0.1f) + (float32 confScore * 0.05f)
+
+                    let adjustedScore =
+                        m.Similarity + (float32 repScore * 0.1f) + (float32 confScore * 0.05f)
 
                     match agentIdOpt with
                     | Some agentId -> Some(agentId, capability, float adjustedScore)

@@ -535,7 +535,9 @@ module Engine =
                                 let! results =
                                     vectorStore.SearchAsync(config.CollectionName, embedding, config.TopK / 2)
 
-                                return results |> List.map (fun (id, d, p) -> (id, d, p, concept))
+                                return
+                                    results
+                                    |> List.map (fun (m: VectorMatch) -> (m.Id, m.Distance, m.Payload, concept))
                             })
                         |> Task.WhenAll
 
@@ -914,6 +916,8 @@ module Engine =
                                 // Search for parent in parent collection
                                 let! parentResults =
                                     vectorStore.SearchAsync(config.ParentCollectionName, [| 0.0f |], 1)
+
+                                let parentResults = parentResults |> List.map (fun (m: VectorMatch) -> m.Id, m.Distance, m.Payload)
                                 // Note: This is a simplified lookup - in practice you'd want a direct ID lookup
                                 let parent = parentResults |> List.tryFind (fun (pid, _, _) -> pid = parentId)
 
@@ -1040,7 +1044,10 @@ module Engine =
                     task {
                         let! embedding = llm.EmbedAsync(query)
                         let! results = vectorStore.SearchAsync(config.CollectionName, embedding, config.TopK * 2)
-                        return results |> List.filter (fun (_, d, _) -> (1.0f - d) >= config.MinScore * 0.5f)
+                        return
+                            results
+                            |> List.map (fun (m: VectorMatch) -> m.Id, m.Distance, m.Payload)
+                            |> List.filter (fun (_, d, _) -> (1.0f - d) >= config.MinScore * 0.5f)
                     }
 
                 if fallback1.Length >= config.FallbackMinResults then
@@ -1413,7 +1420,8 @@ Instruction: %s{instruction}"""
 
                         // Step 5: Combine results using RRF or simple merge
                         let allResultLists =
-                            (allSearchResults |> Array.toList) @ [ multiHopResults ]
+                            (allSearchResults |> Array.toList |> List.map (List.map (fun (m: VectorMatch) -> m.Id, m.Distance, m.Payload)))
+                            @ [ multiHopResults ]
                             |> List.filter (not << List.isEmpty)
 
                         let combinedResults =

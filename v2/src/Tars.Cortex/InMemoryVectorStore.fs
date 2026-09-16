@@ -91,19 +91,21 @@ type InMemoryVectorStore() =
                         |> Seq.map (fun entry ->
                             let similarity = Similarity.cosineSimilarity queryVector entry.Vector
                             let distance = Similarity.similarityToDistance similarity
-                            (entry.Id, distance, entry.Payload))
-                        |> Seq.sortBy (fun (_, distance, _) -> distance) // Lower distance = more similar
+                            { Id = entry.Id
+                              Distance = distance
+                              Payload = entry.Payload })
+                        |> Seq.sortBy (fun m -> m.Distance)
                         |> Seq.truncate limit
                         |> Seq.toList
 
                     // Update LastUsed for retrieved entries
                     let now = DateTime.UtcNow
 
-                    for (id, _, _) in results do
-                        match collection.TryGetValue(id) with
+                    for m in results do
+                        match collection.TryGetValue(m.Id) with
                         | true, entry ->
                             let updated = { entry with LastUsed = now }
-                            collection.TryUpdate(id, updated, entry) |> ignore
+                            collection.TryUpdate(m.Id, updated, entry) |> ignore
                         | _ -> ()
 
                     return results

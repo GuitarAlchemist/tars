@@ -178,7 +178,7 @@ let main args =
                 member _.SaveAsync(collection, id, vector, payload) = Task.CompletedTask
 
                 member _.SearchAsync(collection, queryVector, limit) =
-                    Task.FromResult(List.empty<string * float32 * Map<string, string>>) }
+                    Task.FromResult(List.empty<VectorMatch>) }
 
     builder.Services.AddSingleton<IVectorStore>(vectorStore) |> ignore
 

@@ -36,8 +36,13 @@ type ChromaVectorStore(baseUrl: string) =
     let getOrCreateCollection (name: string) =
         task {
             // Check if collection exists first to avoiding creating duplicates if API behavior changes
-            // For now, get_or_create=true is robust enough
-            let req = {| name = name; get_or_create = true |}
+            // For now, get_or_create=true is robust enough.
+            // Chroma defaults to l2; VectorMatch.Distance is cosine distance. The space only
+            // applies when the collection is created, so existing l2 collections keep l2.
+            let req =
+                {| name = name
+                   get_or_create = true
+                   metadata = Map [ "hnsw:space", "cosine" ] |}
 
             let content =
                 new StringContent(JsonSerializer.Serialize(req, jsonOptions), Encoding.UTF8, "application/json")
@@ -151,7 +156,9 @@ type ChromaVectorStore(baseUrl: string) =
                                         else
                                             Map.empty
 
-                                    (id, dist, meta))
+                                    { Id = id
+                                      Distance = dist
+                                      Payload = meta })
 
                             return results
                 with ex ->

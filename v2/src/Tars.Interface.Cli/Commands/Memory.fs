@@ -54,8 +54,8 @@ let search (coll: string) (text: string) =
                 let! results = vectorStore.SearchAsync(coll, vector, 5)
                 printfn $"Found %d{results.Length} results:"
 
-                for (id, dist, meta) in results do
-                    printfn $"  [%s{id}] (dist: %f{dist}) %A{meta}"
+                for m in results do
+                    printfn $"  [%s{m.Id}] (dist: %f{m.Distance}) %A{m.Payload}"
 
                 return 0
             with ex ->

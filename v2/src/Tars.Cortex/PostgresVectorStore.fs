@@ -143,10 +143,7 @@ type PostgresVectorStore(connectionString: string, ?dimension: int) =
                 do! conn.OpenAsync()
 
                 use cmd = conn.CreateCommand()
-                // Cosine distance operator <=>
-                // 1 - (A <=> B) is cosine similarity? No, <=> is cosine distance.
-                // Distance = 1 - Similarity. So Similarity = 1 - Distance.
-                // We order by distance ASC (closest first).
+                // pgvector's <=> is cosine distance, the VectorMatch convention; closest first.
                 cmd.CommandText <-
                     """
                     SELECT id, vector, metadata, (vector <=> @vec::vector) as distance
@@ -161,21 +158,14 @@ type PostgresVectorStore(connectionString: string, ?dimension: int) =
                 cmd.Parameters.AddWithValue("@lim", limit) |> ignore
 
                 use! reader = cmd.ExecuteReaderAsync()
-                let results = ResizeArray<string * float32 * Map<string, string>>()
+                let results = ResizeArray<VectorMatch>()
 
                 while reader.Read() do
                     let id = reader.GetString(0)
-                    // Npgsql reads vector as specific type, but we can just use metadata/distance
-                    // Wait, interface requires full return? "string * float32 * Map<string, string>" (id, distance, metadata)?
-                    // IVectorStore.SearchAsync returns (string * float32 * Map<string, string>) list ?
-                    // Let's check IVectorStore definition.
-                    // Usually it returns id, score, metadata or similar.
-                    // Assuming id, score (distance here), metadata.
-
                     let distance = reader.GetDouble(3) |> float32
                     let metaJson = reader.GetString(2)
                     let meta = JsonSerializer.Deserialize<Map<string, string>>(metaJson)
-                    results.Add((id, distance, meta))
+                    results.Add({ Id = id; Distance = distance; Payload = meta })
 
                 return results |> Seq.toList
             }

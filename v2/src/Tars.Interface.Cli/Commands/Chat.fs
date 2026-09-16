@@ -138,9 +138,9 @@ module ChatHelpers =
                         else
                             let hits =
                                 results
-                                |> List.map (fun (id, dist, meta) ->
-                                    let source = meta |> Map.tryFind "source" |> Option.defaultValue "unknown"
-                                    let content = meta |> Map.tryFind "content" |> Option.defaultValue ""
+                                |> List.map (fun m ->
+                                    let source = m.Payload |> Map.tryFind "source" |> Option.defaultValue "unknown"
+                                    let content = m.Payload |> Map.tryFind "content" |> Option.defaultValue ""
                                     // Truncate content for context window
                                     let preview =
                                         if content.Length > 500 then
@@ -148,7 +148,7 @@ module ChatHelpers =
                                         else
                                             content
 
-                                    let score = 1.0f - dist
+                                    let score = m.Similarity
                                     $"Source: %s{source} (Score: %.2f{score})\n%s{preview}\n")
                                 |> String.concat "\n---\n"
 

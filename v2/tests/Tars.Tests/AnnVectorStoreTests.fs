@@ -23,8 +23,7 @@ type AnnVectorStoreTests() =
             |> Async.RunSynchronously
 
         Assert.True(results.Length >= 1)
-        let (id, _, _) = results.[0]
-        Assert.Equal("a", id)
+        Assert.Equal("a", results.[0].Id)
 
     [<Fact>]
     member _.``AnnVectorStore falls back when bucket empty``() =
@@ -40,6 +39,5 @@ type AnnVectorStoreTests() =
             |> Async.RunSynchronously
 
         Assert.Equal(1, results.Length)
-        let (id, _, _) = results.[0]
         // Should still return something due to fallback scan
-        Assert.Equal("a", id)
+        Assert.Equal("a", results.[0].Id)
