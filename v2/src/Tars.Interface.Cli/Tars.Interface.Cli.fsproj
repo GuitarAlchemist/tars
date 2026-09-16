@@ -20,6 +20,7 @@
     <Compile Include="Runtime.fs" />
     <Compile Include="ConsoleHelpers.fs" />
     <Compile Include="Commands\AgentHelpers.fs" />
+    <Content Include="..\..\prompts\planner.md" Link="prompts\planner.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

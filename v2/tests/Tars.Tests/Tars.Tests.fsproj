@@ -103,6 +103,7 @@
     <Compile Include="PromotionPipelineTests.fs" />
     <Compile Include="GaPatternSeederTests.fs" />
     <Compile Include="PromotionIndexTests.fs" />
+    <Compile Include="PlannerPromptsTests.fs" />
     <Compile Include="InsightExporterTests.fs" />
     <Compile Include="ProblemBankTests.fs" />
     <Compile Include="GaProblemBankTests.fs" />
