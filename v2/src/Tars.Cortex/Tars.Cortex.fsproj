@@ -45,6 +45,7 @@
     <Compile Include="Structure.fs" />
     <Compile Include="TraceAnalyzer.fs" />
     <Compile Include="PlannerPrompts.fs" />
+    <Compile Include="ThoughtParsing.fs" />
     <Compile Include="Patterns.fs" />
     <Compile Include="EpistemicLearning.fs" />
     <Compile Include="CodebaseRAG.fs" />
