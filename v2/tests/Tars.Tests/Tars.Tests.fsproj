@@ -115,6 +115,7 @@
     <Compile Include="ClaudeCodeServiceTests.fs" />
     <Compile Include="RalphBridgeTests.fs" />
     <Compile Include="EvolutionaryBreederTests.fs" />
+    <Compile Include="EvolutionTaskGateTests.fs" />
     <Compile Include="ProbabilisticGrammarTests.fs" />
     <Compile Include="ReplicatorDynamicsTests.fs" />
     <Compile Include="ConstrainedDecodingTests.fs" />

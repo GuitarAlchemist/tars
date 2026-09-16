@@ -197,6 +197,64 @@ module Engine =
 
         $"- [{belief.Confidence:F2}] {belief.Subject.Value} {predicate} {belief.Object.Value}"
 
+    // Pure pieces of executeTask, named so they can be tested without running a task (#245).
+
+    /// Up to five beliefs whose subject or object appears in the goal, most confident first.
+    let selectRelevantBeliefs (goal: string) (beliefs: seq<Belief>) : Belief list =
+        let goalLower = goal.ToLowerInvariant()
+
+        beliefs
+        |> Seq.filter (fun b ->
+            let subj = b.Subject.Value.ToLowerInvariant()
+            let obj = b.Object.Value.ToLowerInvariant()
+            goalLower.Contains(subj) || goalLower.Contains(obj))
+        |> Seq.sortByDescending (fun b -> b.Confidence)
+        |> Seq.truncate 5
+        |> Seq.toList
+
+    /// Whether a task must pass the ledger contradiction check before it runs: a constraint
+    /// opts in (check_contradictions, ledger_gate, enforce_ledger), none opts out
+    /// (allow_contradictions), and there is at least one relevant belief to contradict.
+    let shouldGateContradictions (constraints: string list) (relevantBeliefs: Belief list) : bool =
+        let has (names: string list) =
+            constraints
+            |> List.exists (fun c -> names |> List.exists (fun n -> c.Equals(n, StringComparison.OrdinalIgnoreCase)))
+
+        not (has [ "allow_contradictions" ])
+        && has [ "check_contradictions"; "ledger_gate"; "enforce_ledger" ]
+        && not (List.isEmpty relevantBeliefs)
+
+    /// The "Lessons Learned" prompt section for retrieved episodes, or "" when there are none.
+    let formatMemoryContext (memories: MemorySchema list) : string =
+        if memories.IsEmpty then
+            ""
+        else
+            let summaries =
+                memories
+                |> List.map (fun m ->
+                    let summary =
+                        m.Logical
+                        |> Option.map (fun l -> l.ProblemSummary)
+                        |> Option.defaultValue "Unknown Task"
+
+                    let outcome =
+                        m.Logical
+                        |> Option.map (fun l -> l.OutcomeLabel)
+                        |> Option.defaultValue "unknown"
+
+                    $"- [%s{outcome}] %s{summary}")
+                |> String.concat "\n"
+
+            $"\nLessons Learned from Past Episodes:\n%s{summaries}\n"
+
+    /// The "Known Beliefs" prompt section, or "" when there are none.
+    let formatLedgerContext (beliefs: Belief list) : string =
+        if beliefs.IsEmpty then
+            ""
+        else
+            let lines = beliefs |> List.map formatBelief |> String.concat "\n"
+            $"\nKnown Beliefs:\n{lines}\n"
+
     let private evaluateContradiction (ctx: EvolutionContext) (goal: string) (beliefs: Belief list) =
         task {
             if beliefs.IsEmpty then
@@ -645,27 +703,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         smem.Retrieve query |> Async.StartAsTask
                     | None -> Task.FromResult []
 
-                let memoryContext =
-                    if memories.IsEmpty then
-                        ""
-                    else
-                        let summaries =
-                            memories
-                            |> List.map (fun m ->
-                                let summary =
-                                    m.Logical
-                                    |> Option.map (fun l -> l.ProblemSummary)
-                                    |> Option.defaultValue "Unknown Task"
-
-                                let outcome =
-                                    m.Logical
-                                    |> Option.map (fun l -> l.OutcomeLabel)
-                                    |> Option.defaultValue "unknown"
-
-                                $"- [%s{outcome}] %s{summary}")
-                            |> String.concat "\n"
-
-                        $"\nLessons Learned from Past Episodes:\n%s{summaries}\n"
+                let memoryContext = formatMemoryContext memories
 
                 if not (String.IsNullOrWhiteSpace codeContext) then
                     ctx.Logger($"[Context] Retrieved context for goal '{taskDef.Goal}':\n{codeContext}")
@@ -673,39 +711,15 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 if not memories.IsEmpty then
                     ctx.Logger($"[Memory] Retrieved {memories.Length} past experiences.")
 
-                let goalLower = taskDef.Goal.ToLowerInvariant()
-
                 let relevantBeliefs =
                     match ctx.Memory.Ledger with
-                    | Some ledger ->
-                        ledger.Query()
-                        |> Seq.filter (fun b ->
-                            let subj = b.Subject.Value.ToLowerInvariant()
-                            let obj = b.Object.Value.ToLowerInvariant()
-                            goalLower.Contains(subj) || goalLower.Contains(obj))
-                        |> Seq.sortByDescending (fun b -> b.Confidence)
-                        |> Seq.truncate 5
-                        |> Seq.toList
+                    | Some ledger -> selectRelevantBeliefs taskDef.Goal (ledger.Query())
                     | None -> []
 
                 if not relevantBeliefs.IsEmpty then
                     ctx.Logger($"[Ledger] Retrieved {relevantBeliefs.Length} relevant beliefs.")
 
-                let allowContradictions =
-                    taskDef.Constraints
-                    |> List.exists (fun c -> c.Equals("allow_contradictions", StringComparison.OrdinalIgnoreCase))
-
-                let requiresContradictionGate =
-                    taskDef.Constraints
-                    |> List.exists (fun c ->
-                        c.Equals("check_contradictions", StringComparison.OrdinalIgnoreCase)
-                        || c.Equals("ledger_gate", StringComparison.OrdinalIgnoreCase)
-                        || c.Equals("enforce_ledger", StringComparison.OrdinalIgnoreCase))
-
-                let shouldGate =
-                    not allowContradictions
-                    && requiresContradictionGate
-                    && not (List.isEmpty relevantBeliefs)
+                let shouldGate = shouldGateContradictions taskDef.Constraints relevantBeliefs
 
                 let! contradictionReason =
                     if shouldGate then
@@ -726,22 +740,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                           Evaluation = None }
                 | None ->
 
-                    let ledgerContext =
-                        if relevantBeliefs.IsEmpty then
-                            ""
-                        else
-                            let lines =
-                                relevantBeliefs
-                                |> List.map (fun b ->
-                                    let predicate =
-                                        match b.Predicate with
-                                        | RelationType.Custom p -> p
-                                        | _ -> b.Predicate.ToString()
-
-                                    $"- [{b.Confidence:F2}] {b.Subject.Value} {predicate} {b.Object.Value}")
-                                |> String.concat "\n"
-
-                            $"\nKnown Beliefs:\n{lines}\n"
+                    let ledgerContext = formatLedgerContext relevantBeliefs
 
                     let toolList =
                         match ctx.Options.ToolRegistry with
