@@ -183,7 +183,9 @@ module GaPatternSeeder =
               RollbackExpansion = None }
         ]
 
-    /// Run the promotion pipeline on GA-discovered patterns.
-    let seed (minOccurrences: int) : PromotionPipeline.PipelineResult list =
+    /// Run the promotion pipeline on GA-discovered patterns against `store`
+    /// (`PromotionPipeline.defaultStore` for the real ~/.tars/promotion store,
+    /// an `InMemoryPromotionStore` for tests).
+    let seed (store: IPromotionStore) (minOccurrences: int) : PromotionPipeline.PipelineResult list =
         let artifacts = gaTraceArtifacts ()
-        PromotionPipeline.run PromotionPipeline.defaultStore minOccurrences artifacts
+        PromotionPipeline.run store minOccurrences artifacts

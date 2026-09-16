@@ -4,8 +4,8 @@ open Xunit
 open Xunit.Abstractions
 open Tars.Evolution
 
-/// Integration test that runs GA pattern seeding through the real promotion pipeline.
-/// This test modifies ~/.tars/promotion/ state — it's the actual cross-repo discovery.
+/// Runs GA pattern seeding through the real promotion pipeline, against an in-memory
+/// store: it must never write to the user's ~/.tars/promotion store (#247).
 type GaPatternSeederTests(output: ITestOutputHelper) =
 
     [<Fact>]
@@ -27,8 +27,9 @@ type GaPatternSeederTests(output: ITestOutputHelper) =
         Assert.Contains("ga.hook_lifecycle_fsm", patternNames)
         Assert.Contains("ga.orchestrator_pipeline", patternNames)
 
-        // Run the pipeline with minOccurrences=3
-        let results = GaPatternSeeder.seed 3
+        // Run the pipeline with minOccurrences=3 against a fresh, isolated store
+        let store = InMemoryPromotionStore() :> IPromotionStore
+        let results = GaPatternSeeder.seed store 3
         output.WriteLine($"\nPipeline results: {results.Length}")
 
         for r in results do
@@ -47,19 +48,15 @@ type GaPatternSeederTests(output: ITestOutputHelper) =
             | None -> ()
             output.WriteLine("")
 
-        // Pipeline may return 0 results if patterns already reached max level
-        // from a previous run — that's valid. The recurrence store check below
-        // verifies the artifacts were processed regardless.
-        output.WriteLine($"(Pipeline returning 0 results means patterns already at max level)")
-
-        // Verify recurrence records were created
-        let records = PromotionPipeline.getRecurrenceRecords ()
-        let gaRecords = records |> List.filter (fun r -> r.PatternName.StartsWith("ga."))
+        // The store starts empty, so every GA pattern family must land in it
+        let gaRecords =
+            store.GetRecurrence () |> List.filter (fun r -> r.PatternName.StartsWith("ga."))
         output.WriteLine($"GA recurrence records in store: {gaRecords.Length}")
         for r in gaRecords do
             output.WriteLine($"  {r.PatternName}: occurrences={r.OccurrenceCount}, level={PromotionLevel.label r.CurrentLevel}, score={r.AverageScore:F3}")
 
-        Assert.True(gaRecords.Length >= 3, $"Expected at least 3 GA patterns in recurrence store, got {gaRecords.Length}")
+        Assert.Equal(5, gaRecords.Length)
+        Assert.NotEmpty(results)
 
     [<Fact>]
     let ``GA patterns have valid rollback expansions`` () =
