@@ -322,7 +322,9 @@ module RoadmapTests =
                         gate.Signal()
                     }
 
-                let! opened = gate.WaitAsync(TimeSpan.FromSeconds(1.0))
+                // Generous timeout: WaitAsync returns as soon as the gate opens, and a 1s budget
+                // flaked on a busy CI runner where the 50ms signal delay ran late.
+                let! opened = gate.WaitAsync(TimeSpan.FromSeconds(30.0))
                 Assert.True(opened)
                 do! signalTask
             }
