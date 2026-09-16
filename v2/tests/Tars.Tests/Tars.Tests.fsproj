@@ -82,6 +82,7 @@
     <Compile Include="DemoGeneratorTests.fs" />
     <Compile Include="V1ParserTests.fs" />
     <Compile Include="MetascriptRegistryTests.fs" />
+    <Compile Include="ThoughtParsingTests.fs" />
     <Compile Include="PatternTests.fs" />
     <Compile Include="ReasoningPatternTests.fs" />
     <Compile Include="PatternSelectorTests.fs" />

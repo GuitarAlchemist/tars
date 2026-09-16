@@ -5,6 +5,7 @@ open System.Text.Json
 open Tars.Core
 open Tars.Llm
 open System.Text
+open Tars.Cortex.ThoughtParsing
 
 /// <summary>
 /// Agentic Patterns: Composable reasoning patterns for autonomous agents.
@@ -777,127 +778,6 @@ module Patterns =
             None
         else
             Some(MetricSpace.cosineSimilarity v1 v2)
-
-    let private tryGetPropertyInsensitive (name: string) (elem: JsonElement) =
-        if elem.ValueKind = JsonValueKind.Object then
-            elem.EnumerateObject()
-            |> Seq.tryFind (fun p -> p.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
-            |> Option.map (fun p -> p.Value)
-        else
-            None
-
-    let private getDoubleWithDefault (names: string list) (defaultValue: float) (elem: JsonElement) =
-        names
-        |> List.tryPick (fun name ->
-            match tryGetPropertyInsensitive name elem with
-            | Some prop ->
-                match prop.ValueKind with
-                | JsonValueKind.Number -> Some(prop.GetDouble())
-                | JsonValueKind.String ->
-                    match Double.TryParse(prop.GetString()) with
-                    | true, v -> Some v
-                    | _ -> None
-                | _ -> None
-            | None -> None)
-        |> Option.defaultValue defaultValue
-
-    let private getStringList (name: string) (elem: JsonElement) =
-        match tryGetPropertyInsensitive name elem with
-        | Some prop ->
-            match prop.ValueKind with
-            | JsonValueKind.Array ->
-                prop.EnumerateArray()
-                |> Seq.choose (fun item ->
-                    if item.ValueKind = JsonValueKind.String then
-                        Some(item.GetString())
-                    else
-                        None)
-                |> Seq.toList
-            | JsonValueKind.String -> [ prop.GetString() ]
-            | _ -> []
-        | None -> []
-
-    let private clamp01 (value: float) = value |> max 0.0 |> min 1.0
-
-    let private stripCodeFence (value: string) =
-        let trimmed = value.Trim()
-
-        if trimmed.StartsWith("```", StringComparison.Ordinal) then
-            let withoutTicks = trimmed.Substring(3)
-            let newLineIdx = withoutTicks.IndexOfAny([| '\n'; '\r' |])
-
-            let body =
-                if newLineIdx >= 0 then
-                    withoutTicks.Substring(newLineIdx + 1).Trim()
-                else
-                    withoutTicks.Trim()
-
-            if body.EndsWith("```", StringComparison.Ordinal) then
-                body.Substring(0, body.Length - 3).Trim()
-            else
-                body
-        else
-            trimmed
-
-    let private tryParseJsonWithFallback (text: string) =
-        let cleaned = stripCodeFence text
-
-        if String.IsNullOrWhiteSpace cleaned then
-            Result.Error "empty response"
-        else
-            match JsonParsing.tryParseElement cleaned with
-            | Result.Ok elem -> Result.Ok elem
-            | Result.Error firstError ->
-                let startIdx = cleaned.IndexOf('{')
-                let endIdx = cleaned.LastIndexOf('}')
-
-                if startIdx >= 0 && endIdx > startIdx then
-                    let slice = cleaned.Substring(startIdx, endIdx - startIdx + 1)
-
-                    match JsonParsing.tryParseElement slice with
-                    | Result.Ok elem -> Result.Ok elem
-                    | Result.Error secondError -> Result.Error($"{firstError}; {secondError}")
-                else
-                    Result.Error firstError
-
-    let private parseThoughts (text: string) =
-        // Models often emphasise the header (`**THOUGHT 1:**`) and open with a preamble
-        // ("Here are three thoughts:"), which must not become a thought itself (#263).
-        let isHeader (line: string) =
-            line.TrimStart('*', '#', ' ').StartsWith("THOUGHT", StringComparison.OrdinalIgnoreCase)
-
-        let lines = text.Split([| '\n' |], StringSplitOptions.RemoveEmptyEntries)
-        let hasHeaders = lines |> Array.exists (fun l -> isHeader (l.Trim()))
-        let mutable seenHeader = false
-        let mutable thoughts = []
-        let mutable currentThought = StringBuilder()
-
-        for line in lines do
-            let trimmed = line.Trim()
-
-            if isHeader trimmed then
-                seenHeader <- true
-
-                if currentThought.Length > 0 then
-                    thoughts <- currentThought.ToString().Trim() :: thoughts
-                    currentThought.Clear() |> ignore
-
-                let colonIdx = trimmed.IndexOf(':')
-
-                if colonIdx > 0 && colonIdx < trimmed.Length - 1 then
-                    currentThought.Append(trimmed.Substring(colonIdx + 1).Trim().TrimStart('*').Trim()) |> ignore
-            elif hasHeaders && not seenHeader then
-                ()
-            else if currentThought.Length > 0 || trimmed.Length > 20 then
-                if currentThought.Length > 0 then
-                    currentThought.Append(" ") |> ignore
-
-                currentThought.Append(trimmed) |> ignore
-
-        if currentThought.Length > 0 then
-            thoughts <- currentThought.ToString().Trim() :: thoughts
-
-        thoughts |> List.rev |> List.filter (fun s -> s.Length > 10)
 
     let private generateThoughts
         (llm: ILlmService)
