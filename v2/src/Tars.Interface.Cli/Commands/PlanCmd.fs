@@ -41,15 +41,10 @@ module PlanCmd =
         let m = System.Text.RegularExpressions.Regex.Match(text, pattern)
         if m.Success then m.Groups.[1].Value.Trim() else text.Trim()
 
-    let run (config: TarsConfig) (options: PlanOptions) : Task<int> =
+    let private planFromPrompt (options: PlanOptions) (basePrompt: string) : Task<int> =
         task {
-            AnsiConsole.MarkupLine($"[blue]🧠 Planning workflow for goal:[/] [white]{Markup.Escape(options.Goal)}[/]")
-
             let log = Serilog.Log.Logger
             let llm = LlmFactory.create log
-
-            let basePrompt =
-                PlannerPrompts.generatePlanPrompt options.Goal (Some config.VariantOverlays)
 
             let fullPrompt = "You are a TARS Workflow Architect.\n\n" + basePrompt
 
@@ -117,3 +112,12 @@ module PlanCmd =
                 AnsiConsole.MarkupLine($"[red]Plan Generation Failed:[/] {Markup.Escape(ex.Message)}")
                 return 1
         }
+
+    let run (config: TarsConfig) (options: PlanOptions) : Task<int> =
+        AnsiConsole.MarkupLine($"[blue]🧠 Planning workflow for goal:[/] [white]{Markup.Escape(options.Goal)}[/]")
+
+        match PlannerPrompts.generatePlanPrompt options.Goal (Some config.VariantOverlays) with
+        | Result.Error err ->
+            AnsiConsole.MarkupLine($"[red]✗ {Markup.Escape err}[/]")
+            Task.FromResult 1
+        | Result.Ok basePrompt -> planFromPrompt options basePrompt
