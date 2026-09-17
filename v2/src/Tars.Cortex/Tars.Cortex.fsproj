@@ -41,7 +41,6 @@
     <Compile Include="AstIngestor.fs" />
     <Compile Include="Inference.fs" />
     <Compile Include="OutputGuardAnalyzerLlm.fs" />
-    <Compile Include="EntityExtractor.fs" />
     <Compile Include="Structure.fs" />
     <Compile Include="TraceAnalyzer.fs" />
     <Compile Include="PlannerPrompts.fs" />
