@@ -16,10 +16,10 @@ open Tars.Llm.Routing
 ///
 /// Scope, so these tests are not read as more than they are: the adapter pair has
 /// no production callers today. `LlmServiceChatClient` is reached only through
-/// `ToolAwareChatClient`, whose sole reference outside its own file is a comment in
-/// `Agent.fs` — the live `agent run` path routes tools through `WoTExecutor`
-/// instead. So this is protective coverage on infrastructure that is wired but not
-/// yet used, not a guard on a live request path.
+/// `ToolAwareChatClient`, which nothing references — the live `agent run` path routes
+/// tools through `WoTExecutor` instead, and an LLM-side tool loop needs #305 first.
+/// So this is protective coverage on infrastructure that is built but not yet used,
+/// not a guard on a live request path.
 ///
 /// It still matters, because the mapping was wrong in a way nothing could notice at
 /// runtime: `ChatResponseFormat.ForJsonSchema` returns a *new*

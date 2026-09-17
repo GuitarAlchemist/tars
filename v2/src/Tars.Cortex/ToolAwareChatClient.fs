@@ -12,6 +12,11 @@ namespace Tars.Cortex
 ///   let client = ToolAwareChatClient.build llmService
 ///   let opts = ToolAwareChatClient.optionsWithTools tools
 ///   let resp = client.GetResponseAsync(messages, opts) |> Async.AwaitTask
+///
+/// Deliberately unreferenced until #305: LlmServiceChatClient drops ChatOptions.Tools
+/// on the way in, and LlmResponse has no tool-call channel on the way out, so the
+/// FunctionInvokingChatClient loop never sees a call to invoke. Wiring this into a
+/// command today would read like a feature and do nothing.
 
 open Microsoft.Extensions.AI
 open Tars.Llm
