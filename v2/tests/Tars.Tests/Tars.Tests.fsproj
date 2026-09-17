@@ -97,6 +97,7 @@
     <Compile Include="ReasoningAuditTests.fs" />
     <Compile Include="WorkflowOfThought\WotCompilerTests.fs" />
     <Compile Include="WorkflowOfThought\WotParsingIntegrationTests.fs" />
+    <Compile Include="WorkflowOfThought\WorkflowTests.fs" />
     <Compile Include="WorkflowOfThought\WotGoldenRunTests.fs" />
     <Compile Include="WorkflowOfThought\WotDiffTests.fs" />
     <Compile Include="WorkflowOfThought\WoTControllerTests.fs" />

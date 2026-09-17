@@ -9,6 +9,7 @@
     <Compile Include="Wot\WotAST.fs" />
     <Compile Include="Wot\WotParser.fs" />
     <Compile Include="Wot\WotCompiler.fs" />
+    <Compile Include="Wot\Workflow.fs" />
   </ItemGroup>
 
   <ItemGroup>
