@@ -7,6 +7,7 @@ open System.Threading.Tasks
 open Tars.Core
 open Tars.Cortex
 open Tars.Cortex.Patterns
+open Tars.Cortex.ThoughtGraph
 open Tars.Cortex.WoTTypes
 open Tars.Llm
 open Tars.Tools

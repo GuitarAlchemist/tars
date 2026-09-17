@@ -7,6 +7,7 @@ open Microsoft.Extensions.Configuration
 open Serilog
 open Tars.Core
 open Tars.Cortex.Patterns
+open Tars.Cortex.ThoughtGraph
 open Tars.Knowledge
 open Tars.Interface.Cli.Commands.AgentHelpers
 

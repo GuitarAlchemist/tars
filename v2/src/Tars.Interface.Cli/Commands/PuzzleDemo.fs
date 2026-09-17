@@ -14,6 +14,7 @@ open Tars.Interface.Cli.ConsoleHelpers
 open Spectre.Console
 open Tars.Cortex
 open Tars.Cortex.Patterns
+open Tars.Cortex.ThoughtGraph
 open Tars.DSL.Wot
 open Tars.Tools.Puzzles
 
