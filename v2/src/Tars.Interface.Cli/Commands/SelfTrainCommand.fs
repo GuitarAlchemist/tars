@@ -36,6 +36,8 @@ module SelfTrainCommand =
             if stats.SelfHostingExamples > 0 then
                 AnsiConsole.MarkupLine($"  Self-hosting wins: [bold green]{stats.SelfHostingExamples}[/]  (test-verified source fixes, ADR 0003)")
             AnsiConsole.MarkupLine($"  Unique problems:   [bold]{stats.UniqueProblems}[/]")
+            if stats.HeldOutSkipped > 0 then
+                AnsiConsole.MarkupLine($"  Held out:          [dim]{stats.HeldOutSkipped} verified attempt(s) skipped (evaluation split, never trained on)[/]")
             if stats.FastestSelected > 0 then
                 AnsiConsole.MarkupLine($"  Fastest-variant:   [bold]{stats.FastestSelected}[/] timed problem(s) (kept the quickest verified solution)")
             for (cat, n) in stats.ByCategory do
@@ -48,16 +50,18 @@ module SelfTrainCommand =
         AnsiConsole.MarkupLine("[bold]Self-train cycle (level-4 data→weights loop)[/]")
         AnsiConsole.WriteLine()
         let steps =
-            [ "1. Baseline   ", "tars benchmark code run --domain all --model qwen2.5-coder:7b"
-              "2. Export     ", "tars self-train export --out ~/.tars/self_train/dataset.jsonl"
-              "3. Fine-tune  ", "(GPU) unsloth/llama-factory SFT on dataset.jsonl -> GGUF -> `ollama create tars-coder -f Modelfile`"
-              "4. Re-bench   ", "tars benchmark code run --domain all --model tars-coder"
-              "5. Compare    ", "tars benchmark code report   # delta in pass-rate = the recursion's headroom" ]
+            [ "1. Collect    ", "tars benchmark code run --domain all --split train --model qwen2.5-coder:7b"
+              "2. Baseline   ", "tars benchmark code run --domain all --split heldout --model qwen2.5-coder:7b"
+              "3. Export     ", "tars self-train export --out ~/.tars/self_train/dataset.jsonl"
+              "4. Fine-tune  ", "(GPU) unsloth/llama-factory SFT on dataset.jsonl -> GGUF -> `ollama create tars-coder -f Modelfile`"
+              "5. Re-bench   ", "tars benchmark code run --domain all --split heldout --model tars-coder"
+              "6. Compare    ", "tars benchmark code report   # held-out pass-rate delta (2 vs 5) = the recursion's headroom" ]
         for (label, cmd) in steps do
             AnsiConsole.MarkupLine($"  [cyan]{label}[/] [dim]{Markup.Escape cmd}[/]")
         AnsiConsole.WriteLine()
         AnsiConsole.MarkupLine("  [dim]Labels are deterministic (compile + PASS), so the loop trains only on[/]")
         AnsiConsole.MarkupLine("  [dim]ground-truth-correct solutions — the property that stops self-training collapsing.[/]")
+        AnsiConsole.MarkupLine("  [dim]Held-out problems are never exported, so steps 2 and 5 measure generalisation, not recall.[/]")
         0
 
     let private sourceFor (domain: string) (idFilter: string option) : BenchmarkProblem list =
@@ -134,7 +138,20 @@ module SelfTrainCommand =
                 passedDelta) |> ignore
             table.AddRow("Pass rate",
                 sprintf "%.0f%%" (pct a), sprintf "%.0f%%" (pct b), rateDelta) |> ignore
+
+            // The honest signal: problems whose solutions are never exported (#294).
+            let heldOutIds = EvalSplit.heldOut source |> List.map (fun p -> p.Id) |> Set.ofList
+            let splitRow label (inSplit: bool) =
+                let count (s: BenchmarkRunSummary) =
+                    let attempts = s.Attempts |> List.filter (fun at -> heldOutIds.Contains at.ProblemId = inSplit)
+                    (attempts |> List.filter (fun at -> at.Validated) |> List.length), attempts.Length
+                let (pa, ta), (pb, tb) = count a, count b
+                if ta > 0 || tb > 0 then
+                    table.AddRow(label, sprintf "%d/%d" pa ta, sprintf "%d/%d" pb tb, signI (pb - pa)) |> ignore
+            splitRow "Held-out passed" true
+            splitRow "Training-split passed" false
             AnsiConsole.Write(table)
+            AnsiConsole.MarkupLine("  [dim]Judge a fine-tune by the held-out row; training-split problems may be recalled from the dataset.[/]")
 
             // Per-problem speed delta (timed problems present in both runs).
             let timed =

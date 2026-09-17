@@ -12,6 +12,7 @@
     <Compile Include="BenchmarkTypes.fs" />
     <Compile Include="ProblemBank.fs" />
     <Compile Include="GaProblemBank.fs" />
+    <Compile Include="EvalSplit.fs" />
     <Compile Include="PromotionTypes.fs" />
     <Compile Include="GrammarGovernor.fs" />
     <Compile Include="WeightedGrammar.fs" />

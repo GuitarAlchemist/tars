@@ -88,6 +88,7 @@ module CodeBenchmark =
             let mutable domain = "code"
             let mutable model = None
             let mutable idFilter = None
+            let mutable split = "all"
             let mutable i = 1
             while i < args.Length do
                 match args.[i] with
@@ -109,6 +110,9 @@ module CodeBenchmark =
                 | "--id" when i + 1 < args.Length ->
                     idFilter <- Some args.[i + 1]
                     i <- i + 2
+                | "--split" when i + 1 < args.Length ->
+                    split <- args.[i + 1].ToLowerInvariant()
+                    i <- i + 2
                 | _ -> i <- i + 1
 
             let llm =
@@ -116,12 +120,16 @@ module CodeBenchmark =
                 | Some m -> LlmFactory.createWithModel logger m
                 | None -> LlmFactory.create logger
             let source =
-                let s = problemSource domain
+                let s =
+                    match split with
+                    | "heldout" | "eval" -> EvalSplit.heldOut (problemSource domain)
+                    | "train" -> EvalSplit.training (problemSource domain)
+                    | _ -> problemSource domain
                 match idFilter with
                 | Some id -> s |> List.filter (fun p -> p.Id = id)
                 | None -> s
 
-            RichOutput.info $"Starting code benchmark (domain: {domain}, {source.Length} problems)..."
+            RichOutput.info $"Starting code benchmark (domain: {domain}, split: {split}, {source.Length} problems)..."
             let! summary =
                 BenchmarkRunner.runSuiteFromProblems llm source difficulty category maxProblems true
                     (fun msg -> printfn "%s" msg)
@@ -150,6 +158,7 @@ module CodeBenchmark =
             printfn "    --difficulty basic|intermediate|advanced|expert"
             printfn "    --category algorithms|strings|data|error|type|pattern|music"
             printfn "    --model NAME  Override the LLM (e.g. qwen2.5-coder:7b)"
+            printfn "    --split all|train|heldout  heldout = never exported by self-train; use it to measure a fine-tune"
             printfn "    --max N       Limit to N problems"
             printfn "  status          Show problem bank and latest results"
             printfn "  report          Show benchmark history"
