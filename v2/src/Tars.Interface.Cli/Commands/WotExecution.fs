@@ -164,3 +164,18 @@ module WotExecution =
             with ex ->
                 return Result.Error(ex.Message, [])
         }
+
+    /// The golden record of a completed V0 run, which `wot ci-check` and `wot diff` compare.
+    let toGolden (mode: ReasonStepMode) (ctx: ExecContext) (verify: VerifyResult option) (traces: TraceEvent list) =
+        { SchemaVersion = "wot.golden.v1"
+          Steps = traces |> List.map TraceEvent.toCanonical
+          Summary =
+            { ToolCalls = traces |> List.filter (fun t -> t.Kind = "tool") |> List.length
+              VerifyPassed = verify |> Option.map (fun v -> v.Passed)
+              FirstError = None
+              OutputKeys = ctx.Vars |> Map.toList |> List.map fst
+              Mode = mode.ToString()
+              PassRate = None
+              EstimatedCost = 0m
+              DiffCount = 0
+              TotalTokens = 0 } }
