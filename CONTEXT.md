@@ -48,6 +48,14 @@ via `LlmFactory.create(logger)`, never `DefaultLlmService` directly.
   F# coding challenge validated by compiling and printing PASS, driving `evolve`,
   `benchmark code` and `self-train`. They share only `ProblemDifficulty`.
   Train/eval separation *within* the benchmark pool is tracked in #294.
+- **Reflection** — three distinct things; always say which (#280):
+  - *Symbolic reflection* — evidence-backed belief updates about a run
+    (`Tars.Core/SymbolicReflection.fs` types; `SymbolicReflector` produces them with
+    an LLM behind `ISymbolicReflector`; `GraphSymbolicReflector` reads them via SPARQL).
+  - *Intent/outcome reflection* — compares a WoT plan with its execution trace and
+    distils lessons (`IntentOutcomeReflection`, run by the meta-cognition cycle).
+  - *Output critique* — an LLM critic scores one task's output and suggests an
+    improvement (`OutputCritique`, used by `tars run`).
 - **fsharp_* tools** — the F# tool family on the MCP surface (`fsharp_compile`,
   `fsharp_check_syntax`, `fsharp_eval`, …) used for live F# analysis.
 

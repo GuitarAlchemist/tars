@@ -31,7 +31,7 @@
     <Compile Include="CurriculumManager.fs" />
     <Compile Include="Evaluation.fs" />
     <Compile Include="LedgerIngestion.fs" />
-    <Compile Include="Reflection.fs" />
+    <Compile Include="OutputCritique.fs" />
     <Compile Include="Optimizer.fs" />
     <Compile Include="DemoVisualization.fs" />
     <Compile Include="TaskPrioritization.fs" />
@@ -46,7 +46,7 @@
     <!-- Meta-Cognition: LLM-enhanced gap detection and curriculum planning -->
     <Compile Include="FailureAnalyzer.fs" />
     <Compile Include="CurriculumPlanner.fs" />
-    <Compile Include="ReflectionEngine.fs" />
+    <Compile Include="IntentOutcomeReflection.fs" />
     <Compile Include="MetaCognitionOrchestrator.fs" />
     <!-- ix bridge: Rust-based GA/optimization for pattern evolution -->
     <Compile Include="MachinBridge.fs" />

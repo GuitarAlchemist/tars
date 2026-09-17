@@ -304,7 +304,7 @@ Execution History → Failure Clustering → Gap Detection → Curriculum → Fi
 - **FailureClustering** groups similar failures using Jaccard similarity
 - **GapDetection** identifies domains with high failure rates
 - **CurriculumPlanner** generates targeted tasks to address gaps
-- **ReflectionEngine** compares intent vs outcome after each run
+- **IntentOutcomeReflection** compares intent vs outcome after each run
 
 ### Key Concept: Evolutionary Pattern Breeding
 

@@ -60,15 +60,15 @@ module MetaCognitionOrchestrator =
             let mutable reflections = []
 
             for (plannedIds, trace, goal, result) in recentTraces do
-                let comparison = ReflectionEngine.compareIntentVsOutcome plannedIds trace goal
+                let comparison = IntentOutcomeReflection.compareIntentVsOutcome plannedIds trace goal
 
                 let report =
                     match llm with
                     | Some llmService when config.EnableLlmRefinement ->
-                        ReflectionEngine.reflect llmService comparison goal result
+                        IntentOutcomeReflection.reflect llmService comparison goal result
                         |> Async.AwaitTask |> Async.RunSynchronously
                     | _ ->
-                        ReflectionEngine.reflectPure comparison goal
+                        IntentOutcomeReflection.reflectPure comparison goal
 
                 reflections <- report :: reflections
 
@@ -86,7 +86,7 @@ module MetaCognitionOrchestrator =
                         gap.Domain (gap.FailureRate * 100.0) gap.SuggestedRemedy)
 
             // From reflections
-            let lessons = ReflectionEngine.synthesizeLessons reflections
+            let lessons = IntentOutcomeReflection.synthesizeLessons reflections
             for lesson in lessons |> List.truncate 3 do
                 recommendations.Add(sprintf "LESSON: %s" lesson)
 

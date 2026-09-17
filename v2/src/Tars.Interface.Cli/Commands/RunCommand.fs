@@ -9,7 +9,7 @@ open Tars.Metascript.V1
 open Tars.Metascript.V1Executor
 open Tars.Metascript.Domain
 open Tars.Metascript.Config
-open Tars.Evolution.Reflection
+open Tars.Evolution.OutputCritique
 open Tars.Evolution.Optimizer
 open Tars.Interface.Cli
 
@@ -137,7 +137,7 @@ module RunCommand =
                                 finalOutputs <- ex.Message
 
                             if shouldOptimize then
-                                let reflectionAgent = LlmReflectionAgent(llm) :> IReflectionAgent
+                                let reflectionAgent = LlmOutputCritic(llm) :> IOutputCritic
 
                                 let traceItems =
                                     execTrace

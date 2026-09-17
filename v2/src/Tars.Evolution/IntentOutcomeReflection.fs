@@ -8,7 +8,7 @@ open Tars.Core.MetaCognition
 open Tars.Core.WorkflowOfThought
 
 /// Post-execution meta-analysis: compares intent vs outcome and extracts lessons.
-module ReflectionEngine =
+module IntentOutcomeReflection =
 
     // =====================================================================
     // Pure intent vs outcome comparison
