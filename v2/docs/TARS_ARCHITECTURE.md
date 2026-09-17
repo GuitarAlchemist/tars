@@ -118,7 +118,6 @@ type WoTNodeKind =
     | Reason   // Think / LLM call
     | Tool     // Act / external action
     | Validate // Symbolic check (invariants)
-    | Memory   // Knowledge graph read/write
     | Control  // Branch / Loop / Parallel / Decide / Observe
 ```
 

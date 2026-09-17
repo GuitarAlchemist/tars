@@ -64,12 +64,6 @@ module WoTExecutor =
                 else relevant |> List.truncate 15
             | _ -> allTools |> List.truncate 10
         | Validate -> [] // Validation nodes don't need tools
-        | Memory ->
-            allTools
-            |> List.filter (fun t ->
-                t.Name.Contains("memory")
-                || t.Name.Contains("search")
-                || t.Name.Contains("know"))
         | Control -> [] // Control nodes don't need tools
 
     /// Build a focused system prompt for the current step, including only relevant previous outputs.
@@ -289,27 +283,6 @@ Respond with ONLY the number of your choice."""
             | Result.Error e -> return Result.Error e
         }
 
-    /// Execute a Sync node
-    let private executeSync (ctx: ExecutionContext) (id: string) (op: MemoryOp) : Async<Result<string, string>> =
-        async {
-            ctx.Logger $"[WoT] Sync: %A{op}"
-
-            // Memory operations are currently stubs - will integrate with KG
-            match op with
-            | Query sparql ->
-                ctx.Logger $"[WoT] Query: %s{sparql}"
-                return Result.Ok "[]"
-            | Assert(s, p, o) ->
-                ctx.Logger $"[WoT] Assert: (%s{s}, %s{p}, %s{o})"
-                return Result.Ok $"Asserted: %s{s} %s{p} %s{o}"
-            | Retract(s, p, o) ->
-                ctx.Logger $"[WoT] Retract: (%s{s}, %s{p}, %s{o})"
-                return Result.Ok $"Retracted: %s{s} %s{p} %s{o}"
-            | Search(_, topK) ->
-                ctx.Logger $"[WoT] Search: top %d{topK}"
-                return Result.Ok "[]"
-        }
-
     /// Execute a Validate node
     let private executeValidate
         (ctx: ExecutionContext)
@@ -525,11 +498,6 @@ Respond with ONLY the number of your choice."""
                     match node.Payload with
                     | :? ValidatePayload as p -> executeValidate ctx id p.Invariants lastOutput
                     | _ -> async { return Result.Error "Invalid Validate Payload" }
-
-                | Memory ->
-                    match node.Payload with
-                    | :? MemoryPayload as p -> executeSync ctx id p.Operation
-                    | _ -> async { return Result.Error "Invalid Memory Payload" }
 
                 | Control ->
                     match node.Payload with

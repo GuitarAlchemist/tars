@@ -51,13 +51,6 @@ module PatternCompiler =
           Payload = ControlPayload.Decide(candidates, criteria)
           Metadata = emptyMeta }
 
-    /// Create a Sync node for memory operations
-    let sync op =
-        { Id = genId "sync"
-          Kind = Memory
-          Payload = { Operation = op }
-          Metadata = emptyMeta }
-
     /// Create a Validate node
     let validate invariants =
         { Id = genId "validate"
@@ -507,7 +500,6 @@ module PatternCompiler =
                     match node.Payload with
                     | :? ValidatePayload as p -> $"Validate: %d{p.Invariants.Length} checks"
                     | _ -> "Validate"
-                | Memory -> "Memory"
                 | Control ->
                     match node.Payload with
                     | :? ControlPayload as p ->
