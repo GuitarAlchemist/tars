@@ -271,24 +271,7 @@ module WotCommand =
                 match result with
                 | Result.Error(e, traces) -> return Result.Error e
                 | Result.Ok(ctx, verifyC, traces) ->
-                    let passed = verifyC |> Option.map (fun v -> v.Passed)
-                    let toolCalls = traces |> List.filter (fun t -> t.Kind = "tool") |> List.length
-
-                    let golden: CanonicalGolden =
-                        { SchemaVersion = "wot.golden.v1"
-                          Steps = traces |> List.map TraceEvent.toCanonical
-                          Summary =
-                            { ToolCalls = toolCalls
-                              VerifyPassed = passed
-                              FirstError = None
-                              OutputKeys = (ctx.Vars |> Map.toList |> List.map fst)
-                              Mode = mode.ToString()
-                              PassRate = None
-                              EstimatedCost = 0m
-                              DiffCount = 0
-                              TotalTokens = 0 } }
-
-                    return Result.Ok(golden, path)
+                    return Result.Ok(WotExecution.toGolden mode ctx verifyC traces, path)
         }
 
 
@@ -1058,22 +1041,7 @@ module WotCommand =
                                         (Some toolCalls)
 
                                 writeJson "run_summary.json" sumObj
-
-                                let golden: CanonicalGolden =
-                                    { SchemaVersion = "wot.golden.v1"
-                                      Steps = traces |> List.map TraceEvent.toCanonical
-                                      Summary =
-                                        { ToolCalls = sumObj.ToolCalls
-                                          VerifyPassed = sumObj.VerifyPassed
-                                          FirstError = sumObj.FirstError
-                                          OutputKeys = sumObj.Outputs
-                                          Mode = sumObj.Mode
-                                          PassRate = None
-                                          EstimatedCost = 0m
-                                          DiffCount = 0
-                                          TotalTokens = 0 } }
-
-                                writeJson "golden.json" golden
+                                writeJson "golden.json" (WotExecution.toGolden opts.Mode ctx verifyC traces)
 
                                 AnsiConsole.MarkupLine("\n[bold green]Execution Complete[/]")
 

@@ -73,7 +73,7 @@ module WorkflowTests =
         )
 
     [<Fact>]
-    let ``runV0 executes a loaded workflow with a stub reasoner`` () =
+    let ``runV0 executes a loaded workflow with a stub reasoner and records its golden`` () =
         if not (Tars.Tests.TestHelpers.requireTools ()) then
             ()
         else
@@ -87,7 +87,14 @@ module WorkflowTests =
                 |> Async.RunSynchronously
 
             match result with
-            | Ok(ctx, _, traces) ->
+            | Ok(ctx, verify, traces) ->
                 Assert.Equal(5, traces.Length)
                 Assert.Contains("summary", ctx.Vars |> Map.keys)
+
+                let golden = WotExecution.toGolden ReasonStepMode.Stub ctx verify traces
+                Assert.Equal("wot.golden.v1", golden.SchemaVersion)
+                Assert.Equal(5, golden.Steps.Length)
+                Assert.Equal(0, golden.Summary.ToolCalls)
+                Assert.Equal("Stub", golden.Summary.Mode)
+                Assert.Equal<string>(ctx.Vars |> Map.toList |> List.map fst, golden.Summary.OutputKeys)
             | Error(e, _) -> failwith e
