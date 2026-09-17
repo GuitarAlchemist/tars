@@ -39,6 +39,15 @@ via `LlmFactory.create(logger)`, never `DefaultLlmService` directly.
   (`~/.ga/traces/`) and chatbot skill-routing claims, promoting them through the
   evolution pipeline for cross-model validation (`ingest_ga_traces`,
   `ChatbotClaimsBridge.fs`).
+- **Curriculum problem** vs **benchmark problem** — two deliberately separate
+  practice pools (decided in #249; do not merge them). A *curriculum problem*
+  (`CurriculumTypes.Problem`, via `ProblemIngestor` / `CurriculumManager`) is a
+  free-text reasoning task with text validation criteria, driving
+  `tars wot curriculum train`. A *benchmark problem*
+  (`BenchmarkTypes.BenchmarkProblem`, in `ProblemBank` / `GaProblemBank`) is an
+  F# coding challenge validated by compiling and printing PASS, driving `evolve`,
+  `benchmark code` and `self-train`. They share only `ProblemDifficulty`.
+  Train/eval separation *within* the benchmark pool is tracked in #294.
 - **fsharp_* tools** — the F# tool family on the MCP surface (`fsharp_compile`,
   `fsharp_check_syntax`, `fsharp_eval`, …) used for live F# analysis.
 
