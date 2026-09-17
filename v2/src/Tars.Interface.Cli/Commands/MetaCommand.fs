@@ -252,7 +252,7 @@ module MetaCommand =
 
         let result =
             MetaCognitionOrchestrator.runCycle
-                llm config outcomes [] []
+                llm config outcomes []
             |> fun t -> t.Result
 
         // Display results

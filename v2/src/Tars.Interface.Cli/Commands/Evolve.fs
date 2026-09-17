@@ -865,7 +865,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         { Tars.Core.MetaCognition.MetaCognitionConfig.defaults with
                             GapDetectionThreshold = 0.5 }
                     let! metaResult =
-                        MetaCognitionOrchestrator.runCycle None metaConfig outcomes [] []
+                        MetaCognitionOrchestrator.runCycle None metaConfig outcomes []
                     if not metaResult.DetectedGaps.IsEmpty then
                         RichOutput.dim $"  [Meta] {metaResult.DetectedGaps.Length} capability gaps detected"
                         for g in metaResult.DetectedGaps |> List.truncate 3 do

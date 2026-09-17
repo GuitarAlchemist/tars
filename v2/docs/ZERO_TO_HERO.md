@@ -200,7 +200,7 @@ let completeAsync (req: LlmRequest) =
     }
 ```
 
-**Where you'll see this:** `ClaudeCodeService.fs` uses `task {}` for subprocess calls. `TarsWoTAgent.fs` uses `async {}` for WoT execution. `RetroactionLoop.fs` uses `async {}` for the learning cycle.
+**Where you'll see this:** `ClaudeCodeService.fs` uses `task {}` for subprocess calls. `TarsWoTAgent.fs` uses `async {}` for WoT execution.
 
 #### Interfaces and Object Expressions (TARS's Extension Points)
 

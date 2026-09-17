@@ -9,7 +9,7 @@ open Tars.Cortex
 open Tars.Cortex.WoTTypes
 
 /// LLM-enhanced failure analysis.
-/// Collects failures from pattern outcomes and cycle results, then optionally
+/// Collects failures from pattern outcomes, then optionally
 /// uses LLM to refine root causes beyond heuristic classification.
 module FailureAnalyzer =
 
@@ -28,37 +28,12 @@ module FailureAnalyzer =
                   Tags = GapDetection.extractDomainTags outcome.Goal
                   Score = 0.0 }
 
-    /// Convert a CycleResult (from RetroactionLoop) to a FailureRecord.
-    let fromCycleResult (cr: RetroactionLoop.CycleResult) : FailureRecord option =
-        match cr.Score with
-        | Some score when score.Success -> None  // Not a failure
-        | _ ->
-            let errorMsg =
-                cr.Result
-                |> Option.defaultValue "No result produced"
-                |> fun s -> s.Substring(0, min 200 s.Length)
-            Some
-                { RunId = Guid.NewGuid().ToString("N").Substring(0, 12)
-                  Goal = cr.Problem.Description
-                  PatternUsed =
-                      cr.NewPattern
-                      |> Option.map (fun p -> p.Name)
-                      |> Option.defaultValue "unknown"
-                  ErrorMessage = errorMsg
-                  TraceStepCount = 0
-                  FailedAtStep = None
-                  Timestamp = DateTime.UtcNow
-                  Tags = cr.Problem.Tags
-                  Score = cr.Score |> Option.map (fun s -> s.Overall) |> Option.defaultValue 0.0 }
-
     /// Collect all failure records from available sources.
     let collectFailures
         (outcomes: PatternOutcome list)
-        (cycleResults: RetroactionLoop.CycleResult list)
         : FailureRecord list =
-        let fromOutcomes = outcomes |> List.choose fromPatternOutcome
-        let fromCycles = cycleResults |> List.choose fromCycleResult
-        fromOutcomes @ fromCycles
+        outcomes
+        |> List.choose fromPatternOutcome
         |> List.sortByDescending (fun f -> f.Timestamp)
 
     /// Use LLM to refine the root cause classification for a cluster.
@@ -146,10 +121,9 @@ Output ONLY: CATEGORY: detail""" errorSamples
         (llm: ILlmService option)
         (threshold: float)
         (outcomes: PatternOutcome list)
-        (cycleResults: RetroactionLoop.CycleResult list)
         : Task<FailureCluster list> =
         task {
-            let failures = collectFailures outcomes cycleResults
+            let failures = collectFailures outcomes
             let clusters = FailureClustering.buildClusters threshold failures
 
             match llm with
