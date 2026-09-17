@@ -14,19 +14,6 @@ module WoTTypes =
     // =========================================================================
 
     /// <summary>
-    /// Memory operations for knowledge graph interactions.
-    /// </summary>
-    type MemoryOp =
-        /// Query the knowledge graph
-        | Query of sparql: string
-        /// Assert a new triple
-        | Assert of subject: string * predicate: string * object_: string
-        /// Retract an existing triple
-        | Retract of subject: string * predicate: string * object_: string
-        /// Search vector store for similar items
-        | Search of embedding: float array * topK: int
-
-    /// <summary>
     /// Operation for structured verification.
     /// </summary>
     type VerificationOp =
@@ -61,7 +48,6 @@ module WoTTypes =
         | Reason // Think / LLM
         | Tool // Act / Side-effect
         | Validate // Symbolic check
-        | Memory // Store / Retrieve
         | Control // Loop / Branch
 
     /// <summary>
@@ -90,11 +76,6 @@ module WoTTypes =
     /// Payload for Validate nodes.
     /// </summary>
     type ValidatePayload = { Invariants: WoTInvariant list }
-
-    /// <summary>
-    /// Payload for Memory nodes.
-    /// </summary>
-    type MemoryPayload = { Operation: MemoryOp }
 
     /// <summary>
     /// Payload for Control nodes.

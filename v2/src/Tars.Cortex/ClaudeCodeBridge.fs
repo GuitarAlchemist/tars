@@ -15,7 +15,7 @@ module ClaudeCodeBridge =
 
     type ManifestNode =
         { Id: string
-          Kind: string // "Reason" | "Tool" | "Validate" | "Memory" | "Control"
+          Kind: string // "Reason" | "Tool" | "Validate" | "Control"
           Prompt: string option // For Reason nodes
           ModelHint: string option
           ToolName: string option
@@ -132,9 +132,6 @@ module ClaudeCodeBridge =
             | _ ->
                 { Id = node.Id; Kind = "Validate"; Prompt = None; ModelHint = None
                   ToolName = None; ToolArgs = None; Invariants = None; Next = next }
-        | Memory ->
-            { Id = node.Id; Kind = "Memory"; Prompt = None; ModelHint = None
-              ToolName = None; ToolArgs = None; Invariants = None; Next = next }
         | Control ->
             { Id = node.Id; Kind = "Control"; Prompt = None; ModelHint = None
               ToolName = None; ToolArgs = None; Invariants = None; Next = next }
