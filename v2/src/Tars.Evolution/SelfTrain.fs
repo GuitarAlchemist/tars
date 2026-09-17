@@ -16,7 +16,8 @@ open System.Text.Json
 ///
 /// This module produces the dataset (the part TARS can do natively). The actual
 /// weight update is an external GPU step (unsloth / llama.cpp); `tars self-train`
-/// prints the runbook. The A/B measurement is just two `benchmark code` runs.
+/// prints the runbook. The A/B measurement is two `benchmark code` runs over the
+/// held-out split (`EvalSplit`), whose solutions are never exported (#294).
 module SelfTrain =
 
     /// All known problems, indexed by id (generic coding + GA music-theory).
@@ -34,19 +35,31 @@ module SelfTrain =
           FastestSelected: int
           /// Verified self-hosting wins merged in from self_host_wins.jsonl (ADR 0003).
           SelfHostingExamples: int
+          /// Verified attempts skipped because their problem is held out for evaluation.
+          HeldOutSkipped: int
           OutputPath: string
           ModelfilePath: string }
 
-    /// Collect every validated attempt across saved benchmark runs and emit an
-    /// SFT JSONL dataset. `domainFilter` optionally keeps only one category
-    /// (e.g. MusicTheory for GA-only self-training).
-    let exportDataset (outPath: string) (domainFilter: ProblemCategory option) : ExportStats =
-        let summaries = BenchmarkRunner.loadHistory ()
+    /// Pick the training attempts from saved benchmark runs: verified, not refuted by
+    /// property testing, in the domain, and never from a held-out problem (#294).
+    /// Timed problems keep only their fastest variant (the bool tags that pick).
+    /// Returns the picks and how many verified attempts were skipped as held out.
+    let selectTrainingAttempts
+        (problemsById: Map<string, BenchmarkProblem>)
+        (summaries: BenchmarkRunSummary list)
+        (domainFilter: ProblemCategory option)
+        : (BenchmarkAttempt * bool) list * int =
+        let isHeldOut (a: BenchmarkAttempt) =
+            problemsById |> Map.tryFind a.ProblemId |> Option.exists EvalSplit.isHeldOut
 
-        let verified =
+        let validated =
             summaries
             |> List.collect (fun s -> s.Attempts)
             |> List.filter (fun a -> a.Validated)
+
+        let verified =
+            validated
+            |> List.filter (isHeldOut >> not)
             // Drop solutions that passed the example cases but FAILED property
             // testing (Some false) — they're overfit/buggy and must not become
             // training data. None (no properties) and Some true are kept.
@@ -72,6 +85,15 @@ module SelfTrain =
                     attempts
                     |> List.distinctBy (fun a -> a.GeneratedCode.Trim())
                     |> List.map (fun a -> a, false))
+
+        chosen, (validated |> List.filter isHeldOut |> List.length)
+
+    /// Collect every validated training attempt across saved benchmark runs and emit
+    /// an SFT JSONL dataset. `domainFilter` optionally keeps only one category
+    /// (e.g. MusicTheory for GA-only self-training).
+    let exportDataset (outPath: string) (domainFilter: ProblemCategory option) : ExportStats =
+        let summaries = BenchmarkRunner.loadHistory ()
+        let chosen, heldOutSkipped = selectTrainingAttempts problemsById summaries domainFilter
 
         // Anonymous records serialize cleanly under System.Text.Json;
         // named F# records (without the FSharp converter) emit "{}".
@@ -149,5 +171,6 @@ module SelfTrain =
             |> List.sortByDescending snd
           FastestSelected = fastestSelected
           SelfHostingExamples = selfHostLines.Length
+          HeldOutSkipped = heldOutSkipped
           OutputPath = outPath
           ModelfilePath = modelfilePath }
