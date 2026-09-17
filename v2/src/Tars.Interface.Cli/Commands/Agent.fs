@@ -565,7 +565,7 @@ let runWorkflowOfThoughts
                 return 1
     }
 
-/// Run via MAF: TarsWoTAgent + AgentOrchestrator + ToolAwareChatClient
+/// Run via MAF: TarsWoTAgent + AgentOrchestrator
 let runMaf
     (config: Microsoft.Extensions.Configuration.IConfiguration)
     (options: AgentOptions)
@@ -632,10 +632,8 @@ let runMaf
                 printfn $"📋 Agent: %s{agent.Name} (MAF)"
                 printfn ""
 
-                // Build MAF tool-aware pipeline
-                let aiTools = MafToolAdapter.toAITools toolRegistry
-                printfn $"🔧 MAF Tools: %d{aiTools.Length} adapted"
-                printfn ""
+                // Tools reach the model through the WoT executor's Tool nodes, which call
+                // the registry above. An LLM-side tool loop needs #305 first.
                 printfn "🔄 Executing via MAF orchestrator..."
                 printfn ""
 
