@@ -20,121 +20,15 @@ module WotCommand =
     // Tool invocation goes through Tars.Tools.ToolInvoker, which owns resilience
     // (circuit breaker + recording) and surfaces typed ToolOutcomes.
 
-    /// Execute a plan through the Cortex WoTExecutor and print results.
-    let private executeCortex
-        (plan: Plan<Parsed>)
-        (llm: Tars.Llm.ILlmService)
-        (toolRegistry: ToolRegistry)
-        : Async<int> =
-        async {
-            let wotPlan = WotExecution.toCortexPlan plan
-            let cortexToolRegistry = toolRegistry :> IToolRegistry
-
-            let executor =
-                Tars.Cortex.WoTExecutor.DefaultWoTExecutor(llm, cortexToolRegistry)
-                :> IWoTExecutor
-
-            let agentCtx = AgentHelpers.createAgentContext (fun msg -> AnsiConsole.MarkupLine($"[dim]{Markup.Escape(msg)}[/]")) llm None
-
-            let mutable stepCount = 0
-
-            let onProgress (step: WoTTraceStep) =
-                stepCount <- stepCount + 1
-                let statusStr =
-                    match step.Status with
-                    | Completed(_, ms) -> $"[green]OK[/] ({ms}ms)"
-                    | Failed(err, ms) -> $"[red]FAIL[/] ({ms}ms): {Markup.Escape(err)}"
-                    | Skipped reason -> $"[yellow]SKIP[/]: {Markup.Escape(reason)}"
-                    | Pending -> "[dim]pending[/]"
-                    | Running -> "[blue]running[/]"
-                let outputPreview =
-                    match step.Output with
-                    | Some o when o.Length > 120 -> Markup.Escape(o.Substring(0, 120)) + "..."
-                    | Some o -> Markup.Escape(o)
-                    | None -> "[dim]<none>[/]"
-                AnsiConsole.MarkupLine($"  [{stepCount}] [bold]{Markup.Escape(step.NodeId)}[/] ({step.NodeType}) {statusStr}")
-                AnsiConsole.MarkupLine($"      Output: {outputPreview}")
-
-            AnsiConsole.MarkupLine($"[bold blue]Cortex WoT Executor[/] - {wotPlan.Nodes.Length} nodes")
-            AnsiConsole.MarkupLine("")
-
-            let! result = executor.ExecuteWithProgress(wotPlan, agentCtx, onProgress)
-
-            AnsiConsole.MarkupLine("")
-
-            // Print summary
-            if result.Success then
-                AnsiConsole.MarkupLine("[bold green]Execution Succeeded[/]")
-            else
-                AnsiConsole.MarkupLine("[bold red]Execution Failed[/]")
-
-            AnsiConsole.MarkupLine($"  Steps: {result.Metrics.TotalSteps} total, {result.Metrics.SuccessfulSteps} succeeded, {result.Metrics.FailedSteps} failed")
-            AnsiConsole.MarkupLine($"  Duration: {result.Metrics.TotalDurationMs}ms")
-            AnsiConsole.MarkupLine($"  Tokens: {result.Metrics.TotalTokens}")
-
-            if not result.ToolsUsed.IsEmpty then
-                let toolList = String.Join(", ", result.ToolsUsed)
-                AnsiConsole.MarkupLine($"  Tools Used: {toolList}")
-
-            if not result.Warnings.IsEmpty then
-                AnsiConsole.MarkupLine("[yellow]Warnings:[/]")
-                for w in result.Warnings do
-                    AnsiConsole.MarkupLine($"  - {Markup.Escape(w)}")
-
-            if not result.Errors.IsEmpty then
-                AnsiConsole.MarkupLine("[red]Errors:[/]")
-                for e in result.Errors do
-                    AnsiConsole.MarkupLine($"  - {Markup.Escape(e)}")
-
-            match result.CognitiveStateAfter with
-            | Some state ->
-                AnsiConsole.MarkupLine($"  Cognitive State: {state.Mode} (Entropy: {state.Entropy:F2}, Eigenvalue: {state.Eigenvalue:F2})")
-            | None -> ()
-
-            // Print final output
-            if not (String.IsNullOrWhiteSpace result.Output) then
-                AnsiConsole.MarkupLine("")
-                AnsiConsole.MarkupLine("[bold]Final Output:[/]")
-                let preview =
-                    if result.Output.Length > 2000 then result.Output.Substring(0, 2000) + "..."
-                    else result.Output
-                AnsiConsole.MarkupLine(Markup.Escape(preview))
-
-            return if result.Success then 0 else 1
-        }
-
-    /// Options for run command
-    type RunOptions =
-        { Mode: ReasonStepMode
-          Model: string option
-          ModelHint: string option
-          Temperature: float option
-          MaxTokens: int option
-          Deterministic: bool
-          Seed: int option
-          ReplayRunId: string option
-          UseCortex: bool }
-
-        static member Default =
-            { Mode = ReasonStepMode.Stub
-              Model = None
-              ModelHint = None
-              Temperature = None
-              MaxTokens = None
-              Deterministic = false
-              Seed = None
-              ReplayRunId = None
-              UseCortex = false }
-
     type WotAction =
-        | RunFile of path: string * options: RunOptions
+        | RunFile of path: string * options: WotExecution.RunOptions
         | Diff of runA: string * runB: string
         | CiCheck of workflow: string * baseline: string
         | Train of iterations: int * useLlm: bool
         | Help
 
     let parseArgs (args: string list) : WotAction =
-        let rec parseOptions (acc: RunOptions) (rest: string list) =
+        let rec parseOptions (acc: WotExecution.RunOptions) (rest: string list) =
             match rest with
             | [] -> acc
             | "--reason" :: "llm" :: tail -> parseOptions { acc with Mode = ReasonStepMode.Llm } tail
@@ -170,7 +64,7 @@ module WotCommand =
 
         match args with
         | "run" :: path :: tail ->
-            let opts = parseOptions RunOptions.Default tail
+            let opts = parseOptions WotExecution.RunOptions.Default tail
             RunFile(path, opts)
         | "diff" :: runA :: runB :: _ -> Diff(runA, runB)
         | "ci-check" :: flow :: baseLine :: _ -> CiCheck(flow, baseLine)
@@ -856,12 +750,6 @@ module WotCommand =
                     return 1
                 else
                     AnsiConsole.MarkupLine($"[bold blue]Running WoT Workflow:[/] {path} (Mode: {opts.Mode})")
-                    let startTime = DateTime.UtcNow
-                    let runId = startTime.ToString("yyyyMMdd-HHmmss")
-                    let runDir = System.IO.Path.Combine(".wot", "runs", runId)
-
-                    // Create run directory early for journaling
-                    System.IO.Directory.CreateDirectory(runDir) |> ignore
 
                     match Workflow.load path with
                     | Result.Error err ->
@@ -876,197 +764,15 @@ module WotCommand =
                             $"[green]Parsed & Compiled OK.[/] Goal: [bold]{Markup.Escape(plan.Goal)}[/] ({plan.Steps.Length} steps)"
                         )
 
-                        // Cortex execution path: parse -> compile -> execute via Cortex WoTExecutor
-                        if opts.UseCortex then
-                            let cortexTools = ToolRegistry()
-                            cortexTools.RegisterAssembly(typeof<Tars.Tools.TarsToolAttribute>.Assembly)
-                            let llm = LlmFactory.create Log.Logger
-                            AnsiConsole.MarkupLine("[bold]Executing via Cortex WoT Executor...[/]")
-                            return! executeCortex plan llm cortexTools
-                        else
+                        let executor =
+                            if opts.UseCortex then
+                                let cortexTools = ToolRegistry()
+                                cortexTools.RegisterAssembly(typeof<Tars.Tools.TarsToolAttribute>.Assembly)
+                                WotExecution.CortexExecutor(LlmFactory.create Log.Logger, cortexTools)
+                                :> WotExecution.IWorkflowExecutor
+                            else
+                                WotExecution.V0Executor(opts) :> WotExecution.IWorkflowExecutor
 
-                        // V0 execution path (default)
-                        AnsiConsole.MarkupLine("[bold]Executing Steps...[/]")
-
-                        // Wire up reasoner based on mode
-                        let reasoner: IReasoner =
-                            match opts.Mode with
-                            | ReasonStepMode.Llm ->
-                                let logger = Log.Logger
-                                let llm = LlmFactory.create logger
-
-                                let reasonerSettings: ReasonerSettings =
-                                    { Model = opts.Model
-                                      ModelHint = opts.ModelHint |> Option.orElse (Some "thought")
-                                      Temperature = opts.Temperature
-                                      MaxTokens = opts.MaxTokens
-                                      Deterministic = opts.Deterministic
-                                      Seed = opts.Seed
-                                      ContextWindow = None
-                                      AgentHint = None
-                                      GrammarConstraint = None }
-
-                                let modelStr = opts.Model |> Option.defaultValue "<default>"
-
-                                let tempStr =
-                                    opts.Temperature |> Option.map string |> Option.defaultValue "<default>"
-
-                                AnsiConsole.MarkupLine(
-                                    $"[dim]Using LLM reasoner (model={modelStr}, temp={tempStr}, deterministic={opts.Deterministic})[/]"
-                                )
-
-                                CliReasoner(llm, runDir, reasonerSettings, logger) :> IReasoner
-                            | ReasonStepMode.Replay ->
-                                match opts.ReplayRunId with
-                                | None -> failwith "--reason replay requires --replay-run <runId>"
-                                | Some replayRunId ->
-                                    let replayRunDir = System.IO.Path.Combine(".wot", "runs", replayRunId)
-
-                                    if not (System.IO.Directory.Exists replayRunDir) then
-                                        failwith $"Replay run directory not found: {replayRunDir}"
-
-                                    AnsiConsole.MarkupLine(
-                                        $"[dim]Using Replay reasoner (replaying from run {replayRunId})[/]"
-                                    )
-
-                                    ReplayReasoner(replayRunDir, Log.Logger) :> IReasoner
-                            | ReasonStepMode.Stub ->
-                                { new IReasoner with
-                                    member _.Reason(_, _, _, _, _) =
-                                        async {
-                                            return
-                                                Result.Ok
-                                                    { Content = "<cli-stub-reasoner>"
-                                                      Usage = None }
-                                        } }
-
-                        let! result =
-                            WotExecution.runV0 (WotExecution.v0Tools ()) reasoner None None opts.Mode plan
-
-                        let endTime = DateTime.UtcNow
-                        let duration = int64 (endTime - startTime).TotalMilliseconds
-
-                        try
-                            System.IO.Directory.CreateDirectory(runDir) |> ignore
-                            let options = System.Text.Json.JsonSerializerOptions(WriteIndented = true)
-                            options.Converters.Add(System.Text.Json.Serialization.JsonFSharpConverter())
-
-                            let writeJson filename (obj: obj) =
-                                let path = System.IO.Path.Combine(runDir, filename)
-                                let json = System.Text.Json.JsonSerializer.Serialize(obj, options)
-                                System.IO.File.WriteAllText(path, json)
-                                AnsiConsole.MarkupLine($"[dim]Artifact saved: {path}[/]")
-
-                            writeJson "plan.json" plan
-
-                            let summary
-                                (traces: TraceEvent list)
-                                (passed: bool option)
-                                (err: string option)
-                                (outKeys: string list)
-                                (toolCalls: int option)
-                                =
-                                {| RunId = runId
-                                   DurationMs = duration
-                                   ToolCalls =
-                                    toolCalls
-                                    |> Option.defaultValue (
-                                        traces |> List.filter (fun t -> t.Kind = "tool") |> List.length
-                                    )
-                                   VerifyPassed = passed
-                                   FirstError = err
-                                   Outputs = outKeys
-                                   Mode = opts.Mode.ToString()
-                                   Reasoner =
-                                    {| Model = opts.Model
-                                       ModelHint = opts.ModelHint
-                                       Temperature = opts.Temperature
-                                       MaxTokens = opts.MaxTokens
-                                       Deterministic = opts.Deterministic
-                                       Seed = opts.Seed |} |}
-
-                            match result with
-                            | Result.Error(e, traces) ->
-                                writeJson "trace.json" traces
-                                writeJson "run_summary.json" (summary traces None (Some e) [] None)
-                                AnsiConsole.MarkupLine($"[red]Execution Failed:[/] {Markup.Escape(e)}")
-                                return 1
-                            | Result.Ok(ctx, verifyC, traces) ->
-                                writeJson "trace.json" traces
-                                writeJson "outputs.json" ctx.Vars
-
-                                let passed = verifyC |> Option.map (fun v -> v.Passed)
-                                let toolCalls = traces |> List.filter (fun t -> t.Kind = "tool") |> List.length
-
-                                // Phase 15.6 Pattern Compilation Trigger
-                                // Treat None as success if there are traces (implicit success)
-                                let isImplicitSuccess = passed |> Option.defaultValue true
-
-                                if isImplicitSuccess && opts.Mode = ReasonStepMode.Llm then
-                                    AnsiConsole.MarkupLine(
-                                        "[bold blue]🧠 Compiling Pattern from successful run...[/]"
-                                    )
-
-                                    let llm = LlmFactory.create Log.Logger
-                                    let canonicalTraces = traces |> List.map TraceEvent.toCanonical
-
-                                    try
-                                        let! patternRes =
-                                            TraceCompiler.compileFromTrace
-                                                llm
-                                                (Guid.NewGuid())
-                                                canonicalTraces
-                                                plan.Goal
-
-                                        match patternRes with
-                                        | Result.Ok p ->
-                                            AnsiConsole.MarkupLine($"[green]Pattern Compiled:[/] {p.Name}")
-
-                                            if not (System.IO.Directory.Exists(".tars/patterns")) then
-                                                System.IO.Directory.CreateDirectory(".tars/patterns") |> ignore
-
-                                            let pJson = System.Text.Json.JsonSerializer.Serialize(p, options)
-                                            System.IO.File.WriteAllText($".tars/patterns/{p.Name}.json", pJson)
-                                        | Result.Error e ->
-                                            AnsiConsole.MarkupLine($"[yellow]Pattern Compile Failed:[/] {e}")
-                                    with ex ->
-                                        AnsiConsole.MarkupLine($"[yellow]Pattern Compile Error:[/] {ex.Message}")
-
-                                let sumObj =
-                                    summary
-                                        traces
-                                        passed
-                                        None
-                                        (ctx.Vars |> Map.toList |> List.map fst)
-                                        (Some toolCalls)
-
-                                writeJson "run_summary.json" sumObj
-                                writeJson "golden.json" (WotExecution.toGolden opts.Mode ctx verifyC traces)
-
-                                AnsiConsole.MarkupLine("\n[bold green]Execution Complete[/]")
-
-                                if not ctx.Vars.IsEmpty then
-                                    AnsiConsole.MarkupLine("[dim]Outputs:[/]")
-
-                                    for kvp in ctx.Vars do
-                                        AnsiConsole.MarkupLine(
-                                            $"  {kvp.Key} = [cyan]{Markup.Escape(kvp.Value.ToString())}[/]"
-                                        )
-
-                                match verifyC with
-                                | None -> ()
-                                | Some v ->
-                                    if v.Passed then
-                                        AnsiConsole.MarkupLine("\n[bold green]Verification PASSED[/]")
-                                    else
-                                        AnsiConsole.MarkupLine("\n[bold red]Verification FAILED[/]")
-
-                                        for e in v.Errors do
-                                            AnsiConsole.MarkupLine($"  - {Markup.Escape(e)}")
-
-                                return 0
-                        with ex ->
-                            AnsiConsole.MarkupLine($"[red]Failed to save artifacts: {ex.Message}[/]")
-                            return 1
+                        return! executor.Execute plan
         }
         |> Async.StartAsTask
