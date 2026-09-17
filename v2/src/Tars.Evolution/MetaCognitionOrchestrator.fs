@@ -21,7 +21,6 @@ module MetaCognitionOrchestrator =
         (llm: ILlmService option)
         (config: MetaCognitionConfig)
         (recentOutcomes: PatternOutcome list)
-        (recentCycles: RetroactionLoop.CycleResult list)
         (recentTraces: (string list * TraceEvent list * string * string) list)  // (plannedStepIds, trace, goal, result)
         : Task<MetaCognitionResult> =
         task {
@@ -29,7 +28,7 @@ module MetaCognitionOrchestrator =
             // Step 1: Collect and cluster failures
             // =========================================================
             let! clusters =
-                FailureAnalyzer.analyzeFailures llm config.FailureClusterThreshold recentOutcomes recentCycles
+                FailureAnalyzer.analyzeFailures llm config.FailureClusterThreshold recentOutcomes
 
             // =========================================================
             // Step 2: Detect capability gaps
@@ -39,7 +38,7 @@ module MetaCognitionOrchestrator =
                 |> List.filter (fun o -> o.Success)
                 |> List.map (fun o -> o.Goal, GapDetection.extractDomainTags o.Goal)
 
-            let failures = FailureAnalyzer.collectFailures recentOutcomes recentCycles
+            let failures = FailureAnalyzer.collectFailures recentOutcomes
 
             let gaps =
                 GapDetection.detectGaps config.GapDetectionThreshold clusters successes failures

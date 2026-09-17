@@ -210,7 +210,7 @@ User writes workflow
 - `src/Tars.Evolution/PromotionPipeline.fs` -- 7-step CompoundCore loop
 - `src/Tars.Evolution/StructuredOutput.fs` -- Strict JSON output schemas
 - `src/Tars.Evolution/PatternCompiler.fs` -- Trace-to-pattern compilation
-- `src/Tars.Evolution/RetroactionLoop.fs` -- Execute-and-learn cycle
+- `src/Tars.Evolution/RetroactionLoop.fs` -- Pattern-library coherence check
 
 ### CLI
 - `tars wot <file>` -- Execute a WoT workflow
