@@ -7,6 +7,7 @@ open Tars.Core
 open Tars.Llm
 open Tars.Cortex
 open Tars.Cortex.Patterns
+open Tars.Cortex.ThoughtGraph
 
 module WotPersistenceTests =
     

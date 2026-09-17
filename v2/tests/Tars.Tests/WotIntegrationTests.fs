@@ -11,6 +11,7 @@ open Tars.Llm.LlmService
 open Tars.Llm.Routing
 open Tars.Cortex
 open Tars.Cortex.Patterns
+open Tars.Cortex.ThoughtGraph
 open Tars.Tests.TestHelpers
 
 type WotIntegrationTests(output: Xunit.Abstractions.ITestOutputHelper) =

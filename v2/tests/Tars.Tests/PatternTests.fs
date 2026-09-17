@@ -6,6 +6,7 @@ open Xunit
 open Xunit.Abstractions
 open Tars.Core
 open Tars.Cortex.Patterns
+open Tars.Cortex.ThoughtGraph
 open Tars.Llm
 open System.IO
 open System.Threading.Tasks

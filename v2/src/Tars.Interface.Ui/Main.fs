@@ -12,6 +12,7 @@ open Tars.Llm
 open Tars.Cortex
 open Tars.Cortex.WoTTypes
 open Tars.Cortex.Patterns
+open Tars.Cortex.ThoughtGraph
 // ============================================================================
 // Model
 // ============================================================================
