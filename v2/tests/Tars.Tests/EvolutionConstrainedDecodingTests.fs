@@ -97,9 +97,9 @@ module EvolutionConstrainedDecodingTests =
             let llm =
                 CapturingLlm("""{"type":"Success","score":0.9,"comment":"ok","suggestion":"none"}""")
 
-            let agent = Reflection.LlmReflectionAgent(llm :> ILlmService) :> Reflection.IReflectionAgent
+            let agent = OutputCritique.LlmOutputCritic(llm :> ILlmService) :> OutputCritique.IOutputCritic
 
-            let trace: Reflection.TraceItem list =
+            let trace: OutputCritique.TraceItem list =
                 [ { Step = "s1"; Input = "in"; Output = "out"; DurationMs = 1L } ]
 
             let! _ = agent.ReflectAsync("goal", "output", trace)
@@ -145,8 +145,8 @@ module EvolutionConstrainedDecodingTests =
                   Inputs = []
                   Steps = [] }
 
-            let feedback: Reflection.Feedback =
-                { Type = Reflection.FeedbackType.Optimization
+            let feedback: OutputCritique.Feedback =
+                { Type = OutputCritique.FeedbackType.Optimization
                   Score = 0.5
                   Comment = "c"
                   Suggestion = Some "s" }

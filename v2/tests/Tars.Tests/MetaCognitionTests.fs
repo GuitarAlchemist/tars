@@ -285,7 +285,7 @@ module MetaCognitionTests =
         | other -> Assert.Fail(sprintf "Expected InsertRecoveryStep, got %A" other)
 
     // =========================================================================
-    // ReflectionEngine pure tests
+    // IntentOutcomeReflection pure tests
     // =========================================================================
 
     module private TE =
@@ -313,7 +313,7 @@ module MetaCognitionTests =
               TE.make "s2" "Tool" Tars.Core.WorkflowOfThought.StepStatus.Ok
               TE.make "s3" "Reason" Tars.Core.WorkflowOfThought.StepStatus.Ok ]
 
-        let comparison = Tars.Evolution.ReflectionEngine.compareIntentVsOutcome planned trace "test goal"
+        let comparison = Tars.Evolution.IntentOutcomeReflection.compareIntentVsOutcome planned trace "test goal"
         Assert.Equal(3, comparison.PlannedSteps)
         Assert.Equal(3, comparison.ExecutedSteps)
         Assert.Empty(comparison.SkippedSteps)
@@ -327,7 +327,7 @@ module MetaCognitionTests =
             [ TE.make "s1" "Reason" Tars.Core.WorkflowOfThought.StepStatus.Ok
               TE.make "s2" "Tool" Tars.Core.WorkflowOfThought.StepStatus.Error ]
 
-        let comparison = Tars.Evolution.ReflectionEngine.compareIntentVsOutcome planned trace "test goal"
+        let comparison = Tars.Evolution.IntentOutcomeReflection.compareIntentVsOutcome planned trace "test goal"
         Assert.Equal(1, comparison.FailedSteps.Length)
         Assert.Equal(1, comparison.SkippedSteps.Length)  // s3 was skipped
         Assert.True(comparison.OverallAlignment < 0.9)
@@ -342,7 +342,7 @@ module MetaCognitionTests =
               UnexpectedSteps = []
               OverallAlignment = 0.4 }
 
-        let report = Tars.Evolution.ReflectionEngine.reflectPure comparison "analyze code quality"
+        let report = Tars.Evolution.IntentOutcomeReflection.reflectPure comparison "analyze code quality"
         Assert.Equal("analyze code quality", report.Goal)
         Assert.True(report.Surprises.Length > 0)
         Assert.True(report.LessonsLearned.Length > 0)
@@ -353,7 +353,7 @@ module MetaCognitionTests =
         let comparison =
             { PlannedSteps = 3; ExecutedSteps = 3; SkippedSteps = []
               FailedSteps = []; UnexpectedSteps = []; OverallAlignment = 0.95 }
-        let outcome = Tars.Evolution.ReflectionEngine.classifyOutcome comparison
+        let outcome = Tars.Evolution.IntentOutcomeReflection.classifyOutcome comparison
         Assert.Equal(ReflectionOutcome.AsExpected, outcome)
 
     [<Fact>]
@@ -361,7 +361,7 @@ module MetaCognitionTests =
         let comparison =
             { PlannedSteps = 4; ExecutedSteps = 4; SkippedSteps = []
               FailedSteps = [ "s1"; "s2"; "s3" ]; UnexpectedSteps = []; OverallAlignment = 0.3 }
-        let outcome = Tars.Evolution.ReflectionEngine.classifyOutcome comparison
+        let outcome = Tars.Evolution.IntentOutcomeReflection.classifyOutcome comparison
         match outcome with
         | ReflectionOutcome.WorseThanExpected _ -> ()
         | other -> Assert.Fail(sprintf "Expected WorseThanExpected, got %A" other)
@@ -378,7 +378,7 @@ module MetaCognitionTests =
                 LessonsLearned = [ "Add validation"; "Use better prompts" ]
                 SuggestedImprovements = []; Timestamp = DateTime.UtcNow } ]
 
-        let lessons = Tars.Evolution.ReflectionEngine.synthesizeLessons reports
+        let lessons = Tars.Evolution.IntentOutcomeReflection.synthesizeLessons reports
         Assert.True(lessons.Length >= 2)
         // "Add validation" should appear first (mentioned 2x)
         Assert.Contains("observed 2 times", lessons.[0])

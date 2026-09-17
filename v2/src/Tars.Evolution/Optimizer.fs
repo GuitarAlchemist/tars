@@ -3,7 +3,7 @@ namespace Tars.Evolution
 open System
 open System.Threading.Tasks
 open Tars.Llm
-open Reflection
+open OutputCritique
 open Tars.Metascript.Domain
 open Tars.Metascript
 

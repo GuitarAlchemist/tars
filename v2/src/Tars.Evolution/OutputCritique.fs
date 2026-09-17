@@ -4,7 +4,10 @@ open System
 open System.Threading.Tasks
 open Tars.Llm
 
-module Reflection =
+/// Output critique: an LLM critic scores one task's output and trace against its goal
+/// and suggests an improvement. Distinct from symbolic reflection (belief updates) and
+/// intent/outcome reflection (plan vs trace), see CONTEXT.md (#280).
+module OutputCritique =
 
     type TraceItem =
         { Step: string
@@ -23,11 +26,11 @@ module Reflection =
           Comment: string
           Suggestion: string option }
 
-    type IReflectionAgent =
+    type IOutputCritic =
         abstract member ReflectAsync: taskGoal: string * output: string * trace: TraceItem list -> Task<Feedback>
 
-    type LlmReflectionAgent(llm: ILlmService) =
-        interface IReflectionAgent with
+    type LlmOutputCritic(llm: ILlmService) =
+        interface IOutputCritic with
             member _.ReflectAsync(goal, output, trace) =
                 task {
                     let traceStr =

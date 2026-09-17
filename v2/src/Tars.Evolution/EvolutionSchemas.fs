@@ -68,7 +68,7 @@ module EvolutionSchemas =
   "additionalProperties": false
 }"""
 
-    /// Reflection.LlmReflectionAgent.ReflectAsync — type/score/comment/suggestion.
+    /// OutputCritique.LlmOutputCritic.ReflectAsync — type/score/comment/suggestion.
     let reflectionSchema =
         """{
   "type": "object",
