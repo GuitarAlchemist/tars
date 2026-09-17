@@ -345,6 +345,46 @@ module AgentWorkflowTests =
         | _ -> Assert.Fail("Should be Success")
 
     [<Fact>]
+    let ``ForwardOnly: Blocks an agent that is already running in the chain`` () =
+        // The diode's promise: the same agent cannot re-enter its own chain (#248).
+        let ctx = baseContext ()
+        let inner: AgentWorkflow<string> = AgentWorkflow.succeed "inner" |> AgentWorkflow.forwardOnly
+        let outer: AgentWorkflow<string> = (fun _ -> inner ctx) |> AgentWorkflow.forwardOnly
+
+        match outer ctx |> Async.RunSynchronously with
+        | Failure errs ->
+            Assert.Contains(
+                errs,
+                fun e ->
+                    match e with
+                    | PartialFailure.Error msg -> msg.Contains "Forward-only flow violated"
+                    | _ -> false
+            )
+        | other -> Assert.Fail($"Expected a cycle failure, got {other}")
+
+    [<Fact>]
+    let ``ForwardOnly: Lets a different agent through, and releases on the way out`` () =
+        let ctx = baseContext ()
+
+        let otherCtx =
+            { baseContext () with
+                Self =
+                    { ctx.Self with
+                        Id = AgentId(Guid.NewGuid()) } }
+
+        let inner: AgentWorkflow<string> = AgentWorkflow.succeed "inner" |> AgentWorkflow.forwardOnly
+        let outer: AgentWorkflow<string> = (fun _ -> inner otherCtx) |> AgentWorkflow.forwardOnly
+
+        match outer ctx |> Async.RunSynchronously with
+        | Success v -> Assert.Equal("inner", v)
+        | other -> Assert.Fail($"Expected success for a different agent, got {other}")
+
+        // The chain is empty again, so the first agent may run once more.
+        match (AgentWorkflow.succeed "again" |> AgentWorkflow.forwardOnly) ctx |> Async.RunSynchronously with
+        | Success v -> Assert.Equal("again", v)
+        | other -> Assert.Fail($"Expected the chain to be released, got {other}")
+
+    [<Fact>]
     let ``ForwardOnly: Preserves failure`` () =
         let workflow: AgentWorkflow<int> =
             fun _ -> async { return Failure [ PartialFailure.Error "blocked" ] }

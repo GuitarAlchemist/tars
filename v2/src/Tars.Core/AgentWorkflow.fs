@@ -443,19 +443,43 @@ module AgentWorkflow =
                 return! workflow ctx
             }
 
+    /// Agents currently running inside a `forwardOnly` section. AsyncLocal flows into
+    /// the wrapped workflow and into anything it awaits, so this is the chain the diode
+    /// protects, not a global set: two independent chains never see each other's agents.
+    let private agentsInChain = System.Threading.AsyncLocal<Set<AgentId>>()
+
     /// <summary>
     /// Diode: Directed Flow.
-    /// Prevents cycles by checking if the target agent/task has already been
-    /// visited in this chain. Like an electrical diode that only allows
-    /// current to flow in one direction.
+    /// Prevents cycles by failing when the executing agent is already running inside
+    /// this chain. Like an electrical diode that only allows current to flow in one
+    /// direction.
     /// </summary>
     /// <param name="workflow">The workflow to protect from cycles.</param>
     let forwardOnly (workflow: AgentWorkflow<'T>) : AgentWorkflow<'T> =
         fun ctx ->
             async {
-                // TODO: Check recursion depth or history in Context
-                ctx.Logger "[Diode] Enforcing forward-only flow."
-                return! workflow ctx
+                let entered =
+                    match box agentsInChain.Value with
+                    | null -> Set.empty
+                    | _ -> agentsInChain.Value
+
+                let (AgentId agentGuid) = ctx.Self.Id
+
+                if entered.Contains ctx.Self.Id then
+                    ctx.Logger $"[Diode] Cycle blocked: agent {agentGuid} is already running in this chain."
+
+                    return
+                        ExecutionOutcome.Failure
+                            [ PartialFailure.Error
+                                  $"Forward-only flow violated: agent '{ctx.Self.Name}' ({agentGuid}) is already running in this chain." ]
+                else
+                    ctx.Logger "[Diode] Enforcing forward-only flow."
+                    agentsInChain.Value <- entered.Add ctx.Self.Id
+
+                    try
+                        return! workflow ctx
+                    finally
+                        agentsInChain.Value <- entered
             }
 
 
