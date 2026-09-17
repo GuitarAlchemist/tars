@@ -311,11 +311,15 @@ module CodebaseRAG =
                 }
             }
         
-        /// Search with embedding (semantic search)
+        /// Search with embedding (semantic search), falling back to keywords when this
+        /// index holds no embeddings - IngestQuickAsync builds chunks only, and searching
+        /// an empty vector collection would silently return nothing (#241).
         member this.SearchAsync(query: string, topK: int) =
             task {
                 if not ingested then
                     return []
+                elif chunks.Values |> Seq.forall (fun c -> c.Embedding.IsNone) then
+                    return this.SearchKeyword(query, topK)
                 else
                     try
                         let! queryEmbedding = llmService.EmbedAsync(query)
@@ -384,6 +388,62 @@ module CodebaseRAG =
             let withEmbeddings = chunks.Values |> Seq.filter (fun c -> c.Embedding.IsSome) |> Seq.length
             let files = chunks.Values |> Seq.map (fun c -> c.FilePath) |> Seq.distinct |> Seq.length
             {| TotalChunks = totalChunks; WithEmbeddings = withEmbeddings; Files = files |}
+
+    // =========================================================================
+    // Shared Index
+    // =========================================================================
+
+    /// An ILlmService that refuses to do LLM work. SharedIndex quick-ingests with it, so
+    /// an index built on first use searches by keyword and never calls a model.
+    type private KeywordOnlyLlm() =
+        let refuse () =
+            Task.FromException<LlmResponse>(NotSupportedException "The lazily built codebase index is keyword-only.")
+
+        interface ILlmService with
+            member _.CompleteAsync(_) = refuse ()
+            member _.CompleteStreamAsync(_, _) = refuse ()
+            member _.EmbedAsync(_) = Task.FromResult(Array.empty<float32>)
+            member _.RouteAsync(_) =
+                Task.FromException<Routing.RoutedBackend>(
+                    NotSupportedException "The lazily built codebase index is keyword-only.")
+
+    /// The one index the codebase tools search (#241).
+    ///
+    /// It used to be a mutable slot that nothing ever filled, so every search_codebase
+    /// call reported "not initialized". Now the first search quick-ingests the tree -
+    /// chunks only, no embeddings, no model - and a caller that has embeddings, such as a
+    /// full IngestAsync from the CLI, can set a better index over the top.
+    module SharedIndex =
+
+        let private gate = obj ()
+        let mutable private current: CodebaseIndex option = None
+
+        /// Replace the shared index, e.g. with one that carries embeddings.
+        let set (index: CodebaseIndex) = lock gate (fun () -> current <- Some index)
+
+        /// Forget the shared index. Mainly for tests.
+        let clear () = lock gate (fun () -> current <- None)
+
+        /// The shared index, if one has been built or set.
+        let tryGet () = lock gate (fun () -> current)
+
+        /// The shared index, quick-ingesting rootPath on first use.
+        let getOrQuickIngest (rootPath: string) : Task<CodebaseIndex> =
+            task {
+                match tryGet () with
+                | Some index -> return index
+                | None ->
+                    let index = CodebaseIndex(InMemoryVectorStore(), KeywordOnlyLlm())
+                    let! _ = index.IngestQuickAsync(rootPath)
+
+                    return
+                        lock gate (fun () ->
+                            match current with
+                            | Some existing -> existing
+                            | None ->
+                                current <- Some index
+                                index)
+            }
 
     // =========================================================================
     // Context Building for Prompts
