@@ -27,7 +27,10 @@ module WoTExecutor =
           OnProgress: WoTTraceStep -> unit
           CancellationToken: System.Threading.CancellationToken
           KnowledgeGraph: Tars.Core.IGraphService option
-          Reflector: Tars.Core.ISymbolicReflector option }
+          Reflector: Tars.Core.ISymbolicReflector option
+          /// Optional typed decider (System One / Jev) for Decide nodes. Absent by
+          /// default, in which case Decide nodes ask the reasoning model in prose.
+          Decider: SystemOne.ISystemOne option }
 
     // =========================================================================
     // Context Engineering: Progressive Context Disclosure
@@ -236,6 +239,107 @@ module WoTExecutor =
             return Result.Ok output
         }
 
+    /// Match a free-text answer onto one of the candidates we offered.
+    ///
+    /// The whole first integer is read, so "10" is the tenth option and not the first,
+    /// and an answer naming nothing we offered is an error: silently falling back to the
+    /// first candidate runs a branch the model never chose.
+    let matchCandidate (candidates: string list) (response: string) : Result<string, string> =
+        let cleaned = response.Trim()
+
+        let byNumber =
+            let digits = Text.RegularExpressions.Regex.Match(cleaned, @"\d+")
+
+            if digits.Success then
+                match Int32.TryParse digits.Value with
+                | true, idx when idx >= 1 && idx <= candidates.Length -> Some candidates.[idx - 1]
+                | _ -> None
+            else
+                None
+
+        let byName () =
+            match
+                candidates
+                |> List.tryFind (fun c -> String.Equals(c, cleaned, StringComparison.OrdinalIgnoreCase))
+            with
+            | Some exact -> Some exact
+            | None ->
+                // A single candidate quoted inside a sentence still identifies itself;
+                // two of them do not, so that stays an error.
+                match
+                    candidates
+                    |> List.filter (fun c ->
+                        c.Length > 0 && cleaned.Contains(c, StringComparison.OrdinalIgnoreCase))
+                with
+                | [ single ] -> Some single
+                | _ -> None
+
+        match byNumber |> Option.orElseWith byName with
+        | Some candidate -> Result.Ok candidate
+        | None -> Result.Error $"Decide: '%s{cleaned}' names none of the %d{candidates.Length} candidates"
+
+    /// Thresholds are ours, not the model's: a typed answer only picks the branch when
+    /// it is confident enough and clearly ahead of the runner-up. Anything else falls
+    /// back to the prose path rather than deciding on a near coin flip.
+    [<Literal>]
+    let private DecideMinConfidence = 0.6
+
+    [<Literal>]
+    let private DecideMinMargin = 0.15
+
+    /// Ask the typed decider, if one is configured, and accept its answer only past
+    /// those thresholds. `None` means "no decision from here" — never an error to the
+    /// caller, who still has the prose path.
+    let private decideWithSystemOne
+        (ctx: ExecutionContext)
+        (candidates: string list)
+        (criteriaText: string)
+        : Async<string option> =
+        async {
+            match ctx.Decider with
+            | None -> return None
+            | Some _ when List.length (List.distinct candidates) <> List.length candidates ->
+                // Options are keyed by their own text; duplicates could not be told apart.
+                return None
+            | Some decider ->
+                let options =
+                    candidates
+                    |> List.map (fun c -> c, $"%s{c} is the option that best satisfies: %s{criteriaText}")
+
+                let question =
+                    "decision", SystemOne.Choice($"Select the best option based on: %s{criteriaText}", options)
+
+                let state =
+                    [ "criteria", SystemOne.Text criteriaText
+                      "options", SystemOne.Items candidates ]
+
+                let! reply = decider.Evaluate(state, [ question ])
+
+                match reply with
+                | Result.Error e ->
+                    ctx.Logger $"[WoT] Decide: System One gave no usable answer (%s{e}); asking the model"
+                    return None
+                | Result.Ok reply ->
+                    match reply.TryAnswer "decision" with
+                    | Some(SystemOne.Chose(choice, confidence, probabilities)) ->
+                        let margin =
+                            match probabilities |> Map.toList |> List.map snd |> List.sortDescending with
+                            | top :: second :: _ -> top - second
+                            | _ -> 1.0
+
+                        if confidence >= DecideMinConfidence && margin >= DecideMinMargin then
+                            ctx.Logger
+                                $"[WoT] Decide: %s{reply.Model} chose %s{choice} (confidence %.2f{confidence}, margin %.2f{margin})"
+
+                            return Some choice
+                        else
+                            ctx.Logger
+                                $"[WoT] Decide: %s{reply.Model} was undecided (confidence %.2f{confidence}, margin %.2f{margin}); asking the model"
+
+                            return None
+                    | _ -> return None
+        }
+
     /// Execute a Decide node
     let private executeDecide
         (ctx: ExecutionContext)
@@ -263,24 +367,25 @@ Options:
 
 Respond with ONLY the number of your choice."""
 
-            let! result = executeThink ctx id prompt (Some Fast) ""
+            let! typed = decideWithSystemOne ctx candidates criteriaText
 
-            match result with
-            | Result.Ok response ->
-                // Parse the selection
-                let cleaned = response.Trim()
+            match typed with
+            | Some choice ->
+                ctx.Logger $"[WoT] Decided: %s{choice}"
+                return Result.Ok choice
+            | None ->
+                let! result = executeThink ctx id prompt (Some Fast) ""
 
-                let selected =
-                    if cleaned.Length > 0 then
-                        match Int32.TryParse(cleaned.Chars(0).ToString()) with
-                        | true, idx when idx > 0 && idx <= candidates.Length -> candidates.[idx - 1]
-                        | _ -> candidates.Head
-                    else
-                        candidates.Head
-
-                ctx.Logger $"[WoT] Decided: %s{selected}"
-                return Result.Ok selected
-            | Result.Error e -> return Result.Error e
+                match result with
+                | Result.Ok response ->
+                    match matchCandidate candidates response with
+                    | Result.Ok selected ->
+                        ctx.Logger $"[WoT] Decided: %s{selected}"
+                        return Result.Ok selected
+                    | Result.Error e ->
+                        ctx.Logger $"[WoT] %s{e}"
+                        return Result.Error e
+                | Result.Error e -> return Result.Error e
         }
 
     /// Execute a Validate node
@@ -850,7 +955,10 @@ Respond with ONLY the number of your choice."""
     /// <summary>
     /// Default WoT executor implementation.
     /// </summary>
-    type DefaultWoTExecutor(llm: ILlmService, tools: Tars.Core.IToolRegistry) =
+    type DefaultWoTExecutor
+        (llm: ILlmService, tools: Tars.Core.IToolRegistry, decider: SystemOne.ISystemOne option) =
+
+        new(llm, tools) = DefaultWoTExecutor(llm, tools, None)
 
         member private this.CreateContext(logger, onProgress, ct, kg, reflector) =
             { Llm = llm
@@ -859,7 +967,8 @@ Respond with ONLY the number of your choice."""
               OnProgress = onProgress
               CancellationToken = ct
               KnowledgeGraph = kg
-              Reflector = reflector }
+              Reflector = reflector
+              Decider = decider }
 
         interface IWoTExecutor with
             member this.Execute(plan, context) =
@@ -890,9 +999,16 @@ Respond with ONLY the number of your choice."""
     // Convenience Functions
     // =========================================================================
 
-    /// Create a default executor
+    /// Create a default executor. Decide nodes go through System One only when the
+    /// environment is configured for it (`TARS_JEV` plus `TYPESAFE_API_KEY`); otherwise
+    /// this is exactly the prose executor it has always been.
     let createExecutor llm tools =
-        DefaultWoTExecutor(llm, tools) :> IWoTExecutor
+        DefaultWoTExecutor(llm, tools, SystemOne.deciderFromEnvironment ()) :> IWoTExecutor
+
+    /// Create an executor with an explicit typed decider, for callers that own one
+    /// (tests replaying a saved reply, or a host that configures its own client).
+    let createExecutorWith llm tools decider =
+        DefaultWoTExecutor(llm, tools, decider) :> IWoTExecutor
 
     /// Execute a pattern directly (compile + run)
     let executePattern

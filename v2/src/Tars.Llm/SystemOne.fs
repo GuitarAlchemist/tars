@@ -373,3 +373,76 @@ module SystemOne =
         interface ISystemOne with
             member _.Evaluate(_, questions) =
                 async { return parseReply questions replyJson }
+
+    // -------------------------------------------------------------- transport
+
+    /// The bounds a live call is held to, so a decision seam can never quietly become
+    /// an unbounded spend or a slow path in the middle of a plan.
+    type JevLimits =
+        { Endpoint: string
+          MaxPayloadBytes: int
+          Timeout: TimeSpan }
+
+        static member Default =
+            { Endpoint = "https://api.typesafe.ai/v1/systemone"
+              MaxPayloadBytes = 2500
+              Timeout = TimeSpan.FromSeconds 20.0 }
+
+    /// The live model. The request is refused before it leaves when it is over the byte
+    /// cap, redirects are not followed so the bearer stays with the origin it was issued
+    /// for, and the key appears in no log, message or error.
+    type JevClient(apiKey: string, limits: JevLimits) =
+        let handler = new Net.Http.HttpClientHandler(AllowAutoRedirect = false)
+        let http = new Net.Http.HttpClient(handler, Timeout = limits.Timeout)
+
+        new(apiKey) = new JevClient(apiKey, JevLimits.Default)
+
+        interface IDisposable with
+            member _.Dispose() = http.Dispose()
+
+        interface ISystemOne with
+            member _.Evaluate(state, questions) =
+                async {
+                    let body = payload state questions
+                    let size = payloadBytes body
+
+                    if size > limits.MaxPayloadBytes then
+                        return Error $"request is {size} bytes, over the {limits.MaxPayloadBytes}-byte cap"
+                    else
+                        try
+                            use request =
+                                new Net.Http.HttpRequestMessage(Net.Http.HttpMethod.Post, limits.Endpoint)
+
+                            request.Headers.Authorization <-
+                                Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey)
+
+                            request.Content <- new Net.Http.StringContent(body, Encoding.UTF8, "application/json")
+
+                            let! response = http.SendAsync request |> Async.AwaitTask
+                            let! text = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+
+                            if response.IsSuccessStatusCode then
+                                return parsePinnedReply questions text
+                            else
+                                // The error body can quote the request back; the status is
+                                // what a caller acts on anyway.
+                                return Error $"Jev answered {int response.StatusCode}"
+                        with ex ->
+                            return Error $"Jev call failed: {ex.GetType().Name}"
+                }
+
+    /// The decider this process is configured for: a live client only when `TARS_JEV`
+    /// is on *and* `TYPESAFE_API_KEY` is set. Every other case is `None`, which leaves
+    /// callers on the path they already had. The key is read here and goes nowhere else.
+    let deciderFromEnvironment () : ISystemOne option =
+        let isOn (value: string) =
+            [ "1"; "true"; "yes"; "on" ] |> List.contains (value.Trim().ToLowerInvariant())
+
+        match Environment.GetEnvironmentVariable "TARS_JEV" with
+        | null -> None
+        | flag when not (isOn flag) -> None
+        | _ ->
+            match Environment.GetEnvironmentVariable "TYPESAFE_API_KEY" with
+            | null -> None
+            | key when String.IsNullOrWhiteSpace key -> None
+            | key -> Some(new JevClient(key.Trim()) :> ISystemOne)
