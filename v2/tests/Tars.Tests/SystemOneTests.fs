@@ -189,3 +189,25 @@ let ``the replay adapter answers from a saved reply, with no key and no network`
     match port.Evaluate([ "goal", Text "anything" ], questions) |> Async.RunSynchronously with
     | Error message -> failwith message
     | Ok reply -> Assert.Equal(PinnedModel, reply.Model)
+
+[<Fact>]
+let ``the cost proxy matches the lab's ceiling at the byte cap`` () =
+    let limits = JevLimits.Default
+    Assert.Equal(0.000105, inputCostProxyUsd limits.MaxPayloadBytes, 9)
+
+[<Fact>]
+let ``an oversized request is refused before it reaches the network`` () =
+    // No key is valid here, and none is needed: the bound is checked first, so this
+    // test cannot leave the machine even if the endpoint were reachable.
+    let tiny =
+        { JevLimits.Default with
+            MaxPayloadBytes = 10 }
+
+    use client = new JevClient("not-a-key", tiny)
+
+    match
+        (client :> ISystemOne).Evaluate([ "goal", Text "anything" ], questions)
+        |> Async.RunSynchronously
+    with
+    | Ok _ -> failwith "expected the byte cap to refuse the request"
+    | Error message -> Assert.Contains("over the 10-byte cap", message)
