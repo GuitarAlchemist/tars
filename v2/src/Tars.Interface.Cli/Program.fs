@@ -515,6 +515,11 @@ let main argv =
             let subArgs = args |> Array.skip 1 |> Array.toList
             return BreedCommand.run subArgs
 
+        // TARS Jev - System One typed decisions: request shape, and one bounded probe
+        | args when args.Length > 0 && args.[0] = "jev" ->
+            let subArgs = args |> Array.skip 1 |> Array.toList
+            return JevCommand.run subArgs
+
         // TARS Grammar - Probabilistic grammar weights + MCTS derivation search
         | args when args.Length > 0 && args.[0] = "grammar" ->
             let subArgs = args |> Array.skip 1 |> Array.toList
@@ -587,6 +592,7 @@ let main argv =
             printfn "  tars demo cross-repo [--with-llm] [--model M]  Showcase TARS <-> ix <-> GA integration"
             printfn "  tars demo-ping                   Run a demo ping agent"
             printfn "  tars diag [--verbose|--full]     Run system diagnostics (--full for all checks)"
+            printfn "  tars jev probe [--live] [--save <path>]  System One (Jev) request shape; --live spends one call"
 
             printfn
                 "  tars diag reasoning <wot|tot|got> <goal> [--ledger|--no-ledger] [--evidence <path>] Run reasoning diag + ledger trace"

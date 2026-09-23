@@ -376,6 +376,15 @@ module SystemOne =
 
     // -------------------------------------------------------------- transport
 
+    /// Published input price. The lab's proxy counts one token per byte, which
+    /// overestimates on purpose: a bound is only useful when it cannot be undershot.
+    [<Literal>]
+    let InputPricePerMillionUsd = 0.042
+
+    /// Worst-case input cost of a payload, in US dollars.
+    let inputCostProxyUsd (bytes: int) =
+        float bytes * InputPricePerMillionUsd / 1_000_000.0
+
     /// The bounds a live call is held to, so a decision seam can never quietly become
     /// an unbounded spend or a slow path in the middle of a plan.
     type JevLimits =
@@ -400,35 +409,43 @@ module SystemOne =
         interface IDisposable with
             member _.Dispose() = http.Dispose()
 
+        /// The reply exactly as it arrived, before it is read as answers. A probe
+        /// saves this as the fixture the offline tests replay.
+        member _.EvaluateRaw(state, questions) : Async<Result<string, string>> =
+            async {
+                let body = payload state questions
+                let size = payloadBytes body
+
+                if size > limits.MaxPayloadBytes then
+                    return Error $"request is {size} bytes, over the {limits.MaxPayloadBytes}-byte cap"
+                else
+                    try
+                        use request =
+                            new Net.Http.HttpRequestMessage(Net.Http.HttpMethod.Post, limits.Endpoint)
+
+                        request.Headers.Authorization <-
+                            Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey)
+
+                        request.Content <- new Net.Http.StringContent(body, Encoding.UTF8, "application/json")
+
+                        let! response = http.SendAsync request |> Async.AwaitTask
+                        let! text = response.Content.ReadAsStringAsync() |> Async.AwaitTask
+
+                        if response.IsSuccessStatusCode then
+                            return Ok text
+                        else
+                            // The error body can quote the request back; the status is
+                            // what a caller acts on anyway.
+                            return Error $"Jev answered {int response.StatusCode}"
+                    with ex ->
+                        return Error $"Jev call failed: {ex.GetType().Name}"
+            }
+
         interface ISystemOne with
-            member _.Evaluate(state, questions) =
+            member this.Evaluate(state, questions) =
                 async {
-                    let body = payload state questions
-                    let size = payloadBytes body
-
-                    if size > limits.MaxPayloadBytes then
-                        return Error $"request is {size} bytes, over the {limits.MaxPayloadBytes}-byte cap"
-                    else
-                        try
-                            use request =
-                                new Net.Http.HttpRequestMessage(Net.Http.HttpMethod.Post, limits.Endpoint)
-
-                            request.Headers.Authorization <-
-                                Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey)
-
-                            request.Content <- new Net.Http.StringContent(body, Encoding.UTF8, "application/json")
-
-                            let! response = http.SendAsync request |> Async.AwaitTask
-                            let! text = response.Content.ReadAsStringAsync() |> Async.AwaitTask
-
-                            if response.IsSuccessStatusCode then
-                                return parsePinnedReply questions text
-                            else
-                                // The error body can quote the request back; the status is
-                                // what a caller acts on anyway.
-                                return Error $"Jev answered {int response.StatusCode}"
-                        with ex ->
-                            return Error $"Jev call failed: {ex.GetType().Name}"
+                    let! raw = this.EvaluateRaw(state, questions)
+                    return raw |> Result.bind (parsePinnedReply questions)
                 }
 
     /// The decider this process is configured for: a live client only when `TARS_JEV`

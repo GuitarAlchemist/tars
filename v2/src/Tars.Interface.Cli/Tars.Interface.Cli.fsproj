@@ -29,6 +29,7 @@
     <Compile Include="Commands\Memory.fs" />
     <Compile Include="SpectreConsoleOutputAnalyzer.fs" />
     <Compile Include="Commands\GuardOutputCommand.fs" />
+    <Compile Include="Commands\JevCommand.fs" />
     <Compile Include="Commands\Demo.fs" />
     <Compile Include="Commands\MacroDemo.fs" />
     <Compile Include="Commands\Diagnostics.fs" />
