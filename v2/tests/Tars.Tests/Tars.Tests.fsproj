@@ -99,6 +99,7 @@
     <Compile Include="WorkflowOfThought\WotParsingIntegrationTests.fs" />
     <Compile Include="WorkflowOfThought\WorkflowTests.fs" />
     <Compile Include="CodebaseIndexTests.fs" />
+    <Compile Include="SystemOneTests.fs" />
     <Compile Include="WorkflowOfThought\WotGoldenRunTests.fs" />
     <Compile Include="WorkflowOfThought\WotDiffTests.fs" />
     <Compile Include="WorkflowOfThought\WoTControllerTests.fs" />

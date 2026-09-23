@@ -1,0 +1,375 @@
+namespace Tars.Llm
+
+open System
+open System.Security.Cryptography
+open System.Text
+open System.Text.Json
+
+/// TypeSafe AI "System One" (Jev): small, repeated judgements answered as closed types
+/// rather than prose. A request carries a state and independent questions, and the model
+/// may only answer with values we defined.
+///
+/// The rule this module exists to keep: a model estimates, deterministic code validates,
+/// gates and acts. Every answer is checked against the question that asked for it, so an
+/// option we never offered, a probability distribution that does not sum to one, or a
+/// choice that is not the model's own argmax is an error rather than a decision.
+module SystemOne =
+
+    /// The pinned model. `jev-latest` and `jev-preview` move, which would silently
+    /// re-evaluate every threshold tuned against a fixed version.
+    [<Literal>]
+    let PinnedModel = "jev-1.13.0"
+
+    /// A question the caller asks about the state. Ids are the caller's own.
+    type Question =
+        /// Pick exactly one option id. Each option carries the criterion for choosing it.
+        | Choice of instructions: string * options: (string * string) list
+        /// Place the state on an ordered scale, one label per level.
+        | Score of instructions: string * levels: string list
+        /// How true is this of the state, from 0 to 1.
+        | Noul of instructions: string
+
+    /// A validated answer. Confidence is the model's, never an authority.
+    type Answer =
+        | Chose of choice: string * confidence: float * probabilities: Map<string, float>
+        | Scored of score: float * confidence: float * probabilities: Map<string, float>
+        | Nouled of noul: float
+
+    type Usage = { InputTokens: int; OutputTokens: int }
+
+    type Reply =
+        { Model: string
+          Answers: Map<string, Answer>
+          Usage: Usage }
+
+        /// The answer to `questionId`, if the reply carried one.
+        member this.TryAnswer(questionId: string) = this.Answers.TryFind questionId
+
+    // ---------------------------------------------------------------- request
+
+    /// A state field. Deliberately narrow: what the model reads should be data we
+    /// assembled, not a serialised object graph we stopped tracking.
+    type StateValue =
+        | Text of string
+        | Items of string list
+
+    let private writeState (writer: Utf8JsonWriter) (state: (string * StateValue) list) =
+        writer.WriteStartObject()
+
+        for key, value in state |> List.sortBy fst do
+            match value with
+            | Text text -> writer.WriteString(key, text)
+            | Items items ->
+                writer.WriteStartArray(key)
+                for item in items do
+                    writer.WriteStringValue(item)
+                writer.WriteEndArray()
+
+        writer.WriteEndObject()
+
+    let private writeQuestion (writer: Utf8JsonWriter) (id: string) (question: Question) =
+        writer.WriteStartObject(id)
+
+        match question with
+        | Choice(instructions, options) ->
+            writer.WriteString("type", "choice")
+            writer.WriteString("instructions", instructions)
+            writer.WriteStartObject("criteria")
+
+            for optionId, criterion in options do
+                writer.WriteString(optionId, criterion)
+
+            writer.WriteEndObject()
+        | Score(instructions, levels) ->
+            writer.WriteString("type", "score")
+            writer.WriteString("instructions", instructions)
+            writer.WriteStartArray("criteria")
+
+            for level in levels do
+                writer.WriteStringValue(level)
+
+            writer.WriteEndArray()
+        | Noul instructions ->
+            writer.WriteString("type", "noul")
+            writer.WriteString("instructions", instructions)
+
+        writer.WriteEndObject()
+
+    /// The request body, with keys in a fixed order so its digest is stable across runs.
+    let payload (state: (string * StateValue) list) (questions: (string * Question) list) : string =
+        use stream = new IO.MemoryStream()
+        use writer = new Utf8JsonWriter(stream)
+        writer.WriteStartObject()
+        writer.WriteString("model", PinnedModel)
+        writer.WritePropertyName("questions")
+        writer.WriteStartObject()
+
+        for id, question in questions |> List.sortBy fst do
+            writeQuestion writer id question
+
+        writer.WriteEndObject()
+        writer.WritePropertyName("state")
+        writeState writer state
+        writer.WriteEndObject()
+        writer.Flush()
+        Encoding.UTF8.GetString(stream.ToArray())
+
+    /// SHA-256 of a request body, for journalling which question was asked.
+    let digest (payloadJson: string) : string =
+        use sha = SHA256.Create()
+
+        sha.ComputeHash(Encoding.UTF8.GetBytes payloadJson)
+        |> Array.map (fun b -> b.ToString("x2"))
+        |> String.concat ""
+
+    /// UTF-8 size of a request body, the only input cost we can bound before sending.
+    let payloadBytes (payloadJson: string) : int = Encoding.UTF8.GetByteCount payloadJson
+
+    // ------------------------------------------------------------- validation
+
+    let private tolerance = 1e-6
+
+    let private finite (value: float) =
+        not (Double.IsNaN value) && not (Double.IsInfinity value)
+
+    let private tryProp (name: string) (element: JsonElement) =
+        match element.TryGetProperty name with
+        | true, value -> Some value
+        | _ -> None
+
+    let private number (context: string) (element: JsonElement) =
+        if element.ValueKind = JsonValueKind.Number then
+            let value = element.GetDouble()
+            if finite value then Ok value else Error $"{context} must be a finite number"
+        else
+            Error $"{context} must be a number"
+
+    let private unitInterval context element =
+        number context element
+        |> Result.bind (fun value ->
+            if value >= 0.0 && value <= 1.0 then
+                Ok value
+            else
+                Error $"{context} must be between 0 and 1")
+
+    /// Probabilities must cover exactly the options offered, each in [0, 1], summing to 1.
+    let private probabilities (context: string) (expected: Set<string>) (answer: JsonElement) =
+        match tryProp "probabilities" answer with
+        | None -> Error $"{context}: probabilities are missing"
+        | Some element when element.ValueKind <> JsonValueKind.Object ->
+            Error $"{context}: probabilities must be an object"
+        | Some element ->
+            let entries = element.EnumerateObject() |> Seq.toList
+
+            let keys = entries |> List.map (fun p -> p.Name) |> Set.ofList
+
+            if keys <> expected then
+                let offered = expected |> Set.toList |> String.concat ", "
+                Error $"{context}: probability keys must be exactly the options asked for ({offered})"
+            else
+                let folded =
+                    entries
+                    |> List.fold
+                        (fun acc property ->
+                            match acc with
+                            | Error _ -> acc
+                            | Ok map ->
+                                unitInterval $"{context}: probability '{property.Name}'" property.Value
+                                |> Result.map (fun value -> map |> Map.add property.Name value))
+                        (Ok Map.empty)
+
+                folded
+                |> Result.bind (fun map ->
+                    let total = map |> Map.fold (fun sum _ value -> sum + value) 0.0
+
+                    if abs (total - 1.0) <= tolerance then
+                        Ok map
+                    else
+                        Error $"{context}: probabilities must sum to 1, got %.6f{total}")
+
+    let private confidenceOf context answer =
+        match tryProp "confidence" answer with
+        | None -> Error $"{context}: confidence is missing"
+        | Some element -> unitInterval $"{context}: confidence" element
+
+    let private expectType (context: string) (expected: string) (answer: JsonElement) =
+        match tryProp "type" answer with
+        | Some element when element.ValueKind = JsonValueKind.String && element.GetString() = expected -> Ok()
+        | _ -> Error $"{context}: expected a {expected} answer"
+
+    let private parseChoice context (options: (string * string) list) (answer: JsonElement) =
+        let ids = options |> List.map fst |> Set.ofList
+
+        expectType context "choice" answer
+        |> Result.bind (fun () ->
+            match tryProp "choice" answer with
+            | Some element when element.ValueKind = JsonValueKind.String -> Ok(element.GetString())
+            | _ -> Error $"{context}: choice must be a string")
+        |> Result.bind (fun chosen ->
+            if ids.Contains chosen then
+                Ok chosen
+            else
+                // The whole point of a closed answer: an invented option is not a decision.
+                Error $"{context}: '{chosen}' is not one of the options asked for")
+        |> Result.bind (fun chosen ->
+            probabilities context ids answer
+            |> Result.bind (fun distribution ->
+                let best = distribution |> Map.fold (fun best _ value -> max best value) 0.0
+
+                if distribution.[chosen] < best - tolerance then
+                    Error $"{context}: chose '{chosen}' while naming another option as more likely"
+                else
+                    confidenceOf context answer
+                    |> Result.map (fun confidence -> Chose(chosen, confidence, distribution))))
+
+    let private parseScore context (levels: string list) (answer: JsonElement) =
+        let top = float (List.length levels - 1)
+        let levelKeys = levels |> List.mapi (fun index _ -> string index) |> Set.ofList
+
+        expectType context "score" answer
+        |> Result.bind (fun () ->
+            match tryProp "score" answer with
+            | None -> Error $"{context}: score is missing"
+            | Some element -> number $"{context}: score" element)
+        |> Result.bind (fun score ->
+            if score < 0.0 || score > top then
+                Error $"{context}: score must be between 0 and %.0f{top}"
+            else
+                Ok score)
+        |> Result.bind (fun score ->
+            match tryProp "legend" answer with
+            | Some element when element.ValueKind = JsonValueKind.Object ->
+                let returned =
+                    element.EnumerateObject()
+                    |> Seq.map (fun p -> p.Name, (if p.Value.ValueKind = JsonValueKind.String then p.Value.GetString() else ""))
+                    |> Map.ofSeq
+
+                let expected = levels |> List.mapi (fun index label -> string index, label) |> Map.ofList
+
+                if returned = expected then
+                    Ok score
+                else
+                    Error $"{context}: legend must repeat the levels asked for"
+            | _ -> Error $"{context}: legend is missing")
+        |> Result.bind (fun score ->
+            probabilities context levelKeys answer
+            |> Result.bind (fun distribution ->
+                let weighted =
+                    distribution |> Map.fold (fun sum level value -> sum + float (int level) * value) 0.0
+
+                if abs (score - weighted) > tolerance then
+                    Error $"{context}: score %.6f{score} does not match its own distribution (%.6f{weighted})"
+                else
+                    confidenceOf context answer
+                    |> Result.map (fun confidence -> Scored(score, confidence, distribution))))
+
+    let private parseNoul context (answer: JsonElement) =
+        expectType context "noul" answer
+        |> Result.bind (fun () ->
+            match tryProp "noul" answer with
+            | None -> Error $"{context}: noul is missing"
+            | Some element -> unitInterval $"{context}: noul" element |> Result.map Nouled)
+
+    let private parseUsage (root: JsonElement) =
+        match tryProp "usage" root with
+        | Some element when element.ValueKind = JsonValueKind.Object ->
+            let names = element.EnumerateObject() |> Seq.map (fun p -> p.Name) |> Set.ofSeq
+
+            if names <> set [ "input_tokens"; "output_tokens" ] then
+                Error "usage must carry exactly input_tokens and output_tokens"
+            else
+                let count name =
+                    let value = element.GetProperty(name: string)
+
+                    match value.TryGetInt32() with
+                    | true, tokens when tokens >= 0 -> Ok tokens
+                    | _ -> Error $"usage.{name} must be a non-negative whole number"
+
+                match count "input_tokens", count "output_tokens" with
+                | Ok input, Ok output ->
+                    Ok
+                        { InputTokens = input
+                          OutputTokens = output }
+                | Error e, _
+                | _, Error e -> Error e
+        | _ -> Error "usage is missing"
+
+    /// Parse a reply and check it against the questions that were asked. Every failure
+    /// names what was wrong, because a rejected reply is a fact worth logging.
+    let parseReply (questions: (string * Question) list) (json: string) : Result<Reply, string> =
+        try
+            use document = JsonDocument.Parse(json: string)
+            let root = document.RootElement
+
+            let model =
+                match tryProp "model" root with
+                | Some element when element.ValueKind = JsonValueKind.String && element.GetString() <> "" ->
+                    Ok(element.GetString())
+                | _ -> Error "model must be a non-empty string"
+
+            let answers =
+                match tryProp "answers" root with
+                | Some element when element.ValueKind = JsonValueKind.Object ->
+                    let returned = element.EnumerateObject() |> Seq.map (fun p -> p.Name) |> Set.ofSeq
+                    let asked = questions |> List.map fst |> Set.ofList
+
+                    if returned <> asked then
+                        Error "answers must cover exactly the question ids asked"
+                    else
+                        questions
+                        |> List.fold
+                            (fun acc (id, question) ->
+                                match acc with
+                                | Error _ -> acc
+                                | Ok map ->
+                                    let answer = element.GetProperty(id: string)
+
+                                    let parsed =
+                                        match question with
+                                        | Choice(_, options) -> parseChoice id options answer
+                                        | Score(_, levels) -> parseScore id levels answer
+                                        | Noul _ -> parseNoul id answer
+
+                                    parsed |> Result.map (fun a -> map |> Map.add id a))
+                            (Ok Map.empty)
+                | _ -> Error "answers must be an object"
+
+            match model, answers, parseUsage root with
+            | Ok model, Ok answers, Ok usage ->
+                Ok
+                    { Model = model
+                      Answers = answers
+                      Usage = usage }
+            | Error e, _, _
+            | _, Error e, _
+            | _, _, Error e -> Error e
+        with :? JsonException as ex ->
+            Error $"reply is not JSON: {ex.Message}"
+
+    /// As `parseReply`, and the reply must come from the pinned model. Use this for
+    /// anything whose thresholds were tuned against a fixed version.
+    let parsePinnedReply questions json =
+        parseReply questions json
+        |> Result.bind (fun reply ->
+            if reply.Model = PinnedModel then
+                Ok reply
+            else
+                Error $"reply came from '{reply.Model}', not the pinned {PinnedModel}")
+
+    // ------------------------------------------------------------------- port
+
+    /// One question set evaluated against one state. Implementations own transport,
+    /// the pinned model, timeouts and redaction; callers own thresholds and effects.
+    type ISystemOne =
+        abstract Evaluate: state: (string * StateValue) list * questions: (string * Question) list -> Async<Result<Reply, string>>
+
+    /// Answers from a saved reply: the default everywhere, including CI, so a decision
+    /// seam can be exercised without a key, a network or a bill.
+    type ReplaySystemOne(replyJson: string) =
+
+        /// Read the reply from a file written by an earlier live probe.
+        static member FromFile(path: string) = ReplaySystemOne(IO.File.ReadAllText path)
+
+        interface ISystemOne with
+            member _.Evaluate(_, questions) =
+                async { return parseReply questions replyJson }
