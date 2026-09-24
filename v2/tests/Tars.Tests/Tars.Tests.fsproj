@@ -166,6 +166,7 @@
 
   <ItemGroup>
     <Content Include="WorkflowOfThought\fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
     <!-- The grammar under test, and the parser source it must stay in step with.
          WotGrammarConformanceTests reads both: the grammar to recognise fixtures,
          the parser source to detect keys added to one side but not the other. -->
