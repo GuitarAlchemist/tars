@@ -62,6 +62,8 @@ module GoogleGeminiClient =
         | Role.System -> "user" // Gemini (v1) treats system prompts as user, or specific "system" instructions in 1.5
         | Role.User -> "user"
         | Role.Assistant -> "model"
+        // Gemini's own name for this is "function"; v1 accepts it inside a user turn.
+        | Role.Tool _ -> "user"
 
     let private toGeminiContent (msgs: LlmMessage list) =
         msgs

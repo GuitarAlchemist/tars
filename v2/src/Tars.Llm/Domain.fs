@@ -13,6 +13,9 @@ type Role =
     | User
     /// <summary>Assistant (LLM) response.</summary>
     | Assistant
+    /// <summary>A tool's result, answering the call with this id. Providers that have
+    /// no tool role fold it into the nearest one they do have.</summary>
+    | Tool of callId: string
 
 /// <summary>A single message in a conversation.</summary>
 type LlmMessage = { Role: Role; Content: string }

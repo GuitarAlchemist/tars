@@ -108,6 +108,7 @@ module OllamaClient =
         | Role.System -> "system"
         | Role.User -> "user"
         | Role.Assistant -> "assistant"
+        | Role.Tool _ -> "tool" // Ollama pairs a tool result with the preceding call by order
 
     /// Get the API path prefix - use /ollama/ for OpenWebUI (non-localhost URLs)
     let private getApiPrefix (baseUri: Uri) =

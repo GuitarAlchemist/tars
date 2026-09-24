@@ -83,6 +83,7 @@ type LlamaSharpService(_config: LlmServiceConfig, modelPath: string) =
                 | Role.System -> AuthorRole.System
                 | Role.User -> AuthorRole.User
                 | Role.Assistant -> AuthorRole.Assistant
+                | Role.Tool _ -> AuthorRole.User // LLamaSharp has no tool role
 
             history.AddMessage(role, msg.Content)
 

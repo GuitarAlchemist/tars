@@ -6,6 +6,7 @@ namespace Tars.Llm
 
 open System
 open System.Collections.Generic
+open System.Text.Json
 open System.Threading
 open System.Threading.Tasks
 open Microsoft.Extensions.AI
@@ -23,21 +24,164 @@ module internal ChatClientMapping =
         | Role.System -> ChatRole.System
         | Role.User -> ChatRole.User
         | Role.Assistant -> ChatRole.Assistant
+        | Role.Tool _ -> ChatRole.Tool
 
-    /// Map M.E.AI ChatRole to TARS Role
-    let fromAIRole (role: ChatRole) : Role =
+    /// Map M.E.AI ChatRole to TARS Role. A tool result keeps the id of the call it
+    /// answers; without it the next request cannot say what was answered.
+    let fromAIRole (role: ChatRole) (callId: string option) : Role =
         if role = ChatRole.System then Role.System
         elif role = ChatRole.Assistant then Role.Assistant
+        elif role = ChatRole.Tool then Role.Tool(callId |> Option.defaultValue "")
         else Role.User
 
     /// Convert a TARS LlmMessage to an M.E.AI ChatMessage
     let toAIChatMessage (msg: LlmMessage) : ChatMessage =
         ChatMessage(toAIRole msg.Role, msg.Content)
 
+    /// What a function result carries: the id it answers, and its result as text.
+    let private functionResult (msg: ChatMessage) =
+        msg.Contents
+        |> Seq.tryPick (fun content ->
+            match content with
+            | :? FunctionResultContent as result ->
+                let text =
+                    match result.Result with
+                    | null -> ""
+                    | :? string as s -> s
+                    | other -> JsonSerializer.Serialize other
+
+                Some(result.CallId, text)
+            | _ -> None)
+
     /// Convert an M.E.AI ChatMessage to a TARS LlmMessage
     let fromAIChatMessage (msg: ChatMessage) : LlmMessage =
-        { Role = fromAIRole msg.Role
-          Content = msg.Text |> Option.ofObj |> Option.defaultValue "" }
+        match functionResult msg with
+        | Some(callId, text) ->
+            // A tool result's payload lives in its content part, not in `Text`.
+            { Role = Role.Tool callId
+              Content = text }
+        | None ->
+            { Role = fromAIRole msg.Role None
+              Content = msg.Text |> Option.ofObj |> Option.defaultValue "" }
+
+    /// The tools of a request, in the shape every OpenAI-descended wire expects
+    /// (Ollama included). `AIFunction` already carries the JSON schema the provider
+    /// wants; anything else in `ChatOptions.Tools` is not a function we can offer.
+    let toolsOf (options: ChatOptions) : obj list =
+        if isNull options || isNull options.Tools then
+            []
+        else
+            options.Tools
+            |> Seq.choose (fun tool ->
+                match tool with
+                | :? AIFunction as f ->
+                    let description: obj =
+                        dict
+                            [ "name", box f.Name
+                              "description", box (f.Description |> Option.ofObj |> Option.defaultValue "")
+                              "parameters", box f.JsonSchema ]
+
+                    Some(box (dict [ "type", box "function"; "function", description ]))
+                | _ -> None)
+            |> Seq.toList
+
+    /// A tool call as it comes back over the wire.
+    type WireToolCall =
+        { CallId: string
+          Name: string
+          Arguments: IDictionary<string, obj> }
+
+    let private argumentsOf (element: JsonElement) =
+        // Ollama sends an object; OpenAI sends that object as a JSON string.
+        let asObject =
+            match element.ValueKind with
+            | JsonValueKind.String ->
+                try
+                    Some(JsonDocument.Parse(element.GetString()).RootElement)
+                with _ ->
+                    None
+            | JsonValueKind.Object -> Some element
+            | _ -> None
+
+        match asObject with
+        | Some o when o.ValueKind = JsonValueKind.Object ->
+            o.EnumerateObject()
+            |> Seq.map (fun property ->
+                let value: obj =
+                    match property.Value.ValueKind with
+                    | JsonValueKind.String -> box (property.Value.GetString())
+                    | JsonValueKind.Number -> box (property.Value.GetDouble())
+                    | JsonValueKind.True -> box true
+                    | JsonValueKind.False -> box false
+                    | JsonValueKind.Null -> null
+                    | _ -> box (property.Value.GetRawText())
+
+                property.Name, value)
+            |> dict
+        | _ -> dict []
+
+    /// Read tool calls out of a provider's raw reply.
+    ///
+    /// `LlmResponse` has no typed channel for them (#305 keeps that open), but the raw
+    /// body does, and dropping the calls here is what made the whole tool pipeline
+    /// inert. Both shapes in use are read: Ollama's `message.tool_calls` and the
+    /// OpenAI family's `choices[].message.tool_calls`.
+    let toolCallsOf (raw: string option) : WireToolCall list =
+        match raw with
+        | None -> []
+        | Some body ->
+            try
+                let root = JsonDocument.Parse(body).RootElement
+
+                let messages =
+                    seq {
+                        match root.TryGetProperty "message" with
+                        | true, message -> yield message
+                        | _ -> ()
+
+                        match root.TryGetProperty "choices" with
+                        | true, choices when choices.ValueKind = JsonValueKind.Array ->
+                            for choice in choices.EnumerateArray() do
+                                match choice.TryGetProperty "message" with
+                                | true, message -> yield message
+                                | _ -> ()
+                        | _ -> ()
+                    }
+
+                [ for message in messages do
+                      match message.TryGetProperty "tool_calls" with
+                      | true, calls when calls.ValueKind = JsonValueKind.Array ->
+                          for index, call in calls.EnumerateArray() |> Seq.indexed do
+                              match call.TryGetProperty "function" with
+                              | true, fn ->
+                                  let name =
+                                      match fn.TryGetProperty "name" with
+                                      | true, n when n.ValueKind = JsonValueKind.String -> n.GetString()
+                                      | _ -> ""
+
+                                  let arguments =
+                                      match fn.TryGetProperty "arguments" with
+                                      | true, args -> argumentsOf args
+                                      | _ -> dict []
+
+                                  // Ollama sends no id; the position is what pairs the
+                                  // result back, and M.E.AI needs *some* id to match on.
+                                  let callId =
+                                      match call.TryGetProperty "id" with
+                                      | true, id when id.ValueKind = JsonValueKind.String -> id.GetString()
+                                      | _ -> $"call_{index}"
+
+                                  if not (String.IsNullOrWhiteSpace name) then
+                                      yield
+                                          { CallId = callId
+                                            Name = name
+                                            Arguments = arguments }
+                              | _ -> ()
+                      | _ -> () ]
+            with _ ->
+                // A body we cannot read is a body with no calls in it, not a failure:
+                // the text answer still stands.
+                []
 
     /// Wire names for the constraints M.E.AI has no first-class channel for.
     /// Private to this adapter pair: no provider reads them, and they are NOT the
@@ -259,25 +403,39 @@ type LlmServiceChatClient(inner: ILlmService) =
                                 |> Option.ofObj
                                 |> Option.orElse req.Model
                             Seed = ChatClientMapping.seedOf options req.Seed
-                            Stop = ChatClientMapping.stopOf options req.Stop }
+                            Stop = ChatClientMapping.stopOf options req.Stop
+                            Tools = ChatClientMapping.toolsOf options }
                         |> ChatClientMapping.applyFormat options
 
                 let! llmResp = inner.CompleteAsync(req)
 
                 let responseMsg = ChatMessage(ChatRole.Assistant, llmResp.Text)
+
+                // Without these the invoking client sees prose where the model asked
+                // for a tool, and the loop never starts.
+                let toolCalls = ChatClientMapping.toolCallsOf llmResp.Raw
+
+                for call in toolCalls do
+                    responseMsg.Contents.Add(FunctionCallContent(call.CallId, call.Name, call.Arguments))
+
                 let chatResp = ChatResponse(responseMsg)
                 chatResp.ModelId <- req.Model |> Option.defaultValue null
 
-                llmResp.FinishReason
-                |> Option.iter (fun fr ->
-                    chatResp.FinishReason <-
-                        Nullable(
-                            match fr with
-                            | "stop" -> ChatFinishReason.Stop
-                            | "length" -> ChatFinishReason.Length
-                            | "content_filter" -> ChatFinishReason.ContentFilter
-                            | "tool_calls" -> ChatFinishReason.ToolCalls
-                            | _ -> ChatFinishReason.Stop))
+                if not toolCalls.IsEmpty then
+                    // Providers disagree about saying so; the calls themselves are the
+                    // fact, and the invoking client keys off this.
+                    chatResp.FinishReason <- Nullable ChatFinishReason.ToolCalls
+                else
+                    llmResp.FinishReason
+                    |> Option.iter (fun fr ->
+                        chatResp.FinishReason <-
+                            Nullable(
+                                match fr with
+                                | "stop" -> ChatFinishReason.Stop
+                                | "length" -> ChatFinishReason.Length
+                                | "content_filter" -> ChatFinishReason.ContentFilter
+                                | "tool_calls" -> ChatFinishReason.ToolCalls
+                                | _ -> ChatFinishReason.Stop))
 
                 llmResp.Usage
                 |> Option.iter (fun u ->
