@@ -211,3 +211,52 @@ let ``an oversized request is refused before it reaches the network`` () =
     with
     | Ok _ -> failwith "expected the byte cap to refuse the request"
     | Error message -> Assert.Contains("over the 10-byte cap", message)
+
+/// The question set the CLI probe sends, and the reply the live model sent back.
+let private probeQuestions =
+    [ "next_step",
+      Choice(
+          "Which next step does the state support?",
+          [ "design_review", "Evidence or authority is incomplete."
+            "bounded_implementation", "Small, reversible and explicitly authorised."
+            "reject", "Contradicts a stated constraint." ]
+      )
+      "reversibility",
+      Score(
+          "How hard would this change be to reverse?",
+          [ "Low and reversible"; "Moderate or compensatable"; "High or hard to reverse" ]
+      )
+      "authority_present", Noul "Does the state carry explicit authority for the change?" ]
+
+[<Fact>]
+let ``the reply the live model actually sent is accepted`` () =
+    // Captured by `tars jev probe --live --save` on 2026-09-23, and kept because the
+    // contract refused it at first: Jev publishes two decimals, so its score of 0.05
+    // sits a hundredth away from the 0.04 recomputed off 0.96/0.04/0.00. Both are
+    // true to the precision sent; the old 1e-6 rule could not say so.
+    let path = System.IO.Path.Combine(System.AppContext.BaseDirectory, "fixtures", "jev-probe-reply.json")
+
+    match parsePinnedReply probeQuestions (System.IO.File.ReadAllText path) with
+    | Error message -> failwith message
+    | Ok reply ->
+        match reply.TryAnswer "reversibility" with
+        | Some(Scored(score, _, distribution)) ->
+            Assert.Equal(0.05, score, 6)
+            Assert.Equal(0.96, distribution.["0"], 6)
+        | other -> failwith $"expected a score, got {other}"
+
+        match reply.TryAnswer "next_step" with
+        | Some(Chose(choice, _, _)) -> Assert.Equal("bounded_implementation", choice)
+        | other -> failwith $"expected a choice, got {other}"
+
+        Assert.Equal(488, reply.Usage.InputTokens)
+
+[<Fact>]
+let ``rounding slack does not excuse a score that is actually wrong`` () =
+    // One hundredth is rounding; a whole level is not.
+    let path = System.IO.Path.Combine(System.AppContext.BaseDirectory, "fixtures", "jev-probe-reply.json")
+    let real: string = System.IO.File.ReadAllText path
+
+    match parseReply probeQuestions (real.Replace("\"score\":0.05", "\"score\":1.05")) with
+    | Ok _ -> failwith "expected the score check to still bite"
+    | Error message -> Assert.Contains("does not match its own distribution", message)

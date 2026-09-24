@@ -127,7 +127,25 @@ module SystemOne =
 
     // ------------------------------------------------------------- validation
 
-    let private tolerance = 1e-6
+    /// Floating-point slack only. Rounding slack is derived per reply, below.
+    let private tolerance = 1e-9
+
+    /// How precisely a number was published. Jev rounds what it sends, so a rule that
+    /// ignores the rounding rejects replies that are perfectly consistent: the first
+    /// live probe answered score 0.05 over a 0.96/0.04/0.00 distribution, whose exact
+    /// expectation is 0.04 — one hundredth apart, and both true to two decimals.
+    let private decimalsOf (element: JsonElement) =
+        let raw = element.GetRawText()
+
+        if raw.Contains "e" || raw.Contains "E" then
+            15 // exponent form is already more precision than any rounding grid
+        else
+            match raw.IndexOf '.' with
+            | -1 -> 0
+            | dot -> raw.Length - dot - 1
+
+    /// Half of the last published digit: the most a rounded number can be off by.
+    let private halfUlp (decimals: int) = 0.5 * Math.Pow(10.0, float -decimals)
 
     let private finite (value: float) =
         not (Double.IsNaN value) && not (Double.IsInfinity value)
@@ -152,7 +170,9 @@ module SystemOne =
             else
                 Error $"{context} must be between 0 and 1")
 
-    /// Probabilities must cover exactly the options offered, each in [0, 1], summing to 1.
+    /// Probabilities must cover exactly the options offered, each in [0, 1], summing to 1
+    /// once the grid they were rounded onto is allowed for. Returns the distribution and
+    /// that grid's half-digit, which the score check needs too.
     let private probabilities (context: string) (expected: Set<string>) (answer: JsonElement) =
         match tryProp "probabilities" answer with
         | None -> Error $"{context}: probabilities are missing"
@@ -162,6 +182,13 @@ module SystemOne =
             let entries = element.EnumerateObject() |> Seq.toList
 
             let keys = entries |> List.map (fun p -> p.Name) |> Set.ofList
+
+            // The finest precision published is the grid; coarser-looking values are
+            // just trailing zeros dropped, not a coarser grid.
+            let slack =
+                match entries with
+                | [] -> tolerance
+                | _ -> entries |> List.map (fun p -> decimalsOf p.Value) |> List.max |> halfUlp
 
             if keys <> expected then
                 let offered = expected |> Set.toList |> String.concat ", "
@@ -182,8 +209,10 @@ module SystemOne =
                 |> Result.bind (fun map ->
                     let total = map |> Map.fold (fun sum _ value -> sum + value) 0.0
 
-                    if abs (total - 1.0) <= tolerance then
-                        Ok map
+                    // Every rounded term can be off by half a digit, so the sum can be
+                    // off by that much per option — and no more.
+                    if abs (total - 1.0) <= slack * float entries.Length + tolerance then
+                        Ok(map, slack)
                     else
                         Error $"{context}: probabilities must sum to 1, got %.6f{total}")
 
@@ -213,10 +242,12 @@ module SystemOne =
                 Error $"{context}: '{chosen}' is not one of the options asked for")
         |> Result.bind (fun chosen ->
             probabilities context ids answer
-            |> Result.bind (fun distribution ->
+            |> Result.bind (fun (distribution, slack) ->
                 let best = distribution |> Map.fold (fun best _ value -> max best value) 0.0
 
-                if distribution.[chosen] < best - tolerance then
+                // Two options genuinely tied can land a digit apart once rounded; a
+                // real gap is wider than the grid.
+                if distribution.[chosen] < best - (2.0 * slack + tolerance) then
                     Error $"{context}: chose '{chosen}' while naming another option as more likely"
                 else
                     confidenceOf context answer
@@ -252,12 +283,23 @@ module SystemOne =
                     Error $"{context}: legend must repeat the levels asked for"
             | _ -> Error $"{context}: legend is missing")
         |> Result.bind (fun score ->
+            let scoreSlack =
+                tryProp "score" answer
+                |> Option.map (decimalsOf >> halfUlp)
+                |> Option.defaultValue tolerance
+
             probabilities context levelKeys answer
-            |> Result.bind (fun distribution ->
+            |> Result.bind (fun (distribution, slack) ->
                 let weighted =
                     distribution |> Map.fold (fun sum level value -> sum + float (int level) * value) 0.0
 
-                if abs (score - weighted) > tolerance then
+                // Each level's rounding is multiplied by that level's weight, and the
+                // score carries its own rounding on top.
+                let weightedSlack =
+                    distribution
+                    |> Map.fold (fun sum level _ -> sum + float (int level) * slack) 0.0
+
+                if abs (score - weighted) > weightedSlack + scoreSlack + tolerance then
                     Error $"{context}: score %.6f{score} does not match its own distribution (%.6f{weighted})"
                 else
                     confidenceOf context answer
