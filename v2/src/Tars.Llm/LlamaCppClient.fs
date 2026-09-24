@@ -138,6 +138,7 @@ module LlamaCppClient =
         | Role.User -> "user"
         | Role.Assistant -> "assistant"
         | Role.Tool _ -> "tool"
+        | Role.AssistantCalling _ -> "assistant"
 
     let private toLlamaCppMessages (systemPrompt: string option) (msgs: LlmMessage list) =
         let systemMsg =

@@ -57,6 +57,7 @@ module AnthropicClient =
         | Role.System -> "user"
         // Anthropic carries a tool result as a block inside a user turn, not as a role.
         | Role.Tool _ -> "user"
+        | Role.AssistantCalling _ -> "assistant"
 
     let private buildSystemPrompt (req: LlmRequest) =
         let systemMessages =

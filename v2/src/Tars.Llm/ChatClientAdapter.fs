@@ -25,6 +25,7 @@ module internal ChatClientMapping =
         | Role.User -> ChatRole.User
         | Role.Assistant -> ChatRole.Assistant
         | Role.Tool _ -> ChatRole.Tool
+        | Role.AssistantCalling _ -> ChatRole.Assistant
 
     /// Map M.E.AI ChatRole to TARS Role. A tool result keeps the id of the call it
     /// answers; without it the next request cannot say what was answered.
@@ -36,7 +37,22 @@ module internal ChatClientMapping =
 
     /// Convert a TARS LlmMessage to an M.E.AI ChatMessage
     let toAIChatMessage (msg: LlmMessage) : ChatMessage =
-        ChatMessage(toAIRole msg.Role, msg.Content)
+        let message = ChatMessage(toAIRole msg.Role, msg.Content)
+
+        match msg.Role with
+        | Role.AssistantCalling calls ->
+            for call in calls do
+                let arguments =
+                    try
+                        JsonSerializer.Deserialize<Dictionary<string, obj>>(call.ArgumentsJson)
+                        :> IDictionary<string, obj>
+                    with _ ->
+                        dict []
+
+                message.Contents.Add(FunctionCallContent(call.Id, call.Name, arguments))
+        | _ -> ()
+
+        message
 
     /// What a function result carries: the id it answers, and its result as text.
     let private functionResult (msg: ChatMessage) =
@@ -53,6 +69,24 @@ module internal ChatClientMapping =
                 Some(result.CallId, text)
             | _ -> None)
 
+    /// The calls an assistant turn asked for, kept so the exchange stays answerable.
+    let private functionCalls (msg: ChatMessage) =
+        msg.Contents
+        |> Seq.choose (fun content ->
+            match content with
+            | :? FunctionCallContent as call ->
+                let arguments =
+                    match call.Arguments with
+                    | null -> "{}"
+                    | args -> JsonSerializer.Serialize args
+
+                Some
+                    { Id = call.CallId
+                      Name = call.Name
+                      ArgumentsJson = arguments }
+            | _ -> None)
+        |> List.ofSeq
+
     /// Convert an M.E.AI ChatMessage to a TARS LlmMessage
     let fromAIChatMessage (msg: ChatMessage) : LlmMessage =
         match functionResult msg with
@@ -61,8 +95,19 @@ module internal ChatClientMapping =
             { Role = Role.Tool callId
               Content = text }
         | None ->
-            { Role = fromAIRole msg.Role None
-              Content = msg.Text |> Option.ofObj |> Option.defaultValue "" }
+            let text = msg.Text |> Option.ofObj |> Option.defaultValue ""
+
+            match functionCalls msg with
+            | [] ->
+                { Role = fromAIRole msg.Role None
+                  Content = text }
+            | calls ->
+                // The assistant turn that asked for the tools. Mapping it on `Text`
+                // alone — normally empty — left the next request with an empty turn
+                // followed by a result answering nothing, which OpenAI-shaped
+                // endpoints reject outright.
+                { Role = Role.AssistantCalling calls
+                  Content = text }
 
     /// The tools of a request, in the shape every OpenAI-descended wire expects
     /// (Ollama included). `AIFunction` already carries the JSON schema the provider
@@ -482,7 +527,12 @@ type LlmServiceChatClient(inner: ILlmService) =
                                 // identical ChatOptions produced two different requests
                                 // depending only on whether the caller streamed.
                                 Stop = ChatClientMapping.stopOf options req.Stop
-                                Seed = ChatClientMapping.seedOf options req.Seed }
+                                Seed = ChatClientMapping.seedOf options req.Seed
+                                // Offered here too, so a streaming caller and a
+                                // buffering one send the same request. Reassembling
+                                // tool calls out of a token stream is still to do:
+                                // this path yields text and nothing else.
+                                Tools = ChatClientMapping.toolsOf options }
                             |> ChatClientMapping.applyFormat options
 
                     let buffer = System.Collections.Concurrent.ConcurrentQueue<string>()

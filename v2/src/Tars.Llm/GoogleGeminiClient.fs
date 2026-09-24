@@ -64,6 +64,7 @@ module GoogleGeminiClient =
         | Role.Assistant -> "model"
         // Gemini's own name for this is "function"; v1 accepts it inside a user turn.
         | Role.Tool _ -> "user"
+        | Role.AssistantCalling _ -> "model"
 
     let private toGeminiContent (msgs: LlmMessage list) =
         msgs

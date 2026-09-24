@@ -23,7 +23,11 @@ module OllamaClient =
 
     /// <summary>DTO for Ollama chat message.</summary>
     [<CLIMutable>]
-    type OllamaMessageDto = { role: string; content: string }
+    type OllamaMessageDto =
+        { role: string
+          content: string
+          /// Set only on the assistant turn that asked for tools.
+          tool_calls: obj option }
 
     type OllamaOptionsDto =
         { stop: string[] option
@@ -109,6 +113,7 @@ module OllamaClient =
         | Role.User -> "user"
         | Role.Assistant -> "assistant"
         | Role.Tool _ -> "tool" // Ollama pairs a tool result with the preceding call by order
+        | Role.AssistantCalling _ -> "assistant"
 
     /// Get the API path prefix - use /ollama/ for OpenWebUI (non-localhost URLs)
     let private getApiPrefix (baseUri: Uri) =
@@ -120,14 +125,19 @@ module OllamaClient =
     let private toOllamaMessages (systemPrompt: string option) (msgs: LlmMessage list) : OllamaMessageDto[] =
         let systemMsg =
             match systemPrompt with
-            | Some p -> [ ({ role = "system"; content = p }: OllamaMessageDto) ]
+            | Some p ->
+                [ ({ role = "system"
+                     content = p
+                     tool_calls = None }
+                  : OllamaMessageDto) ]
             | None -> []
 
         let otherMsgs =
             msgs
             |> List.map (fun m ->
                 { role = toOllamaRole m.Role
-                  content = m.Content }
+                  content = m.Content
+                  tool_calls = ToolCallWire.asObjectArguments m.Role }
                 : OllamaMessageDto)
 
         (systemMsg @ otherMsgs) |> List.toArray

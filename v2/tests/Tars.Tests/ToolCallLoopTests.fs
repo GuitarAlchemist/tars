@@ -71,6 +71,15 @@ let private openAiToolCall =
                       "function":{"name":"GetWeather","arguments":"{\"city\":\"Montreal\"}"}}]},
        "finish_reason":"tool_calls"}]}"""
 
+/// Serialize as the client does, where an absent field is absent rather than null.
+let private onTheWire (dto: obj) =
+    Text.Json.JsonSerializer.Serialize(
+        dto,
+        Text.Json.JsonSerializerOptions(
+            DefaultIgnoreCondition = Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        )
+    )
+
 let private asking (raw: string) =
     { Text = ""
       FinishReason = Some "stop"
@@ -138,6 +147,21 @@ let ``a model can ask for a tool, have it run, and answer with the result`` () =
     | [ first; second ] ->
         Assert.NotEmpty(first.Tools)
 
+        // The assistant turn that asked for the tool travels back too: a result that
+        // answers nothing is rejected by OpenAI-shaped endpoints.
+        let asked =
+            second.Messages
+            |> List.tryPick (fun m ->
+                match m.Role with
+                | Role.AssistantCalling calls -> Some calls
+                | _ -> None)
+
+        match asked with
+        | Some [ call ] ->
+            Assert.Equal("GetWeather", call.Name)
+            Assert.Contains("Montreal", call.ArgumentsJson)
+        | _ -> failwith "the assistant's own call never made it into the next request"
+
         let toolTurn =
             second.Messages
             |> List.tryFind (fun m ->
@@ -154,3 +178,37 @@ let ``a model can ask for a tool, have it run, and answer with the result`` () =
             | _ -> failwith "unreachable"
         | None -> failwith "the tool result never made it into the next request"
     | other -> failwith $"expected two requests, got {List.length other}"
+
+[<Fact>]
+let ``an OpenAI-shaped request offers the tools and keeps the exchange answerable`` () =
+    // The return leg alone is not enough: without `tools` on the way out, no
+    // OpenAI-shaped endpoint would ever produce the calls this adapter parses.
+    let call =
+        { Id = "call_abc"
+          Name = "GetWeather"
+          ArgumentsJson = """{"city":"Montreal"}""" }
+
+    let request =
+        { LlmRequest.Default with
+            Messages =
+                [ { Role = Role.User; Content = "weather?" }
+                  { Role = Role.AssistantCalling [ call ]; Content = "" }
+                  { Role = Role.Tool "call_abc"; Content = "It is sunny in Montreal." } ]
+            Tools = ChatClientMapping.toolsOf (ToolAwareChatClient.optionsWithTools [ weatherTool () ]) }
+
+    let dto = OpenAiCompatibleClient.buildRequestDto false "gpt-test" false request
+    let json = onTheWire dto
+
+    Assert.Contains("\"tools\":", json)
+    Assert.Contains("GetWeather", json)
+    Assert.Contains("\"tool_calls\":", json)
+    Assert.Contains("\"tool_call_id\":\"call_abc\"", json)
+
+[<Fact>]
+let ``a request with no tools offers none, rather than an empty list`` () =
+    let dto =
+        OpenAiCompatibleClient.buildRequestDto false "gpt-test" false
+            { LlmRequest.Default with Messages = [ { Role = Role.User; Content = "hello" } ] }
+
+    Assert.True(dto.tools.IsNone)
+    Assert.DoesNotContain("tools", onTheWire dto)

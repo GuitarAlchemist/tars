@@ -48,6 +48,7 @@ module ClaudeCodeService =
             | Role.User -> sb.AppendLine(msg.Content) |> ignore
             | Role.Assistant -> sb.AppendLine(sprintf "<assistant>%s</assistant>" msg.Content) |> ignore
             | Role.Tool _ -> sb.AppendLine(sprintf "<tool_result>%s</tool_result>" msg.Content) |> ignore
+            | Role.AssistantCalling _ -> sb.AppendLine(sprintf "<assistant>%s</assistant>" msg.Content) |> ignore
 
         sb.ToString().Trim()
 

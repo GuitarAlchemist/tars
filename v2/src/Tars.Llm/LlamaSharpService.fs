@@ -84,6 +84,7 @@ type LlamaSharpService(_config: LlmServiceConfig, modelPath: string) =
                 | Role.User -> AuthorRole.User
                 | Role.Assistant -> AuthorRole.Assistant
                 | Role.Tool _ -> AuthorRole.User // LLamaSharp has no tool role
+                | Role.AssistantCalling _ -> AuthorRole.Assistant
 
             history.AddMessage(role, msg.Content)
 
