@@ -495,7 +495,13 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             let intentClassifier =
                 if config.PreLlm.UseIntentClassifier then
-                    LlmIntentClassifier(llmService) :> IIntentClassifier
+                    let prose = LlmIntentClassifier(llmService) :> IIntentClassifier
+
+                    // A closed choice when the environment is configured for one;
+                    // the prose classifier underneath it either way.
+                    match Tars.Llm.SystemOne.deciderFromEnvironment () with
+                    | Some decider -> TypedIntentClassifier(decider, prose) :> IIntentClassifier
+                    | None -> prose
                 else
                     NoopIntentClassifier() :> IIntentClassifier
 

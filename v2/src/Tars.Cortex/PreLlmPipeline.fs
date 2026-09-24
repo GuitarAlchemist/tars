@@ -230,3 +230,53 @@ type PreLlmPipeline(stages: IPreLlmStage list) =
 
             return ctx
         }
+
+/// <summary>
+/// Classifies intent as a closed choice over the domains that exist, rather than asking
+/// for prose and mapping the answer back by similarity.
+/// </summary>
+/// <remarks>
+/// The options are this type's own cases, so a domain we do not have cannot come back —
+/// which is the failure the similarity fallback could not rule out. Anything the gate
+/// does not clear, and anything the contract rejects, defers to the classifier we
+/// already had: a typed answer is an improvement, never a new single point of failure.
+/// </remarks>
+type TypedIntentClassifier(decider: SystemOne.ISystemOne, fallback: IIntentClassifier, ?gate: SystemOne.Gate) =
+    let gate = defaultArg gate SystemOne.Gate.Default
+
+    let domains =
+        [ "coding", AgentDomain.Coding, "Writing, changing, debugging or reviewing code."
+          "planning", AgentDomain.Planning, "Deciding what to do next, or in what order."
+          "reasoning", AgentDomain.Reasoning, "Working something out: why, whether, or how."
+          "chat", AgentDomain.Chat, "Conversational, with no task behind it." ]
+
+    let question =
+        "intent",
+        SystemOne.Choice(
+            "What is this request asking for?",
+            domains |> List.map (fun (id, _, criterion) -> id, criterion)
+        )
+
+    interface IIntentClassifier with
+        member _.ClassifyAsync(input) =
+            task {
+                // An input over the payload cap is refused by the client before it is
+                // sent, which lands here as any other unusable answer does.
+                let! reply =
+                    decider.Evaluate([ "request", SystemOne.Text input ], [ question ])
+                    |> Async.StartAsTask
+
+                let chosen =
+                    reply
+                    |> Result.bind (fun reply ->
+                        match reply.TryAnswer "intent" with
+                        | Some answer -> SystemOne.decided gate answer
+                        | None -> Result.Error "no answer to the intent question")
+
+                match chosen with
+                | Result.Ok choice ->
+                    return
+                        domains
+                        |> List.tryPick (fun (id, domain, _) -> if id = choice then Some domain else None)
+                | Result.Error _ -> return! fallback.ClassifyAsync input
+            }

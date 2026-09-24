@@ -398,6 +398,40 @@ module SystemOne =
             else
                 Error $"reply came from '{reply.Model}', not the pinned {PinnedModel}")
 
+    // ------------------------------------------------------------------- gate
+
+    /// The bar a typed answer must clear before it is allowed to act. These numbers are
+    /// the caller's, never the model's: a reply reports what it believes, and this says
+    /// whether that belief may pick a branch.
+    type Gate =
+        { MinConfidence: float
+          MinMargin: float }
+
+        /// Confident, and clearly ahead of the runner-up. Tuned against the pinned model.
+        static member Default = { MinConfidence = 0.6; MinMargin = 0.15 }
+
+    /// The distance between the two most likely options; 1.0 when there is only one.
+    let margin (probabilities: Map<string, float>) =
+        match probabilities |> Map.toList |> List.map snd |> List.sortDescending with
+        | top :: second :: _ -> top - second
+        | _ -> 1.0
+
+    /// The chosen option, when the answer clears the gate. The `Error` case is a reason
+    /// to log and fall back on, not a failure: an undecided model is answering honestly.
+    let decided (gate: Gate) (answer: Answer) : Result<string, string> =
+        match answer with
+        | Chose(choice, confidence, probabilities) ->
+            let spread = margin probabilities
+
+            if confidence < gate.MinConfidence then
+                Error $"confidence %.2f{confidence} is under %.2f{gate.MinConfidence}"
+            elif spread < gate.MinMargin then
+                Error $"margin %.2f{spread} is under %.2f{gate.MinMargin}"
+            else
+                Ok choice
+        | Scored _ -> Error "a score does not pick an option"
+        | Nouled _ -> Error "a noul does not pick an option"
+
     // ------------------------------------------------------------------- port
 
     /// One question set evaluated against one state. Implementations own transport,

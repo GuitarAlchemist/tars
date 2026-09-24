@@ -236,3 +236,72 @@ let ``no decider is configured unless the environment asks for one`` () =
         Assert.True((SystemOne.deciderFromEnvironment ()).IsNone)
     finally
         Environment.SetEnvironmentVariable("TARS_JEV", previous)
+
+// ------------------------------------------------------- the typed intent classifier
+
+/// Records whether the classifier underneath was ever reached.
+type private CountingClassifier(answer: AgentDomain option) =
+    let mutable calls = 0
+
+    member _.Calls = calls
+
+    interface IIntentClassifier with
+        member _.ClassifyAsync(_input) =
+            calls <- calls + 1
+            Task.FromResult answer
+
+let private intentReply (choice: string) (probabilities: (string * float) list) confidence =
+    let entries =
+        probabilities
+        |> List.map (fun (option, p) -> $"\"{option}\": {p}")
+        |> String.concat ", "
+
+    $"""{{
+      "model": "{SystemOne.PinnedModel}",
+      "answers": {{
+        "intent": {{
+          "type": "choice",
+          "choice": "{choice}",
+          "confidence": {confidence},
+          "probabilities": {{ {entries} }}
+        }}
+      }},
+      "usage": {{ "input_tokens": 0, "output_tokens": 0 }}
+    }}"""
+
+let private spread coding planning reasoning chat =
+    [ "coding", coding; "planning", planning; "reasoning", reasoning; "chat", chat ]
+
+let private classify (replyJson: string) (fallback: CountingClassifier) =
+    let decider = SystemOne.ReplaySystemOne(replyJson) :> SystemOne.ISystemOne
+
+    (TypedIntentClassifier(decider, fallback) :> IIntentClassifier)
+        .ClassifyAsync("refactor the parser")
+    |> Async.AwaitTask
+    |> Async.RunSynchronously
+
+[<Fact>]
+let ``a confident intent is taken as the domain`` () =
+    let fallback = CountingClassifier(Some AgentDomain.Chat)
+    let decided = classify (intentReply "coding" (spread 0.92 0.04 0.03 0.01) 0.9) fallback
+
+    Assert.Equal(Some AgentDomain.Coding, decided)
+    Assert.Equal(0, fallback.Calls)
+
+[<Fact>]
+let ``an undecided intent defers to the classifier we already had`` () =
+    let fallback = CountingClassifier(Some AgentDomain.Planning)
+    let decided = classify (intentReply "coding" (spread 0.4 0.35 0.15 0.1) 0.9) fallback
+
+    Assert.Equal(Some AgentDomain.Planning, decided)
+    Assert.Equal(1, fallback.Calls)
+
+[<Fact>]
+let ``a domain we do not have cannot come back`` () =
+    // The similarity fallback could map a made-up label onto a real domain; a closed
+    // choice cannot, because the contract refuses the option outright.
+    let fallback = CountingClassifier(None)
+    let decided = classify (intentReply "devops" (spread 0.92 0.04 0.03 0.01) 0.9) fallback
+
+    Assert.Equal(None, decided)
+    Assert.Equal(1, fallback.Calls) // rejected, so the prose path answered
