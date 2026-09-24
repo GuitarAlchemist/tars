@@ -278,14 +278,9 @@ module WoTExecutor =
         | Some candidate -> Result.Ok candidate
         | None -> Result.Error $"Decide: '%s{cleaned}' names none of the %d{candidates.Length} candidates"
 
-    /// Thresholds are ours, not the model's: a typed answer only picks the branch when
-    /// it is confident enough and clearly ahead of the runner-up. Anything else falls
-    /// back to the prose path rather than deciding on a near coin flip.
-    [<Literal>]
-    let private DecideMinConfidence = 0.6
-
-    [<Literal>]
-    let private DecideMinMargin = 0.15
+    /// The bar a typed answer clears before it may pick a branch. Anything under it
+    /// falls back to the prose path rather than deciding on a near coin flip.
+    let private decideGate = SystemOne.Gate.Default
 
     /// Ask the typed decider, if one is configured, and accept its answer only past
     /// those thresholds. `None` means "no decision from here" — never an error to the
@@ -321,23 +316,15 @@ module WoTExecutor =
                     return None
                 | Result.Ok reply ->
                     match reply.TryAnswer "decision" with
-                    | Some(SystemOne.Chose(choice, confidence, probabilities)) ->
-                        let margin =
-                            match probabilities |> Map.toList |> List.map snd |> List.sortDescending with
-                            | top :: second :: _ -> top - second
-                            | _ -> 1.0
-
-                        if confidence >= DecideMinConfidence && margin >= DecideMinMargin then
-                            ctx.Logger
-                                $"[WoT] Decide: %s{reply.Model} chose %s{choice} (confidence %.2f{confidence}, margin %.2f{margin})"
-
+                    | Some answer ->
+                        match SystemOne.decided decideGate answer with
+                        | Result.Ok choice ->
+                            ctx.Logger $"[WoT] Decide: %s{reply.Model} chose %s{choice}"
                             return Some choice
-                        else
-                            ctx.Logger
-                                $"[WoT] Decide: %s{reply.Model} was undecided (confidence %.2f{confidence}, margin %.2f{margin}); asking the model"
-
+                        | Result.Error why ->
+                            ctx.Logger $"[WoT] Decide: %s{reply.Model} was undecided (%s{why}); asking the model"
                             return None
-                    | _ -> return None
+                    | None -> return None
         }
 
     /// Execute a Decide node
