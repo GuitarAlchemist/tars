@@ -305,3 +305,29 @@ let ``a domain we do not have cannot come back`` () =
 
     Assert.Equal(None, decided)
     Assert.Equal(1, fallback.Calls) // rejected, so the prose path answered
+
+[<Fact>]
+let ``a whole rendered prompt is trimmed to fit, keeping its opening`` () =
+    // `evolve` hands over a task template of a couple of kilobytes, which the byte cap
+    // would refuse before sending — leaving the typed path dead in the only place it
+    // is wired. The classifier bounds what it sends instead.
+    let prompt =
+        "[TASK]\nGoal: refactor the WoT parser so it stops swallowing errors\n"
+        + String.replicate 400 "Constraints: keep the public API stable. "
+
+    let request = TypedIntentClassifier.RequestFor prompt
+
+    Assert.True(
+        SystemOne.payloadBytes request <= SystemOne.JevLimits.Default.MaxPayloadBytes,
+        $"payload is {SystemOne.payloadBytes request} bytes"
+    )
+
+    Assert.Contains("refactor the WoT parser", request)
+    Assert.Contains("Only the opening of the request is shown", request)
+
+[<Fact>]
+let ``a short request is sent whole, with nothing added`` () =
+    let request = TypedIntentClassifier.RequestFor "refactor the parser"
+
+    Assert.Contains("refactor the parser", request)
+    Assert.DoesNotContain("Only the opening", request)

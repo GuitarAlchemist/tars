@@ -244,26 +244,55 @@ type PreLlmPipeline(stages: IPreLlmStage list) =
 type TypedIntentClassifier(decider: SystemOne.ISystemOne, fallback: IIntentClassifier, ?gate: SystemOne.Gate) =
     let gate = defaultArg gate SystemOne.Gate.Default
 
-    let domains =
+    static let domains =
         [ "coding", AgentDomain.Coding, "Writing, changing, debugging or reviewing code."
           "planning", AgentDomain.Planning, "Deciding what to do next, or in what order."
           "reasoning", AgentDomain.Reasoning, "Working something out: why, whether, or how."
           "chat", AgentDomain.Chat, "Conversational, with no task behind it." ]
 
-    let question =
+    static let question =
         "intent",
         SystemOne.Choice(
             "What is this request asking for?",
             domains |> List.map (fun (id, _, criterion) -> id, criterion)
         )
 
+    /// What we say about a request, told plainly when it is only the opening of one.
+    /// Callers hand over whole rendered prompts — `evolve` passes a task template of a
+    /// couple of kilobytes — and the payload cap is a cost bound, not a suggestion. The
+    /// opening is also where a goal is stated, so it is the part worth keeping.
+    static let stateFor (input: string) (excerpt: string) =
+        if excerpt.Length < input.Length then
+            [ "request", SystemOne.Text excerpt
+              "note", SystemOne.Text "Only the opening of the request is shown; classify from it." ]
+        else
+            [ "request", SystemOne.Text input ]
+
+    /// Trim until the request fits, measuring the real payload rather than guessing at
+    /// a character budget that a change to the question text would silently invalidate.
+    static let fitted (input: string) =
+        let budget = SystemOne.JevLimits.Default.MaxPayloadBytes
+
+        let rec shrink (text: string) =
+            let body = SystemOne.payload (stateFor input text) [ question ]
+
+            if SystemOne.payloadBytes body <= budget || text.Length = 0 then
+                text
+            else
+                shrink (text.Substring(0, text.Length * 3 / 4))
+
+        shrink input
+
+    /// The exact request this classifier would send. A caller — or a test — can check
+    /// that it fits before anything is spent.
+    static member RequestFor(input: string) =
+        SystemOne.payload (stateFor input (fitted input)) [ question ]
+
     interface IIntentClassifier with
         member _.ClassifyAsync(input) =
             task {
-                // An input over the payload cap is refused by the client before it is
-                // sent, which lands here as any other unusable answer does.
                 let! reply =
-                    decider.Evaluate([ "request", SystemOne.Text input ], [ question ])
+                    decider.Evaluate(stateFor input (fitted input), [ question ])
                     |> Async.StartAsTask
 
                 let chosen =
