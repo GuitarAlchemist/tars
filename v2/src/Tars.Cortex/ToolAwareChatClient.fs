@@ -13,10 +13,10 @@ namespace Tars.Cortex
 ///   let opts = ToolAwareChatClient.optionsWithTools tools
 ///   let resp = client.GetResponseAsync(messages, opts) |> Async.AwaitTask
 ///
-/// Deliberately unreferenced until #305: LlmServiceChatClient drops ChatOptions.Tools
-/// on the way in, and LlmResponse has no tool-call channel on the way out, so the
-/// FunctionInvokingChatClient loop never sees a call to invoke. Wiring this into a
-/// command today would read like a feature and do nothing.
+/// The loop underneath this works as of #305: LlmServiceChatClient now passes
+/// ChatOptions.Tools to the provider and reads tool calls back out of the raw reply,
+/// and a tool result travels back as a Role.Tool turn. Proven end to end offline in
+/// ToolCallLoopTests; no command drives it yet, which is what remains of #252.
 
 open Microsoft.Extensions.AI
 open Tars.Llm

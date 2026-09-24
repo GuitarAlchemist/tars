@@ -24,7 +24,14 @@ module OpenAiCompatibleClient =
 
     /// <summary>DTO for OpenAI message.</summary>
     [<CLIMutable>]
-    type OpenAiMessageDto = { role: string; content: string }
+    type OpenAiMessageDto =
+        { role: string
+          content: string
+          /// Set only on a tool result: OpenAI-shaped endpoints reject the turn without it.
+          tool_call_id: string option
+          /// Set only on the assistant turn that asked for tools, which those endpoints
+          /// require between the request and the result answering it.
+          tool_calls: obj option }
 
     /// <summary>DTO for OpenAI chat request.</summary>
     [<CLIMutable>]
@@ -34,6 +41,9 @@ module OpenAiCompatibleClient =
           max_tokens: int option
           temperature: float option
           stream: bool option
+          /// The functions offered for this request, if any.
+          tools: obj[] option
+          tool_choice: obj option
           response_format: obj option
           /// vLLM >= 0.12 unified constraint field, emitted top-level. Replaces the
           /// old nested `extra_body.guided_decoding`, which was never a server-side
@@ -99,18 +109,33 @@ module OpenAiCompatibleClient =
         | Role.System -> "system"
         | Role.User -> "user"
         | Role.Assistant -> "assistant"
+        | Role.Tool _ -> "tool"
+        | Role.AssistantCalling _ -> "assistant"
+
+    /// The call a tool result answers, for the wire fields that need it.
+    let private callIdOf (role: Role) =
+        match role with
+        | Role.Tool callId -> Some callId
+        | _ -> None
 
     let private toOpenAiMessages (systemPrompt: string option) (msgs: LlmMessage list) =
         let systemMsg =
             match systemPrompt with
-            | Some p -> [ ({ role = "system"; content = p }: OpenAiMessageDto) ]
+            | Some p ->
+                [ ({ role = "system"
+                     content = p
+                     tool_call_id = None
+                     tool_calls = None }
+                  : OpenAiMessageDto) ]
             | None -> []
 
         let otherMsgs =
             msgs
             |> List.map (fun m ->
                 { role = toOpenAiRole m.Role
-                  content = m.Content }
+                  content = m.Content
+                  tool_call_id = callIdOf m.Role
+                  tool_calls = ToolCallWire.asStringArguments m.Role }
                 : OpenAiMessageDto)
 
         (systemMsg @ otherMsgs) |> List.toArray
@@ -127,6 +152,10 @@ module OpenAiCompatibleClient =
           max_tokens = req.MaxTokens
           temperature = req.Temperature
           stream = Some stream
+          // Offering nothing is how a model is told there are no tools; an empty array
+          // is not the same statement.
+          tools = (if req.Tools.IsEmpty then None else Some(List.toArray req.Tools))
+          tool_choice = req.ToolChoice
           structured_outputs = buildStructuredOutputs vllmExtensions req
           response_format =
             match req.ResponseFormat with

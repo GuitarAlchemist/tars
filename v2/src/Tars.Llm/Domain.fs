@@ -6,6 +6,17 @@ namespace Tars.Llm
 open System
 
 /// <summary>Message role in a conversation.</summary>
+type ToolCall =
+    {
+        /// <summary>The id a result answers. Providers that omit it get one by position.</summary>
+        Id: string
+        /// <summary>The function the model asked for.</summary>
+        Name: string
+        /// <summary>Its arguments as JSON, exactly as the model produced them.</summary>
+        ArgumentsJson: string
+    }
+
+/// <summary>Who a message is from.</summary>
 type Role =
     /// <summary>System prompt that sets context/behavior.</summary>
     | System
@@ -13,9 +24,57 @@ type Role =
     | User
     /// <summary>Assistant (LLM) response.</summary>
     | Assistant
+    /// <summary>A tool's result, answering the call with this id. Providers that have
+    /// no tool role fold it into the nearest one they do have.</summary>
+    | Tool of callId: string
+    /// <summary>The assistant turn that asked for tools. It has to travel back between
+    /// the request and the results: an OpenAI-shaped endpoint rejects an exchange where
+    /// a tool result answers nothing.</summary>
+    | AssistantCalling of calls: ToolCall list
 
 /// <summary>A single message in a conversation.</summary>
 type LlmMessage = { Role: Role; Content: string }
+
+/// <summary>
+/// The `tool_calls` array as the OpenAI family and Ollama each want it. They agree on
+/// everything but the arguments: a JSON string there, a JSON object here.
+/// </summary>
+module ToolCallWire =
+
+    let private shape (argumentsAsObject: bool) (calls: ToolCall list) : obj option =
+        if List.isEmpty calls then
+            None
+        else
+            calls
+            |> List.map (fun call ->
+                let arguments: obj =
+                    if argumentsAsObject then
+                        try
+                            box (System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(call.ArgumentsJson))
+                        with _ ->
+                            box call.ArgumentsJson
+                    else
+                        box call.ArgumentsJson
+
+                box
+                    {| id = call.Id
+                       ``type`` = "function"
+                       ``function`` = {| name = call.Name; arguments = arguments |} |})
+            |> List.toArray
+            |> box
+            |> Some
+
+    /// Arguments as a JSON string: OpenAI, vLLM and everything shaped like them.
+    let asStringArguments (role: Role) =
+        match role with
+        | Role.AssistantCalling calls -> shape false calls
+        | _ -> None
+
+    /// Arguments as a JSON object: Ollama.
+    let asObjectArguments (role: Role) =
+        match role with
+        | Role.AssistantCalling calls -> shape true calls
+        | _ -> None
 
 /// <summary>Grammar constraint for structured output.</summary>
 type Grammar =

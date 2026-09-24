@@ -23,7 +23,14 @@ module VllmClient =
 
     /// <summary>DTO for OpenAI-compatible message.</summary>
     [<CLIMutable>]
-    type OpenAiMessageDto = { role: string; content: string }
+    type OpenAiMessageDto =
+        { role: string
+          content: string
+          /// Set only on a tool result: OpenAI-shaped endpoints reject the turn without it.
+          tool_call_id: string option
+          /// Set only on the assistant turn that asked for tools, which those endpoints
+          /// require between the request and the result answering it.
+          tool_calls: obj option }
 
     /// <summary>DTO for OpenAI-compatible request.</summary>
     [<CLIMutable>]
@@ -62,12 +69,22 @@ module VllmClient =
         | Role.System -> "system"
         | Role.User -> "user"
         | Role.Assistant -> "assistant"
+        | Role.Tool _ -> "tool"
+        | Role.AssistantCalling _ -> "assistant"
+
+    /// The call a tool result answers, for the wire fields that need it.
+    let private callIdOf (role: Role) =
+        match role with
+        | Role.Tool callId -> Some callId
+        | _ -> None
 
     let private toOpenAiMessages (msgs: LlmMessage list) =
         msgs
         |> List.map (fun m ->
             { role = toOpenAiRole m.Role
-              content = m.Content }
+              content = m.Content
+              tool_call_id = callIdOf m.Role
+              tool_calls = ToolCallWire.asStringArguments m.Role }
             : OpenAiMessageDto)
         |> List.toArray
 
