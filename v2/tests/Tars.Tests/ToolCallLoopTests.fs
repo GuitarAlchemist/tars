@@ -212,3 +212,129 @@ let ``a request with no tools offers none, rather than an empty list`` () =
 
     Assert.True(dto.tools.IsNone)
     Assert.DoesNotContain("tools", onTheWire dto)
+
+// --------------------------------------------------------------- the streaming leg
+
+/// Streams the tokens it was given, then finishes with the reply it was given.
+type private StreamingService(tokens: string list, final: LlmResponse, ?failWith: exn) =
+    let seen = ResizeArray<LlmRequest>()
+
+    member _.Requests = List.ofSeq seen
+
+    interface ILlmService with
+        member _.CompleteAsync(req) =
+            seen.Add req
+
+            match failWith with
+            | Some error -> Task.FromException<LlmResponse>(error)
+            | None -> Task.FromResult final
+
+        member _.CompleteStreamAsync(req, onToken) =
+            seen.Add req
+
+            task {
+                match failWith with
+                | Some error -> return raise error
+                | None ->
+                    for token in tokens do
+                        onToken token
+
+                    return final
+            }
+
+        member _.EmbedAsync(_text) = Task.FromResult(Array.empty<float32>)
+
+        member _.RouteAsync(_) =
+            task {
+                return
+                    { Backend = Ollama "mock"
+                      Endpoint = Uri "http://localhost:11434"
+                      ApiKey = None }
+            }
+
+let private drain (client: IChatClient) (options: ChatOptions) =
+    task {
+        let updates = ResizeArray<ChatResponseUpdate>()
+        let messages = List<ChatMessage>([ ChatMessage(ChatRole.User, "go") ])
+        let stream = client.GetStreamingResponseAsync(messages, options, Threading.CancellationToken.None)
+        let enumerator = stream.GetAsyncEnumerator(Threading.CancellationToken.None)
+
+        let mutable go = true
+
+        while go do
+            let! moved = enumerator.MoveNextAsync()
+
+            if moved then
+                // Reading Current twice must hand back the same update, not eat one.
+                Assert.Same(enumerator.Current, enumerator.Current)
+                updates.Add enumerator.Current
+            else
+                go <- false
+
+        return List.ofSeq updates
+    }
+
+[<Fact>]
+let ``streamed tokens all arrive, and the reply closes the stream`` () =
+    let service =
+        StreamingService([ "he"; "ll"; "o" ], answering "hello") :> ILlmService
+
+    let updates =
+        drain (new LlmServiceChatClient(service) :> IChatClient) (ChatOptions())
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    let text = updates |> List.collect (fun u -> List.ofSeq u.Contents) |> List.choose (fun c ->
+        match c with
+        | :? TextContent as t -> Some t.Text
+        | _ -> None)
+
+    Assert.Equal("hello", String.concat "" text)
+    Assert.Contains(updates, fun u -> u.FinishReason.HasValue)
+
+[<Fact>]
+let ``a streaming caller offering tools still gets the call`` () =
+    // Providers put tool calls in the final message, not in the token stream, so this
+    // path takes the buffered reply rather than losing them.
+    let service = StreamingService([], asking ollamaToolCall) :> ILlmService
+
+    let options = ToolAwareChatClient.optionsWithTools [ weatherTool () ]
+
+    let updates =
+        drain (new LlmServiceChatClient(service) :> IChatClient) options
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    let calls =
+        updates
+        |> List.collect (fun u -> List.ofSeq u.Contents)
+        |> List.choose (fun c ->
+            match c with
+            | :? FunctionCallContent as call -> Some call.Name
+            | _ -> None)
+
+    Assert.Equal<string>("GetWeather", String.concat "," calls)
+
+[<Fact>]
+let ``a provider failure ends the stream loudly, not quietly`` () =
+    // It used to end the stream as though the provider had simply finished, so a
+    // caller read a successful, empty answer out of a failed call.
+    let service =
+        StreamingService([], answering "unused", InvalidOperationException "provider exploded") :> ILlmService
+
+    let failure =
+        Assert.ThrowsAny<exn>(fun () ->
+            drain (new LlmServiceChatClient(service) :> IChatClient) (ChatOptions())
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+            |> ignore)
+
+    // However it is wrapped on the way out, the provider's own failure is in there.
+    let rec messages (error: exn) =
+        match error with
+        | null -> []
+        | :? AggregateException as aggregate ->
+            error.Message :: (aggregate.InnerExceptions |> Seq.collect messages |> List.ofSeq)
+        | _ -> error.Message :: messages error.InnerException
+
+    Assert.Contains(messages failure, fun (m: string) -> m.Contains "provider exploded")

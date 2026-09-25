@@ -495,6 +495,7 @@ type LlmServiceChatClient(inner: ILlmService) =
 
         member _.GetStreamingResponseAsync(messages: IEnumerable<ChatMessage>, options: ChatOptions, cancellationToken: CancellationToken) : IAsyncEnumerable<ChatResponseUpdate> =
             let inner = inner
+
             { new IAsyncEnumerable<ChatResponseUpdate> with
                 member _.GetAsyncEnumerator(ct) =
                     let tarsMessages =
@@ -502,9 +503,7 @@ type LlmServiceChatClient(inner: ILlmService) =
                         |> Seq.map ChatClientMapping.fromAIChatMessage
                         |> Seq.toList
 
-                    let mutable req =
-                        Prompt.ofMessages tarsMessages
-                        |> Prompt.withStream true
+                    let mutable req = Prompt.ofMessages tarsMessages |> Prompt.withStream true
 
                     if not (isNull options) then
                         req <-
@@ -518,59 +517,102 @@ type LlmServiceChatClient(inner: ILlmService) =
                                     options.MaxOutputTokens
                                     |> Option.ofNullable
                                     |> Option.orElse req.MaxTokens
-                                Model =
-                                    options.ModelId
-                                    |> Option.ofObj
-                                    |> Option.orElse req.Model
+                                Model = options.ModelId |> Option.ofObj |> Option.orElse req.Model
                                 // Streaming carries the same sampling controls as the
                                 // non-streaming path. Dropping them here meant an
                                 // identical ChatOptions produced two different requests
                                 // depending only on whether the caller streamed.
                                 Stop = ChatClientMapping.stopOf options req.Stop
                                 Seed = ChatClientMapping.seedOf options req.Seed
-                                // Offered here too, so a streaming caller and a
-                                // buffering one send the same request. Reassembling
-                                // tool calls out of a token stream is still to do:
-                                // this path yields text and nothing else.
                                 Tools = ChatClientMapping.toolsOf options }
                             |> ChatClientMapping.applyFormat options
 
-                    let buffer = System.Collections.Concurrent.ConcurrentQueue<string>()
-                    let mutable finished = false
-                    let mutable started = false
-                    let mutable completionTask: Task<LlmResponse> = null
+                    // Tool calls do not survive being flattened into a token stream:
+                    // providers put them in the final message, and our streaming path
+                    // forwards content only. Offering tools therefore takes the
+                    // buffered call and yields it as one update, which keeps the loop
+                    // working for a streaming caller at the cost of the tokens
+                    // arriving together. Reassembling calls from deltas is #317.
+                    let offersTools = not req.Tools.IsEmpty
+
+                    let pending = System.Collections.Concurrent.ConcurrentQueue<ChatResponseUpdate>()
+                    let mutable current = ChatResponseUpdate()
+                    let mutable completion: Task<LlmResponse> = null
+                    let mutable closed = false
+
+                    let textUpdate (text: string) =
+                        let update = ChatResponseUpdate()
+                        update.Role <- Nullable ChatRole.Assistant
+                        update.Contents.Add(TextContent(text))
+                        update
+
+                    /// The update that closes the stream: whatever the streamed tokens
+                    /// could not carry — the tool calls, the finish reason, the usage.
+                    let closingUpdate (response: LlmResponse) =
+                        let update = ChatResponseUpdate()
+                        update.Role <- Nullable ChatRole.Assistant
+
+                        if offersTools && not (String.IsNullOrEmpty response.Text) then
+                            update.Contents.Add(TextContent(response.Text))
+
+                        let calls = ChatClientMapping.toolCallsOf response.Raw
+
+                        for call in calls do
+                            update.Contents.Add(FunctionCallContent(call.CallId, call.Name, call.Arguments))
+
+                        if not calls.IsEmpty then
+                            update.FinishReason <- Nullable ChatFinishReason.ToolCalls
+                        else
+                            response.FinishReason
+                            |> Option.iter (fun reason ->
+                                update.FinishReason <-
+                                    Nullable(
+                                        match reason with
+                                        | "length" -> ChatFinishReason.Length
+                                        | "content_filter" -> ChatFinishReason.ContentFilter
+                                        | "tool_calls" -> ChatFinishReason.ToolCalls
+                                        | _ -> ChatFinishReason.Stop))
+
+                        update
 
                     { new IAsyncEnumerator<ChatResponseUpdate> with
-                        member _.Current =
-                            let mutable token = ""
-                            buffer.TryDequeue(&token) |> ignore
-                            let update = ChatResponseUpdate()
-                            update.Role <- Nullable ChatRole.Assistant
-                            update.Contents.Add(TextContent(token))
-                            update
+                        // Handing out the same update twice is what a consumer expects;
+                        // dequeuing here meant reading `Current` twice ate a token.
+                        member _.Current = current
 
                         member _.MoveNextAsync() =
-                            if not started then
-                                started <- true
-                                completionTask <- inner.CompleteStreamAsync(req, fun token -> buffer.Enqueue(token))
-
-                            if not buffer.IsEmpty then
-                                ValueTask<bool>(true)
-                            elif finished then
-                                ValueTask<bool>(false)
-                            else
-                                let waitTask = task {
-                                    while buffer.IsEmpty && not completionTask.IsCompleted do
-                                        do! Task.Delay(10, ct)
-                                    if not buffer.IsEmpty then return true
+                            if isNull completion then
+                                completion <-
+                                    if offersTools then
+                                        inner.CompleteAsync(req)
                                     else
-                                        finished <- true
-                                        return not buffer.IsEmpty
-                                }
-                                ValueTask<bool>(waitTask)
+                                        inner.CompleteStreamAsync(req, (fun token -> pending.Enqueue(textUpdate token)))
 
-                        member _.DisposeAsync() = ValueTask()
-                    }
+                            let rec advance () =
+                                task {
+                                    match pending.TryDequeue() with
+                                    | true, update ->
+                                        current <- update
+                                        return true
+                                    | _ ->
+                                        if closed then
+                                            return false
+                                        elif completion.IsCompleted then
+                                            closed <- true
+                                            // Awaited, not inspected: a provider that
+                                            // failed used to end the stream as though
+                                            // it had simply finished.
+                                            let! response = completion
+                                            pending.Enqueue(closingUpdate response)
+                                            return! advance ()
+                                        else
+                                            do! Task.Delay(10, ct)
+                                            return! advance ()
+                                }
+
+                            ValueTask<bool>(advance ())
+
+                        member _.DisposeAsync() = ValueTask() }
             }
 
         member _.Dispose() = ()
