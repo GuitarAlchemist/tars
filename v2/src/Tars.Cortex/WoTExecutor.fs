@@ -87,7 +87,7 @@ module WoTExecutor =
         // Select only outputs from upstream nodes (or all if no edges exist)
         let relevantOutputs =
             if incomingIds.IsEmpty then
-                // No explicit edges — include nothing extra (rely on sequential lastOutput)
+                // No explicit edges â€” include nothing extra (rely on sequential lastOutput)
                 Map.empty
             else
                 stepOutputs
@@ -158,7 +158,7 @@ module WoTExecutor =
         else
             JsonSerializer.Serialize(args)
 
-    /// Execute an Act node — invokes the real tool if registered, otherwise
+    /// Execute an Act node â€” invokes the real tool if registered, otherwise
     /// falls back to asking the LLM to simulate the tool call.
     let private executeAct
         (ctx: ExecutionContext)
@@ -189,7 +189,7 @@ module WoTExecutor =
                     return Result.Error err
 
             | None ->
-                // Tool not registered — fall back to LLM simulation
+                // Tool not registered â€” fall back to LLM simulation
                 ctx.Logger $"[WoT] Tool '%s{toolName}' not found, falling back to LLM simulation"
 
                 let argsDesc =
@@ -283,7 +283,7 @@ module WoTExecutor =
     let private decideGate = SystemOne.Gate.Default
 
     /// Ask the typed decider, if one is configured, and accept its answer only past
-    /// those thresholds. `None` means "no decision from here" � never an error to the
+    /// those thresholds. `None` means "no decision from here" — never an error to the
     /// caller, who still has the prose path.
     let private decideWithSystemOne
         (ctx: ExecutionContext)

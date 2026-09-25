@@ -236,7 +236,7 @@ type PreLlmPipeline(stages: IPreLlmStage list) =
 /// for prose and mapping the answer back by similarity.
 /// </summary>
 /// <remarks>
-/// The options are this type's own cases, so a domain we do not have cannot come back —
+/// The options are this type's own cases, so a domain we do not have cannot come back â€”
 /// which is the failure the similarity fallback could not rule out. Anything the gate
 /// does not clear, and anything the contract rejects, defers to the classifier we
 /// already had: a typed answer is an improvement, never a new single point of failure.
@@ -258,8 +258,8 @@ type TypedIntentClassifier(decider: SystemOne.ISystemOne, fallback: IIntentClass
         )
 
     /// What we say about a request, told plainly when it is only the opening of one.
-    /// Callers hand over whole rendered prompts � `evolve` passes a task template of a
-    /// couple of kilobytes � and the payload cap is a cost bound, not a suggestion. The
+    /// Callers hand over whole rendered prompts — `evolve` passes a task template of a
+    /// couple of kilobytes — and the payload cap is a cost bound, not a suggestion. The
     /// opening is also where a goal is stated, so it is the part worth keeping.
     static let stateFor (input: string) (excerpt: string) =
         if excerpt.Length < input.Length then
@@ -283,7 +283,7 @@ type TypedIntentClassifier(decider: SystemOne.ISystemOne, fallback: IIntentClass
 
         shrink input
 
-    /// The exact request this classifier would send. A caller � or a test � can check
+    /// The exact request this classifier would send. A caller — or a test — can check
     /// that it fits before anything is spent.
     static member RequestFor(input: string) =
         SystemOne.payload (stateFor input (fitted input)) [ question ]

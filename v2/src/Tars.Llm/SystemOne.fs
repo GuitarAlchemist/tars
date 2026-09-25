@@ -133,7 +133,14 @@ module SystemOne =
     /// How precisely a number was published. Jev rounds what it sends, so a rule that
     /// ignores the rounding rejects replies that are perfectly consistent: the first
     /// live probe answered score 0.05 over a 0.96/0.04/0.00 distribution, whose exact
-    /// expectation is 0.04 � one hundredth apart, and both true to two decimals.
+    /// expectation is 0.04 — one hundredth apart, and both true to two decimals.
+    /// Jev publishes two decimals. A value that looks coarser — 0.1, or 0 — is that
+    /// same grid with its trailing zeros dropped, not a claim of less precision, so
+    /// the slack is floored here rather than widening to half a tenth on a reply that
+    /// happens to be round.
+    [<Literal>]
+    let private MinPublishedDecimals = 2
+
     let private decimalsOf (element: JsonElement) =
         let raw = element.GetRawText()
 
@@ -141,8 +148,8 @@ module SystemOne =
             15 // exponent form is already more precision than any rounding grid
         else
             match raw.IndexOf '.' with
-            | -1 -> 0
-            | dot -> raw.Length - dot - 1
+            | -1 -> MinPublishedDecimals
+            | dot -> max MinPublishedDecimals (raw.Length - dot - 1)
 
     /// Half of the last published digit: the most a rounded number can be off by.
     let private halfUlp (decimals: int) = 0.5 * Math.Pow(10.0, float -decimals)
@@ -210,7 +217,7 @@ module SystemOne =
                     let total = map |> Map.fold (fun sum _ value -> sum + value) 0.0
 
                     // Every rounded term can be off by half a digit, so the sum can be
-                    // off by that much per option � and no more.
+                    // off by that much per option — and no more.
                     if abs (total - 1.0) <= slack * float entries.Length + tolerance then
                         Ok(map, slack)
                     else

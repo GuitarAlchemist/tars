@@ -260,3 +260,24 @@ let ``rounding slack does not excuse a score that is actually wrong`` () =
     match parseReply probeQuestions (real.Replace("\"score\":0.05", "\"score\":1.05")) with
     | Ok _ -> failwith "expected the score check to still bite"
     | Error message -> Assert.Contains("does not match its own distribution", message)
+
+[<Fact>]
+let ``a round reply does not buy itself a wider tolerance`` () =
+    // 0.1 / 0.6 / 0.3 are two-decimal numbers with a trailing zero dropped, not a
+    // claim of one-decimal precision. Read as the latter, each term would be worth
+    // half a tenth of slack and a score a fifth of a level out would pass.
+    let contradicting = validReply.Replace("\"score\": 1.2", "\"score\": 1.4")
+
+    match parseReply questions contradicting with
+    | Ok _ -> failwith "expected the score check to bite"
+    | Error message -> Assert.Contains("does not match its own distribution", message)
+
+    // The hundredth the live model actually sends still passes.
+    let live =
+        validReply
+            .Replace("\"score\": 1.2", "\"score\": 0.05")
+            .Replace("\"0\": 0.1, \"1\": 0.6, \"2\": 0.3", "\"0\": 0.96, \"1\": 0.04, \"2\": 0.0")
+
+    match parseReply questions live with
+    | Error message -> failwith message
+    | Ok _ -> ()
