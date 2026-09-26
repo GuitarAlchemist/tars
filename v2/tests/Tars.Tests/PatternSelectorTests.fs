@@ -109,6 +109,18 @@ type HistoryAwareSelectorTests() =
         Assert.Equal(PlanAndExecute, result)
 
     [<Fact>]
+    member _.``A custom pattern whose name contains plan is not PlanAndExecute``() =
+        // "explanation" contains "plan". Kind ids were matched by substring, and
+        // `GoldenTraceStore` persists `PatternKind.ToString()`, so an unrelated custom
+        // pattern could collect PlanAndExecute's history and bandit weight.
+        Assert.Equal(Some PlanAndExecute, PatternSelector.keyToKind "PlanAndExecute")
+        Assert.Equal(Some PlanAndExecute, PatternSelector.keyToKind "planandexecute")
+        Assert.Equal(None, PatternSelector.keyToKind "explanation")
+        Assert.Equal(None, PatternSelector.keyToKind "Custom:explanation")
+        Assert.Equal(None, PatternSelector.keyToKind "my-planner")
+        Assert.Equal(None, PatternSelector.keyToKind "")
+
+    [<Fact>]
     member _.``Score returns scores for all pattern kinds``() =
         let scores = selector.Score("explain something step by step")
         // Should have entries for all 6 standard pattern kinds

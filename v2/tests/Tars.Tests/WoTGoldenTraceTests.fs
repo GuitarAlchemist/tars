@@ -133,6 +133,35 @@ let ``compileChainOfThought produces correct node structure`` () =
         Assert.Equal(WoTNodeKind.Reason, node.Kind)
 
 [<Fact>]
+let ``compilePlanAndExecute plans before it executes`` () =
+    // `CompileFor PlanAndExecute` used to answer with `CompileChainOfThought(3, …)`:
+    // three generic reasoning steps, stamped ChainOfThought, with no plan anywhere.
+    // The selection said one thing and the compiled plan did another.
+    let goal = "Migrate the store to the new schema"
+    let plan = compilePlanAndExecute 3 goal
+
+    // One planning step, three execution steps, one review.
+    Assert.Equal(5, plan.Nodes.Length)
+    Assert.Equal(4, plan.Edges.Length)
+    Assert.Equal(PatternKind.PlanAndExecute, plan.Metadata.Kind)
+    Assert.Equal(goal, plan.Metadata.SourceGoal)
+
+    let promptOf (node: WoTNode) =
+        match node.Payload with
+        | :? ReasonPayload as r -> r.Prompt
+        | _ -> ""
+
+    let prompts = plan.Nodes |> List.map promptOf
+
+    // The plan is written first and not acted on.
+    Assert.Contains("Write a plan", prompts.Head)
+    Assert.Contains("Do not carry any of them out yet", prompts.Head)
+
+    // Every middle node carries out a numbered step of it.
+    for i, prompt in prompts |> List.skip 1 |> List.truncate 3 |> List.indexed do
+        Assert.Contains($"Carry out step {i + 1} of the plan", prompt)
+
+[<Fact>]
 let ``CoT plan generates valid Mermaid diagram`` () =
     let plan = compileChainOfThought 3 "Test goal"
     

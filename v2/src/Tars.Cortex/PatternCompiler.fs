@@ -119,6 +119,69 @@ module PatternCompiler =
           Policy = [] }
 
     // =========================================================================
+    // Plan and Execute Compiler
+    // =========================================================================
+
+    /// <summary>
+    /// Compiles a Plan-and-Execute workflow to a WoT plan.
+    /// One planning step writes the numbered plan; each execution step carries it
+    /// out and reports what happened; a final step reports the outcome against the
+    /// plan it started from.
+    /// </summary>
+    /// <remarks>
+    /// `CompileFor` used to answer this kind with `CompileChainOfThought(3, goal)`:
+    /// a shorter chain of generic reasoning, with `Kind = ChainOfThought` in its
+    /// metadata, and no plan anywhere. Nothing said so — the selection said
+    /// PlanAndExecute and the trace said ChainOfThought.
+    ///
+    /// The step count is fixed at compile time because a WoT plan is a static graph,
+    /// while the plan the model writes is not known until the first node runs. The
+    /// execution prompts therefore address their step by position and defer to the
+    /// plan for its content, and a plan shorter than `stepCount` is explicitly
+    /// allowed to finish early rather than invent work.
+    /// </remarks>
+    let compilePlanAndExecute (stepCount: int) (goal: string) : WoTPlan =
+        let steps = max 1 stepCount
+
+        let planNode =
+            think
+                ($"Goal: %s{goal}
+
+Write a plan for reaching it, as a numbered list of at most "
+                 + $"%d{steps} steps. Each step should be a single concrete action. Do not carry any "
+                 + "of them out yet.")
+                (Some Smart)
+
+        let executionNodes =
+            [ for i in 1..steps ->
+                think
+                    ($"Carry out step %d{i} of the plan you wrote, and report what came of it. "
+                     + "If the plan has fewer steps than this, say that it is already complete and "
+                     + "add nothing to it.")
+                    (Some Smart) ]
+
+        let reviewNode =
+            think
+                ($"Report the outcome for the goal: %s{goal}
+
+Say what the plan set out to do, "
+                 + "what carrying it out produced, and where the two differ.")
+                (Some Smart)
+
+        let nodes = (planNode :: executionNodes) @ [ reviewNode ]
+        let nodeIds = nodes |> List.map nodeId
+
+        let edges =
+            nodeIds |> List.pairwise |> List.map (fun (a, b) -> edge a b (Some "next"))
+
+        { Id = Guid.NewGuid()
+          Nodes = nodes
+          Edges = edges
+          EntryNode = nodeIds.Head
+          Metadata = metadata PlanAndExecute goal (steps + 2)
+          Policy = [] }
+
+    // =========================================================================
     // ReAct Compiler
     // =========================================================================
 
@@ -462,7 +525,7 @@ module PatternCompiler =
                 | ReAct -> compiler.CompileReAct([ "search"; "calculate"; "read"; "write" ], 10, goal)
                 | GraphOfThoughts -> compiler.CompileGraphOfThoughts(3, 3, goal)
                 | TreeOfThoughts -> compiler.CompileTreeOfThoughts(3, 2, goal)
-                | PlanAndExecute -> compiler.CompileChainOfThought(3, goal)
+                | PlanAndExecute -> compilePlanAndExecute 3 goal
                 | WorkflowOfThought -> compiler.CompileChainOfThought(5, goal)
                 | Custom _ -> compiler.CompileChainOfThought(3, goal)
 
