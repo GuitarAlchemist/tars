@@ -27,6 +27,7 @@ type RoutingConfig =
       DefaultDockerModelRunnerModel: string option
       DefaultLlamaCppModel: string option
       DefaultEmbeddingModel: string
+      EmbeddingProvider: string option
       ReasoningModel: string option
       CodingModel: string option
       FastModel: string option
@@ -58,6 +59,7 @@ type RoutingConfig =
           DefaultDockerModelRunnerModel = None
           DefaultLlamaCppModel = None
           DefaultEmbeddingModel = "nomic-embed-text"
+          EmbeddingProvider = None
           ReasoningModel = None
           CodingModel = None
           FastModel = None
@@ -421,6 +423,7 @@ module RoutingConfig =
           DefaultDockerModelRunnerModel = None
           DefaultLlamaCppModel = if llamaCppUri.IsSome then Some tarsCfg.Llm.Model else None
           DefaultEmbeddingModel = tarsCfg.Llm.EmbeddingModel
+          EmbeddingProvider = tarsCfg.Llm.EmbeddingProvider
 
           ReasoningModel = tarsCfg.Llm.ReasoningModel
           CodingModel = tarsCfg.Llm.CodingModel

@@ -602,3 +602,78 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
             Assert.Equal("Hello World", response.Text)
             output.WriteLine("ILlmService streaming interface works correctly")
         }
+
+// ------------------------------------------------------- where embeddings go
+
+/// The routing that decides whether a caller's text leaves the machine.
+module EmbeddingRoutingTests =
+
+    let private routing model provider key =
+        { RoutingConfig.Default with
+            DefaultEmbeddingModel = model
+            PreferredProvider = provider
+            OpenAIKey = key }
+
+    let private declaring embeddingProvider model key =
+        { routing model "Ollama" key with
+            EmbeddingProvider = Some embeddingProvider }
+
+    [<Fact>]
+    let ``a local embedding model stays local, whatever it is called`` () =
+        // The four names the old substring list knew, and four it did not. All of
+        // these are ordinary `ollama pull` models.
+        for model in
+            [ "nomic-embed-text"
+              "mxbai-embed-large"
+              "bge-m3"
+              "all-minilm"
+              "snowflake-arctic-embed"
+              "granite-embedding" ] do
+            Assert.False(Embedder.usesOpenAi (routing model "Ollama" None), $"{model} would have been sent to OpenAI")
+
+    [<Fact>]
+    let ``a key alone does not send local text to OpenAI`` () =
+        Assert.False(Embedder.usesOpenAi (routing "bge-m3" "Ollama" (Some "sk-test")))
+
+    [<Fact>]
+    let ``OpenAI is used when it is asked for and can be called`` () =
+        Assert.True(Embedder.usesOpenAi (routing "text-embedding-3-small" "Ollama" (Some "sk-test")))
+        Assert.True(Embedder.usesOpenAi (routing "text-embedding-3-large" "OpenAI" (Some "sk-test")))
+
+    [<Fact>]
+    let ``without a key, OpenAI is not called even when it is asked for`` () =
+        // The request could only 401, and the text would have left anyway.
+        Assert.False(Embedder.usesOpenAi (routing "text-embedding-3-small" "OpenAI" None))
+
+    [<Fact>]
+    let ``a blank key is no key`` () =
+        // Configuration stores an empty OPENAI_API_KEY as `Some ""`, and
+        // `getEmbeddingsAsync` sends no authorization header for one — so this would
+        // be the text leaving the machine purely to collect a 401.
+        for key in [ ""; "   "; "\t" ] do
+            Assert.False(Embedder.usesOpenAi (routing "text-embedding-3-small" "OpenAI" (Some key)))
+
+    [<Fact>]
+    let ``a declared embedding provider decides, whatever the model is called`` () =
+        // The point of the setting: a local alias named `text-embedding-nomic` is not
+        // evidence of anything, and saying so should be enough to keep it local.
+        Assert.False(Embedder.usesOpenAi (declaring "Ollama" "text-embedding-nomic" (Some "sk-test")))
+        Assert.False(Embedder.usesOpenAi (declaring "Ollama" "text-embedding-3-small" (Some "sk-test")))
+        Assert.True(Embedder.usesOpenAi (declaring "OpenAI" "our-embedding-alias" (Some "sk-test")))
+        Assert.True(Embedder.usesOpenAi (declaring "openai" "text-embedding-3-small" (Some "sk-test")))
+
+    [<Fact>]
+    let ``declaring OpenAI without a key still does not send`` () =
+        Assert.False(Embedder.usesOpenAi (declaring "OpenAI" "text-embedding-3-small" None))
+        Assert.False(Embedder.usesOpenAi (declaring "OpenAI" "text-embedding-3-small" (Some " ")))
+
+    [<Fact>]
+    let ``choosing OpenAI for chat does not move local embeddings`` () =
+        // `Llm.Provider` and `Llm.EmbeddingModel` are separate settings, and the
+        // embedding default is local. Chat on OpenAI with embeddings on Ollama is an
+        // ordinary setup, not an instruction to post `nomic-embed-text` to OpenAI.
+        for model in [ "nomic-embed-text"; "bge-m3"; "some-gateway-model" ] do
+            Assert.False(
+                Embedder.usesOpenAi (routing model "OpenAI" (Some "sk-test")),
+                $"{model} would have been sent to OpenAI because chat uses it"
+            )
