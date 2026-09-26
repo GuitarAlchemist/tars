@@ -228,8 +228,12 @@ module OllamaClient =
                 // nothing raised and nothing logged. Downstream that reads as "the
                 // model answered nothing", and the evolution loop blames the model.
                 return
-                    failwith
-                        $"Ollama returned 404 for model '%s{model}' at %O{uri}. The model may not be pulled, or the API path may be wrong for this host."
+                    raise (
+                        ModelNotFoundException(
+                            model,
+                            $"Ollama returned 404 for model '%s{model}' at %O{uri}. The model may not be pulled, or the API path may be wrong for this host."
+                        )
+                    )
             else
                 if not resp.IsSuccessStatusCode then
                     let! err = resp.Content.ReadAsStringAsync()

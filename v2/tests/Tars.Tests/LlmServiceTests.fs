@@ -734,3 +734,36 @@ module OllamaModelValidationTests =
             match run model with
             | Result.Error(ModelNotFound _) -> ()
             | other -> Assert.Fail($"expected ModelNotFound for '{model}', got {other}")
+
+    [<Fact>]
+    let ``a model the server does not have comes back as ModelNotFound`` () =
+        // Letting the server decide only helps if its answer survives the trip. A 404
+        // used to be an empty successful response; then a `failwith`, which reaches
+        // `LlmError.fromException` as `UnknownError` — true but unmatchable. Callers
+        // on the functional path need the typed answer to act on it.
+        let port = deadPort ()
+        let baseUri = Uri($"http://127.0.0.1:{port}/")
+        use listener = new System.Net.HttpListener()
+        listener.Prefixes.Add(baseUri.ToString())
+        listener.Start()
+
+        let serve =
+            task {
+                let! context = listener.GetContextAsync()
+                context.Response.StatusCode <- 404
+                context.Response.Close()
+            }
+
+        use http = new HttpClient(Timeout = TimeSpan.FromSeconds 5.0)
+
+        let result =
+            OllamaClientAsync.generateValidated http baseUri "gemma3" None request
+            |> Async.RunSynchronously
+
+        serve.Wait(TimeSpan.FromSeconds 5.0) |> ignore
+        listener.Stop()
+
+        match result with
+        | Result.Error(ModelNotFound model) -> Assert.Equal("gemma3", model)
+        | Result.Error e -> Assert.Fail($"expected ModelNotFound, got error {e}")
+        | Result.Ok r -> Assert.Fail($"expected ModelNotFound, got Ok {r.Text}")
