@@ -625,10 +625,7 @@ module EmbeddingRoutingTests =
               "all-minilm"
               "snowflake-arctic-embed"
               "granite-embedding" ] do
-            Assert.False(
-                Embedder.usesOpenAi (routing model "Ollama" None),
-                $"{model} would have been sent to OpenAI"
-            )
+            Assert.False(Embedder.usesOpenAi (routing model "Ollama" None), $"{model} would have been sent to OpenAI")
 
     [<Fact>]
     let ``a key alone does not send local text to OpenAI`` () =
@@ -637,9 +634,28 @@ module EmbeddingRoutingTests =
     [<Fact>]
     let ``OpenAI is used when it is asked for and can be called`` () =
         Assert.True(Embedder.usesOpenAi (routing "text-embedding-3-small" "Ollama" (Some "sk-test")))
-        Assert.True(Embedder.usesOpenAi (routing "some-gateway-model" "OpenAI" (Some "sk-test")))
+        Assert.True(Embedder.usesOpenAi (routing "text-embedding-3-large" "OpenAI" (Some "sk-test")))
 
     [<Fact>]
     let ``without a key, OpenAI is not called even when it is asked for`` () =
         // The request could only 401, and the text would have left anyway.
         Assert.False(Embedder.usesOpenAi (routing "text-embedding-3-small" "OpenAI" None))
+
+    [<Fact>]
+    let ``a blank key is no key`` () =
+        // Configuration stores an empty OPENAI_API_KEY as `Some ""`, and
+        // `getEmbeddingsAsync` sends no authorization header for one — so this would
+        // be the text leaving the machine purely to collect a 401.
+        for key in [ ""; "   "; "\t" ] do
+            Assert.False(Embedder.usesOpenAi (routing "text-embedding-3-small" "OpenAI" (Some key)))
+
+    [<Fact>]
+    let ``choosing OpenAI for chat does not move local embeddings`` () =
+        // `Llm.Provider` and `Llm.EmbeddingModel` are separate settings, and the
+        // embedding default is local. Chat on OpenAI with embeddings on Ollama is an
+        // ordinary setup, not an instruction to post `nomic-embed-text` to OpenAI.
+        for model in [ "nomic-embed-text"; "bge-m3"; "some-gateway-model" ] do
+            Assert.False(
+                Embedder.usesOpenAi (routing model "OpenAI" (Some "sk-test")),
+                $"{model} would have been sent to OpenAI because chat uses it"
+            )

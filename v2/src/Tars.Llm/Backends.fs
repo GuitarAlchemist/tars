@@ -100,17 +100,24 @@ module Embedder =
     /// to api.openai.com — with no key, for a 401 whose message named Ollama. Text
     /// leaving the machine is not something a substring check should decide.
     ///
-    /// So: OpenAI only when it is asked for, by provider or by one of its own model
-    /// names, and only when there is a key to call it with. Everything else stays on
-    /// the local server.
+    /// So: OpenAI only when the embedding model is one of its own, and only when
+    /// there is a key to call it with. Everything else stays on the local server.
+    ///
+    /// `PreferredProvider` deliberately does not enter into it. It is the *chat*
+    /// provider, and the embedding model is configured separately (`Llm.Provider` vs
+    /// `Llm.EmbeddingModel`), so a mixed setup — OpenAI for chat, the default
+    /// `nomic-embed-text` locally for embeddings — is both ordinary and exactly the
+    /// case where letting the chat provider decide would post a local model name to
+    /// api.openai.com. A blank key counts as no key: `getEmbeddingsAsync` omits the
+    /// authorization header for one, so the text would leave the machine only to come
+    /// back 401 — the same egress this is here to prevent.
     let usesOpenAi (routing: RoutingConfig) =
-        let model = routing.DefaultEmbeddingModel.ToLowerInvariant()
+        let isOpenAiModel =
+            routing.DefaultEmbeddingModel.ToLowerInvariant().StartsWith("text-embedding", StringComparison.Ordinal)
 
-        let named =
-            routing.PreferredProvider.Equals("OpenAI", StringComparison.OrdinalIgnoreCase)
-            || model.StartsWith("text-embedding", StringComparison.Ordinal)
+        let hasKey = routing.OpenAIKey |> Option.exists (String.IsNullOrWhiteSpace >> not)
 
-        named && routing.OpenAIKey.IsSome
+        isOpenAiModel && hasKey
 
     /// Select the embedding backend and run it (Task flavor).
     let embed (http: HttpClient) (routing: RoutingConfig) (text: string) : Task<float32[]> =
