@@ -100,14 +100,24 @@ type HistoryAwareSelectorTests() =
         Assert.Equal(WorkflowOfThought, result)
 
     [<Fact>]
+    member _.``Recommend can return PlanAndExecute``() =
+        // `Patterns.fs` implements PlanAndExecute in full, but it had no entry in the
+        // selector's heuristic map, and `combineScores` maps over that map — so the
+        // kind was unreachable no matter what the goal said or what the promotion
+        // index had learned.
+        let result = selector.Recommend("plan and implement the migration", defaultState)
+        Assert.Equal(PlanAndExecute, result)
+
+    [<Fact>]
     member _.``Score returns scores for all pattern kinds``() =
         let scores = selector.Score("explain something step by step")
-        // Should have entries for all 5 standard pattern kinds
+        // Should have entries for all 6 standard pattern kinds
         Assert.True(scores.ContainsKey(ChainOfThought), "Should have ChainOfThought score")
         Assert.True(scores.ContainsKey(ReAct), "Should have ReAct score")
         Assert.True(scores.ContainsKey(GraphOfThoughts), "Should have GraphOfThoughts score")
         Assert.True(scores.ContainsKey(TreeOfThoughts), "Should have TreeOfThoughts score")
         Assert.True(scores.ContainsKey(WorkflowOfThought), "Should have WorkflowOfThought score")
+        Assert.True(scores.ContainsKey(PlanAndExecute), "Should have PlanAndExecute score")
         // All scores should be positive
         for KeyValue(_, score) in scores do
             Assert.True(score > 0.0, $"All scores should be positive, got {score}")

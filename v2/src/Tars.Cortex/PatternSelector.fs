@@ -265,15 +265,12 @@ module PatternSelector =
             | s when s.Contains("workflow") -> Some WorkflowOfThought
             | _ -> None
 
+        /// Golden-run history is read with the same mapping as the bandit ids.
+        /// These were two separate matches, and only one of them knew about
+        /// PlanAndExecute — so every golden run of that kind was silently dropped
+        /// from the history while the bandit counted it.
         let parsePatternKind (s: string) =
-            if isNull s then None else
-            match s.ToLowerInvariant() with
-            | s when s.Contains("chain") -> Some ChainOfThought
-            | s when s.Contains("react") -> Some ReAct
-            | s when s.Contains("graph") -> Some GraphOfThoughts
-            | s when s.Contains("tree") -> Some TreeOfThoughts
-            | s when s.Contains("workflow") -> Some WorkflowOfThought
-            | _ -> None
+            if isNull s then None else keyToKind s
 
         let goldenScores () =
             goldenHistory.Value
@@ -344,7 +341,13 @@ module PatternSelector =
               ReAct, (if g.Contains("search") || g.Contains("find") || g.Contains("look") || g.Contains("scan") || g.Contains("debug") then 0.8 else 0.3)
               GraphOfThoughts, (if g.Contains("compare") || g.Contains("alternative") || g.Contains("tradeoff") then 0.8 else 0.2)
               TreeOfThoughts, (if g.Contains("explore") || g.Contains("brainstorm") || g.Contains("generate ideas") then 0.8 else 0.2)
-              WorkflowOfThought, (if g.Contains("workflow") || g.Contains("pipeline") || g.Contains("refactor") || g.Contains("fix") then 0.8 else 0.3) ]
+              WorkflowOfThought, (if g.Contains("workflow") || g.Contains("pipeline") || g.Contains("refactor") || g.Contains("fix") then 0.8 else 0.3)
+              // PlanAndExecute was missing here, and `combineScores` maps over this
+              // map — so the kind was unreachable however strong the evidence for it,
+              // including the promotion boost that `promotionBoost` computes for it by
+              // name. `Patterns.fs` implements it in full; only the selector could
+              // never ask for it.
+              PlanAndExecute, (if g.Contains("plan") || g.Contains("implement") || g.Contains("migrate") || g.Contains("deploy") then 0.8 else 0.3) ]
             |> Map.ofList
 
         /// Score boost from promoted patterns (cross-repo discovery).
