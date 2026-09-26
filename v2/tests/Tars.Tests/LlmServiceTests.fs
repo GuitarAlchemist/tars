@@ -614,6 +614,10 @@ module EmbeddingRoutingTests =
             PreferredProvider = provider
             OpenAIKey = key }
 
+    let private declaring embeddingProvider model key =
+        { routing model "Ollama" key with
+            EmbeddingProvider = Some embeddingProvider }
+
     [<Fact>]
     let ``a local embedding model stays local, whatever it is called`` () =
         // The four names the old substring list knew, and four it did not. All of
@@ -648,6 +652,20 @@ module EmbeddingRoutingTests =
         // be the text leaving the machine purely to collect a 401.
         for key in [ ""; "   "; "\t" ] do
             Assert.False(Embedder.usesOpenAi (routing "text-embedding-3-small" "OpenAI" (Some key)))
+
+    [<Fact>]
+    let ``a declared embedding provider decides, whatever the model is called`` () =
+        // The point of the setting: a local alias named `text-embedding-nomic` is not
+        // evidence of anything, and saying so should be enough to keep it local.
+        Assert.False(Embedder.usesOpenAi (declaring "Ollama" "text-embedding-nomic" (Some "sk-test")))
+        Assert.False(Embedder.usesOpenAi (declaring "Ollama" "text-embedding-3-small" (Some "sk-test")))
+        Assert.True(Embedder.usesOpenAi (declaring "OpenAI" "our-embedding-alias" (Some "sk-test")))
+        Assert.True(Embedder.usesOpenAi (declaring "openai" "text-embedding-3-small" (Some "sk-test")))
+
+    [<Fact>]
+    let ``declaring OpenAI without a key still does not send`` () =
+        Assert.False(Embedder.usesOpenAi (declaring "OpenAI" "text-embedding-3-small" None))
+        Assert.False(Embedder.usesOpenAi (declaring "OpenAI" "text-embedding-3-small" (Some " ")))
 
     [<Fact>]
     let ``choosing OpenAI for chat does not move local embeddings`` () =

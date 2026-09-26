@@ -11,6 +11,10 @@ type LlmSettings =
       Model: string
       LlamaSharpModelPath: string option
       EmbeddingModel: string
+      /// Which service hosts `EmbeddingModel`, when it is not the one `Provider`
+      /// names. Embeddings are configured separately from chat and default to a
+      /// local model, so this is what says where the text actually goes.
+      EmbeddingProvider: string option
       BaseUrl: string option
       LlamaCppUrl: string option
       ApiKey: string option
@@ -75,6 +79,7 @@ module ConfigurationDefaults =
           Model = "qwen2.5-coder:7b"
           LlamaSharpModelPath = None
           EmbeddingModel = "nomic-embed-text"
+          EmbeddingProvider = None
           BaseUrl = Some "http://localhost:11434"
           LlamaCppUrl = None
           ApiKey = None
