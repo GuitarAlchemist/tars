@@ -1,6 +1,7 @@
 namespace Tars.Cortex
 
 open System
+open System.Text.RegularExpressions
 open System.Threading.Tasks
 open Tars.Core
 open Tars.Llm
@@ -9,6 +10,49 @@ open Tars.Llm
 /// Epistemic governance for managing agent knowledge and beliefs.
 /// Provides LLM-powered verification, generalization, and curriculum generation.
 /// </summary>
+module EpistemicVerdict =
+
+    /// Ways a model says VERIFIED while meaning the opposite.
+    let private negations =
+        [| "NOT VERIFIED"
+           "NOT BE VERIFIED"
+           "UNVERIFIED"
+           "CANNOT"
+           "CAN NOT"
+           "CAN'T"
+           "COULD NOT"
+           "UNABLE"
+           "REJECT"
+           "FALSE"
+           "UNSAFE" |]
+
+    /// Does this answer state a verdict of VERIFIED?
+    ///
+    /// It used to be `text.Contains "VERIFIED"`, which is equally true of "NOT
+    /// VERIFIED", "cannot be VERIFIED without a source" and "REJECTED - the claim is
+    /// not VERIFIED": every rejection a model phrased in words rather than the bare
+    /// token was read as a pass. Mentioning the word still counts, because models do
+    /// answer "This statement is VERIFIED." — but a negation alongside it does not.
+    ///
+    /// Only the first line is read: both prompts ask for the verdict there, and the
+    /// explanation below it is free to discuss what could not be confirmed. The
+    /// reasoning block comes off first — both callers ask for the reasoning model,
+    /// whose default is DeepSeek R1, and `OllamaClient` prepends a `&lt;thinking&gt;`
+    /// block whenever the response carries one. Without this, the first line is the
+    /// opening tag and every verdict a thinking model returns is a rejection.
+    let saysVerified (text: string) =
+        let withoutReasoning = Regex.Replace(text, @"(?is)<(think|thinking)>.*?</\1>", "")
+
+        let firstLine =
+            match withoutReasoning.Split([| '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries) with
+            | [||] -> ""
+            | lines -> lines.[0]
+
+        let verdict = firstLine.ToUpperInvariant()
+
+        verdict.Contains "VERIFIED"
+        && not (negations |> Array.exists (fun n -> verdict.Contains n))
+
 type EpistemicGovernor
     (llm: ILlmService, knowledgeGraph: TemporalKnowledgeGraph.TemporalGraph option, budget: BudgetGovernor option) =
     let recordBudget (tokens: int) =
@@ -19,7 +63,12 @@ type EpistemicGovernor
                     Tokens = Units.toTokens tokens
                     CallCount = Units.toRequests 1 }
 
-            governor.TryConsume(cost) |> ignore
+            // `TryConsume` does not record what it refuses, so once the budget was
+            // reached every later call was both unrecorded and unblocked: the
+            // governor's total froze at the moment it was meant to start biting.
+            // `Consume` records past the limit, which is what accounting needs;
+            // refusing the next call is the caller's decision, and a separate one.
+            governor.Consume(cost) |> ignore
         | None -> ()
 
     let sanitizeSuggestion (text: string) =
@@ -90,7 +139,7 @@ Reply with "REJECTED" if it is false or unsafe."""
                 let! response = llm.CompleteAsync req
                 recordBudget (response.Usage |> Option.map (fun u -> u.TotalTokens) |> Option.defaultValue 0)
 
-                return response.Text.Contains("VERIFIED")
+                return EpistemicVerdict.saysVerified response.Text
             }
 
         member this.GenerateVariants(taskDescription, count) =
@@ -200,7 +249,7 @@ If no, explain why.
                             return! Task.FromException<LlmResponse>(TimeoutException("VerifyGeneralization timeout"))
                     }
 
-                let isVerified = response.Text.Contains("VERIFIED")
+                let isVerified = EpistemicVerdict.saysVerified response.Text
 
                 return
                     { IsVerified = isVerified
@@ -399,12 +448,14 @@ Output a single sentence suggestion."""
 
                                 for fact in outgoing do
                                     match fact with
-                                    | TarsFact.Contains(_, target) -> 
+                                    | TarsFact.Contains(_, target) ->
                                         match target with
-                                        | TarsEntity.CodeModuleE m -> sb.AppendLine($"  - In Module: {m.Namespace}") |> ignore
+                                        | TarsEntity.CodeModuleE m ->
+                                            sb.AppendLine($"  - In Module: {m.Namespace}") |> ignore
                                         | TarsEntity.FileE p -> sb.AppendLine($"  - In File: {p}") |> ignore
                                         | _ -> ()
-                                    | TarsFact.BelongsTo(_, community) -> sb.AppendLine($"  - Community: {community}") |> ignore
+                                    | TarsFact.BelongsTo(_, community) ->
+                                        sb.AppendLine($"  - Community: {community}") |> ignore
                                     | _ -> ()
 
                             return sb.ToString()

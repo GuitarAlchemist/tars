@@ -221,11 +221,19 @@ module OllamaClient =
             use! resp = http.SendAsync(requestMessage)
 
             if resp.StatusCode = System.Net.HttpStatusCode.NotFound then
+                // This used to return an empty, successful response, so a model that
+                // was never pulled - or an API path wrong for this host, since the
+                // OpenWebUI prefix is chosen by hostname above - made every
+                // completion in the process come back as the empty string, with
+                // nothing raised and nothing logged. Downstream that reads as "the
+                // model answered nothing", and the evolution loop blames the model.
                 return
-                    { Text = ""
-                      FinishReason = Some "model_not_found"
-                      Usage = None
-                      Raw = Some "404 Not Found - Check if model exists" }
+                    raise (
+                        ModelNotFoundException(
+                            model,
+                            $"Ollama returned 404 for model '%s{model}' at %O{uri}. The model may not be pulled, or the API path may be wrong for this host."
+                        )
+                    )
             else
                 if not resp.IsSuccessStatusCode then
                     let! err = resp.Content.ReadAsStringAsync()

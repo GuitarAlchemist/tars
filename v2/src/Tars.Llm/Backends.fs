@@ -88,20 +88,52 @@ module Backends =
         | LlamaSharp modelPath -> llamaSharp cfg modelPath routed.ApiKey
 
 /// Embedding routing is independent of chat-backend routing: it selects by the
-/// configured embedding-model name, not by the routed chat backend.
+/// configured provider and key, not by the routed chat backend.
 module Embedder =
 
-    let private isOllamaEmbedding (model: string) =
-        model.Contains("nomic")
-        || model.Contains("mxbai")
-        || model.Contains("llama")
-        || model.Contains("qwen")
+    /// Does this embedding request belong to OpenAI?
+    ///
+    /// It used to be decided by asking whether the model's name contained one of
+    /// four substrings, with everything else treated as OpenAI's. `bge-m3`,
+    /// `all-minilm`, `snowflake-arctic-embed` and `granite-embedding` are ordinary
+    /// `ollama pull` models and match none of them, so the caller's text was posted
+    /// to api.openai.com — with no key, for a 401 whose message named Ollama. Text
+    /// leaving the machine is not something a substring check should decide.
+    ///
+    /// So: `Llm.EmbeddingProvider` decides when it is set, either way — it is the one
+    /// unambiguous statement of where the text is meant to go, and it is the answer
+    /// for a local alias that happens to be named `text-embedding-something`. When it
+    /// is not set, the model's own name is the only evidence there is, and only
+    /// OpenAI's own `text-embedding-*` family counts.
+    ///
+    /// Either way there must be a key. A blank one does not count: `getEmbeddingsAsync`
+    /// omits the authorization header for a blank key, so the text would leave the
+    /// machine only to come back 401 — the egress this is here to prevent. The key is
+    /// a weak signal on its own, since `RoutingConfig.fromTarsConfig` copies the single
+    /// `Llm.ApiKey` into every provider's slot; it can veto, never elect.
+    ///
+    /// `PreferredProvider` deliberately does not enter into it. It is the *chat*
+    /// provider, and embeddings are configured separately (`Llm.Provider` vs
+    /// `Llm.EmbeddingModel`), so a mixed setup — OpenAI for chat, the default
+    /// `nomic-embed-text` locally for embeddings — is both ordinary and exactly the
+    /// case where letting the chat provider decide would post a local model name to
+    /// api.openai.com.
+    let usesOpenAi (routing: RoutingConfig) =
+        let hasKey = routing.OpenAIKey |> Option.exists (String.IsNullOrWhiteSpace >> not)
 
-    /// Select the embedding backend by model name and run it (Task flavor).
+        let wantsOpenAi =
+            match routing.EmbeddingProvider with
+            | Some declared -> declared.Trim().Equals("OpenAI", StringComparison.OrdinalIgnoreCase)
+            | None ->
+                routing.DefaultEmbeddingModel.StartsWith("text-embedding", StringComparison.OrdinalIgnoreCase)
+
+        wantsOpenAi && hasKey
+
+    /// Select the embedding backend and run it (Task flavor).
     let embed (http: HttpClient) (routing: RoutingConfig) (text: string) : Task<float32[]> =
         let model = routing.DefaultEmbeddingModel
 
-        if isOllamaEmbedding model then
-            OllamaClient.getEmbeddingsAsync http routing.OllamaBaseUri model text
-        else
+        if usesOpenAi routing then
             OpenAiCompatibleClient.getEmbeddingsAsync http routing.OpenAIBaseUri model routing.OpenAIKey text
+        else
+            OllamaClient.getEmbeddingsAsync http routing.OllamaBaseUri model text
