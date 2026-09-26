@@ -588,26 +588,33 @@ type LlmServiceChatClient(inner: ILlmService) =
                                     else
                                         inner.CompleteStreamAsync(req, (fun token -> pending.Enqueue(textUpdate token)))
 
-                            let rec advance () =
+                            // One task that loops, not a task per poll: recursing
+                            // here left every 10 ms wait awaiting the next one, so a
+                            // provider that stalled for a minute built six thousand
+                            // nested continuations before the first token arrived.
+                            let advance () =
                                 task {
-                                    match pending.TryDequeue() with
-                                    | true, update ->
-                                        current <- update
-                                        return true
-                                    | _ ->
-                                        if closed then
-                                            return false
-                                        elif completion.IsCompleted then
-                                            closed <- true
-                                            // Awaited, not inspected: a provider that
-                                            // failed used to end the stream as though
-                                            // it had simply finished.
-                                            let! response = completion
-                                            pending.Enqueue(closingUpdate response)
-                                            return! advance ()
-                                        else
-                                            do! Task.Delay(10, ct)
-                                            return! advance ()
+                                    let mutable answer = ValueNone
+
+                                    while answer.IsNone do
+                                        match pending.TryDequeue() with
+                                        | true, update ->
+                                            current <- update
+                                            answer <- ValueSome true
+                                        | _ ->
+                                            if closed then
+                                                answer <- ValueSome false
+                                            elif completion.IsCompleted then
+                                                closed <- true
+                                                // Awaited, not inspected: a provider
+                                                // that failed used to end the stream
+                                                // as though it had simply finished.
+                                                let! response = completion
+                                                pending.Enqueue(closingUpdate response)
+                                            else
+                                                do! Task.Delay(10, ct)
+
+                                    return answer.Value
                                 }
 
                             ValueTask<bool>(advance ())
