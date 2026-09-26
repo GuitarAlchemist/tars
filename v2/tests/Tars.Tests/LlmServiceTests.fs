@@ -602,3 +602,61 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
             Assert.Equal("Hello World", response.Text)
             output.WriteLine("ILlmService streaming interface works correctly")
         }
+
+// ------------------------------------------- which models the functional path allows
+
+/// `generateValidated` is the functional path's entry point for Ollama. It used to
+/// decide for itself which model names were real.
+module OllamaModelValidationTests =
+
+    let private deadPort () =
+        let l = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0)
+        l.Start()
+        let port = (l.LocalEndpoint :?> IPEndPoint).Port
+        l.Stop()
+        port
+
+    let private request =
+        { ModelHint = None
+          Model = None
+          SystemPrompt = None
+          MaxTokens = None
+          Temperature = None
+          Stop = []
+          Messages = [ { Role = Role.User; Content = "hello" } ]
+          Tools = []
+          ToolChoice = None
+          ResponseFormat = None
+          Stream = false
+          JsonMode = false
+          Seed = None
+          ContextWindow = None }
+
+    let private run model =
+        use http = new HttpClient(Timeout = TimeSpan.FromSeconds 2.0)
+        let uri = Uri($"http://127.0.0.1:{deadPort ()}")
+        OllamaClientAsync.generateValidated http uri model None request |> Async.RunSynchronously
+
+    [<Fact>]
+    let ``a model this code has not heard of is still asked for`` () =
+        // All ordinary `ollama pull` models that the old five-entry allow-list refused
+        // out of hand — including deepseek-r1, which is this repository's configured
+        // reasoning default. Nothing is listening on the port, so getting as far as a
+        // network error is the proof that the name was not rejected first.
+        for model in
+            [ "gemma3"
+              "deepseek-r1:8b"
+              "phi4"
+              "gpt-oss:20b"
+              "codellama:13b"
+              "nomic-embed-text" ] do
+            match run model with
+            | Result.Error(ModelNotFound m) -> Assert.Fail($"{model} was refused before it was asked for: {m}")
+            | _ -> ()
+
+    [<Fact>]
+    let ``no model at all is still an error, without a request`` () =
+        for model in [ ""; "   " ] do
+            match run model with
+            | Result.Error(ModelNotFound _) -> ()
+            | other -> Assert.Fail($"expected ModelNotFound for '{model}', got {other}")
