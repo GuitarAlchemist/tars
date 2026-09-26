@@ -151,6 +151,7 @@
     <Compile Include="CompileListDriftTests.fs" />
     <Compile Include="ConstitutionTests.fs" />
     <Compile Include="ContextCompressionTests.fs" />
+    <Compile Include="FailuresReportedAsSuccessTests.fs" />
     <Compile Include="FSharpToolsTests.fs" />
     <Compile Include="KnowledgeTests.fs" />
     <Compile Include="MetricsTests.fs" />

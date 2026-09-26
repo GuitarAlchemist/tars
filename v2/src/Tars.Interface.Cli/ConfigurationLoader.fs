@@ -105,6 +105,7 @@ module ConfigurationLoader =
                     Model = get "Llm:Model" defLlm.Model
                     LlamaSharpModelPath = getOpt "Llm:LlamaSharpModelPath" defLlm.LlamaSharpModelPath
                     EmbeddingModel = get "Llm:EmbeddingModel" defLlm.EmbeddingModel
+                    EmbeddingProvider = getOpt "Llm:EmbeddingProvider" defLlm.EmbeddingProvider
                     BaseUrl = getOpt "Llm:BaseUrl" defLlm.BaseUrl
                     LlamaCppUrl = getOpt "Llm:LlamaCppUrl" defLlm.LlamaCppUrl
                     ApiKey = getOpt "Llm:ApiKey" defLlm.ApiKey

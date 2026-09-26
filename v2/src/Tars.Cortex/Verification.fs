@@ -99,8 +99,13 @@ module Verification =
                             else
                                 return Result.Ok false
                         with _ ->
-                            // If schema isn't valid JSON, fallback to checking if content is valid JSON
-                            return Result.Ok true
+                            // This used to return `Ok true`, despite the comment
+                            // promising a fallback check that was never written: a
+                            // schema with a typo in it passed every payload, and a
+                            // gate that cannot be parsed reported everything verified.
+                            // A broken schema is the plan author's error, so it is
+                            // reported as one rather than dressed up as a pass.
+                            return Result.Error "schema is not valid JSON, so nothing was verified against it"
                     with _ ->
                         return Result.Ok false
 

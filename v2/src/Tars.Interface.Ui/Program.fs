@@ -110,6 +110,7 @@ let main args =
             // llama.cpp running at http://localhost:8080 with Qwen3-8B
             DefaultLlamaCppModel = Some "Qwen3-8B-Q4_K_M.gguf"
             DefaultEmbeddingModel = "nomic-embed-text"
+            EmbeddingProvider = None
             OpenAIKey = Option.ofObj (Environment.GetEnvironmentVariable("OPENAI_API_KEY"))
             GoogleGeminiKey = Option.ofObj (Environment.GetEnvironmentVariable("GOOGLE_API_KEY"))
             AnthropicKey = Option.ofObj (Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY")) }
