@@ -3,7 +3,6 @@ namespace Tars.Cortex
 open System
 open System.IO
 open System.Text.Json
-open System.Text.RegularExpressions
 open Tars.Core
 open ReasoningPattern
 open Tars.Cortex.WoTTypes
@@ -223,11 +222,6 @@ module PatternSelector =
             else []
         with _ -> []
 
-    /// <summary>
-    /// A pattern selector that uses golden trace history, recorded pattern
-    /// outcomes, AND the promotion index (from cross-repo pattern discovery)
-    /// to select the best reasoning pattern for a goal.
-    /// </summary>
     /// The six kinds this selector scores, in the spelling `kindToString` writes.
     let scoredKinds =
         [ ChainOfThought
@@ -255,11 +249,11 @@ module PatternSelector =
             |> List.tryFind (fun k ->
                 String.Equals(PatternOutcomeStore.kindToString k, name, StringComparison.OrdinalIgnoreCase))
 
-    /// Golden-run history is read with the same mapping as the bandit ids.
-    /// These were two separate matches, and only one of them knew about
-    /// PlanAndExecute — so every golden run of that kind was silently dropped
-    /// from the history while the bandit counted it.
-
+    /// <summary>
+    /// A pattern selector that uses golden trace history, recorded pattern
+    /// outcomes, AND the promotion index (from cross-repo pattern discovery)
+    /// to select the best reasoning pattern for a goal.
+    /// </summary>
     type HistoryAwareSelector() =
         let goldenHistory = lazy (
             try
@@ -288,6 +282,10 @@ module PatternSelector =
         /// canonical codec so Custom kinds never send multi-line ids over the wire.
         let kindKey (k: PatternKind) = PatternOutcomeStore.kindToString k
 
+        /// Golden-run history is read with the same mapping as the bandit ids.
+        /// These were two separate matches, and only one of them knew about
+        /// PlanAndExecute — so every golden run of that kind was silently dropped
+        /// from the history while the bandit counted it.
         let parsePatternKind (s: string) =
             if isNull s then None else keyToKind s
 
@@ -354,35 +352,13 @@ module PatternSelector =
                 cachedBanditScores <- Some scores
                 scores
 
-        /// Words that ask for a plan to be made and carried out.
-        ///
-        /// Matched whole, not by substring: `Contains "plan"` is equally true of
-        /// "planet", "plant" and "airplane", so "list known planets" would have been
-        /// read as a planning request and routed through a five-call workflow.
-        let planningWords =
-            set
-                [ "plan"; "plans"; "planning"
-                  "implement"; "implements"; "implementing"; "implementation"
-                  "migrate"; "migrates"; "migrating"; "migration"
-                  "deploy"; "deploys"; "deploying"; "deployment" ]
-
-        let asksForAPlan (goalLower: string) =
-            Regex.Matches(goalLower, "[a-z]+")
-            |> Seq.exists (fun m -> planningWords.Contains m.Value)
-
         let heuristicScore (goal: string) =
             let g = goal.ToLowerInvariant()
             [ ChainOfThought, (if g.Contains("explain") || g.Contains("step") || g.Contains("summarize") || g.Contains("describe") then 0.8 else 0.4)
               ReAct, (if g.Contains("search") || g.Contains("find") || g.Contains("look") || g.Contains("scan") || g.Contains("debug") then 0.8 else 0.3)
               GraphOfThoughts, (if g.Contains("compare") || g.Contains("alternative") || g.Contains("tradeoff") then 0.8 else 0.2)
               TreeOfThoughts, (if g.Contains("explore") || g.Contains("brainstorm") || g.Contains("generate ideas") then 0.8 else 0.2)
-              WorkflowOfThought, (if g.Contains("workflow") || g.Contains("pipeline") || g.Contains("refactor") || g.Contains("fix") then 0.8 else 0.3)
-              // PlanAndExecute was missing here, and `combineScores` maps over this
-              // map — so the kind was unreachable however strong the evidence for it,
-              // including the promotion boost that `promotionBoost` computes for it by
-              // name. `Patterns.fs` implements it in full; only the selector could
-              // never ask for it.
-              PlanAndExecute, (if asksForAPlan g then 0.8 else 0.3) ]
+              WorkflowOfThought, (if g.Contains("workflow") || g.Contains("pipeline") || g.Contains("refactor") || g.Contains("fix") then 0.8 else 0.3) ]
             |> Map.ofList
 
         /// Score boost from promoted patterns (cross-repo discovery).

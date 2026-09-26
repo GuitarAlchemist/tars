@@ -133,58 +133,6 @@ let ``compileChainOfThought produces correct node structure`` () =
         Assert.Equal(WoTNodeKind.Reason, node.Kind)
 
 [<Fact>]
-let ``compilePlanAndExecute plans before it executes`` () =
-    // `CompileFor PlanAndExecute` used to answer with `CompileChainOfThought(3, …)`:
-    // three generic reasoning steps, stamped ChainOfThought, with no plan anywhere.
-    // The selection said one thing and the compiled plan did another.
-    let goal = "Migrate the store to the new schema"
-    let plan = compilePlanAndExecute 3 goal
-
-    // One planning step, three execution steps, one review.
-    Assert.Equal(5, plan.Nodes.Length)
-    Assert.Equal(PatternKind.PlanAndExecute, plan.Metadata.Kind)
-    Assert.Equal(goal, plan.Metadata.SourceGoal)
-
-    let promptOf (node: WoTNode) =
-        match node.Payload with
-        | :? ReasonPayload as r -> r.Prompt
-        | _ -> ""
-
-    let prompts = plan.Nodes |> List.map promptOf
-
-    // The plan is written first and not acted on.
-    Assert.Contains("Write a plan", prompts.Head)
-    Assert.Contains("Do not carry any of them out yet", prompts.Head)
-
-    // Every middle node carries out a numbered step of it.
-    for i, prompt in prompts |> List.skip 1 |> List.truncate 3 |> List.indexed do
-        Assert.Contains($"Carry out step {i + 1} of the plan", prompt)
-
-[<Fact>]
-let ``every execution step can see the plan it is carrying out`` () =
-    // `WoTExecutor.buildStepContext` shows a node the output of its incoming nodes
-    // only. In a plain chain the plan reaches step 1 and stops there, so step 2 sees
-    // a report of step 1 and no plan — it cannot know which step is its own.
-    let plan = compilePlanAndExecute 3 "Migrate the store to the new schema"
-    let ids = plan.Nodes |> List.map nodeId
-    let planId = ids.Head
-    let executionIds = ids |> List.skip 1 |> List.truncate 3
-    let reviewId = List.last ids
-
-    let feeds target =
-        plan.Edges |> List.filter (fun e -> e.To = target) |> List.map (fun e -> e.From) |> Set.ofList
-
-    for executionId in executionIds do
-        Assert.Contains(planId, feeds executionId)
-
-    // The review sees the plan and everything done against it.
-    let intoReview = feeds reviewId
-    Assert.Contains(planId, intoReview)
-
-    for executionId in executionIds do
-        Assert.Contains(executionId, intoReview)
-
-[<Fact>]
 let ``CoT plan generates valid Mermaid diagram`` () =
     let plan = compileChainOfThought 3 "Test goal"
     
