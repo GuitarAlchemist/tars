@@ -171,8 +171,23 @@ Say what the plan set out to do, "
         let nodes = (planNode :: executionNodes) @ [ reviewNode ]
         let nodeIds = nodes |> List.map nodeId
 
+        // `WoTExecutor.buildStepContext` shows a node the output of its *incoming*
+        // nodes, so a plain chain would hand the plan to the first execution step and
+        // to nobody else: step 2 would see only step 1's report and have no idea which
+        // step it was meant to carry out. Execution order comes from the node list, not
+        // from the edges, so these extra edges are about what each step can see.
+        let planId = nodeId planNode
+        let executionIds = executionNodes |> List.map nodeId
+        let reviewId = nodeId reviewNode
+
         let edges =
-            nodeIds |> List.pairwise |> List.map (fun (a, b) -> edge a b (Some "next"))
+            // The plan is in front of every step that carries it out, and of the review.
+            [ for target in executionIds @ [ reviewId ] -> edge planId target (Some "plan") ]
+            // Each step still follows the one before it, so a step can see what the
+            // last one produced.
+            @ (executionIds |> List.pairwise |> List.map (fun (a, b) -> edge a b (Some "next")))
+            // The review compares every execution against the plan, so it sees them all.
+            @ [ for source in executionIds -> edge source reviewId (Some "executed") ]
 
         { Id = Guid.NewGuid()
           Nodes = nodes

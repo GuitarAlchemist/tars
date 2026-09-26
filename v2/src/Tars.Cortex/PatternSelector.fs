@@ -3,6 +3,7 @@ namespace Tars.Cortex
 open System
 open System.IO
 open System.Text.Json
+open System.Text.RegularExpressions
 open Tars.Core
 open ReasoningPattern
 open Tars.Cortex.WoTTypes
@@ -353,6 +354,22 @@ module PatternSelector =
                 cachedBanditScores <- Some scores
                 scores
 
+        /// Words that ask for a plan to be made and carried out.
+        ///
+        /// Matched whole, not by substring: `Contains "plan"` is equally true of
+        /// "planet", "plant" and "airplane", so "list known planets" would have been
+        /// read as a planning request and routed through a five-call workflow.
+        let planningWords =
+            set
+                [ "plan"; "plans"; "planning"
+                  "implement"; "implements"; "implementing"; "implementation"
+                  "migrate"; "migrates"; "migrating"; "migration"
+                  "deploy"; "deploys"; "deploying"; "deployment" ]
+
+        let asksForAPlan (goalLower: string) =
+            Regex.Matches(goalLower, "[a-z]+")
+            |> Seq.exists (fun m -> planningWords.Contains m.Value)
+
         let heuristicScore (goal: string) =
             let g = goal.ToLowerInvariant()
             [ ChainOfThought, (if g.Contains("explain") || g.Contains("step") || g.Contains("summarize") || g.Contains("describe") then 0.8 else 0.4)
@@ -365,7 +382,7 @@ module PatternSelector =
               // including the promotion boost that `promotionBoost` computes for it by
               // name. `Patterns.fs` implements it in full; only the selector could
               // never ask for it.
-              PlanAndExecute, (if g.Contains("plan") || g.Contains("implement") || g.Contains("migrate") || g.Contains("deploy") then 0.8 else 0.3) ]
+              PlanAndExecute, (if asksForAPlan g then 0.8 else 0.3) ]
             |> Map.ofList
 
         /// Score boost from promoted patterns (cross-repo discovery).

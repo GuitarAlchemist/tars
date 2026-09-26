@@ -109,6 +109,17 @@ type HistoryAwareSelectorTests() =
         Assert.Equal(PlanAndExecute, result)
 
     [<Fact>]
+    member _.``A goal about planets is not a goal about plans``() =
+        // "planet", "plant" and "airplane" all contain "plan". Without a whole-word
+        // match, "list known planets" scores PlanAndExecute at 0.8 against nothing
+        // else above 0.4 and is routed through a five-call planning workflow.
+        for goal in [ "list known planets"; "identify this plant"; "how does an airplane fly" ] do
+            Assert.NotEqual(PlanAndExecute, selector.Recommend(goal, defaultState))
+
+        for goal in [ "plan the release"; "implement the parser"; "migration of the store"; "deploy to staging" ] do
+            Assert.Equal(PlanAndExecute, selector.Recommend(goal, defaultState))
+
+    [<Fact>]
     member _.``A custom pattern whose name contains plan is not PlanAndExecute``() =
         // "explanation" contains "plan". Kind ids were matched by substring, and
         // `GoldenTraceStore` persists `PatternKind.ToString()`, so an unrelated custom
