@@ -82,6 +82,9 @@ type FailuresReportedAsSuccessTests() =
               "REJECTED - the claim is not VERIFIED"
               "This cannot be VERIFIED without a source."
               "**NOT VERIFIED**"
+              // Reasoning that talks itself into a rejection is still a rejection:
+              // stripping the block must not promote its contents to the verdict.
+              "<thinking>\nVERIFIED, surely?\n</thinking>\nREJECTED"
               "" ] do
             Assert.False(EpistemicVerdict.saysVerified answer, $"'{answer}' was read as a verification")
 
@@ -95,7 +98,11 @@ type FailuresReportedAsSuccessTests() =
               "VERIFIED: the statement matches the cited source"
               // The explanation below the verdict is free to say what it could not
               // confirm; only the verdict line is read.
-              "VERIFIED\nI could not check the second clause." ] do
+              "VERIFIED\nI could not check the second clause."
+              // What a thinking model actually returns through OllamaClient: the
+              // verdict is on the first line *of the answer*, not of the response.
+              "<thinking>\nThe claim cannot be checked against a source directly, but the cited\nreference is authoritative.\n</thinking>\nVERIFIED"
+              "<think>weighing it up</think>\nVERIFIED: matches the cited source" ] do
             Assert.True(EpistemicVerdict.saysVerified answer, $"'{answer}' was not read as a verification")
 
     // ----------------------------------------------------- a budget that stopped counting

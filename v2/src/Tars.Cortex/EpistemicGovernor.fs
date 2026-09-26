@@ -1,6 +1,7 @@
 namespace Tars.Cortex
 
 open System
+open System.Text.RegularExpressions
 open System.Threading.Tasks
 open Tars.Core
 open Tars.Llm
@@ -34,10 +35,16 @@ module EpistemicVerdict =
     /// answer "This statement is VERIFIED." — but a negation alongside it does not.
     ///
     /// Only the first line is read: both prompts ask for the verdict there, and the
-    /// explanation below it is free to discuss what could not be confirmed.
+    /// explanation below it is free to discuss what could not be confirmed. The
+    /// reasoning block comes off first — both callers ask for the reasoning model,
+    /// whose default is DeepSeek R1, and `OllamaClient` prepends a `&lt;thinking&gt;`
+    /// block whenever the response carries one. Without this, the first line is the
+    /// opening tag and every verdict a thinking model returns is a rejection.
     let saysVerified (text: string) =
+        let withoutReasoning = Regex.Replace(text, @"(?is)<(think|thinking)>.*?</\1>", "")
+
         let firstLine =
-            match text.Split([| '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries) with
+            match withoutReasoning.Split([| '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries) with
             | [||] -> ""
             | lines -> lines.[0]
 
