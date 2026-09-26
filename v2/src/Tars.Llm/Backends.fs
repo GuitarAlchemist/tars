@@ -88,20 +88,35 @@ module Backends =
         | LlamaSharp modelPath -> llamaSharp cfg modelPath routed.ApiKey
 
 /// Embedding routing is independent of chat-backend routing: it selects by the
-/// configured embedding-model name, not by the routed chat backend.
+/// configured provider and key, not by the routed chat backend.
 module Embedder =
 
-    let private isOllamaEmbedding (model: string) =
-        model.Contains("nomic")
-        || model.Contains("mxbai")
-        || model.Contains("llama")
-        || model.Contains("qwen")
+    /// Does this embedding request belong to OpenAI?
+    ///
+    /// It used to be decided by asking whether the model's name contained one of
+    /// four substrings, with everything else treated as OpenAI's. `bge-m3`,
+    /// `all-minilm`, `snowflake-arctic-embed` and `granite-embedding` are ordinary
+    /// `ollama pull` models and match none of them, so the caller's text was posted
+    /// to api.openai.com — with no key, for a 401 whose message named Ollama. Text
+    /// leaving the machine is not something a substring check should decide.
+    ///
+    /// So: OpenAI only when it is asked for, by provider or by one of its own model
+    /// names, and only when there is a key to call it with. Everything else stays on
+    /// the local server.
+    let usesOpenAi (routing: RoutingConfig) =
+        let model = routing.DefaultEmbeddingModel.ToLowerInvariant()
 
-    /// Select the embedding backend by model name and run it (Task flavor).
+        let named =
+            routing.PreferredProvider.Equals("OpenAI", StringComparison.OrdinalIgnoreCase)
+            || model.StartsWith("text-embedding", StringComparison.Ordinal)
+
+        named && routing.OpenAIKey.IsSome
+
+    /// Select the embedding backend and run it (Task flavor).
     let embed (http: HttpClient) (routing: RoutingConfig) (text: string) : Task<float32[]> =
         let model = routing.DefaultEmbeddingModel
 
-        if isOllamaEmbedding model then
-            OllamaClient.getEmbeddingsAsync http routing.OllamaBaseUri model text
-        else
+        if usesOpenAi routing then
             OpenAiCompatibleClient.getEmbeddingsAsync http routing.OpenAIBaseUri model routing.OpenAIKey text
+        else
+            OllamaClient.getEmbeddingsAsync http routing.OllamaBaseUri model text

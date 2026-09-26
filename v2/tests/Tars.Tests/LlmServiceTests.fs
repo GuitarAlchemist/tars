@@ -602,3 +602,44 @@ type LlmServiceTests(output: Xunit.Abstractions.ITestOutputHelper) =
             Assert.Equal("Hello World", response.Text)
             output.WriteLine("ILlmService streaming interface works correctly")
         }
+
+// ------------------------------------------------------- where embeddings go
+
+/// The routing that decides whether a caller's text leaves the machine.
+module EmbeddingRoutingTests =
+
+    let private routing model provider key =
+        { RoutingConfig.Default with
+            DefaultEmbeddingModel = model
+            PreferredProvider = provider
+            OpenAIKey = key }
+
+    [<Fact>]
+    let ``a local embedding model stays local, whatever it is called`` () =
+        // The four names the old substring list knew, and four it did not. All of
+        // these are ordinary `ollama pull` models.
+        for model in
+            [ "nomic-embed-text"
+              "mxbai-embed-large"
+              "bge-m3"
+              "all-minilm"
+              "snowflake-arctic-embed"
+              "granite-embedding" ] do
+            Assert.False(
+                Embedder.usesOpenAi (routing model "Ollama" None),
+                $"{model} would have been sent to OpenAI"
+            )
+
+    [<Fact>]
+    let ``a key alone does not send local text to OpenAI`` () =
+        Assert.False(Embedder.usesOpenAi (routing "bge-m3" "Ollama" (Some "sk-test")))
+
+    [<Fact>]
+    let ``OpenAI is used when it is asked for and can be called`` () =
+        Assert.True(Embedder.usesOpenAi (routing "text-embedding-3-small" "Ollama" (Some "sk-test")))
+        Assert.True(Embedder.usesOpenAi (routing "some-gateway-model" "OpenAI" (Some "sk-test")))
+
+    [<Fact>]
+    let ``without a key, OpenAI is not called even when it is asked for`` () =
+        // The request could only 401, and the text would have left anyway.
+        Assert.False(Embedder.usesOpenAi (routing "text-embedding-3-small" "OpenAI" None))
