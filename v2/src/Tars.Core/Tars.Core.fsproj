@@ -16,6 +16,7 @@
     <Compile Include="AgentDefinition.fs" />
     <Compile Include="AgentConstitution.fs" />
     <Compile Include="Domain.fs" />
+    <Compile Include="ToolMetadata.fs" />
     <Compile Include="SymbolicTypes.fs" />
     <Compile Include="ContractEnforcement.fs" />
     <Compile Include="GovernanceGeneration.fs" />
@@ -111,6 +112,12 @@
     <Compile Include="MetaCognition\FailureClustering.fs" />
     <Compile Include="MetaCognition\GapDetection.fs" />
     <Compile Include="MetaCognition\AdaptiveSignals.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ToolMetadata.clear exists only so a test can state the whole world it
+         expects; it stays internal so nothing in the running system can call it. -->
+    <InternalsVisibleTo Include="Tars.Tests" />
   </ItemGroup>
 
   <ItemGroup>
