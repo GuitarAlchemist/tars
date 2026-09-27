@@ -311,6 +311,56 @@ module GraphEditorBridgeTests =
         Assert.Contains("tags", message)
 
     [<Fact>]
+    let ``arguments that are not an object are refused, not read as no arguments`` () =
+        // Read as absent, a tool whose arguments arrived as a string is called with
+        // none at all — and a tool that requires nothing would then actually run.
+        let message =
+            refusal """{"goal":"g","nodes":[{"id":"c","kind":"tool","tool":"count_lines","arguments":"path=src"}]}"""
+
+        Assert.Contains("'c'", message)
+        Assert.Contains("arguments", message)
+
+    [<Fact>]
+    let ``an entry node that is not a string is refused`` () =
+        // Read as absent it leaves no entry node declared, and since the executor
+        // walks the node list in order, that silently changes what runs first.
+        let message =
+            refusal """{"goal":"g","entry_node":3,"nodes":[{"id":"a","kind":"reason","prompt":"t"}]}"""
+
+        Assert.Contains("entry_node", message)
+        Assert.Contains("not a string", message)
+
+    [<Fact>]
+    let ``a goal that is not a string is refused rather than becoming empty`` () =
+        Assert.Contains("goal", refusal """{"goal":["a","b"],"nodes":[{"id":"a","kind":"reason","prompt":"t"}]}""")
+
+    [<Fact>]
+    let ``a confidence that is not a number is refused, and the edge is named`` () =
+        let message =
+            refusal
+                """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"t"},
+                        {"id":"b","kind":"reason","prompt":"t"}],
+                        "edges":[{"from":"a","to":"b","confidence":"high"}]}"""
+
+        Assert.Contains("'a'", message)
+        Assert.Contains("confidence", message)
+
+    [<Fact>]
+    let ``a null optional field means absent, not malformed`` () =
+        // `null` is how a serializer writes "nothing here". Refusing it would make
+        // every client that round-trips a graph through a nullable type fail.
+        let spec =
+            parsed
+                """{"id":null,"goal":"g","entry_node":null,"policy":null,
+                        "nodes":[{"id":"a","kind":"reason","prompt":"t","arguments":null,
+                                  "hint":null,"label":null,"tags":null}]}"""
+
+        Assert.Equal(None, spec.EntryNode)
+        Assert.Equal(None, spec.Policy)
+        Assert.Equal(None, spec.Nodes.Head.Arguments)
+        Assert.Equal(None, spec.Nodes.Head.Tags)
+
+    [<Fact>]
     let ``an absent list field is still fine`` () =
         // Absent means "none given". Only present-and-wrong is an error.
         let spec = parsed """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"t"}]}"""
