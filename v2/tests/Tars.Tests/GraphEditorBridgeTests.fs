@@ -279,6 +279,38 @@ module GraphEditorBridgeTests =
         Assert.Contains("policy", message)
 
     [<Fact>]
+    let ``a policy entry that is not a string is refused, not dropped`` () =
+        // Dropping it would turn this into a policy carrying one restriction instead
+        // of the two that were written, and a restriction that quietly disappears
+        // fails in the direction that lets more happen.
+        let message =
+            refusal
+                """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"t"}],
+                        "policy":["no-network",{"rule":"no-writes"}]}"""
+
+        Assert.Contains("policy", message)
+        Assert.Contains("not a string", message)
+
+    [<Fact>]
+    let ``a policy of strings is read whole`` () =
+        let spec =
+            parsed
+                """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"t"}],
+                        "policy":["no-network","no-writes"]}"""
+
+        Assert.Equal<string>([ "no-network"; "no-writes" ], spec.Policy.Value)
+
+    [<Fact>]
+    let ``a tag that is not a string is refused, and the node is named`` () =
+        // Tags are only labels, but a list that silently loses entries is the same
+        // bug wherever it is, and the message has to say which node to go and fix.
+        let message =
+            refusal """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"t","tags":["ok",7]}]}"""
+
+        Assert.Contains("'a'", message)
+        Assert.Contains("tags", message)
+
+    [<Fact>]
     let ``an absent list field is still fine`` () =
         // Absent means "none given". Only present-and-wrong is an error.
         let spec = parsed """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"t"}]}"""
