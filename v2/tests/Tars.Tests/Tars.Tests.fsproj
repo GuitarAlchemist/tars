@@ -164,6 +164,7 @@
     <Compile Include="ToleranceAndGuardTests.fs" />
     <Compile Include="ToolMetadataTests.fs" />
     <Compile Include="ToolDescriptorTests.fs" />
+    <Compile Include="GraphEditorBridgeTests.fs" />
     <Compile Include="ToleranceEngineeringTests.fs" />
     <Compile Include="ValidationTests.fs" />
     <Compile Include="WotIntegrationTests.fs" />
