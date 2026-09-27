@@ -559,14 +559,14 @@ module GraphEditorBridgeTests =
             spec [ toolNode "w" "write_code" [ "path", "out.fs"; "content", "x" ] ] []
 
         let refused =
-            GraphEditorBridge.run executor registry graph [] |> Async.RunSynchronously
+            GraphEditorBridge.run (fun () -> executor) registry graph [] |> Async.RunSynchronously
 
         Assert.False(refused.Success)
         Assert.Empty(ran) // nothing ran at all, not even partly
         Assert.Contains("writes a file", String.concat " " refused.Errors)
 
         let allowed =
-            GraphEditorBridge.run executor registry graph [ "w" ] |> Async.RunSynchronously
+            GraphEditorBridge.run (fun () -> executor) registry graph [ "w" ] |> Async.RunSynchronously
 
         Assert.True(allowed.Success, String.concat "; " allowed.Errors)
         Assert.Single(ran) |> ignore
@@ -584,7 +584,7 @@ module GraphEditorBridgeTests =
                 []
 
         let result =
-            GraphEditorBridge.run executor registry graph [ "first" ]
+            GraphEditorBridge.run (fun () -> executor) registry graph [ "first" ]
             |> Async.RunSynchronously
 
         Assert.False(result.Success)
@@ -598,7 +598,7 @@ module GraphEditorBridgeTests =
         let executor, ran = recordingExecutor ()
 
         let result =
-            GraphEditorBridge.run executor registry (spec [ toolNode "go" "run_shell" [] ] []) []
+            GraphEditorBridge.run (fun () -> executor) registry (spec [ toolNode "go" "run_shell" [] ] []) []
             |> Async.RunSynchronously
 
         Assert.False(result.Success)
@@ -616,23 +616,247 @@ module GraphEditorBridgeTests =
                     reasonNode "summarise" "Summarise it." ]
                   [ { edge "read" "summarise" with
                         Label = Some "next" } ] with
-                EntryNode = Some "read"
-                Policy = Some [ "no-network" ] }
+                EntryNode = Some "read" }
 
         // "summarise" is named because a reason node spends a model call.
-        GraphEditorBridge.run executor registry graph [ "summarise" ]
+        GraphEditorBridge.run (fun () -> executor) registry graph [ "summarise" ]
         |> Async.RunSynchronously
         |> ignore
 
         let plan = Assert.Single ran
 
-        // Edges, entry node and policy all survive. A flat step list with `depends_on`
-        // could not have carried the last two.
+        // Edges and entry node both survive. A flat step list with `depends_on` could
+        // not have carried either.
         Assert.Equal("read", plan.EntryNode)
-        Assert.Equal<string>([ "no-network" ], plan.Policy)
         Assert.Single plan.Edges |> ignore
         Assert.Equal(Some "next", plan.Edges.Head.Label)
         Assert.Equal<string>([ "read"; "summarise" ], plan.Nodes |> List.map (fun n -> n.Id))
+
+    [<Fact>]
+    let ``a graph carrying a policy nobody enforces is refused rather than run`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+        let executor, ran = recordingExecutor ()
+
+        let graph =
+            { spec [ toolNode "read" "read_file" [ "path", "README.md" ] ] [] with
+                Policy = Some [ "no-network" ] }
+
+        // `WoTExecutor` never reads `plan.Policy` (tars#334). Running this would tell
+        // the caller their restriction held while the graph did whatever it liked.
+        let result =
+            GraphEditorBridge.run (fun () -> executor) registry graph []
+            |> Async.RunSynchronously
+
+        Assert.False(result.Success)
+        Assert.Contains("no-network", String.concat " " result.Errors)
+        Assert.Empty(ran)
+
+        // Reading a graph does nothing, so validation only says so.
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.True(verdict.Valid)
+        Assert.Contains(verdict.Warnings, fun (w: string) -> w.Contains "nothing enforces a policy")
+
+    [<Fact>]
+    let ``the policy still reaches the plan, so enforcing it later needs no new wiring`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+
+        let graph =
+            { spec [ toolNode "read" "read_file" [ "path", "README.md" ] ] [] with
+                Policy = Some [ "no-network" ] }
+
+        let plan = GraphEditorBridge.toWoTPlan registry graph [ "read" ]
+        Assert.Equal<string>([ "no-network" ], plan.Policy)
+
+    [<Fact>]
+    let ``a refused graph never builds an executor`` () =
+        withDescriptors [ writingTool ]
+        let registry = registryOf [ "write_code", "Writes a file." ]
+
+        // Building one reaches the LLM configuration and creates directories and
+        // stores under `~/.tars`. A refused graph that had done that would have
+        // changed this machine while reporting that it ran nothing.
+        let mutable built = 0
+
+        let getExecutor () =
+            built <- built + 1
+            fst (recordingExecutor ())
+
+        let unapproved =
+            spec [ toolNode "w" "write_code" [ "path", "out.fs"; "content", "x" ] ] []
+
+        GraphEditorBridge.run getExecutor registry unapproved []
+        |> Async.RunSynchronously
+        |> ignore
+
+        GraphEditorBridge.run getExecutor registry (spec [] []) []
+        |> Async.RunSynchronously
+        |> ignore
+
+        Assert.Equal(0, built)
+
+        GraphEditorBridge.run getExecutor registry unapproved [ "w" ]
+        |> Async.RunSynchronously
+        |> ignore
+
+        Assert.Equal(1, built)
+
+    // =========================================================================
+    // Casing is a convenience, not a way past the gate
+    // =========================================================================
+
+    [<Fact>]
+    let ``a tool that only matches a description by case is treated as undescribed`` () =
+        // `ToolMetadata` is keyed case-insensitively; `ToolRegistry` is not. A registry
+        // holding both the described `read_file` and a custom, mutating `READ_FILE`
+        // would otherwise hand the second one the first one's schema and its
+        // `auto_approved: true` — a tool that writes, running unasked, advertised as
+        // read-only.
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r"; "READ_FILE", "a different tool entirely" ]
+        let executor, ran = recordingExecutor ()
+
+        let graph = spec [ toolNode "x" "READ_FILE" [ "path", "README.md" ] ] []
+        let verdict = GraphEditorBridge.validate registry graph
+
+        Assert.False(verdict.Valid)
+        Assert.Equal<string>([ "undescribed_tool" ], verdict.Errors |> List.map (fun e -> e.Code))
+        Assert.Empty(verdict.NeedsApproval)
+
+        GraphEditorBridge.run (fun () -> executor) registry graph [ "x" ]
+        |> Async.RunSynchronously
+        |> ignore
+
+        Assert.Empty(ran)
+
+    [<Fact>]
+    let ``a name matching two registered tools by case alone is refused, not guessed`` () =
+        // The registry allows both spellings, so picking either would be picking for
+        // the caller.
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r"; "READ_FILE", "a different tool entirely" ]
+
+        let verdict =
+            GraphEditorBridge.validate registry (spec [ toolNode "x" "Read_File" [ "path", "README.md" ] ] [])
+
+        Assert.False(verdict.Valid)
+        Assert.Equal<string>([ "ambiguous_tool" ], verdict.Errors |> List.map (fun e -> e.Code))
+
+    [<Fact>]
+    let ``a casing variant is still the same tool when nothing collides`` () =
+        // The convenience this was in aid of has to survive the fix.
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+
+        let verdict =
+            GraphEditorBridge.validate registry (spec [ toolNode "x" "Read_File" [ "path", "README.md" ] ] [])
+
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+
+    // =========================================================================
+    // What the executor is handed
+    // =========================================================================
+
+    [<Fact>]
+    let ``a structured argument reaches the tool as the JSON it was written as`` () =
+        let structured: ToolMetadata.ToolDescriptor =
+            { Name = "configure"
+              InputSchema = ToolMetadata.objectSchema [ "config", "object", "The settings." ] [ "config" ]
+              Required = [ "config" ]
+              Approval = ToolMetadata.Approval.observes "reads a configuration" }
+
+        withDescriptors [ structured ]
+        let registry = registryOf [ "configure", "c" ]
+
+        let node: GraphEditorBridge.NodeSpec =
+            { Id = "c"
+              Kind = "tool"
+              Prompt = None
+              Hint = None
+              Tool = Some "configure"
+              Arguments =
+                Map.ofList
+                    [ "config",
+                      JsonDocument.Parse("""{"x":1,"nested":["a","b"]}""").RootElement.Clone() ]
+                |> Some
+              Label = None
+              Tags = None }
+
+        let plan = GraphEditorBridge.toWoTPlan registry (spec [ node ] []) [ "c" ]
+        let payload = plan.Nodes.Head.Payload :?> ToolPayload
+
+        // `WoTExecutor.serializeToolArgs` serializes the whole argument map before
+        // calling the tool. Carrying the structure as raw *text* meant it was encoded a
+        // second time — the tool received `{"config":"{\"x\":1}"}`, which no longer
+        // matches the schema the catalog published for it.
+        let serialized = JsonSerializer.Serialize payload.Args
+        use doc = JsonDocument.Parse serialized
+        let config = doc.RootElement.GetProperty "config"
+
+        Assert.Equal(JsonValueKind.Object, config.ValueKind)
+        Assert.Equal(1, config.GetProperty("x").GetInt32())
+        Assert.Equal(2, config.GetProperty("nested").GetArrayLength())
+
+    [<Fact>]
+    let ``a run with a failed step says the rest of the graph ran anyway`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+
+        // `WoTExecutor` does not stop at the first failure, and a later node is handed
+        // the previous output in place of the missing one (tars#335). The runner cannot
+        // prevent that from here — it hands over the whole plan in one call — so it has
+        // to say so rather than report a clean run.
+        let failing (plan: WoTPlan) =
+            async {
+                return
+                    { Output = "ran"
+                      Success = false
+                      Trace =
+                        { RunId = Guid.NewGuid()
+                          Plan = plan
+                          Steps =
+                            plan.Nodes
+                            |> List.mapi (fun i n ->
+                                { NodeId = n.Id
+                                  NodeType = string n.Kind
+                                  StartedAt = DateTime.UtcNow
+                                  Status = (if i = 0 then Failed("no such file", 1L) else Completed("ok", 1L))
+                                  Input = None
+                                  Output = Some "ok"
+                                  Confidence = None
+                                  TokensUsed = None })
+                          StartedAt = DateTime.UtcNow
+                          CompletedAt = Some DateTime.UtcNow
+                          FinalStatus = "Failed" }
+                      TriplesDelta = []
+                      ToolsUsed = []
+                      Metrics =
+                        { TotalSteps = plan.Nodes.Length
+                          SuccessfulSteps = plan.Nodes.Length - 1
+                          FailedSteps = 1
+                          TotalTokens = 0
+                          TotalDurationMs = 0L
+                          BranchingFactor = 0.0
+                          ConstraintScore = None }
+                      Warnings = []
+                      Errors = [ "no such file" ]
+                      CognitiveStateAfter = None }
+            }
+
+        let graph =
+            spec
+                [ toolNode "check" "read_file" [ "path", "missing.txt" ]
+                  toolNode "then" "read_file" [ "path", "README.md" ] ]
+                [ edge "check" "then" ]
+
+        let result =
+            GraphEditorBridge.run (fun () -> failing) registry graph []
+            |> Async.RunSynchronously
+
+        let warnings = String.concat " " result.Warnings
+        Assert.Contains("check", warnings)
+        Assert.Contains("ran anyway", warnings)
 
     // =========================================================================
     // The wire
@@ -690,7 +914,7 @@ module GraphEditorBridgeTests =
         // the thing they just did. The refusal has to name the real reason.
         let answer =
             GraphEditorBridge.runJson
-                executor
+                (fun () -> executor)
                 registry
                 """{"goal":"g","nodes":[{"id":"w","kind":"tool","tool":"write_code",
                         "arguments":{"path":"out.fs","content":"x"}}],"approve":["w",7]}"""
@@ -717,7 +941,7 @@ module GraphEditorBridgeTests =
         let enveloped = JsonSerializer.Serialize {| arguments = plan |}
 
         let answer =
-            GraphEditorBridge.runJson executor registry enveloped |> Async.RunSynchronously
+            GraphEditorBridge.runJson (fun () -> executor) registry enveloped |> Async.RunSynchronously
 
         Assert.Contains("\"success\":true", answer)
         Assert.Single(ran) |> ignore
@@ -743,13 +967,13 @@ module GraphEditorBridgeTests =
         Assert.Equal("think", verdict.NeedsApproval.Head.NodeId)
 
         let refused =
-            GraphEditorBridge.run executor registry graph [] |> Async.RunSynchronously
+            GraphEditorBridge.run (fun () -> executor) registry graph [] |> Async.RunSynchronously
 
         Assert.False(refused.Success)
         Assert.Empty(ran)
 
         let allowed =
-            GraphEditorBridge.run executor registry graph [ "think" ]
+            GraphEditorBridge.run (fun () -> executor) registry graph [ "think" ]
             |> Async.RunSynchronously
 
         Assert.True(allowed.Success, String.concat "; " allowed.Errors)
@@ -806,7 +1030,7 @@ module GraphEditorBridgeTests =
         // And the order is what the executor actually sees: `WoTExecutor` walks
         // `plan.Nodes` in list order and never reads `EntryNode`, so the field alone
         // would have changed nothing about what runs first.
-        GraphEditorBridge.run executor registry graph [ "a"; "z" ]
+        GraphEditorBridge.run (fun () -> executor) registry graph [ "a"; "z" ]
         |> Async.RunSynchronously
         |> ignore
 
@@ -868,7 +1092,7 @@ module GraphEditorBridgeTests =
         Assert.False(verdict.Valid)
         Assert.Contains(verdict.Errors, fun e -> e.Code = "wrong_argument_type")
 
-        GraphEditorBridge.run executor registry (spec [ numericPath ] []) []
+        GraphEditorBridge.run (fun () -> executor) registry (spec [ numericPath ] []) []
         |> Async.RunSynchronously
         |> ignore
 
@@ -906,7 +1130,7 @@ module GraphEditorBridgeTests =
         let verdict = GraphEditorBridge.validate registry graph
         Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
 
-        GraphEditorBridge.run executor registry graph []
+        GraphEditorBridge.run (fun () -> executor) registry graph []
         |> Async.RunSynchronously
         |> ignore
 

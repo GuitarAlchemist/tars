@@ -459,17 +459,13 @@ module GraphEditorBridge =
     // Validation
     // =========================================================================
 
-    /// Node ids in an order that respects the edges, or the cycle that prevents one.
-    ///
-    /// Kahn's algorithm. The editor needs the order to show what runs when, and the
-    /// cycle detection is the reason a graph editor needs a validator at all — a cycle
-    /// is easy to draw and impossible to run.
-    ///
-    /// `first` is the declared entry node, and it goes ahead of its peers the moment
-    /// it is ready. That matters because `WoTExecutor` walks `plan.Nodes` in list
-    /// order and never reads `EntryNode`: this list *is* the entry node's only effect
-    /// on what actually runs, so ties are broken in its favour rather than
-    /// alphabetically.
+    /// What a name in a graph resolves to.
+    type private Resolution =
+        | Resolved of Tool
+        | NotFound
+        /// More than one registered tool differs from the name only by case.
+        | Ambiguous of string list
+
     /// Find a tool by name, ignoring case, and return the registry's own spelling.
     ///
     /// `ToolMetadata` is keyed case-insensitively and says why: names are typed by hand
@@ -480,12 +476,21 @@ module GraphEditorBridge =
     /// The registry's spelling is what matters: accepting a variant without
     /// canonicalising it would only move the failure to the executor, which looks the
     /// name up in that same case-sensitive registry.
+    ///
+    /// Two registered tools whose names differ only by case make the graph ambiguous,
+    /// and picking either one would be picking for the caller. The registry allows it
+    /// — it is a case-sensitive dictionary — so this has to say so rather than guess.
     let private resolveTool (registry: IToolRegistry) (name: string) =
         match registry.Get name with
-        | Some tool -> Some tool
+        | Some tool -> Resolved tool
         | None ->
-            registry.GetAll()
-            |> List.tryFind (fun t -> String.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase))
+            match
+                registry.GetAll()
+                |> List.filter (fun t -> String.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase))
+            with
+            | [] -> NotFound
+            | [ only ] -> Resolved only
+            | many -> Ambiguous(many |> List.map (fun t -> t.Name) |> List.sort)
 
     /// The type each property is declared as, or `None` when the schema says nothing.
     ///
@@ -526,6 +531,17 @@ module GraphEditorBridge =
             | _ -> false
         | _ -> false
 
+    /// Node ids in an order that respects the edges, or the cycle that prevents one.
+    ///
+    /// Kahn's algorithm. The editor needs the order to show what runs when, and the
+    /// cycle detection is the reason a graph editor needs a validator at all — a cycle
+    /// is easy to draw and impossible to run.
+    ///
+    /// `first` is the declared entry node, and it goes ahead of its peers the moment
+    /// it is ready. That matters because `WoTExecutor` walks `plan.Nodes` in list
+    /// order and never reads `EntryNode`: this list *is* the entry node's only effect
+    /// on what actually runs, so ties are broken in its favour rather than
+    /// alphabetically.
     let private topologicalOrder (first: string option) (nodeIds: string list) (edges: EdgeSpec list) =
         let incoming =
             nodeIds
@@ -616,13 +632,33 @@ module GraphEditorBridge =
                 | Some "" -> error "missing_tool" (Some node.Id) "a tool node needs a tool name"
                 | Some givenName ->
                     match resolveTool registry givenName with
-                    | None -> error "unknown_tool" (Some node.Id) $"no tool named '{givenName}' is registered"
-                    | Some tool ->
+                    | NotFound -> error "unknown_tool" (Some node.Id) $"no tool named '{givenName}' is registered"
+                    | Ambiguous names ->
+                        error
+                            "ambiguous_tool"
+                            (Some node.Id)
+                            ($"'{givenName}' matches more than one registered tool, differing only by case: "
+                             + String.concat ", " names
+                             + ". Name one of them exactly.")
+                    | Resolved tool ->
                         // The registry's spelling from here on, so a casing variant in
                         // the graph is reported and approved under the real name.
                         let toolName = tool.Name
 
+                        // The descriptor has to belong to *this* tool, not to one whose
+                        // name matches case-insensitively. `ToolMetadata` is keyed
+                        // loosely, so a registry holding both the described `read_file`
+                        // and a custom, mutating `READ_FILE` would otherwise hand the
+                        // second one the first one's schema and its `auto_approved:
+                        // true` — a tool that writes, running unasked, advertised as
+                        // read-only.
                         match ToolMetadata.tryFind toolName with
+                        | Some descriptor when descriptor.Name <> toolName ->
+                            error
+                                "undescribed_tool"
+                                (Some node.Id)
+                                ($"'{toolName}' has no description of its own; '{descriptor.Name}' differs from it "
+                                 + "only by case and describes a different tool")
                         | None ->
                             // Fail closed: an undescribed tool is refused here, while
                             // remaining perfectly usable everywhere else in TARS.
@@ -711,6 +747,18 @@ module GraphEditorBridge =
                 "no entry node given; the first node in execution order will be used"
                 :: warnings
 
+        // Reading a graph does nothing, so an unenforceable policy is only a warning
+        // here. `run` refuses it outright, because running under a restriction nobody
+        // applies is claiming a guarantee that does not exist (tars#334).
+        match spec.Policy with
+        | Some policy when not (policy |> List.filter (String.IsNullOrWhiteSpace >> not)).IsEmpty ->
+            warnings <-
+                ("nothing enforces a policy: the executor never reads it, so "
+                 + String.concat ", " policy
+                 + " will not be applied. `tars_plan_run` refuses a graph carrying one (tars#334)")
+                :: warnings
+        | _ -> ()
+
         // Everything in the graph runs, reachable from the entry node or not, because
         // `WoTExecutor` walks every node in the list. An editor that drew two separate
         // components would otherwise expect only the entry's own component to run.
@@ -768,9 +816,14 @@ module GraphEditorBridge =
     /// A JSON argument as the tool registry wants it.
     ///
     /// `ToolPayload.Args` is `Map<string, obj>`, so the JSON types are narrowed here
-    /// rather than at the point of use. Objects and arrays keep their JSON text: a
-    /// tool receives its arguments serialized anyway, so re-serializing a structure we
-    /// had already parsed would only risk changing it.
+    /// rather than at the point of use.
+    ///
+    /// An object or an array stays a `JsonElement`. Handing on its raw *text* instead
+    /// looked harmless — a tool receives its arguments serialized anyway — but
+    /// `WoTExecutor.serializeToolArgs` serializes the whole map, so that text was
+    /// encoded a second time: `{"config":{"x":1}}` reached the tool as
+    /// `{"config":"{\"x\":1}"}`, which no longer matches the schema the catalog
+    /// published for it. `JsonElement` serializes back as the JSON it came from.
     let private toArgValue (element: JsonElement) : obj =
         match element.ValueKind with
         | JsonValueKind.String -> box (element.GetString())
@@ -781,7 +834,7 @@ module GraphEditorBridge =
             match element.TryGetInt64() with
             | true, i -> box i
             | _ -> box (element.GetDouble())
-        | _ -> box (element.GetRawText())
+        | _ -> box (element.Clone())
 
     let private toHint (hint: string option) =
         match hint |> Option.map (fun h -> h.ToLowerInvariant()) with
@@ -809,7 +862,11 @@ module GraphEditorBridge =
                     box
                         { ToolPayload.Tool =
                             n.Tool
-                            |> Option.bind (fun given -> resolveTool registry given |> Option.map (fun t -> t.Name))
+                            |> Option.bind (fun given ->
+                                match resolveTool registry given with
+                                | Resolved tool -> Some tool.Name
+                                | NotFound
+                                | Ambiguous _ -> None)
                             |> Option.orElse n.Tool
                             |> Option.defaultValue ""
                           Args =
@@ -871,14 +928,27 @@ module GraphEditorBridge =
               EstimatedSteps = Some nodes.Length }
           Policy = spec.Policy |> Option.defaultValue [] }
 
+    let private refuse errors warnings : RunResponse =
+        { Success = false
+          Output = ""
+          Errors = errors
+          Warnings = warnings
+          StepsRun = 0
+          ToolsUsed = [] }
+
     /// Validate a graph and run it.
     ///
     /// `approved` names the nodes the caller has explicitly allowed. A node whose tool
     /// is not auto-approved and is not named there stops the run before anything
     /// happens — the whole graph, not just that node, because a partial run of a graph
     /// someone refused is worse than no run at all.
+    ///
+    /// `getExecutor` is a thunk, not an executor, and it is forced only once every
+    /// refusal is past. Building one reaches the LLM configuration and creates
+    /// directories and stores under `~/.tars`; a refused graph that had already done
+    /// that would have changed this machine while reporting that it ran nothing.
     let run
-        (executor: WoTPlan -> Async<WoTResult>)
+        (getExecutor: unit -> (WoTPlan -> Async<WoTResult>))
         (registry: IToolRegistry)
         (spec: PlanSpec)
         (approved: string list)
@@ -887,13 +957,7 @@ module GraphEditorBridge =
             let verdict = validate registry spec
 
             if not verdict.Valid then
-                return
-                    { Success = false
-                      Output = ""
-                      Errors = verdict.Errors |> List.map (fun e -> e.Message)
-                      Warnings = verdict.Warnings
-                      StepsRun = 0
-                      ToolsUsed = [] }
+                return refuse (verdict.Errors |> List.map (fun e -> e.Message)) verdict.Warnings
             else
                 let approvedSet = Set.ofList approved
 
@@ -901,31 +965,66 @@ module GraphEditorBridge =
                     verdict.NeedsApproval
                     |> List.filter (fun notice -> not (approvedSet.Contains notice.NodeId))
 
-                if not refused.IsEmpty then
+                // A policy list says what the graph may *not* do, and nothing reads it:
+                // `WoTExecutor` never looks at `plan.Policy`. Accepting `no-network`
+                // and then running a graph that reaches the network is worse than
+                // refusing, because the caller believes a restriction is in force.
+                // Validation only warns — reading a graph is not doing anything — but
+                // running one under a restriction nobody enforces is refused outright.
+                let policy = spec.Policy |> Option.defaultValue [] |> List.filter (String.IsNullOrWhiteSpace >> not)
+
+                if not policy.IsEmpty then
                     return
-                        { Success = false
-                          Output = ""
-                          Errors =
-                            refused
-                            |> List.map (fun r ->
-                                $"node '%s{r.NodeId}' runs '%s{r.Tool}', which %s{r.Effect}. Approve it by name to run this graph.")
-                          Warnings = verdict.Warnings
-                          StepsRun = 0
-                          ToolsUsed = [] }
+                        refuse
+                            [ "this graph carries a policy ("
+                              + String.concat ", " policy
+                              + "), and nothing here enforces one: the executor never reads it. "
+                              + "Running the graph would claim a restriction that is not in force. "
+                              + "Remove the policy to run it (tars#334)." ]
+                            verdict.Warnings
+                elif not refused.IsEmpty then
+                    return
+                        refuse
+                            (refused
+                             |> List.map (fun r ->
+                                 $"node '%s{r.NodeId}' runs '%s{r.Tool}', which %s{r.Effect}. Approve it by name to run this graph."))
+                            verdict.Warnings
                 else
                     let plan = toWoTPlan registry spec verdict.ExecutionOrder
-                    let! result = executor plan
+                    let! result = getExecutor () plan
+
+                    // `WoTExecutor` does not stop at the first failure: a `Failed` step
+                    // appends an error and the loop carries on, and a later node is
+                    // handed the previous output in place of the missing one. So a node
+                    // downstream of a failure still runs, and a caller who approved it
+                    // as a step *after* a guard needs to be told that (tars#335).
+                    let failed =
+                        result.Trace.Steps
+                        |> List.filter (fun step ->
+                            match step.Status with
+                            | Failed _ -> true
+                            | _ -> false)
+                        |> List.map (fun step -> step.NodeId)
+
+                    let failureWarning =
+                        if failed.IsEmpty then
+                            []
+                        else
+                            [ "these nodes failed and the rest of the graph ran anyway: "
+                              + String.concat ", " failed
+                              + ". Nodes after a failure are not skipped, and a reason node after one is "
+                              + "given the previous node's output in place of the missing one." ]
 
                     return
                         { Success = result.Success
                           Output = result.Output
                           Errors = result.Errors
-                          Warnings = verdict.Warnings @ result.Warnings
+                          Warnings = verdict.Warnings @ result.Warnings @ failureWarning
                           StepsRun = result.Trace.Steps.Length
                           ToolsUsed = result.ToolsUsed }
         }
 
-    let runJson (executor: WoTPlan -> Async<WoTResult>) (registry: IToolRegistry) (json: string) =
+    let runJson (getExecutor: unit -> (WoTPlan -> Async<WoTResult>)) (registry: IToolRegistry) (json: string) =
         async {
             match parsePlanSpec json with
             | Result.Error message ->
@@ -966,6 +1065,6 @@ module GraphEditorBridge =
                             jsonOptions
                         )
                 | Result.Ok approved ->
-                    let! response = run executor registry spec (approved |> Option.defaultValue [])
+                    let! response = run getExecutor registry spec (approved |> Option.defaultValue [])
                     return JsonSerializer.Serialize(response, jsonOptions)
         }

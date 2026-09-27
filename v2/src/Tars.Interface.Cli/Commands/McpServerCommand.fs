@@ -241,14 +241,17 @@ module McpServerCommand =
                       CreatedAt = DateTime.UtcNow
                       Execute = fun input -> async { return Result.Ok(GraphEditorBridge.validateJson toolRegistry input) } }
                     { Name = "tars_plan_run"
-                      Description = "Run a WoT graph. Same input as tars_plan_validate, plus {\"approve\": [\"node_id\", ...]} naming the nodes the caller allows. A node that is not auto-approved and is not named there stops the whole run before anything happens. Returns {\"success\": bool, \"output\": \"...\", \"errors\": [...], \"steps_run\": N, \"tools_used\": [...]}."
+                      Description = "Run a WoT graph. Same input as tars_plan_validate, plus {\"approve\": [\"node_id\", ...]} naming the nodes the caller allows. A node that is not auto-approved and is not named there stops the whole run before anything happens. Returns {\"success\": bool, \"output\": \"...\", \"errors\": [...], \"warnings\": [...], \"steps_run\": N, \"tools_used\": [...]}. Two limits worth knowing: a graph carrying a `policy` is refused, because nothing enforces one (tars#334); and the run does not stop at the first failure, so a node after a failed one still runs — `warnings` names them when it happens (tars#335)."
                       Version = "1.0.0"
                       ParentVersion = None
                       CreatedAt = DateTime.UtcNow
                       Execute =
                         fun input ->
                             async {
-                                let! answer = GraphEditorBridge.runJson graphExecutor.Value toolRegistry input
+                                // The thunk, not `.Value`: forcing it here would build the
+                                // executor before the graph is even parsed.
+                                let! answer =
+                                    GraphEditorBridge.runJson (fun () -> graphExecutor.Value) toolRegistry input
                                 return Result.Ok answer
                             } }
                 ]
