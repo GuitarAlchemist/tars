@@ -121,20 +121,24 @@ module GraphEditorBridge =
         | true, v when v.ValueKind = JsonValueKind.String -> Some(v.GetString())
         | _ -> None
 
-    let private tryGetArray (name: string) (root: JsonElement) =
+    /// A list of strings, or an error when it is present and is not one.
+    ///
+    /// Absent is fine and means "none given". Present-but-wrong is not, and that holds
+    /// one element at a time: dropping the entries that are not strings would turn
+    /// `["no-network", {"rule": "x"}]` into a policy carrying one restriction instead
+    /// of the two that were written, which fails in the direction that lets more
+    /// happen.
+    let private requireStringsOrMissing (name: string) (root: JsonElement) =
         match root.TryGetProperty name with
-        | true, v when v.ValueKind = JsonValueKind.Array -> Some(v.EnumerateArray() |> Seq.toList)
-        | _ -> None
+        | true, v when v.ValueKind = JsonValueKind.Null -> Result.Ok None
+        | true, v when v.ValueKind = JsonValueKind.Array ->
+            let entries = v.EnumerateArray() |> Seq.toList
 
-    let private stringList (name: string) (root: JsonElement) =
-        tryGetArray name root
-        |> Option.map (
-            List.choose (fun (e: JsonElement) ->
-                if e.ValueKind = JsonValueKind.String then
-                    Some(e.GetString())
-                else
-                    None)
-        )
+            match entries |> List.tryFind (fun e -> e.ValueKind <> JsonValueKind.String) with
+            | Some wrong -> Result.Error $"'{name}' has an entry that is not a string (it is {wrong.ValueKind})"
+            | None -> Result.Ok(Some(entries |> List.map (fun e -> e.GetString())))
+        | true, v -> Result.Error $"'{name}' is present but is not a list (it is {v.ValueKind})"
+        | _ -> Result.Ok None
 
     let private parseNode (element: JsonElement) : Result<NodeSpec, string> =
         match tryGetString "id" element, tryGetString "kind" element with
@@ -150,15 +154,18 @@ module GraphEditorBridge =
                     |> Some
                 | _ -> None
 
-            Result.Ok
-                { Id = id
-                  Kind = kind.ToLowerInvariant()
-                  Prompt = tryGetString "prompt" element
-                  Hint = tryGetString "hint" element
-                  Tool = tryGetString "tool" element
-                  Arguments = arguments
-                  Label = tryGetString "label" element
-                  Tags = stringList "tags" element }
+            match requireStringsOrMissing "tags" element with
+            | Result.Error message -> Result.Error $"node '{id}': {message}"
+            | Result.Ok tags ->
+                Result.Ok
+                    { Id = id
+                      Kind = kind.ToLowerInvariant()
+                      Prompt = tryGetString "prompt" element
+                      Hint = tryGetString "hint" element
+                      Tool = tryGetString "tool" element
+                      Arguments = arguments
+                      Label = tryGetString "label" element
+                      Tags = tags }
 
     let private parseEdge (element: JsonElement) : Result<EdgeSpec, string> =
         match tryGetString "from" element, tryGetString "to" element with
@@ -223,13 +230,21 @@ module GraphEditorBridge =
             let root = doc.RootElement
 
             // A policy list is what a graph is *not* allowed to do, so a malformed one
-            // is refused alongside the rest rather than read as "no restrictions".
+            // is refused alongside the rest rather than read as "no restrictions" —
+            // down to a single entry that is not a string.
+            let policyField = requireStringsOrMissing "policy" root
+
             let listFields =
-                [ "nodes"; "edges"; "policy" ]
+                [ "nodes"; "edges" ]
                 |> List.tryPick (fun name ->
                     match requireArrayOrMissing name root with
                     | Result.Error message -> Some message
                     | Result.Ok _ -> None)
+                |> Option.orElse (
+                    match policyField with
+                    | Result.Error message -> Some message
+                    | Result.Ok _ -> None
+                )
 
             match listFields, requireArrayOrMissing "nodes" root, requireArrayOrMissing "edges" root with
             | Some message, _, _ -> Result.Error message
@@ -270,7 +285,12 @@ module GraphEditorBridge =
                             |> List.choose (function
                                 | Result.Ok e -> Some e
                                 | _ -> None)
-                          Policy = stringList "policy" root }
+                          // `listFields` has already turned a malformed policy into an
+                          // error, so this branch only ever sees a good one.
+                          Policy =
+                            match policyField with
+                            | Result.Ok value -> value
+                            | Result.Error _ -> None }
         with ex ->
             Result.Error $"the graph is not valid JSON: {ex.Message}"
 
