@@ -116,10 +116,28 @@ module GraphEditorBridge =
     // Reading JSON
     // =========================================================================
 
+    /// A string property, treating anything that is not one as absent.
+    ///
+    /// Only for the fields whose absence is *itself* refused further on — `id`,
+    /// `kind`, `from`, `to`, `prompt`, `tool`. There, present-but-wrong and absent
+    /// both end in a refusal, so the distinction buys nothing.
     let private tryGetString (name: string) (root: JsonElement) =
         match root.TryGetProperty name with
         | true, v when v.ValueKind = JsonValueKind.String -> Some(v.GetString())
         | _ -> None
+
+    /// A string property, or an error when it is present and is not one.
+    ///
+    /// For every field whose absence is *benign*. Reading a malformed one as absent
+    /// is how a graph quietly becomes a different graph: `"entry_node": 3` would
+    /// simply leave no entry node declared, and since `WoTExecutor` walks the node
+    /// list in order, that changes what runs first without saying anything.
+    let private requireStringOrMissing (name: string) (root: JsonElement) =
+        match root.TryGetProperty name with
+        | true, v when v.ValueKind = JsonValueKind.Null -> Result.Ok None
+        | true, v when v.ValueKind = JsonValueKind.String -> Result.Ok(Some(v.GetString()))
+        | true, v -> Result.Error $"'{name}' is present but is not a string (it is {v.ValueKind})"
+        | _ -> Result.Ok None
 
     /// A list of strings, or an error when it is present and is not one.
     ///
@@ -145,6 +163,9 @@ module GraphEditorBridge =
         | None, _ -> Result.Error "a node has no 'id'"
         | _, None -> Result.Error "a node has no 'kind'"
         | Some id, Some kind ->
+            // Present-but-not-an-object is an error, not an empty argument map. A tool
+            // whose arguments arrived as a string would otherwise be called with none
+            // at all — and a tool that requires nothing would then actually run.
             let arguments =
                 match element.TryGetProperty "arguments" with
                 | true, v when v.ValueKind = JsonValueKind.Object ->
@@ -152,32 +173,53 @@ module GraphEditorBridge =
                     |> Seq.map (fun p -> p.Name, p.Value.Clone())
                     |> Map.ofSeq
                     |> Some
-                | _ -> None
+                    |> Result.Ok
+                | true, v when v.ValueKind = JsonValueKind.Null -> Result.Ok None
+                | true, v -> Result.Error $"'arguments' is present but is not an object (it is {v.ValueKind})"
+                | _ -> Result.Ok None
 
-            match requireStringsOrMissing "tags" element with
+            let fields =
+                arguments
+                |> Result.bind (fun args ->
+                    requireStringOrMissing "hint" element
+                    |> Result.bind (fun hint ->
+                        requireStringOrMissing "label" element
+                        |> Result.bind (fun label ->
+                            requireStringsOrMissing "tags" element
+                            |> Result.map (fun tags -> args, hint, label, tags))))
+
+            match fields with
             | Result.Error message -> Result.Error $"node '{id}': {message}"
-            | Result.Ok tags ->
+            | Result.Ok(args, hint, label, tags) ->
                 Result.Ok
                     { Id = id
                       Kind = kind.ToLowerInvariant()
                       Prompt = tryGetString "prompt" element
-                      Hint = tryGetString "hint" element
+                      Hint = hint
                       Tool = tryGetString "tool" element
-                      Arguments = arguments
-                      Label = tryGetString "label" element
+                      Arguments = args
+                      Label = label
                       Tags = tags }
 
     let private parseEdge (element: JsonElement) : Result<EdgeSpec, string> =
         match tryGetString "from" element, tryGetString "to" element with
         | Some from, Some target ->
-            Result.Ok
-                { From = from
-                  To = target
-                  Label = tryGetString "label" element
-                  Confidence =
-                    match element.TryGetProperty "confidence" with
-                    | true, v when v.ValueKind = JsonValueKind.Number -> Some(v.GetDouble())
-                    | _ -> None }
+            let confidence =
+                match element.TryGetProperty "confidence" with
+                | true, v when v.ValueKind = JsonValueKind.Number -> Result.Ok(Some(v.GetDouble()))
+                | true, v when v.ValueKind = JsonValueKind.Null -> Result.Ok None
+                | true, v -> Result.Error $"'confidence' is present but is not a number (it is {v.ValueKind})"
+                | _ -> Result.Ok None
+
+            match requireStringOrMissing "label" element, confidence with
+            | Result.Error message, _
+            | _, Result.Error message -> Result.Error $"edge '{from}' -> '{target}': {message}"
+            | Result.Ok label, Result.Ok confidence ->
+                Result.Ok
+                    { From = from
+                      To = target
+                      Label = label
+                      Confidence = confidence }
         | None, _ -> Result.Error "an edge has no 'from'"
         | _, None -> Result.Error "an edge has no 'to'"
 
@@ -229,24 +271,33 @@ module GraphEditorBridge =
             use doc = JsonDocument.Parse(json)
             let root = doc.RootElement
 
-            // A policy list is what a graph is *not* allowed to do, so a malformed one
-            // is refused alongside the rest rather than read as "no restrictions" —
-            // down to a single entry that is not a string.
+            // Every field is read strictly, and the first one that is present and
+            // wrong refuses the whole graph. A policy list says what a graph may *not*
+            // do, so reading a malformed one as "no restrictions" fails in the
+            // direction that lets more happen; `entry_node` read as absent changes
+            // what runs first. Silence is the failure mode worth spending code on.
             let policyField = requireStringsOrMissing "policy" root
+            let idField = requireStringOrMissing "id" root
+            let goalField = requireStringOrMissing "goal" root
+            let entryField = requireStringOrMissing "entry_node" root
 
-            let listFields =
+            let malformedField =
                 [ "nodes"; "edges" ]
                 |> List.tryPick (fun name ->
                     match requireArrayOrMissing name root with
                     | Result.Error message -> Some message
                     | Result.Ok _ -> None)
                 |> Option.orElse (
-                    match policyField with
-                    | Result.Error message -> Some message
-                    | Result.Ok _ -> None
+                    [ policyField |> Result.map ignore
+                      idField |> Result.map ignore
+                      goalField |> Result.map ignore
+                      entryField |> Result.map ignore ]
+                    |> List.tryPick (function
+                        | Result.Error message -> Some message
+                        | Result.Ok _ -> None)
                 )
 
-            match listFields, requireArrayOrMissing "nodes" root, requireArrayOrMissing "edges" root with
+            match malformedField, requireArrayOrMissing "nodes" root, requireArrayOrMissing "edges" root with
             | Some message, _, _ -> Result.Error message
             | _, Result.Error message, _
             | _, _, Result.Error message -> Result.Error message
@@ -271,10 +322,17 @@ module GraphEditorBridge =
                 match firstError with
                 | Some e -> Result.Error e
                 | None ->
+                    // `malformedField` has already turned any of these being wrong into an
+                    // error, so this branch only ever sees good ones.
+                    let orNone =
+                        function
+                        | Result.Ok value -> value
+                        | Result.Error _ -> None
+
                     Result.Ok
-                        { Id = tryGetString "id" root
-                          Goal = tryGetString "goal" root |> Option.defaultValue ""
-                          EntryNode = tryGetString "entry_node" root
+                        { Id = orNone idField
+                          Goal = orNone goalField |> Option.defaultValue ""
+                          EntryNode = orNone entryField
                           Nodes =
                             nodes
                             |> List.choose (function
@@ -285,12 +343,7 @@ module GraphEditorBridge =
                             |> List.choose (function
                                 | Result.Ok e -> Some e
                                 | _ -> None)
-                          // `listFields` has already turned a malformed policy into an
-                          // error, so this branch only ever sees a good one.
-                          Policy =
-                            match policyField with
-                            | Result.Ok value -> value
-                            | Result.Error _ -> None }
+                          Policy = orNone policyField }
         with ex ->
             Result.Error $"the graph is not valid JSON: {ex.Message}"
 
