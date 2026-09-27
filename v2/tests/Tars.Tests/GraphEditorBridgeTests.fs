@@ -557,3 +557,92 @@ module GraphEditorBridgeTests =
 
         Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
         Assert.Contains(verdict.Warnings, fun (w: string) -> w.Contains "orphan")
+    // =========================================================================
+    // How the graph actually arrives
+    // =========================================================================
+
+    [<Fact>]
+    let ``a graph wrapped in the MCP arguments envelope is still a graph`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        let plan =
+            """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"think"}],"edges":[]}"""
+
+        // `McpServer.handleListTools` advertises every tool as taking one string
+        // property called `arguments`, and `handleCallTool` hands the containing object
+        // straight through. A client that follows that schema sends this shape, and
+        // reading `nodes` off it finds nothing — the graph came back as `empty_graph`
+        // however well it was formed.
+        let enveloped = JsonSerializer.Serialize {| arguments = plan |}
+
+        let direct = GraphEditorBridge.validateJson registry plan
+        let wrapped = GraphEditorBridge.validateJson registry enveloped
+
+        Assert.Contains("\"valid\":true", direct)
+        Assert.Contains("\"valid\":true", wrapped)
+        Assert.Equal(direct, wrapped)
+
+    [<Fact>]
+    let ``approvals survive the envelope too`` () =
+        withDescriptors [ writingTool ]
+        let registry = registryOf [ "write_code", "Writes a file." ]
+        let executor, ran = recordingExecutor ()
+
+        let plan =
+            """{"goal":"g","nodes":[{"id":"w","kind":"tool","tool":"write_code",
+                    "arguments":{"path":"out.fs","content":"x"}}],"edges":[],"approve":["w"]}"""
+
+        // `approve` is a sibling of `nodes`, so it has to come out of the same
+        // envelope. Read from the wrapper it is invisible, and the run is refused even
+        // though the caller approved the node.
+        let enveloped = JsonSerializer.Serialize {| arguments = plan |}
+
+        let answer =
+            GraphEditorBridge.runJson executor registry enveloped |> Async.RunSynchronously
+
+        Assert.Contains("\"success\":true", answer)
+        Assert.Single(ran) |> ignore
+
+    [<Fact>]
+    let ``an edges field that is not a list is refused, not ignored`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        // A graph whose dependencies were written into a malformed `edges` field used
+        // to validate with no edges at all, and would then run every node in an
+        // unrelated order — which for an approved mutating node is the graph nobody
+        // drew.
+        let answer =
+            GraphEditorBridge.validateJson
+                registry
+                """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"t"}],"edges":"a->b"}"""
+
+        Assert.Contains("\"valid\":false", answer)
+        Assert.Contains("edges", answer)
+
+    [<Fact>]
+    let ``a policy field that is not a list is refused`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        // A policy list says what the graph may *not* do, so reading a malformed one
+        // as "no restrictions" fails in the wrong direction.
+        let answer =
+            GraphEditorBridge.validateJson
+                registry
+                """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"t"}],"edges":[],"policy":"no-network"}"""
+
+        Assert.Contains("\"valid\":false", answer)
+        Assert.Contains("policy", answer)
+
+    [<Fact>]
+    let ``an absent list field is still fine`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        // Absent means "none given". Only present-and-wrong is an error.
+        let answer =
+            GraphEditorBridge.validateJson registry """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"t"}]}"""
+
+        Assert.Contains("\"valid\":true", answer)

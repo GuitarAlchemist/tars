@@ -22,14 +22,14 @@ module ToolDescriptors =
     ///
     /// Each schema was read off the tool's own definition rather than guessed:
     /// `StandardTools.readFile`, `GitTools.writeCode`, `SystemTools.runShell`.
-    let builtIn : ToolDescriptor list =
+    let builtIn: ToolDescriptor list =
         [
           // -------------------------------------------------- reads, changes nothing
           { Name = "read_file"
             InputSchema =
-                objectSchema
-                    [ "path", "string", "Path to the file, relative to the working directory or absolute." ]
-                    [ "path" ]
+              objectSchema
+                  [ "path", "string", "Path to the file, relative to the working directory or absolute." ]
+                  [ "path" ]
             Required = [ "path" ]
             Approval = Approval.observes "reads a file from disk and returns its text" }
 
@@ -40,9 +40,9 @@ module ToolDescriptors =
           // exist is how an editor produces a call that always fails.
           { Name = "list_dir"
             InputSchema =
-                objectSchema
-                    [ "path", "string", "Directory to list, relative to the working directory or absolute." ]
-                    [ "path" ]
+              objectSchema
+                  [ "path", "string", "Directory to list, relative to the working directory or absolute." ]
+                  [ "path" ]
             Required = [ "path" ]
             Approval = Approval.observes "lists the entries of a directory" }
 
@@ -50,45 +50,48 @@ module ToolDescriptors =
           // whatever it is given, so a file path errors rather than being counted.
           { Name = "count_lines"
             InputSchema =
-                objectSchema
-                    [ "path", "string", "Directory to count, searched recursively."
-                      "pattern", "string", "Glob for which files to include. Defaults to *.fs." ]
-                    [ "path" ]
+              objectSchema
+                  [ "path", "string", "Directory to count, searched recursively."
+                    "pattern", "string", "Glob for which files to include. Defaults to *.fs." ]
+                  [ "path" ]
             Required = [ "path" ]
             Approval = Approval.observes "counts lines in the files under a directory without changing them" }
 
           // ------------------------------------------------ changes this machine
           { Name = "write_code"
             InputSchema =
-                objectSchema
-                    [ "path", "string", "File to write, relative or absolute. Directories are created as needed."
-                      "content", "string", "The complete new contents of the file." ]
-                    [ "path"; "content" ]
+              objectSchema
+                  [ "path", "string", "File to write, relative or absolute. Directories are created as needed."
+                    "content", "string", "The complete new contents of the file." ]
+                  [ "path"; "content" ]
             Required = [ "path"; "content" ]
             Approval =
-                Approval.mutates "writes a file to disk, replacing it if it already exists, and creates directories" }
-
-          { Name = "run_shell"
-            InputSchema =
-                objectSchema
-                    [ "command", "string", "The shell command to run."
-                      "timeout", "integer", "Seconds to wait before giving up. Defaults to 30." ]
-                    [ "command" ]
-            Required = [ "command" ]
-            Approval =
-                Approval.mutates
-                    "runs an arbitrary shell command on this machine, which can do anything the user can" }
+              Approval.mutates "writes a file to disk, replacing it if it already exists, and creates directories" }
 
           // -------------------------------------------- leaves the machine or costs
+          //
+          // `run_shell` is here, not above. The tier answers "what is the worst this
+          // can do", and a shell command can run `curl` — it reaches the network as
+          // easily as it writes a file, so calling it `mutates` understated it.
+          { Name = "run_shell"
+            InputSchema =
+              objectSchema
+                  [ "command", "string", "The shell command to run."
+                    "timeout", "integer", "Seconds to wait before giving up. Defaults to 30." ]
+                  [ "command" ]
+            Required = [ "command" ]
+            Approval =
+              Approval.escapes
+                  "runs an arbitrary shell command on this machine, which can do anything the user can, including reaching the network" }
+
           { Name = "fetch_webpage"
             InputSchema =
-                objectSchema
-                    [ "url", "string", "The page to fetch."
-                      "max_length", "integer", "Cut the extracted text at this many characters. Defaults to 10000." ]
-                    [ "url" ]
+              objectSchema
+                  [ "url", "string", "The page to fetch."
+                    "max_length", "integer", "Cut the extracted text at this many characters. Defaults to 10000." ]
+                  [ "url" ]
             Required = [ "url" ]
-            Approval = Approval.escapes "sends a request to an external site, which tells that site what was asked for" }
-        ]
+            Approval = Approval.escapes "sends a request to an external site, which tells that site what was asked for" } ]
 
     /// Register the built-in descriptions. Safe to call more than once.
     let registerBuiltIn () = describeAll builtIn

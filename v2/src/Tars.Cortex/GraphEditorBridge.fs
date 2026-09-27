@@ -33,7 +33,9 @@ open Tars.Cortex.WoTTypes
 module GraphEditorBridge =
 
     let private jsonOptions =
-        let o = JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower)
+        let o =
+            JsonSerializerOptions(PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower)
+
         o.DefaultIgnoreCondition <- JsonIgnoreCondition.WhenWritingNull
         o.WriteIndented <- false
         o
@@ -50,14 +52,16 @@ module GraphEditorBridge =
     /// reasoning path builds a prompt with no tools attached, so a reasoning node
     /// asked to "deploy" can only write prose claiming it did (tars#326).
     type CatalogEntry =
-        { Name: string
-          Description: string
-          /// "tool" or "reason"
-          NodeKind: string
-          /// JSON Schema for this node's arguments. Reason nodes take a prompt.
-          InputSchema: string
-          Required: string list
-          Approval: ApprovalWire }
+        {
+            Name: string
+            Description: string
+            /// "tool" or "reason"
+            NodeKind: string
+            /// JSON Schema for this node's arguments. Reason nodes take a prompt.
+            InputSchema: string
+            Required: string list
+            Approval: ApprovalWire
+        }
 
     and ApprovalWire =
         { Tier: string
@@ -65,25 +69,29 @@ module GraphEditorBridge =
           AutoApproved: bool }
 
     type CatalogResponse =
-        { Nodes: CatalogEntry list
-          /// How many of the registry's tools carry a description. The rest are not
-          /// broken — they are simply not offered here yet.
-          DescribedTools: int
-          TotalTools: int }
+        {
+            Nodes: CatalogEntry list
+            /// How many of the registry's tools carry a description. The rest are not
+            /// broken — they are simply not offered here yet.
+            DescribedTools: int
+            TotalTools: int
+        }
 
     /// A node as the editor sends it back.
     type NodeSpec =
-        { Id: string
-          /// "reason" or "tool"
-          Kind: string
-          /// Reason nodes only.
-          Prompt: string option
-          Hint: string option
-          /// Tool nodes only.
-          Tool: string option
-          Arguments: Map<string, JsonElement> option
-          Label: string option
-          Tags: string list option }
+        {
+            Id: string
+            /// "reason" or "tool"
+            Kind: string
+            /// Reason nodes only.
+            Prompt: string option
+            Hint: string option
+            /// Tool nodes only.
+            Tool: string option
+            Arguments: Map<string, JsonElement> option
+            Label: string option
+            Tags: string list option
+        }
 
     type EdgeSpec =
         { From: string
@@ -116,14 +124,16 @@ module GraphEditorBridge =
           Reason: string }
 
     type ValidateResponse =
-        { Valid: bool
-          Errors: ValidationError list
-          Warnings: string list
-          /// Node ids in an order that respects the edges. Empty when invalid.
-          ExecutionOrder: string list
-          Unsupported: UnsupportedNode list
-          /// Nodes that will not run without a human saying yes, with the reason.
-          NeedsApproval: ApprovalNotice list }
+        {
+            Valid: bool
+            Errors: ValidationError list
+            Warnings: string list
+            /// Node ids in an order that respects the edges. Empty when invalid.
+            ExecutionOrder: string list
+            Unsupported: UnsupportedNode list
+            /// Nodes that will not run without a human saying yes, with the reason.
+            NeedsApproval: ApprovalNotice list
+        }
 
     and ApprovalNotice =
         { NodeId: string
@@ -155,8 +165,13 @@ module GraphEditorBridge =
 
     let private stringList (name: string) (root: JsonElement) =
         tryGetArray name root
-        |> Option.map (List.choose (fun (e: JsonElement) ->
-            if e.ValueKind = JsonValueKind.String then Some(e.GetString()) else None))
+        |> Option.map (
+            List.choose (fun (e: JsonElement) ->
+                if e.ValueKind = JsonValueKind.String then
+                    Some(e.GetString())
+                else
+                    None)
+        )
 
     let private parseNode (element: JsonElement) : Result<NodeSpec, string> =
         match tryGetString "id" element, tryGetString "kind" element with
@@ -196,36 +211,103 @@ module GraphEditorBridge =
         | None, _ -> Result.Error "an edge has no 'from'"
         | _, None -> Result.Error "an edge has no 'to'"
 
-    /// Read a graph out of the JSON the editor sends.
-    let parsePlanSpec (json: string) : Result<PlanSpec, string> =
+    /// An array property, or an error when it is present and is not an array.
+    ///
+    /// Absent is fine and means "none given". Present-but-wrong-kind is not: a graph
+    /// whose dependencies were written into a malformed `edges` field would otherwise
+    /// validate with no edges at all and run every node in an unrelated order, which
+    /// is exactly the graph the caller did not draw.
+    let private requireArrayOrMissing (name: string) (root: JsonElement) =
+        match root.TryGetProperty name with
+        | true, v when v.ValueKind = JsonValueKind.Array -> Result.Ok(v.EnumerateArray() |> Seq.toList)
+        | true, v when v.ValueKind = JsonValueKind.Null -> Result.Ok []
+        | true, v -> Result.Error $"'{name}' is present but is not a list (it is {v.ValueKind})"
+        | _ -> Result.Ok []
+
+    /// Strip the envelope the MCP server wraps tool arguments in, if it is there.
+    ///
+    /// `McpServer.handleListTools` advertises every tool as taking one string property
+    /// called `arguments`, and `handleCallTool` hands the containing object straight to
+    /// the tool. A client that follows the advertised schema therefore sends
+    /// `{"arguments": "{\"goal\": ..., \"nodes\": [...]}"}`, and reading `nodes` off
+    /// that finds nothing — the graph would come back as `empty_graph` however well it
+    /// was formed. A client that ignores the schema and sends the plan directly works.
+    /// Both shapes are accepted here rather than only the second.
+    ///
+    /// The test is narrow on purpose: exactly one property, named `arguments`, holding
+    /// a string. A plan has `goal` and `nodes` at its top level and no `arguments`
+    /// there, so there is nothing to confuse it with.
+    let private unwrapArguments (json: string) =
         try
             use doc = JsonDocument.Parse(json)
             let root = doc.RootElement
 
-            let nodes =
-                tryGetArray "nodes" root
-                |> Option.defaultValue []
-                |> List.map parseNode
+            if root.ValueKind <> JsonValueKind.Object then
+                json
+            else
+                match root.EnumerateObject() |> Seq.toList with
+                | [ only ] when only.Name = "arguments" && only.Value.ValueKind = JsonValueKind.String ->
+                    only.Value.GetString()
+                | _ -> json
+        with _ ->
+            json
 
-            let edges =
-                tryGetArray "edges" root
-                |> Option.defaultValue []
-                |> List.map parseEdge
+    /// Read a graph out of the JSON the editor sends.
+    let parsePlanSpec (input: string) : Result<PlanSpec, string> =
+        try
+            let json = unwrapArguments input
+            use doc = JsonDocument.Parse(json)
+            let root = doc.RootElement
 
-            let firstError =
-                (nodes |> List.tryPick (function Result.Error e -> Some e | _ -> None))
-                |> Option.orElse (edges |> List.tryPick (function Result.Error e -> Some e | _ -> None))
+            // A policy list is what a graph is *not* allowed to do, so a malformed one
+            // is refused alongside the rest rather than read as "no restrictions".
+            let listFields =
+                [ "nodes"; "edges"; "policy" ]
+                |> List.tryPick (fun name ->
+                    match requireArrayOrMissing name root with
+                    | Result.Error message -> Some message
+                    | Result.Ok _ -> None)
 
-            match firstError with
-            | Some e -> Result.Error e
-            | None ->
-                Result.Ok
-                    { Id = tryGetString "id" root
-                      Goal = tryGetString "goal" root |> Option.defaultValue ""
-                      EntryNode = tryGetString "entry_node" root
-                      Nodes = nodes |> List.choose (function Result.Ok n -> Some n | _ -> None)
-                      Edges = edges |> List.choose (function Result.Ok e -> Some e | _ -> None)
-                      Policy = stringList "policy" root }
+            match listFields, requireArrayOrMissing "nodes" root, requireArrayOrMissing "edges" root with
+            | Some message, _, _ -> Result.Error message
+            | _, Result.Error message, _
+            | _, _, Result.Error message -> Result.Error message
+            | None, Result.Ok rawNodes, Result.Ok rawEdges ->
+
+                let nodes = rawNodes |> List.map parseNode
+
+                let edges = rawEdges |> List.map parseEdge
+
+                let firstError =
+                    (nodes
+                     |> List.tryPick (function
+                         | Result.Error e -> Some e
+                         | _ -> None))
+                    |> Option.orElse (
+                        edges
+                        |> List.tryPick (function
+                            | Result.Error e -> Some e
+                            | _ -> None)
+                    )
+
+                match firstError with
+                | Some e -> Result.Error e
+                | None ->
+                    Result.Ok
+                        { Id = tryGetString "id" root
+                          Goal = tryGetString "goal" root |> Option.defaultValue ""
+                          EntryNode = tryGetString "entry_node" root
+                          Nodes =
+                            nodes
+                            |> List.choose (function
+                                | Result.Ok n -> Some n
+                                | _ -> None)
+                          Edges =
+                            edges
+                            |> List.choose (function
+                                | Result.Ok e -> Some e
+                                | _ -> None)
+                          Policy = stringList "policy" root }
         with ex ->
             Result.Error $"the graph is not valid JSON: {ex.Message}"
 
@@ -313,7 +395,11 @@ module GraphEditorBridge =
         let incoming =
             nodeIds
             |> List.map (fun id ->
-                id, edges |> List.filter (fun e -> e.To = id) |> List.map (fun e -> e.From) |> Set.ofList)
+                id,
+                edges
+                |> List.filter (fun e -> e.To = id)
+                |> List.map (fun e -> e.From)
+                |> Set.ofList)
             |> Map.ofList
 
         let rec walk (remaining: Map<string, Set<string>>) (ordered: string list) =
@@ -343,7 +429,11 @@ module GraphEditorBridge =
         let mutable warnings: string list = []
 
         let error code step message =
-            errors <- { Code = code; Step = step; Message = message } :: errors
+            errors <-
+                { Code = code
+                  Step = step
+                  Message = message }
+                :: errors
 
         // Ids must be unique, or an edge cannot say which node it means.
         let duplicates =
@@ -403,14 +493,13 @@ module GraphEditorBridge =
                                 $"'{toolName}' has no description, so what it expects and what it does are unknown"
                         | Some descriptor ->
                             let supplied =
-                                node.Arguments |> Option.map (fun a -> a |> Map.toList |> List.map fst) |> Option.defaultValue []
+                                node.Arguments
+                                |> Option.map (fun a -> a |> Map.toList |> List.map fst)
+                                |> Option.defaultValue []
 
                             for required in descriptor.Required do
                                 if not (List.contains required supplied) then
-                                    error
-                                        "missing_argument"
-                                        (Some node.Id)
-                                        $"'{toolName}' requires '{required}'"
+                                    error "missing_argument" (Some node.Id) $"'{toolName}' requires '{required}'"
 
                             if not descriptor.Approval.AutoApproved then
                                 needsApproval <-
@@ -450,11 +539,18 @@ module GraphEditorBridge =
             match topologicalOrder spec.EntryNode (spec.Nodes |> List.map (fun n -> n.Id)) spec.Edges with
             | Result.Ok ordered -> ordered
             | Result.Error cycle ->
-                error "cycle" None ("these nodes form a cycle, so no order can run them: " + String.concat ", " cycle)
+                error
+                    "cycle"
+                    None
+                    ("these nodes form a cycle, so no order can run them: "
+                     + String.concat ", " cycle)
+
                 []
 
         if spec.EntryNode.IsNone && not spec.Nodes.IsEmpty then
-            warnings <- "no entry node given; the first node in execution order will be used" :: warnings
+            warnings <-
+                "no entry node given; the first node in execution order will be used"
+                :: warnings
 
         // Everything in the graph runs, reachable from the entry node or not, because
         // `WoTExecutor` walks every node in the list. An editor that drew two separate
@@ -495,7 +591,10 @@ module GraphEditorBridge =
         | Result.Error message ->
             let response =
                 { Valid = false
-                  Errors = [ { Code = "malformed"; Step = None; Message = message } ]
+                  Errors =
+                    [ { Code = "malformed"
+                        Step = None
+                        Message = message } ]
                   Warnings = []
                   ExecutionOrder = []
                   Unsupported = []
@@ -676,7 +775,10 @@ module GraphEditorBridge =
             | Result.Ok spec ->
                 let approved =
                     try
-                        use doc = JsonDocument.Parse(json)
+                        // Same envelope as the plan: `approve` is a sibling of `nodes`,
+                        // so it has to be read from the unwrapped object or every
+                        // approval a caller gave would be invisible and the run refused.
+                        use doc = JsonDocument.Parse(unwrapArguments json)
                         stringList "approve" doc.RootElement |> Option.defaultValue []
                     with _ ->
                         []
