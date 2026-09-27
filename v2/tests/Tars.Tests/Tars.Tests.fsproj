@@ -61,6 +61,7 @@
     <Compile Include="InvariantTests.fs" />
 
     <Compile Include="ChunkingTests.fs" />
+    <Compile Include="CodeAnalysisLineCountTests.fs" />
     <Compile Include="SemanticSerializationTests.fs" />
     <Compile Include="McpTests.fs" />
     <Compile Include="KnowledgeGraphTests.fs" />
