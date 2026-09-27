@@ -2,6 +2,7 @@ namespace Tars.Core
 
 open System
 open System.Collections.Concurrent
+open System.Text.Json
 
 /// What a tool is allowed to do, and what callers must send it.
 ///
@@ -143,16 +144,41 @@ module ToolMetadata =
     ///
     /// Hand-writing the same schema skeleton several hundred times invites the kind
     /// of typo that a schema is supposed to catch, so the shape is built here and the
-    /// descriptors below say only what differs.
+    /// descriptors say only what differs.
+    ///
+    /// Written through `Utf8JsonWriter` rather than by concatenating strings. The
+    /// concatenated version escaped backslashes and quotes in the descriptions and
+    /// nothing else: a newline or a tab in a description produced invalid JSON, and
+    /// required property names were interpolated with no escaping at all. Since these
+    /// schemas are what an editor parses, a description someone writes later must not
+    /// be able to break the catalog.
     let objectSchema (properties: (string * string * string) list) (required: string list) =
-        let property (name: string, jsonType: string, description: string) =
-            let escape (s: string) =
-                s.Replace("\\", "\\\\").Replace("\"", "\\\"")
+        use buffer = new IO.MemoryStream()
 
-            $"\"{escape name}\":{{\"type\":\"{escape jsonType}\",\"description\":\"{escape description}\"}}"
+        (use writer = new Utf8JsonWriter(buffer)
 
-        let body = properties |> List.map property |> String.concat ","
+         writer.WriteStartObject()
+         writer.WriteString("$schema", "https://json-schema.org/draft/2020-12/schema")
+         writer.WriteString("type", "object")
 
-        let requiredList = required |> List.map (fun r -> $"\"{r}\"") |> String.concat ","
+         writer.WriteStartObject("properties")
 
-        $"""{{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{{{body}}},"required":[{requiredList}],"additionalProperties":false}}"""
+         for name, jsonType, description in properties do
+             writer.WriteStartObject(name)
+             writer.WriteString("type", jsonType)
+             writer.WriteString("description", description)
+             writer.WriteEndObject()
+
+         writer.WriteEndObject()
+
+         writer.WriteStartArray("required")
+
+         for name in required do
+             writer.WriteStringValue(name)
+
+         writer.WriteEndArray()
+
+         writer.WriteBoolean("additionalProperties", false)
+         writer.WriteEndObject())
+
+        Text.Encoding.UTF8.GetString(buffer.ToArray())

@@ -115,10 +115,7 @@ module ToolMetadataTests =
     [<Fact>]
     let ``the generated schema says what it claims to say`` () =
         let schema =
-            objectSchema
-                [ "path", "string", "The file to read."
-                  "lines", "integer", "How many lines." ]
-                [ "path" ]
+            objectSchema [ "path", "string", "The file to read."; "lines", "integer", "How many lines." ] [ "path" ]
 
         use doc = JsonDocument.Parse schema
         let root = doc.RootElement
@@ -148,6 +145,38 @@ module ToolMetadataTests =
             """A "quoted" word and a \backslash.""",
             doc.RootElement.GetProperty("properties").GetProperty("path").GetProperty("description").GetString()
         )
+
+    [<Fact>]
+    let ``a control character in a description does not break the schema`` () =
+        // The concatenated version escaped backslashes and quotes and nothing else, so
+        // a newline or a tab produced invalid JSON — and these schemas are what an
+        // editor parses. A description someone writes later must not break the catalog.
+        let awkward = "First line.\nSecond\tline.\r\nAnd a \u0007 bell."
+        let schema = objectSchema [ "path", "string", awkward ] [ "path" ]
+
+        use doc = JsonDocument.Parse schema
+
+        Assert.Equal(
+            awkward,
+            doc.RootElement.GetProperty("properties").GetProperty("path").GetProperty("description").GetString()
+        )
+
+    [<Fact>]
+    let ``a required name that needs escaping is escaped`` () =
+        // Required names used to be interpolated with no escaping at all, so a quote
+        // or a backslash in one produced invalid JSON.
+        let odd = """a "quoted\name"""
+        let schema = objectSchema [ odd, "string", "A field." ] [ odd ]
+
+        use doc = JsonDocument.Parse schema
+
+        let required =
+            doc.RootElement.GetProperty("required").EnumerateArray()
+            |> Seq.map (fun e -> e.GetString())
+            |> Seq.toList
+
+        Assert.Equal<string>([ odd ], required)
+        Assert.True(doc.RootElement.GetProperty("properties").TryGetProperty(odd) |> fst)
 
     [<Fact>]
     let ``a schema with no properties is still valid JSON`` () =

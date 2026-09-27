@@ -65,8 +65,13 @@ module ToolDescriptors =
                     "content", "string", "The complete new contents of the file." ]
                   [ "path"; "content" ]
             Required = [ "path"; "content" ]
+            // The `.bak` belongs in the sentence. `GitTools.writeCode` copies an
+            // existing file to `<path>.bak` before writing, overwriting any previous
+            // backup, so a person approving this from the effect text alone would not
+            // know a second file is written — which is the one thing the text is for.
             Approval =
-              Approval.mutates "writes a file to disk, replacing it if it already exists, and creates directories" }
+              Approval.mutates
+                  "writes a file to disk, replacing it if it already exists; first copies any existing file to <path>.bak, overwriting a previous backup; creates directories as needed" }
 
           // -------------------------------------------- leaves the machine or costs
           //
