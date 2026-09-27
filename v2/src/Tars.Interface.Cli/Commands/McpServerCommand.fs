@@ -77,6 +77,7 @@ module McpServerCommand =
                 let healthResult =
                     task {
                         use cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(1.0))
+
                         try
                             let! result = episodeService.HealthCheckAsync().WaitAsync(cts.Token)
                             return result
@@ -163,66 +164,151 @@ module McpServerCommand =
                 let ledger = KnowledgeLedger.createInMemory ()
                 ledger.Initialize() |> Async.AwaitTask |> Async.RunSynchronously
 
-                let bridgeTools : Tool list = [
-                    { Name = "tars_compile_plan"
-                      Description = "Compile a goal into a WoT execution plan. Input: {\"goal\": \"...\", \"max_steps\": 5}. Returns execution manifest with DAG of typed nodes."
-                      Version = "1.0.0"
-                      ParentVersion = None
-                      CreatedAt = DateTime.UtcNow
-                      Execute = fun input -> async { return ClaudeCodeBridge.compilePlan compiler selector toolRegistry input } }
-                    { Name = "tars_execute_step"
-                      Description = "Execute a Tool/Validate node in an active plan. Input: {\"plan_id\": \"...\", \"node_id\": \"...\", \"input\": \"...\"}. Returns step result with next nodes."
-                      Version = "1.0.0"
-                      ParentVersion = None
-                      CreatedAt = DateTime.UtcNow
-                      Execute = fun input -> ClaudeCodeBridge.executeStep toolRegistry input }
-                    { Name = "tars_validate_step"
-                      Description = "Validate content against a Validate node's invariants. Input: {\"plan_id\": \"...\", \"node_id\": \"...\", \"content\": \"...\"}. Returns pass/fail."
-                      Version = "1.0.0"
-                      ParentVersion = None
-                      CreatedAt = DateTime.UtcNow
-                      Execute = fun input -> async { return ClaudeCodeBridge.validateStep input } }
-                    { Name = "tars_memory_op"
-                      Description = "Knowledge graph operations. Search: {\"operation\": \"search\", \"query\": \"...\"}. Assert: {\"operation\": \"assert\", \"subject\": \"...\", \"predicate\": \"...\", \"object\": \"...\"}. Stats: {\"operation\": \"stats\"}."
-                      Version = "1.0.0"
-                      ParentVersion = None
-                      CreatedAt = DateTime.UtcNow
-                      Execute = fun input -> ClaudeCodeBridge.memoryOp ledger input }
-                    { Name = "tars_complete_plan"
-                      Description = "Complete an active plan. Records outcome for learning, checks golden trace regression. Input: {\"plan_id\": \"...\", \"final_output\": \"...\"}."
-                      Version = "1.0.0"
-                      ParentVersion = None
-                      CreatedAt = DateTime.UtcNow
-                      Execute = fun input -> async { return ClaudeCodeBridge.completePlan selector input } }
-                ]
+                let bridgeTools: Tool list =
+                    [ { Name = "tars_compile_plan"
+                        Description =
+                          "Compile a goal into a WoT execution plan. Input: {\"goal\": \"...\", \"max_steps\": 5}. Returns execution manifest with DAG of typed nodes."
+                        Version = "1.0.0"
+                        ParentVersion = None
+                        CreatedAt = DateTime.UtcNow
+                        Execute =
+                          fun input ->
+                              async { return ClaudeCodeBridge.compilePlan compiler selector toolRegistry input } }
+                      { Name = "tars_execute_step"
+                        Description =
+                          "Execute a Tool/Validate node in an active plan. Input: {\"plan_id\": \"...\", \"node_id\": \"...\", \"input\": \"...\"}. Returns step result with next nodes."
+                        Version = "1.0.0"
+                        ParentVersion = None
+                        CreatedAt = DateTime.UtcNow
+                        Execute = fun input -> ClaudeCodeBridge.executeStep toolRegistry input }
+                      { Name = "tars_validate_step"
+                        Description =
+                          "Validate content against a Validate node's invariants. Input: {\"plan_id\": \"...\", \"node_id\": \"...\", \"content\": \"...\"}. Returns pass/fail."
+                        Version = "1.0.0"
+                        ParentVersion = None
+                        CreatedAt = DateTime.UtcNow
+                        Execute = fun input -> async { return ClaudeCodeBridge.validateStep input } }
+                      { Name = "tars_memory_op"
+                        Description =
+                          "Knowledge graph operations. Search: {\"operation\": \"search\", \"query\": \"...\"}. Assert: {\"operation\": \"assert\", \"subject\": \"...\", \"predicate\": \"...\", \"object\": \"...\"}. Stats: {\"operation\": \"stats\"}."
+                        Version = "1.0.0"
+                        ParentVersion = None
+                        CreatedAt = DateTime.UtcNow
+                        Execute = fun input -> ClaudeCodeBridge.memoryOp ledger input }
+                      { Name = "tars_complete_plan"
+                        Description =
+                          "Complete an active plan. Records outcome for learning, checks golden trace regression. Input: {\"plan_id\": \"...\", \"final_output\": \"...\"}."
+                        Version = "1.0.0"
+                        ParentVersion = None
+                        CreatedAt = DateTime.UtcNow
+                        Execute = fun input -> async { return ClaudeCodeBridge.completePlan selector input } } ]
 
                 for tool in bridgeTools do
                     registry.Register(tool)
 
                 logger.Information("Registered {Count} Claude Code bridge tools", bridgeTools.Length)
 
+                // --- Register graph editor tools ---
+                //
+                // The metadata sidecar is filled before anything asks the catalog a
+                // question; an empty sidecar is not an error, it just means every tool
+                // looks undescribed and the catalog comes back holding only `reason`.
+                ToolDescriptors.registerBuiltIn ()
+
+                // Built on first use rather than at startup: a broken or absent LLM
+                // configuration should stop `tars_plan_run`, not the whole MCP server,
+                // since the catalog and the validator need no model at all.
+                let graphExecutor =
+                    lazy
+                        // `global.` below because `Tars` on its own resolves to a
+                        // `TargetRepo` case that is in scope here.
+                        (let llm = LlmFactory.create logger
+
+                         let executor =
+                             global.Tars.Cortex.WoTExecutor.DefaultWoTExecutor(llm, toolRegistry) :> IWoTExecutor
+
+                         let context = AgentHelpers.createAgentContext ignore llm None
+                         fun (plan: WoTPlan) -> executor.Execute(plan, context))
+
+                let graphEditorTools: Tool list =
+                    [ { Name = "tars_node_catalog"
+                        Description =
+                          "What can go in a TARS graph: every described tool plus the `reason` node, "
+                          + "each with a JSON Schema for its arguments and a plain sentence saying what "
+                          + "running it does. Takes no input. Tools with no description are left out "
+                          + "rather than guessed at; the reply says how many of each there are."
+                        Version = "1.0.0"
+                        ParentVersion = None
+                        CreatedAt = DateTime.UtcNow
+                        Execute = fun _ -> async { return Result.Ok(GraphEditorBridge.catalogJson toolRegistry) } }
+                      { Name = "tars_plan_validate"
+                        Description =
+                          "Check a graph before running it. Input: {\"goal\": \"...\", \"nodes\": [{\"id\": \"...\", "
+                          + "\"kind\": \"reason\"|\"tool\", ...}], \"edges\": [{\"from\": \"...\", \"to\": \"...\"}], "
+                          + "\"entry_node\": \"...\", \"policy\": [...]}. Returns whether it is sound, what is wrong "
+                          + "with it, the order its nodes would run in, and which nodes need a human to approve them."
+                        Version = "1.0.0"
+                        ParentVersion = None
+                        CreatedAt = DateTime.UtcNow
+                        // A graph that fails validation is a valid answer to this
+                        // question, so the verdict rides in the payload rather than in
+                        // an error: the editor needs the error list either way.
+                        Execute =
+                          fun input -> async { return Result.Ok(GraphEditorBridge.validateJson toolRegistry input) } }
+                      { Name = "tars_plan_run"
+                        Description =
+                          "Validate a graph and run it. Same input as tars_plan_validate, plus "
+                          + "{\"approve\": [\"node_id\", ...]} naming the nodes whose effects are allowed. Any node "
+                          + "that changes something or leaves the machine must be named there, or nothing runs at all."
+                        Version = "1.0.0"
+                        ParentVersion = None
+                        CreatedAt = DateTime.UtcNow
+                        Execute =
+                          fun input ->
+                              async {
+                                  let! json = GraphEditorBridge.runJson graphExecutor.Value toolRegistry input
+                                  return Result.Ok json
+                              } } ]
+
+                for tool in graphEditorTools do
+                    registry.Register(tool)
+
+                logger.Information(
+                    "Registered {Count} graph editor tools ({Described} tools described)",
+                    graphEditorTools.Length,
+                    ToolMetadata.describedCount ()
+                )
+
                 // --- Register probabilistic grammar tools ---
                 let grammarTools = Tars.Evolution.McpGrammarTools.createTools ()
+
                 for tool in grammarTools do
                     registry.Register(tool)
+
                 logger.Information("Registered {Count} probabilistic grammar tools", grammarTools.Length)
 
                 // --- Register GA trace bridge tools ---
                 let gaTraceTools = Tars.Evolution.McpGaTraceBridge.createTools ()
+
                 for tool in gaTraceTools do
                     registry.Register(tool)
+
                 logger.Information("Registered {Count} GA trace bridge tools", gaTraceTools.Length)
 
                 // --- Register chatbot-claims bridge tools ---
                 let claimTools = Tars.Evolution.ChatbotClaimsBridge.createTools ()
+
                 for tool in claimTools do
                     registry.Register(tool)
+
                 logger.Information("Registered {Count} chatbot-claims bridge tools", claimTools.Length)
 
                 // --- Register MCP pattern resource tools ---
                 let patternTools = Tars.Evolution.McpPatternResources.createTools None
+
                 for tool in patternTools do
                     registry.Register(tool)
+
                 logger.Information("Registered {Count} MCP pattern resource tools", patternTools.Length)
 
             with ex ->

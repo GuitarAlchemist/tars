@@ -153,6 +153,7 @@
     <Compile Include="ContextCompressionTests.fs" />
     <Compile Include="FailuresReportedAsSuccessTests.fs" />
     <Compile Include="FSharpToolsTests.fs" />
+    <Compile Include="GraphEditorBridgeTests.fs" />
     <Compile Include="KnowledgeTests.fs" />
     <Compile Include="MetricsTests.fs" />
     <Compile Include="OfflineEval.fs" />
