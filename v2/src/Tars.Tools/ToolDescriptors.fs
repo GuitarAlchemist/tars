@@ -33,22 +33,29 @@ module ToolDescriptors =
             Required = [ "path" ]
             Approval = Approval.observes "reads a file from disk and returns its text" }
 
+          // `path` is required although the tool takes it optionally, because the
+          // optional case does not work: `ToolHelpers.parseStringArg` falls back to
+          // the raw input when the property is absent, so `{}` makes `list_dir` look
+          // for a directory literally named "{}". Advertising a default that does not
+          // exist is how an editor produces a call that always fails.
           { Name = "list_dir"
             InputSchema =
                 objectSchema
-                    [ "path", "string", "Directory to list. Defaults to the working directory." ]
-                    []
-            Required = []
+                    [ "path", "string", "Directory to list, relative to the working directory or absolute." ]
+                    [ "path" ]
+            Required = [ "path" ]
             Approval = Approval.observes "lists the entries of a directory" }
 
+          // Directory only: `WorkflowTools.countLines` calls `Directory.GetFiles` on
+          // whatever it is given, so a file path errors rather than being counted.
           { Name = "count_lines"
             InputSchema =
                 objectSchema
-                    [ "path", "string", "Directory or file to count. Defaults to the working directory."
-                      "pattern", "string", "Glob for which files to include, such as *.fs." ]
+                    [ "path", "string", "Directory to count, searched recursively."
+                      "pattern", "string", "Glob for which files to include. Defaults to *.fs." ]
                     [ "path" ]
             Required = [ "path" ]
-            Approval = Approval.observes "counts lines in files without changing them" }
+            Approval = Approval.observes "counts lines in the files under a directory without changing them" }
 
           // ------------------------------------------------ changes this machine
           { Name = "write_code"

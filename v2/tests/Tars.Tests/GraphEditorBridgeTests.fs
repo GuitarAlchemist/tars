@@ -387,7 +387,8 @@ module GraphEditorBridgeTests =
                 EntryNode = Some "read"
                 Policy = Some [ "no-network" ] }
 
-        GraphEditorBridge.run executor registry graph []
+        // "summarise" is named because a reason node spends a model call.
+        GraphEditorBridge.run executor registry graph [ "summarise" ]
         |> Async.RunSynchronously
         |> ignore
 
@@ -432,3 +433,127 @@ module GraphEditorBridgeTests =
 
         Assert.Contains("\"valid\":false", answer)
         Assert.Contains("malformed", answer)
+    // =========================================================================
+    // What the catalog promises, the gate must ask for
+    // =========================================================================
+
+    [<Fact>]
+    let ``a reason node costs a model call, so it needs approving too`` () =
+        withDescriptors []
+        let registry = registryOf []
+        let executor, ran = recordingExecutor ()
+
+        let graph = spec [ reasonNode "think" "Work it out." ] []
+
+        // The catalog says the reason node is not auto-approved. The validator has to
+        // ask for that approval, or the promise is decoration: `tars_plan_run` would
+        // spend model calls on an empty `approve` list.
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.True(verdict.Valid)
+        Assert.Single(verdict.NeedsApproval) |> ignore
+        Assert.Equal("think", verdict.NeedsApproval.Head.NodeId)
+
+        let refused =
+            GraphEditorBridge.run executor registry graph [] |> Async.RunSynchronously
+
+        Assert.False(refused.Success)
+        Assert.Empty(ran)
+
+        let allowed =
+            GraphEditorBridge.run executor registry graph [ "think" ]
+            |> Async.RunSynchronously
+
+        Assert.True(allowed.Success, String.concat "; " allowed.Errors)
+        Assert.Single(ran) |> ignore
+
+    [<Fact>]
+    let ``every catalog entry that is not auto-approved is one the gate asks about`` () =
+        withDescriptors [ readOnlyTool; writingTool ]
+        let registry = registryOf [ "read_file", "r"; "write_code", "w" ]
+        let catalog = GraphEditorBridge.catalog registry
+
+        // One node per catalog entry, so the two cannot drift apart again.
+        let nodes =
+            catalog.Nodes
+            |> List.map (fun entry ->
+                if entry.NodeKind = "reason" then
+                    reasonNode entry.Name "think"
+                else
+                    toolNode entry.Name entry.Name (entry.Required |> List.map (fun r -> r, "x")))
+
+        let verdict = GraphEditorBridge.validate registry (spec nodes [])
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+
+        let expected =
+            catalog.Nodes
+            |> List.filter (fun e -> not e.Approval.AutoApproved)
+            |> List.map (fun e -> e.Name)
+            |> List.sort
+
+        let asked = verdict.NeedsApproval |> List.map (fun n -> n.NodeId) |> List.sort
+
+        Assert.Equal<string>(expected, asked)
+
+    // =========================================================================
+    // The entry node
+    // =========================================================================
+
+    [<Fact>]
+    let ``the declared entry node runs first, even when it sorts last`` () =
+        withDescriptors []
+        let registry = registryOf []
+        let executor, ran = recordingExecutor ()
+
+        // "a" and "z" both have no dependencies, so alphabetical order would put "a"
+        // first. The graph says to start at "z".
+        let graph =
+            { spec [ reasonNode "a" "first?"; reasonNode "z" "declared entry" ] [] with
+                EntryNode = Some "z" }
+
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+        Assert.Equal("z", verdict.ExecutionOrder.Head)
+
+        // And the order is what the executor actually sees: `WoTExecutor` walks
+        // `plan.Nodes` in list order and never reads `EntryNode`, so the field alone
+        // would have changed nothing about what runs first.
+        GraphEditorBridge.run executor registry graph [ "a"; "z" ]
+        |> Async.RunSynchronously
+        |> ignore
+
+        let plan = Assert.Single ran
+        Assert.Equal("z", plan.Nodes.Head.Id)
+
+    [<Fact>]
+    let ``a node something runs into cannot be the entry node`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        let graph =
+            { spec [ reasonNode "a" "first"; reasonNode "b" "second" ] [ edge "a" "b" ] with
+                EntryNode = Some "b" }
+
+        let verdict = GraphEditorBridge.validate registry graph
+
+        Assert.False(verdict.Valid)
+        Assert.Contains(verdict.Errors, fun e -> e.Code = "entry_node_not_a_start")
+
+    [<Fact>]
+    let ``nodes the entry node cannot reach are called out, because they run anyway`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        // Two disconnected components. The executor walks every node in the list, so
+        // "orphan" runs whatever the entry node says — the editor should know.
+        let graph =
+            { spec
+                  [ reasonNode "start" "here"
+                    reasonNode "next" "then here"
+                    reasonNode "orphan" "nobody points at me" ]
+                  [ edge "start" "next" ] with
+                EntryNode = Some "start" }
+
+        let verdict = GraphEditorBridge.validate registry graph
+
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+        Assert.Contains(verdict.Warnings, fun (w: string) -> w.Contains "orphan")

@@ -233,6 +233,17 @@ module GraphEditorBridge =
     // Catalog
     // =========================================================================
 
+    /// What running a reasoning node does.
+    ///
+    /// Declared once and read by both the catalog and the validator. Saying it twice
+    /// is how the two came apart: the catalog advertised `auto_approved: false` while
+    /// the validator never asked for that approval, so `tars_plan_run` spent model
+    /// calls on an empty `approve` list.
+    let private reasonApproval: ToolMetadata.Approval =
+        { Tier = ToolMetadata.ReadOnly
+          Effect = "calls the language model and returns its text, which costs money on every run"
+          AutoApproved = false }
+
     /// The one reasoning node, offered alongside the tools.
     ///
     /// It is in the catalog because a graph that cannot think is not much of a graph,
@@ -250,9 +261,9 @@ module GraphEditorBridge =
                 [ "prompt" ]
           Required = [ "prompt" ]
           Approval =
-            { Tier = ToolMetadata.ReadOnly.Wire
-              Effect = "calls the language model and returns its text"
-              AutoApproved = false } }
+            { Tier = reasonApproval.Tier.Wire
+              Effect = reasonApproval.Effect
+              AutoApproved = reasonApproval.AutoApproved } }
 
     /// What can go in a graph: every described tool, plus the reasoning node.
     ///
@@ -292,7 +303,13 @@ module GraphEditorBridge =
     /// Kahn's algorithm. The editor needs the order to show what runs when, and the
     /// cycle detection is the reason a graph editor needs a validator at all — a cycle
     /// is easy to draw and impossible to run.
-    let private topologicalOrder (nodeIds: string list) (edges: EdgeSpec list) =
+    ///
+    /// `first` is the declared entry node, and it goes ahead of its peers the moment
+    /// it is ready. That matters because `WoTExecutor` walks `plan.Nodes` in list
+    /// order and never reads `EntryNode`: this list *is* the entry node's only effect
+    /// on what actually runs, so ties are broken in its favour rather than
+    /// alphabetically.
+    let private topologicalOrder (first: string option) (nodeIds: string list) (edges: EdgeSpec list) =
         let incoming =
             nodeIds
             |> List.map (fun id ->
@@ -308,7 +325,7 @@ module GraphEditorBridge =
                     |> Map.toList
                     |> List.filter (fun (_, deps) -> deps |> Set.forall (fun d -> not (remaining.ContainsKey d)))
                     |> List.map fst
-                    |> List.sort
+                    |> List.sortBy (fun id -> (first <> Some id), id)
 
                 match ready with
                 | [] ->
@@ -358,6 +375,15 @@ module GraphEditorBridge =
             | "reason" ->
                 if node.Prompt |> Option.forall String.IsNullOrWhiteSpace then
                     error "missing_prompt" (Some node.Id) "a reason node needs a prompt"
+
+                // A reasoning node reaches nothing and still spends money every run,
+                // which is exactly what the gate is for.
+                needsApproval <-
+                    { NodeId = node.Id
+                      Tool = "reason"
+                      Tier = reasonApproval.Tier.Wire
+                      Effect = reasonApproval.Effect }
+                    :: needsApproval
 
             | "tool" ->
                 match node.Tool with
@@ -409,13 +435,19 @@ module GraphEditorBridge =
         match spec.EntryNode with
         | Some entry when not (ids.Contains entry) ->
             error "unknown_entry_node" (Some entry) $"the entry node '{entry}' is not one of the nodes"
+        | Some entry when spec.Edges |> List.exists (fun e -> e.To = entry) ->
+            // Nothing can run before the node a graph starts at.
+            error
+                "entry_node_not_a_start"
+                (Some entry)
+                $"'{entry}' is the entry node but something runs into it, so it cannot be where the graph starts"
         | _ -> ()
 
         if spec.Nodes.IsEmpty then
             error "empty_graph" None "a graph needs at least one node"
 
         let order =
-            match topologicalOrder (spec.Nodes |> List.map (fun n -> n.Id)) spec.Edges with
+            match topologicalOrder spec.EntryNode (spec.Nodes |> List.map (fun n -> n.Id)) spec.Edges with
             | Result.Ok ordered -> ordered
             | Result.Error cycle ->
                 error "cycle" None ("these nodes form a cycle, so no order can run them: " + String.concat ", " cycle)
@@ -423,6 +455,33 @@ module GraphEditorBridge =
 
         if spec.EntryNode.IsNone && not spec.Nodes.IsEmpty then
             warnings <- "no entry node given; the first node in execution order will be used" :: warnings
+
+        // Everything in the graph runs, reachable from the entry node or not, because
+        // `WoTExecutor` walks every node in the list. An editor that drew two separate
+        // components would otherwise expect only the entry's own component to run.
+        match spec.EntryNode with
+        | Some entry when not order.IsEmpty ->
+            let rec reach (seen: Set<string>) (frontier: string list) =
+                match frontier with
+                | [] -> seen
+                | current :: rest ->
+                    let next =
+                        spec.Edges
+                        |> List.filter (fun e -> e.From = current)
+                        |> List.map (fun e -> e.To)
+                        |> List.filter (fun id -> not (seen.Contains id))
+
+                    reach (Set.union seen (Set.ofList next)) (rest @ next)
+
+            let reachable = reach (Set.singleton entry) [ entry ]
+            let stranded = order |> List.filter (fun id -> not (reachable.Contains id))
+
+            if not stranded.IsEmpty then
+                warnings <-
+                    ("these nodes cannot be reached from the entry node and will run anyway: "
+                     + String.concat ", " stranded)
+                    :: warnings
+        | _ -> ()
 
         { Valid = errors.IsEmpty
           Errors = List.rev errors
