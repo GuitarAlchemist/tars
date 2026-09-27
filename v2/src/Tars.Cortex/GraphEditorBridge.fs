@@ -893,10 +893,26 @@ module GraphEditorBridge =
                         // so it has to be read from the unwrapped object or every
                         // approval a caller gave would be invisible and the run refused.
                         use doc = JsonDocument.Parse(unwrapArguments json)
-                        stringList "approve" doc.RootElement |> Option.defaultValue []
-                    with _ ->
-                        []
+                        requireStringsOrMissing "approve" doc.RootElement
+                    with ex ->
+                        Result.Error $"'approve' could not be read: {ex.Message}"
 
-                let! response = run executor registry spec approved
-                return JsonSerializer.Serialize(response, jsonOptions)
+                match approved with
+                // A malformed `approve` is said out loud rather than read as "nothing
+                // approved". Both refuse the run, but only one tells the caller that
+                // the approval they wrote never arrived.
+                | Result.Error message ->
+                    return
+                        JsonSerializer.Serialize(
+                            { Success = false
+                              Output = ""
+                              Errors = [ message ]
+                              Warnings = []
+                              StepsRun = 0
+                              ToolsUsed = [] },
+                            jsonOptions
+                        )
+                | Result.Ok approved ->
+                    let! response = run executor registry spec (approved |> Option.defaultValue [])
+                    return JsonSerializer.Serialize(response, jsonOptions)
         }

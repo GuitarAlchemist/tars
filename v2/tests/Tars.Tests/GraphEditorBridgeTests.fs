@@ -630,6 +630,28 @@ module GraphEditorBridgeTests =
         Assert.Equal(GraphEditorBridge.validateJson registry plan, GraphEditorBridge.validateJson registry enveloped)
 
     [<Fact>]
+    let ``a malformed approve list is said out loud, not read as no approvals`` () =
+        withDescriptors [ writingTool ]
+        let registry = registryOf [ "write_code", "Writes a file." ]
+        let executor, ran = recordingExecutor ()
+
+        // Dropping the entries that are not strings would refuse the run too, but with
+        // "node 'w' runs write_code, approve it by name" — telling the caller to do
+        // the thing they just did. The refusal has to name the real reason.
+        let answer =
+            GraphEditorBridge.runJson
+                executor
+                registry
+                """{"goal":"g","nodes":[{"id":"w","kind":"tool","tool":"write_code",
+                        "arguments":{"path":"out.fs","content":"x"}}],"approve":["w",7]}"""
+            |> Async.RunSynchronously
+
+        Assert.Contains("\"success\":false", answer)
+        Assert.Contains("approve", answer)
+        Assert.Contains("not a string", answer)
+        Assert.Empty(ran)
+
+    [<Fact>]
     let ``approvals survive the envelope too`` () =
         withDescriptors [ writingTool ]
         let registry = registryOf [ "write_code", "Writes a file." ]
