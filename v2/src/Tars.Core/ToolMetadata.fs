@@ -45,28 +45,30 @@ module ToolMetadata =
 
     /// What running this tool actually does.
     type Approval =
-        { Tier: ApprovalTier
-          /// One plain sentence naming the effect, for a human deciding whether to
-          /// allow it: "writes files under the working directory", not "file I/O".
-          Effect: string
-          /// May a graph run this without asking first?
-          ///
-          /// Separate from the tier because the two answer different questions. A
-          /// ReadOnly tool that calls an LLM reaches nothing and still costs money on
-          /// every run, so it is not automatically approved.
-          AutoApproved: bool }
+        {
+            Tier: ApprovalTier
+            /// One plain sentence naming the effect, for a human deciding whether to
+            /// allow it: "writes files under the working directory", not "file I/O".
+            Effect: string
+            /// May a graph run this without asking first?
+            ///
+            /// Separate from the tier because the two answer different questions: the
+            /// tier is how far the effects reach, this is whether a person should be
+            /// asked. A tool can reach nothing and still be slow or irreversible
+            /// enough to confirm, and anything above ReadOnly needs confirming anyway.
+            ///
+            /// An LLM call is not the example here: a model call sends the prompt to a
+            /// remote service, so it is `Escapes`, not a ReadOnly tool that happens to
+            /// cost money. Getting that backwards is what made the reasoning node's
+            /// tier wrong in the first place.
+            AutoApproved: bool
+        }
 
         /// Observes, costs nothing, reaches nothing: safe to run unasked.
         static member observes(effect: string) =
             { Tier = ReadOnly
               Effect = effect
               AutoApproved = true }
-
-        /// Observes but costs money or time on each call — describable, not automatic.
-        static member observesAtACost(effect: string) =
-            { Tier = ReadOnly
-              Effect = effect
-              AutoApproved = false }
 
         /// Changes something this machine owns.
         static member mutates(effect: string) =
@@ -82,19 +84,21 @@ module ToolMetadata =
 
     /// Everything the editor needs about one tool, beyond its name and description.
     type ToolDescriptor =
-        { Name: string
-          /// JSON Schema (draft 2020-12) for the object a caller sends.
-          ///
-          /// `Tool.Execute` still receives that object serialized as a string — the
-          /// schema describes what to send, it does not change how tools are invoked.
-          /// A tool whose input is genuinely a bare string does NOT belong here: the
-          /// executor serializes a node arguments to JSON before calling the tool, so
-          /// describing one as an object would hand it the JSON instead of the string.
-          InputSchema: string
-          /// Property names that must be present. Kept alongside the schema rather
-          /// than only inside it so a caller can check without a schema parser.
-          Required: string list
-          Approval: Approval }
+        {
+            Name: string
+            /// JSON Schema (draft 2020-12) for the object a caller sends.
+            ///
+            /// `Tool.Execute` still receives that object serialized as a string — the
+            /// schema describes what to send, it does not change how tools are invoked.
+            /// A tool whose input is genuinely a bare string does NOT belong here: the
+            /// executor serializes a node arguments to JSON before calling the tool, so
+            /// describing one as an object would hand it the JSON instead of the string.
+            InputSchema: string
+            /// Property names that must be present. Kept alongside the schema rather
+            /// than only inside it so a caller can check without a schema parser.
+            Required: string list
+            Approval: Approval
+        }
 
     /// Tool name -> descriptor. Ordinal-case-insensitive, because tool names are
     /// typed by hand in graphs and `Git_Commit` should not be a different tool.
@@ -149,7 +153,6 @@ module ToolMetadata =
 
         let body = properties |> List.map property |> String.concat ","
 
-        let requiredList =
-            required |> List.map (fun r -> $"\"{r}\"") |> String.concat ","
+        let requiredList = required |> List.map (fun r -> $"\"{r}\"") |> String.concat ","
 
         $"""{{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{{{body}}},"required":[{requiredList}],"additionalProperties":false}}"""

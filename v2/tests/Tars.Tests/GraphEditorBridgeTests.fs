@@ -646,3 +646,90 @@ module GraphEditorBridgeTests =
             GraphEditorBridge.validateJson registry """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"t"}]}"""
 
         Assert.Contains("\"valid\":true", answer)
+    // =========================================================================
+    // The schema is a promise the validator has to keep
+    // =========================================================================
+
+    [<Fact>]
+    let ``an argument of the wrong type is refused before it reaches the tool`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+        let executor, ran = recordingExecutor ()
+
+        // The catalog says `path` is a string. A node sending 42 used to validate and
+        // reach the tool, which then failed with whatever it makes of a number —
+        // catching it here is the reason for publishing a schema at all.
+        let numericPath: GraphEditorBridge.NodeSpec =
+            { toolNode "read" "read_file" [] with
+                Arguments = Some(Map.ofList [ "path", JsonDocument.Parse("42").RootElement.Clone() ]) }
+
+        let verdict = GraphEditorBridge.validate registry (spec [ numericPath ] [])
+
+        Assert.False(verdict.Valid)
+        Assert.Contains(verdict.Errors, fun e -> e.Code = "wrong_argument_type")
+
+        GraphEditorBridge.run executor registry (spec [ numericPath ] []) []
+        |> Async.RunSynchronously
+        |> ignore
+
+        Assert.Empty(ran)
+
+    [<Fact>]
+    let ``an argument the tool does not take is named`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+
+        // The schemas say additionalProperties: false, so a stray argument is a
+        // mistake to report rather than something to pass along and hope about.
+        let verdict =
+            GraphEditorBridge.validate
+                registry
+                (spec [ toolNode "read" "read_file" [ "path", "README.md"; "encoding", "utf-8" ] ] [])
+
+        Assert.False(verdict.Valid)
+
+        let unknown = verdict.Errors |> List.filter (fun e -> e.Code = "unknown_argument")
+        Assert.Single(unknown) |> ignore
+        Assert.Contains("encoding", unknown.Head.Message)
+
+    [<Fact>]
+    let ``a tool named in another casing is the same tool`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+        let executor, ran = recordingExecutor ()
+
+        // `ToolMetadata` is keyed case-insensitively and says why: names are typed by
+        // hand into graphs. `ToolRegistry` is case-sensitive, so the exact lookup
+        // answered `unknown_tool` before the metadata lookup could run.
+        let graph = spec [ toolNode "read" "Read_File" [ "path", "README.md" ] ] []
+
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+
+        GraphEditorBridge.run executor registry graph []
+        |> Async.RunSynchronously
+        |> ignore
+
+        // And the plan carries the registry's spelling, not the graph's: the executor
+        // looks the name up in that same case-sensitive registry, so accepting the
+        // variant without canonicalising it would only move the failure later.
+        let plan = Assert.Single ran
+        let payload = plan.Nodes.Head.Payload :?> ToolPayload
+        Assert.Equal("read_file", payload.Tool)
+
+    [<Fact>]
+    let ``a reasoning node is classed by its reach, not by the fact that it only returns text`` () =
+        withDescriptors []
+        let catalog = GraphEditorBridge.catalog (registryOf [])
+        let reason = catalog.Nodes |> List.find (fun n -> n.Name = "reason")
+
+        // The tier answers "what is the worst this can do". A model call sends the
+        // prompt to a remote paid service, and the tier documentation names LLM calls
+        // under `escapes`; `read_only` contradicted it.
+        Assert.Equal("escapes", reason.Approval.Tier)
+        Assert.False(reason.Approval.AutoApproved)
+
+        let verdict =
+            GraphEditorBridge.validate (registryOf []) (spec [ reasonNode "think" "work it out" ] [])
+
+        Assert.Equal("escapes", verdict.NeedsApproval.Head.Tier)

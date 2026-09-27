@@ -321,9 +321,15 @@ module GraphEditorBridge =
     /// is how the two came apart: the catalog advertised `auto_approved: false` while
     /// the validator never asked for that approval, so `tars_plan_run` spent model
     /// calls on an empty `approve` list.
+    /// `Escapes`, not `ReadOnly`. The tier is about reach, and a model call sends the
+    /// prompt to whatever service is configured — usually a remote, paid one. The tier
+    /// documentation names LLM calls under `Escapes` explicitly; calling this read-only
+    /// because it returns text rather than writing any contradicted that.
     let private reasonApproval: ToolMetadata.Approval =
-        { Tier = ToolMetadata.ReadOnly
-          Effect = "calls the language model and returns its text, which costs money on every run"
+        { Tier = ToolMetadata.Escapes
+          Effect =
+            "sends the prompt to the configured language model, which is usually a remote paid service, "
+            + "and returns its text"
           AutoApproved = false }
 
     /// The one reasoning node, offered alongside the tools.
@@ -391,6 +397,62 @@ module GraphEditorBridge =
     /// order and never reads `EntryNode`: this list *is* the entry node's only effect
     /// on what actually runs, so ties are broken in its favour rather than
     /// alphabetically.
+    /// Find a tool by name, ignoring case, and return the registry's own spelling.
+    ///
+    /// `ToolMetadata` is keyed case-insensitively and says why: names are typed by hand
+    /// into graphs, and `Read_File` should not be a different tool from `read_file`.
+    /// `ToolRegistry` is a plain `ConcurrentDictionary`, so it is case-sensitive, and an
+    /// exact-only lookup answered `unknown_tool` before the metadata lookup could run.
+    ///
+    /// The registry's spelling is what matters: accepting a variant without
+    /// canonicalising it would only move the failure to the executor, which looks the
+    /// name up in that same case-sensitive registry.
+    let private resolveTool (registry: IToolRegistry) (name: string) =
+        match registry.Get name with
+        | Some tool -> Some tool
+        | None ->
+            registry.GetAll()
+            |> List.tryFind (fun t -> String.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase))
+
+    /// The type each property is declared as, or `None` when the schema says nothing.
+    ///
+    /// `None` means "no type information here", so nothing is checked against it. An
+    /// unreadable schema must not turn every argument into an error.
+    let private declaredTypes (schema: string) =
+        try
+            use doc = JsonDocument.Parse schema
+
+            match doc.RootElement.TryGetProperty "properties" with
+            | true, properties when properties.ValueKind = JsonValueKind.Object ->
+                let byName =
+                    properties.EnumerateObject()
+                    |> Seq.choose (fun p ->
+                        match p.Value.TryGetProperty "type" with
+                        | true, t when t.ValueKind = JsonValueKind.String -> Some(p.Name, t.GetString())
+                        | _ -> None)
+                    |> Map.ofSeq
+
+                if byName.IsEmpty then None else Some byName
+            | _ -> None
+        with _ ->
+            None
+
+    /// Does this value match the JSON Schema type the tool declared?
+    let private matchesDeclaredType (declared: string) (value: JsonElement) =
+        match declared, value.ValueKind with
+        | "string", JsonValueKind.String
+        | "boolean", JsonValueKind.True
+        | "boolean", JsonValueKind.False
+        | "number", JsonValueKind.Number
+        | "object", JsonValueKind.Object
+        | "array", JsonValueKind.Array
+        | "null", JsonValueKind.Null -> true
+        | "integer", JsonValueKind.Number ->
+            match value.TryGetInt64() with
+            | true, _ -> true
+            | _ -> false
+        | _ -> false
+
     let private topologicalOrder (first: string option) (nodeIds: string list) (edges: EdgeSpec list) =
         let incoming =
             nodeIds
@@ -479,10 +541,14 @@ module GraphEditorBridge =
                 match node.Tool with
                 | None
                 | Some "" -> error "missing_tool" (Some node.Id) "a tool node needs a tool name"
-                | Some toolName ->
-                    match registry.Get toolName with
-                    | None -> error "unknown_tool" (Some node.Id) $"no tool named '{toolName}' is registered"
-                    | Some _ ->
+                | Some givenName ->
+                    match resolveTool registry givenName with
+                    | None -> error "unknown_tool" (Some node.Id) $"no tool named '{givenName}' is registered"
+                    | Some tool ->
+                        // The registry's spelling from here on, so a casing variant in
+                        // the graph is reported and approved under the real name.
+                        let toolName = tool.Name
+
                         match ToolMetadata.tryFind toolName with
                         | None ->
                             // Fail closed: an undescribed tool is refused here, while
@@ -492,14 +558,34 @@ module GraphEditorBridge =
                                 (Some node.Id)
                                 $"'{toolName}' has no description, so what it expects and what it does are unknown"
                         | Some descriptor ->
-                            let supplied =
-                                node.Arguments
-                                |> Option.map (fun a -> a |> Map.toList |> List.map fst)
-                                |> Option.defaultValue []
+                            let arguments = node.Arguments |> Option.defaultValue Map.empty
 
                             for required in descriptor.Required do
-                                if not (List.contains required supplied) then
+                                if not (arguments.ContainsKey required) then
                                     error "missing_argument" (Some node.Id) $"'{toolName}' requires '{required}'"
+
+                            // Names alone are not enough: a schema that says `path` is a
+                            // string and a node that sends `42` used to validate and
+                            // reach the tool, which then failed with whatever error it
+                            // makes of a number. Catching it here is the whole point of
+                            // having the schema.
+                            match declaredTypes descriptor.InputSchema with
+                            | None -> () // the schema declares no types; nothing to check against
+                            | Some declared ->
+                                for KeyValue(name, value) in arguments do
+                                    match declared.TryFind name with
+                                    | None ->
+                                        // The schemas say `additionalProperties: false`.
+                                        error
+                                            "unknown_argument"
+                                            (Some node.Id)
+                                            $"'{toolName}' takes no argument called '{name}'"
+                                    | Some expected when not (matchesDeclaredType expected value) ->
+                                        error
+                                            "wrong_argument_type"
+                                            (Some node.Id)
+                                            $"'{toolName}' expects '{name}' to be {expected}, not {value.ValueKind}"
+                                    | Some _ -> ()
 
                             if not descriptor.Approval.AutoApproved then
                                 needsApproval <-
@@ -636,7 +722,11 @@ module GraphEditorBridge =
     ///
     /// Only call this on a spec that `validate` accepted: it assumes node kinds are
     /// `reason` or `tool` and that tool nodes name a tool.
-    let toWoTPlan (spec: PlanSpec) (executionOrder: string list) : WoTPlan =
+    ///
+    /// The registry is needed for the name, not for the tools: a graph may spell a tool
+    /// in any case, and the plan has to carry the registry's own spelling because the
+    /// executor looks it up in that same case-sensitive registry.
+    let toWoTPlan (registry: IToolRegistry) (spec: PlanSpec) (executionOrder: string list) : WoTPlan =
         let node (n: NodeSpec) : WoTNode =
             match n.Kind with
             | "tool" ->
@@ -644,7 +734,11 @@ module GraphEditorBridge =
                   Kind = WoTNodeKind.Tool
                   Payload =
                     box
-                        { ToolPayload.Tool = n.Tool |> Option.defaultValue ""
+                        { ToolPayload.Tool =
+                            n.Tool
+                            |> Option.bind (fun given -> resolveTool registry given |> Option.map (fun t -> t.Name))
+                            |> Option.orElse n.Tool
+                            |> Option.defaultValue ""
                           Args =
                             n.Arguments
                             |> Option.map (Map.map (fun _ v -> toArgValue v))
@@ -746,7 +840,7 @@ module GraphEditorBridge =
                           StepsRun = 0
                           ToolsUsed = [] }
                 else
-                    let plan = toWoTPlan spec verdict.ExecutionOrder
+                    let plan = toWoTPlan registry spec verdict.ExecutionOrder
                     let! result = executor plan
 
                     return
