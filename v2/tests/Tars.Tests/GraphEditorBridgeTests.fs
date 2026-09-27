@@ -5,6 +5,7 @@ open System.Text.Json
 open Xunit
 open Tars.Core
 open Tars.Cortex
+open Tars.Cortex.WoTTypes
 
 /// What can go in a graph, and how a graph arrives.
 ///
@@ -64,6 +65,43 @@ module GraphEditorBridgeTests =
                 [ "path"; "content" ]
           Required = [ "path"; "content" ]
           Approval = ToolMetadata.Approval.mutates "writes a file to disk" }
+
+    let private spec nodes edges : GraphEditorBridge.PlanSpec =
+        { Id = None
+          Goal = "a goal"
+          EntryNode = None
+          Nodes = nodes
+          Edges = edges
+          Policy = None }
+
+    let private edge from target : GraphEditorBridge.EdgeSpec =
+        { From = from
+          To = target
+          Label = None
+          Confidence = None }
+
+    let private jsonString (value: string) =
+        JsonDocument.Parse(JsonSerializer.Serialize value).RootElement.Clone()
+
+    let private toolNode id toolName args : GraphEditorBridge.NodeSpec =
+        { Id = id
+          Kind = "tool"
+          Prompt = None
+          Hint = None
+          Tool = Some toolName
+          Arguments = args |> List.map (fun (k, v) -> k, jsonString v) |> Map.ofList |> Some
+          Label = None
+          Tags = None }
+
+    let private reasonNode id prompt : GraphEditorBridge.NodeSpec =
+        { Id = id
+          Kind = "reason"
+          Prompt = Some prompt
+          Hint = None
+          Tool = None
+          Arguments = None
+          Label = None
+          Tags = None }
 
     let private parsed input =
         match GraphEditorBridge.parsePlanSpec input with
@@ -263,3 +301,514 @@ module GraphEditorBridgeTests =
         Assert.Equal(JsonValueKind.String, arguments.["path"].ValueKind)
         Assert.Equal(JsonValueKind.True, arguments.["recursive"].ValueKind)
         Assert.Equal(JsonValueKind.Number, arguments.["max"].ValueKind)
+
+    // =========================================================================
+    // Validation
+    // =========================================================================
+
+    [<Fact>]
+    let ``a sound graph validates and comes back with an order`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "Reads a file." ]
+
+        let graph =
+            spec
+                [ toolNode "read" "read_file" [ "path", "README.md" ]
+                  reasonNode "summarise" "Summarise what you were given." ]
+                [ edge "read" "summarise" ]
+
+        let verdict = GraphEditorBridge.validate registry graph
+
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+        Assert.Equal<string>([ "read"; "summarise" ], verdict.ExecutionOrder)
+
+    [<Fact>]
+    let ``an undescribed tool is refused by the editor and only by the editor`` () =
+        withDescriptors [] // nothing described
+        let registry = registryOf [ "run_shell", "Runs a command." ]
+
+        let verdict =
+            GraphEditorBridge.validate registry (spec [ toolNode "go" "run_shell" [] ] [])
+
+        Assert.False(verdict.Valid)
+        Assert.Contains(verdict.Errors, fun e -> e.Code = "undescribed_tool")
+
+        // The point of failing closed *here*: the tool itself is untouched and still
+        // resolves from the registry, so nothing else in TARS stopped working.
+        Assert.True((registry.Get "run_shell").IsSome)
+
+    [<Fact>]
+    let ``a cycle is reported rather than run forever`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "Reads a file." ]
+
+        let graph =
+            spec [ reasonNode "a" "first"; reasonNode "b" "second" ] [ edge "a" "b"; edge "b" "a" ]
+
+        let verdict = GraphEditorBridge.validate registry graph
+
+        Assert.False(verdict.Valid)
+        Assert.Contains(verdict.Errors, fun e -> e.Code = "cycle")
+        Assert.Empty(verdict.ExecutionOrder)
+
+    [<Fact>]
+    let ``a missing required argument is named`` () =
+        withDescriptors [ writingTool ]
+        let registry = registryOf [ "write_code", "Writes a file." ]
+
+        // path supplied, content not.
+        let verdict =
+            GraphEditorBridge.validate registry (spec [ toolNode "w" "write_code" [ "path", "out.fs" ] ] [])
+
+        Assert.False(verdict.Valid)
+
+        let missing = verdict.Errors |> List.filter (fun e -> e.Code = "missing_argument")
+
+        Assert.Single(missing) |> ignore
+        Assert.Contains("content", missing.Head.Message)
+
+    [<Fact>]
+    let ``a node kind we cannot round-trip is reported, never quietly dropped`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+
+        let control =
+            { reasonNode "branch" "" with
+                Kind = "control"
+                Prompt = None }
+
+        let verdict = GraphEditorBridge.validate registry (spec [ control ] [])
+
+        // `ControlPayload.Observe` carries a live `(string -> string) option`, so such
+        // a plan cannot survive JSON at all. Saying so beats handing back a plan that
+        // has silently lost a node.
+        Assert.False(verdict.Valid)
+        Assert.Single(verdict.Unsupported) |> ignore
+        Assert.Equal("control", verdict.Unsupported.Head.Kind)
+
+    [<Fact>]
+    let ``an edge to nowhere is an error`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+
+        let verdict =
+            GraphEditorBridge.validate registry (spec [ reasonNode "a" "think" ] [ edge "a" "ghost" ])
+
+        Assert.False(verdict.Valid)
+        Assert.Contains(verdict.Errors, fun e -> e.Code = "unknown_edge_endpoint")
+
+    [<Fact>]
+    let ``what needs approval is listed before anything runs`` () =
+        withDescriptors [ readOnlyTool; writingTool ]
+        let registry = registryOf [ "read_file", "r"; "write_code", "w" ]
+
+        let graph =
+            spec
+                [ toolNode "read" "read_file" [ "path", "in.txt" ]
+                  toolNode "write" "write_code" [ "path", "out.txt"; "content", "x" ] ]
+                []
+
+        let verdict = GraphEditorBridge.validate registry graph
+
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+
+        // Reading is automatic; writing is not, and the notice says what it does so a
+        // person can decide without reading the tool's source.
+        Assert.Single(verdict.NeedsApproval) |> ignore
+        Assert.Equal("write", verdict.NeedsApproval.Head.NodeId)
+        Assert.Contains("writes a file", verdict.NeedsApproval.Head.Effect)
+
+    // =========================================================================
+    // Running
+    // =========================================================================
+
+    /// Records the plans it is asked to run, and reports success without running any.
+    let private recordingExecutor () =
+        let seen = ResizeArray<WoTPlan>()
+
+        let executor (plan: WoTPlan) =
+            async {
+                seen.Add plan
+
+                return
+                    { Output = "ran"
+                      Success = true
+                      Trace =
+                        { RunId = Guid.NewGuid()
+                          Plan = plan
+                          Steps =
+                            plan.Nodes
+                            |> List.map (fun n ->
+                                { NodeId = n.Id
+                                  NodeType = string n.Kind
+                                  StartedAt = DateTime.UtcNow
+                                  Status = Completed("ok", 1L)
+                                  Input = None
+                                  Output = Some "ok"
+                                  Confidence = None
+                                  TokensUsed = None })
+                          StartedAt = DateTime.UtcNow
+                          CompletedAt = Some DateTime.UtcNow
+                          FinalStatus = "completed" }
+                      TriplesDelta = []
+                      ToolsUsed = []
+                      Metrics =
+                        { TotalSteps = plan.Nodes.Length
+                          SuccessfulSteps = plan.Nodes.Length
+                          FailedSteps = 0
+                          TotalTokens = 0
+                          TotalDurationMs = 0L
+                          BranchingFactor = 0.0
+                          ConstraintScore = None }
+                      Warnings = []
+                      Errors = []
+                      CognitiveStateAfter = None }
+            }
+
+        executor, seen
+
+    [<Fact>]
+    let ``a graph that writes will not run until that node is approved by name`` () =
+        withDescriptors [ writingTool ]
+        let registry = registryOf [ "write_code", "Writes a file." ]
+        let executor, ran = recordingExecutor ()
+
+        let graph =
+            spec [ toolNode "w" "write_code" [ "path", "out.fs"; "content", "x" ] ] []
+
+        let refused =
+            GraphEditorBridge.run executor registry graph [] |> Async.RunSynchronously
+
+        Assert.False(refused.Success)
+        Assert.Empty(ran) // nothing ran at all, not even partly
+        Assert.Contains("writes a file", String.concat " " refused.Errors)
+
+        let allowed =
+            GraphEditorBridge.run executor registry graph [ "w" ] |> Async.RunSynchronously
+
+        Assert.True(allowed.Success, String.concat "; " allowed.Errors)
+        Assert.Single(ran) |> ignore
+
+    [<Fact>]
+    let ``approving one node does not approve another`` () =
+        withDescriptors [ writingTool ]
+        let registry = registryOf [ "write_code", "Writes a file." ]
+        let executor, ran = recordingExecutor ()
+
+        let graph =
+            spec
+                [ toolNode "first" "write_code" [ "path", "a"; "content", "x" ]
+                  toolNode "second" "write_code" [ "path", "b"; "content", "y" ] ]
+                []
+
+        let result =
+            GraphEditorBridge.run executor registry graph [ "first" ]
+            |> Async.RunSynchronously
+
+        Assert.False(result.Success)
+        Assert.Empty(ran)
+        Assert.Contains("second", String.concat " " result.Errors)
+
+    [<Fact>]
+    let ``an invalid graph never reaches the executor`` () =
+        withDescriptors []
+        let registry = registryOf [ "run_shell", "Runs a command." ]
+        let executor, ran = recordingExecutor ()
+
+        let result =
+            GraphEditorBridge.run executor registry (spec [ toolNode "go" "run_shell" [] ] []) []
+            |> Async.RunSynchronously
+
+        Assert.False(result.Success)
+        Assert.Empty(ran)
+
+    [<Fact>]
+    let ``the plan handed to the executor keeps the graph's shape`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+        let executor, ran = recordingExecutor ()
+
+        let graph =
+            { spec
+                  [ toolNode "read" "read_file" [ "path", "README.md" ]
+                    reasonNode "summarise" "Summarise it." ]
+                  [ { edge "read" "summarise" with
+                        Label = Some "next" } ] with
+                EntryNode = Some "read"
+                Policy = Some [ "no-network" ] }
+
+        // "summarise" is named because a reason node spends a model call.
+        GraphEditorBridge.run executor registry graph [ "summarise" ]
+        |> Async.RunSynchronously
+        |> ignore
+
+        let plan = Assert.Single ran
+
+        // Edges, entry node and policy all survive. A flat step list with `depends_on`
+        // could not have carried the last two.
+        Assert.Equal("read", plan.EntryNode)
+        Assert.Equal<string>([ "no-network" ], plan.Policy)
+        Assert.Single plan.Edges |> ignore
+        Assert.Equal(Some "next", plan.Edges.Head.Label)
+        Assert.Equal<string>([ "read"; "summarise" ], plan.Nodes |> List.map (fun n -> n.Id))
+
+    // =========================================================================
+    // The wire
+    // =========================================================================
+
+    [<Fact>]
+    let ``the validator answers in the shape the editor expects`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        let answer =
+            GraphEditorBridge.validateJson
+                registry
+                """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"think"}],"edges":[]}"""
+
+        Assert.Contains("\"valid\":true", answer)
+        Assert.Contains("\"execution_order\":[\"a\"]", answer)
+        Assert.Contains("\"needs_approval\"", answer)
+
+    [<Fact>]
+    let ``malformed JSON comes back as an invalid graph, not an exception`` () =
+        withDescriptors []
+        let answer = GraphEditorBridge.validateJson (registryOf []) "{ not json at all"
+
+        // `parsePlanSpec` already refuses this; the point here is that the JSON entry
+        // point turns that refusal into a verdict rather than letting it escape as an
+        // exception through the MCP server.
+        Assert.Contains("\"valid\":false", answer)
+        Assert.Contains("malformed", answer)
+
+    // =========================================================================
+    // How the graph actually arrives
+    // =========================================================================
+
+    [<Fact>]
+    let ``the envelope is unwrapped by the validator too, not only by the parser`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        let plan =
+            """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"think"}],"edges":[]}"""
+
+        let enveloped = JsonSerializer.Serialize {| arguments = plan |}
+
+        Assert.Equal(GraphEditorBridge.validateJson registry plan, GraphEditorBridge.validateJson registry enveloped)
+
+    [<Fact>]
+    let ``approvals survive the envelope too`` () =
+        withDescriptors [ writingTool ]
+        let registry = registryOf [ "write_code", "Writes a file." ]
+        let executor, ran = recordingExecutor ()
+
+        let plan =
+            """{"goal":"g","nodes":[{"id":"w","kind":"tool","tool":"write_code",
+                    "arguments":{"path":"out.fs","content":"x"}}],"edges":[],"approve":["w"]}"""
+
+        // `approve` is a sibling of `nodes`, so it has to come out of the same
+        // envelope. Read from the wrapper it is invisible, and the run is refused even
+        // though the caller approved the node.
+        let enveloped = JsonSerializer.Serialize {| arguments = plan |}
+
+        let answer =
+            GraphEditorBridge.runJson executor registry enveloped |> Async.RunSynchronously
+
+        Assert.Contains("\"success\":true", answer)
+        Assert.Single(ran) |> ignore
+
+    // =========================================================================
+    // What the catalog promises, the gate must ask for
+    // =========================================================================
+
+    [<Fact>]
+    let ``a reason node costs a model call, so it needs approving too`` () =
+        withDescriptors []
+        let registry = registryOf []
+        let executor, ran = recordingExecutor ()
+
+        let graph = spec [ reasonNode "think" "Work it out." ] []
+
+        // The catalog says the reason node is not auto-approved. The validator has to
+        // ask for that approval, or the promise is decoration: `tars_plan_run` would
+        // spend model calls on an empty `approve` list.
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.True(verdict.Valid)
+        Assert.Single(verdict.NeedsApproval) |> ignore
+        Assert.Equal("think", verdict.NeedsApproval.Head.NodeId)
+
+        let refused =
+            GraphEditorBridge.run executor registry graph [] |> Async.RunSynchronously
+
+        Assert.False(refused.Success)
+        Assert.Empty(ran)
+
+        let allowed =
+            GraphEditorBridge.run executor registry graph [ "think" ]
+            |> Async.RunSynchronously
+
+        Assert.True(allowed.Success, String.concat "; " allowed.Errors)
+        Assert.Single(ran) |> ignore
+
+    [<Fact>]
+    let ``every catalog entry that is not auto-approved is one the gate asks about`` () =
+        withDescriptors [ readOnlyTool; writingTool ]
+        let registry = registryOf [ "read_file", "r"; "write_code", "w" ]
+        let catalog = GraphEditorBridge.catalog registry
+
+        // One node per catalog entry, so the two cannot drift apart again.
+        let nodes =
+            catalog.Nodes
+            |> List.map (fun entry ->
+                if entry.NodeKind = "reason" then
+                    reasonNode entry.Name "think"
+                else
+                    toolNode entry.Name entry.Name (entry.Required |> List.map (fun r -> r, "x")))
+
+        let verdict = GraphEditorBridge.validate registry (spec nodes [])
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+
+        let expected =
+            catalog.Nodes
+            |> List.filter (fun e -> not e.Approval.AutoApproved)
+            |> List.map (fun e -> e.Name)
+            |> List.sort
+
+        let asked = verdict.NeedsApproval |> List.map (fun n -> n.NodeId) |> List.sort
+
+        Assert.Equal<string>(expected, asked)
+
+    // =========================================================================
+    // The entry node
+    // =========================================================================
+
+    [<Fact>]
+    let ``the declared entry node runs first, even when it sorts last`` () =
+        withDescriptors []
+        let registry = registryOf []
+        let executor, ran = recordingExecutor ()
+
+        // "a" and "z" both have no dependencies, so alphabetical order would put "a"
+        // first. The graph says to start at "z".
+        let graph =
+            { spec [ reasonNode "a" "first?"; reasonNode "z" "declared entry" ] [] with
+                EntryNode = Some "z" }
+
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+        Assert.Equal("z", verdict.ExecutionOrder.Head)
+
+        // And the order is what the executor actually sees: `WoTExecutor` walks
+        // `plan.Nodes` in list order and never reads `EntryNode`, so the field alone
+        // would have changed nothing about what runs first.
+        GraphEditorBridge.run executor registry graph [ "a"; "z" ]
+        |> Async.RunSynchronously
+        |> ignore
+
+        let plan = Assert.Single ran
+        Assert.Equal("z", plan.Nodes.Head.Id)
+
+    [<Fact>]
+    let ``a node something runs into cannot be the entry node`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        let graph =
+            { spec [ reasonNode "a" "first"; reasonNode "b" "second" ] [ edge "a" "b" ] with
+                EntryNode = Some "b" }
+
+        let verdict = GraphEditorBridge.validate registry graph
+
+        Assert.False(verdict.Valid)
+        Assert.Contains(verdict.Errors, fun e -> e.Code = "entry_node_not_a_start")
+
+    [<Fact>]
+    let ``nodes the entry node cannot reach are called out, because they run anyway`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        // Two disconnected components. The executor walks every node in the list, so
+        // "orphan" runs whatever the entry node says — the editor should know.
+        let graph =
+            { spec
+                  [ reasonNode "start" "here"
+                    reasonNode "next" "then here"
+                    reasonNode "orphan" "nobody points at me" ]
+                  [ edge "start" "next" ] with
+                EntryNode = Some "start" }
+
+        let verdict = GraphEditorBridge.validate registry graph
+
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+
+    // =========================================================================
+    // The schema is a promise the validator has to keep
+    // =========================================================================
+
+    [<Fact>]
+    let ``an argument of the wrong type is refused before it reaches the tool`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+        let executor, ran = recordingExecutor ()
+
+        // The catalog says `path` is a string. A node sending 42 used to validate and
+        // reach the tool, which then failed with whatever it makes of a number —
+        // catching it here is the reason for publishing a schema at all.
+        let numericPath: GraphEditorBridge.NodeSpec =
+            { toolNode "read" "read_file" [] with
+                Arguments = Some(Map.ofList [ "path", JsonDocument.Parse("42").RootElement.Clone() ]) }
+
+        let verdict = GraphEditorBridge.validate registry (spec [ numericPath ] [])
+
+        Assert.False(verdict.Valid)
+        Assert.Contains(verdict.Errors, fun e -> e.Code = "wrong_argument_type")
+
+        GraphEditorBridge.run executor registry (spec [ numericPath ] []) []
+        |> Async.RunSynchronously
+        |> ignore
+
+        Assert.Empty(ran)
+
+    [<Fact>]
+    let ``an argument the tool does not take is named`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+
+        // The schemas say additionalProperties: false, so a stray argument is a
+        // mistake to report rather than something to pass along and hope about.
+        let verdict =
+            GraphEditorBridge.validate
+                registry
+                (spec [ toolNode "read" "read_file" [ "path", "README.md"; "encoding", "utf-8" ] ] [])
+
+        Assert.False(verdict.Valid)
+
+        let unknown = verdict.Errors |> List.filter (fun e -> e.Code = "unknown_argument")
+        Assert.Single(unknown) |> ignore
+        Assert.Contains("encoding", unknown.Head.Message)
+
+    [<Fact>]
+    let ``a tool named in another casing is the same tool`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+        let executor, ran = recordingExecutor ()
+
+        // `ToolMetadata` is keyed case-insensitively and says why: names are typed by
+        // hand into graphs. `ToolRegistry` is case-sensitive, so the exact lookup
+        // answered `unknown_tool` before the metadata lookup could run.
+        let graph = spec [ toolNode "read" "Read_File" [ "path", "README.md" ] ] []
+
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+
+        GraphEditorBridge.run executor registry graph []
+        |> Async.RunSynchronously
+        |> ignore
+
+        // And the plan carries the registry's spelling, not the graph's: the executor
+        // looks the name up in that same case-sensitive registry, so accepting the
+        // variant without canonicalising it would only move the failure later.
+        let plan = Assert.Single ran
+        let payload = plan.Nodes.Head.Payload :?> ToolPayload
+        Assert.Equal("read_file", payload.Tool)
