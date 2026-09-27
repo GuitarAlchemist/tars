@@ -877,6 +877,39 @@ module GraphEditorBridgeTests =
         Assert.Contains("\"needs_approval\"", answer)
 
     [<Fact>]
+    let ``the node an error is about comes back as a plain string`` () =
+        withDescriptors []
+
+        // `ValidationError.Step` is `string option`, and `System.Text.Json` has no F#
+        // option support of its own: without a converter it serializes `Some "a"` by
+        // the type's public properties, so an editor reading `errors[].step` gets an
+        // object where it expects a node id. Nothing else on any of these responses is
+        // an option, so this one field is the whole exposure.
+        let answer =
+            GraphEditorBridge.validateJson (registryOf []) """{"goal":"g","nodes":[{"id":"a","kind":"reason"}]}"""
+
+        use doc = JsonDocument.Parse answer
+        let firstError = doc.RootElement.GetProperty("errors").EnumerateArray() |> Seq.head
+
+        Assert.Equal("missing_prompt", firstError.GetProperty("code").GetString())
+        Assert.Equal(JsonValueKind.String, firstError.GetProperty("step").ValueKind)
+        Assert.Equal("a", firstError.GetProperty("step").GetString())
+
+    [<Fact>]
+    let ``an error about the whole graph carries no node at all`` () =
+        withDescriptors []
+
+        // `None` has to be an absent field, not `{}` and not a null the editor has to
+        // special-case. `DefaultIgnoreCondition = WhenWritingNull` drops it.
+        let answer = GraphEditorBridge.validateJson (registryOf []) """{"goal":"g","nodes":[]}"""
+
+        use doc = JsonDocument.Parse answer
+        let firstError = doc.RootElement.GetProperty("errors").EnumerateArray() |> Seq.head
+
+        Assert.Equal("empty_graph", firstError.GetProperty("code").GetString())
+        Assert.False(firstError.TryGetProperty("step") |> fst)
+
+    [<Fact>]
     let ``malformed JSON comes back as an invalid graph, not an exception`` () =
         withDescriptors []
         let answer = GraphEditorBridge.validateJson (registryOf []) "{ not json at all"
