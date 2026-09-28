@@ -1,6 +1,7 @@
 namespace Tars.Tests
 
 open System
+open System.IO
 open System.Text.Json
 open Xunit
 open Tars.Core
@@ -30,7 +31,7 @@ module ToolMetadataTests =
 
     [<Fact>]
     let ``a described tool can be found again`` () =
-        clear ()
+        Testing.reset ()
         let written = descriptor "read_file" [ "path" ] (Approval.observes "reads a file")
         describe written
 
@@ -39,7 +40,7 @@ module ToolMetadataTests =
 
     [<Fact>]
     let ``a tool nobody described is absent, not wrong`` () =
-        clear ()
+        Testing.reset ()
 
         // The whole point of a sidecar keyed by name: a tool with no description is
         // simply not offered yet. Adding a field to `Tool` would instead have made
@@ -50,7 +51,7 @@ module ToolMetadataTests =
 
     [<Fact>]
     let ``casing does not make a different tool`` () =
-        clear ()
+        Testing.reset ()
         describe (descriptor "git_commit" [] (Approval.mutates "commits"))
 
         // Names are typed by hand into graphs, so `Git_Commit` has to be the same tool.
@@ -60,14 +61,14 @@ module ToolMetadataTests =
 
     [<Fact>]
     let ``a name that is not a name finds nothing rather than throwing`` () =
-        clear ()
+        Testing.reset ()
         Assert.Equal(None, tryFind null)
         Assert.Equal(None, tryFind "")
         Assert.Equal(None, tryFind "   ")
 
     [<Fact>]
     let ``describing the same tool again replaces the description`` () =
-        clear ()
+        Testing.reset ()
         describe (descriptor "tool" [] (Approval.observes "the first answer"))
         describe (descriptor "tool" [] (Approval.mutates "the second answer"))
 
@@ -76,7 +77,7 @@ module ToolMetadataTests =
 
     [<Fact>]
     let ``the count is what an editor shows against the registry's total`` () =
-        clear ()
+        Testing.reset ()
         Assert.Equal(0, describedCount ())
 
         describeAll
@@ -184,3 +185,38 @@ module ToolMetadataTests =
         use doc = JsonDocument.Parse(objectSchema [] [])
         Assert.Equal("object", doc.RootElement.GetProperty("type").GetString())
         Assert.Empty(doc.RootElement.GetProperty("required").EnumerateArray())
+
+    [<Fact>]
+    let ``nothing in the running system resets the registry`` () =
+        // `ToolMetadata.Testing.reset` is public so that `Tars.Core.fsproj` does not
+        // need `InternalsVisibleTo Tars.Tests`, which opened every internal of the
+        // assembly to reach this one function. The compiler used to keep production
+        // code out; this does, by reading the source tree.
+        //
+        // It is a weaker guarantee and it is meant to be a cheaper one. If this ever
+        // fails, the answer is to delete the call, not to widen the test.
+        //
+        // It is a text scan, so even a comment naming `ToolMetadata.Testing` in a source
+        // file trips it. That is how this test was checked not to be vacuous, and it
+        // fails in the safe direction: a false alarm costs a minute, a missed call costs
+        // a production path that can wipe the registry.
+        let rec v2Root (dir: DirectoryInfo) =
+            if isNull (box dir) then failwith "could not find v2/ above the test directory"
+            elif dir.GetFiles("Tars.sln").Length > 0 then dir
+            else v2Root dir.Parent
+
+        let src = Path.Combine((v2Root (DirectoryInfo(Directory.GetCurrentDirectory()))).FullName, "src")
+
+        let callers =
+            Directory.EnumerateFiles(src, "*.fs", SearchOption.AllDirectories)
+            |> Seq.filter (fun f ->
+                let parts = f.Replace('\\', '/').Split('/')
+                not (parts |> Array.exists (fun p -> p = "obj" || p = "bin")))
+            |> Seq.filter (fun f -> File.ReadAllText(f).Contains "ToolMetadata.Testing")
+            |> Seq.map (fun f -> Path.GetRelativePath(src, f))
+            |> Seq.toList
+
+        Assert.True(
+            callers.IsEmpty,
+            "production code calls the test-only registry reset: " + String.concat ", " callers
+        )

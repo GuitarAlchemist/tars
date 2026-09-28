@@ -111,7 +111,7 @@ module ToolDescriptorTests =
 
     [<Fact>]
     let ``registering the built-ins is safe to do more than once`` () =
-        clear ()
+        Testing.reset ()
         ToolDescriptors.registerBuiltIn ()
         let first = describedCount ()
 

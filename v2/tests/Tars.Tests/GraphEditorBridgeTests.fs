@@ -51,7 +51,7 @@ module GraphEditorBridgeTests =
     /// The registry is process-wide, so every test states the whole world it expects
     /// rather than inheriting whatever ran before it.
     let private withDescriptors (descriptors: ToolMetadata.ToolDescriptor list) =
-        ToolMetadata.clear ()
+        ToolMetadata.Testing.reset ()
         ToolMetadata.describeAll descriptors
 
     let private readOnlyTool: ToolMetadata.ToolDescriptor =
