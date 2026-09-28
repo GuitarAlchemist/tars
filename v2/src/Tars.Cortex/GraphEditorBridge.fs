@@ -155,9 +155,16 @@ module GraphEditorBridge =
 
     /// A string property, treating anything that is not one as absent.
     ///
-    /// Only for the fields whose absence is *itself* refused further on — `id`,
-    /// `kind`, `from`, `to`, `prompt`, `tool`. There, present-but-wrong and absent
-    /// both end in a refusal, so the distinction buys nothing.
+    /// For `id`, `kind`, `from` and `to`, absence is refused on the next line, so
+    /// present-but-wrong and absent end in the same refusal and the distinction buys
+    /// nothing.
+    ///
+    /// `prompt` and `tool` are the same only for the node kind that needs them: a
+    /// reason node with a non-string `prompt` gets `missing_prompt`, a tool node with a
+    /// non-string `tool` gets `missing_tool`. On the *other* kind the field is unused,
+    /// so a malformed one is ignored rather than refused — the same tolerance a node
+    /// already has for any field it does not use. Every field whose absence is benign
+    /// on *every* node goes through `requireStringOrMissing` instead.
     let private tryGetString (name: string) (root: JsonElement) =
         match root.TryGetProperty name with
         | true, v when v.ValueKind = JsonValueKind.String -> Some(v.GetString())

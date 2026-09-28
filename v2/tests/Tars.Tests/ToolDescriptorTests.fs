@@ -89,6 +89,22 @@ module ToolDescriptorTests =
         Assert.Equal(Escapes, shell.Approval.Tier)
 
     [<Fact>]
+    let ``a field is required only when the tool has no usable default`` () =
+        // These two look inconsistent and are not, so the asymmetry is pinned before
+        // someone tidies it away.
+        //
+        // `count_lines` reads `path` off the JSON itself and defaults it to ".", so
+        // omitting it works. `list_dir` goes through `ToolHelpers.parseStringArg`,
+        // which on `{}` finds no property and falls back to the raw input — making the
+        // tool look for a directory literally named "{}". Its optional case does not
+        // work, so the descriptor does not offer one.
+        let requiredOf name =
+            ToolDescriptors.builtIn |> List.find (fun d -> d.Name = name) |> (fun d -> d.Required)
+
+        Assert.Empty(requiredOf "count_lines")
+        Assert.Equal<string>([ "path" ], requiredOf "list_dir")
+
+    [<Fact>]
     let ``no tool is described twice`` () =
         let names = ToolDescriptors.builtIn |> List.map (fun d -> d.Name)
         Assert.Equal<string>(List.distinct names, names)
