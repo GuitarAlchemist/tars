@@ -26,8 +26,31 @@ module ToolMetadata =
     ///
     /// The question each tier answers is "what is the worst this can do", not "how
     /// useful is it": a tool is placed by its reach, not by how likely the damage is.
+    ///
+    /// **These tiers are about integrity, not confidentiality.** They say what a tool
+    /// can *change* and how far that reaches. They say nothing about what it can
+    /// *see*, and the gate reads only these tiers, so:
+    ///
+    /// - a `ReadOnly` tool runs without anyone being asked, and can read every file
+    ///   the TARS process can read - `read_file` on an id_rsa, a .env, a password
+    ///   manager's export, is `ReadOnly` and auto-approved, correctly by this scale;
+    /// - what stops that today is not the tier but the catalog: `read_file` is one of
+    ///   six described tools, and whoever draws the graph is the person whose files
+    ///   they are.
+    ///
+    /// That holds while the editor and the files share an owner. It stops holding the
+    /// moment a graph arrives from somewhere its author does not own - a shared
+    /// editor, a plan pasted in, a model writing the graph. At that point reading is
+    /// exfiltration and `ReadOnly` is the wrong answer, and the fix is a second axis
+    /// on `Approval` rather than a new tier, because reach and sensitivity are
+    /// genuinely independent.
+    ///
+    /// This is written down rather than fixed because nothing in TARS has that shape
+    /// yet, and a dimension added before there is a case to test it against would be
+    /// guessed rather than designed.
     type ApprovalTier =
-        /// Observes without changing anything: reads a file, parses, computes.
+        /// Observes without changing anything: reads a file, parses, computes. Says
+        /// nothing about *what* it may observe - see the note on the type.
         | ReadOnly
         /// Changes state this machine owns: writes files, commits, installs, runs a
         /// shell command, alters configuration.
@@ -66,7 +89,10 @@ module ToolMetadata =
         /// that says so. Do not put back a field the gate can disagree with.
         member this.AutoApproved = (this.Tier = ReadOnly)
 
-        /// Observes, costs nothing, reaches nothing: safe to run unasked.
+        /// Observes, costs nothing, changes nothing: safe to run unasked.
+        ///
+        /// "Reaches nothing" would be the wrong word: a reader reaches whatever the
+        /// process can read. See the note on `ApprovalTier`.
         static member observes(effect: string) = { Tier = ReadOnly; Effect = effect }
 
         /// Changes something this machine owns.
