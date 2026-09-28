@@ -121,10 +121,39 @@ module ToolDescriptorTests =
         Assert.Equal(ToolDescriptors.builtIn.Length, first)
 
     [<Fact>]
-    let ``a tool whose input is a bare string is left undescribed`` () =
-        // `hash_text` hashes whatever it is handed, and the executor serializes a
-        // node's arguments to JSON before calling a tool. Describing it as an object
-        // would make it hash `{"text":"..."}` rather than the text. Until there is a
-        // convention for "this one takes the bare string", absent is the honest answer.
-        let names = ToolDescriptors.builtIn |> List.map (fun d -> d.Name)
-        Assert.DoesNotContain("hash_text", names)
+    let ``every described name is a tool that exists, and hash_text is left out on purpose`` () =
+        if not (TestHelpers.requireTools ()) then
+            () // WDAC blocks Tars.Tools; there is no assembly to scan
+        else
+            // Descriptors name their tools as strings, and nothing else in the stack
+            // checks those strings against anything: `describe` accepts any name, and the
+            // bridge only ever looks a descriptor up *starting from* a registered tool. So
+            // a typo or a renamed tool does not fail — it leaves a descriptor nobody ever
+            // consults, the tool silently goes back to being undescribed, and the editor
+            // drops it from the catalog. This is the only test that would notice.
+            let registry = ToolRegistry()
+            registry.RegisterAssembly(Reflection.Assembly.GetAssembly(typeof<ToolRegistry>))
+
+            let registered = registry.GetAll() |> List.map (fun t -> t.Name) |> Set.ofList
+            Assert.NotEmpty(registered)
+
+            let missing =
+                ToolDescriptors.builtIn
+                |> List.map (fun d -> d.Name)
+                |> List.filter (registered.Contains >> not)
+
+            Assert.True(
+                missing.IsEmpty,
+                "these descriptors name tools that do not exist: " + String.concat ", " missing
+            )
+
+            // `hash_text` hashes whatever it is handed, and the executor serializes a
+            // node's arguments to JSON before calling a tool, so describing it as an object
+            // would make it hash `{"text":"..."}` rather than the text. Until there is a
+            // convention for "this one takes the bare string", absent is the honest answer.
+            //
+            // Asserting that it *is* registered is what makes the omission mean something:
+            // without it the test would also pass once the tool was renamed or deleted.
+            Assert.Contains("hash_text", registered)
+
+            Assert.DoesNotContain("hash_text", ToolDescriptors.builtIn |> List.map (fun d -> d.Name))

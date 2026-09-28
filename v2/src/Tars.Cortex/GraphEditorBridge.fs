@@ -155,16 +155,18 @@ module GraphEditorBridge =
 
     /// A string property, treating anything that is not one as absent.
     ///
-    /// For `id`, `kind`, `from` and `to`, absence is refused on the next line, so
-    /// present-but-wrong and absent end in the same refusal and the distinction buys
-    /// nothing.
-    ///
-    /// `prompt` and `tool` are the same only for the node kind that needs them: a
+    /// Only for `prompt` and `tool`, and only because each matters to one node kind: a
     /// reason node with a non-string `prompt` gets `missing_prompt`, a tool node with a
     /// non-string `tool` gets `missing_tool`. On the *other* kind the field is unused,
     /// so a malformed one is ignored rather than refused — the same tolerance a node
-    /// already has for any field it does not use. Every field whose absence is benign
-    /// on *every* node goes through `requireStringOrMissing` instead.
+    /// already has for any field it does not use.
+    ///
+    /// Every other field goes through `requireStringOrMissing`, including `id`, `kind`,
+    /// `from` and `to`. Those four are refused either way, so reading them leniently
+    /// cost nothing for the *decision* — but it made the only thing the caller actually
+    /// receives, the message, wrong: `{"id": 7}` was reported as a node with no `id`,
+    /// sending whoever wrote it to check that the field is serialized at all. On an
+    /// editor whose node ids are numbers, that is the likeliest mistake of the set.
     let private tryGetString (name: string) (root: JsonElement) =
         match root.TryGetProperty name with
         | true, v when v.ValueKind = JsonValueKind.String -> Some(v.GetString())
@@ -203,10 +205,12 @@ module GraphEditorBridge =
         | _ -> Result.Ok None
 
     let private parseNode (element: JsonElement) : Result<NodeSpec, string> =
-        match tryGetString "id" element, tryGetString "kind" element with
-        | None, _ -> Result.Error "a node has no 'id'"
-        | _, None -> Result.Error "a node has no 'kind'"
-        | Some id, Some kind ->
+        match requireStringOrMissing "id" element, requireStringOrMissing "kind" element with
+        | Result.Error message, _
+        | _, Result.Error message -> Result.Error message
+        | Result.Ok None, _ -> Result.Error "a node has no 'id'"
+        | _, Result.Ok None -> Result.Error "a node has no 'kind'"
+        | Result.Ok(Some id), Result.Ok(Some kind) ->
             // Present-but-not-an-object is an error, not an empty argument map. A tool
             // whose arguments arrived as a string would otherwise be called with none
             // at all — and a tool that requires nothing would then actually run.
@@ -246,8 +250,12 @@ module GraphEditorBridge =
                       Tags = tags }
 
     let private parseEdge (element: JsonElement) : Result<EdgeSpec, string> =
-        match tryGetString "from" element, tryGetString "to" element with
-        | Some from, Some target ->
+        match requireStringOrMissing "from" element, requireStringOrMissing "to" element with
+        | Result.Error message, _
+        | _, Result.Error message -> Result.Error message
+        | Result.Ok None, _ -> Result.Error "an edge has no 'from'"
+        | _, Result.Ok None -> Result.Error "an edge has no 'to'"
+        | Result.Ok(Some from), Result.Ok(Some target) ->
             let confidence =
                 match element.TryGetProperty "confidence" with
                 | true, v when v.ValueKind = JsonValueKind.Number -> Result.Ok(Some(v.GetDouble()))
@@ -264,8 +272,6 @@ module GraphEditorBridge =
                       To = target
                       Label = label
                       Confidence = confidence }
-        | None, _ -> Result.Error "an edge has no 'from'"
-        | _, None -> Result.Error "an edge has no 'to'"
 
     /// An array property, or an error when it is present and is not an array.
     ///
@@ -409,8 +415,7 @@ module GraphEditorBridge =
         { Tier = ToolMetadata.Escapes
           Effect =
             "sends the prompt to the configured language model, which is usually a remote paid service, "
-            + "and returns its text"
-          AutoApproved = false }
+            + "and returns its text" }
 
     /// The one reasoning node, offered alongside the tools.
     ///
@@ -499,25 +504,39 @@ module GraphEditorBridge =
             | [ only ] -> Resolved only
             | many -> Ambiguous(many |> List.map (fun t -> t.Name) |> List.sort)
 
-    /// The type each property is declared as, or `None` when the schema says nothing.
+    /// What a schema declares: every property name, and the subset that names a type.
     ///
-    /// `None` means "no type information here", so nothing is checked against it. An
-    /// unreadable schema must not turn every argument into an error.
-    let private declaredTypes (schema: string) =
+    /// `None` means "this schema says nothing about properties", so nothing is checked
+    /// against it — an unreadable schema must not turn every argument into an error.
+    ///
+    /// A schema that declares *no* properties is emphatically not that case. It says,
+    /// positively, that the tool takes nothing, so it returns an empty set and
+    /// `unknown_argument` refuses everything. Folding the two together switched both
+    /// argument checks off for exactly the tools that accept nothing — and
+    /// `ToolHelpers.parseStringArg` falls back to any single property it is handed
+    /// whatever that property is called, so a no-argument `observes` tool would have run
+    /// with a caller-chosen argument, unapproved, on a graph the validator called valid.
+    ///
+    /// Names and types are kept separate because a property may be declared without one:
+    /// `{"x": {}}` declares `x`, so `x` is not unknown, and there is nothing to check its
+    /// type against. Deriving the names from the type map would have refused it.
+    let private declaredProperties (schema: string) =
         try
             use doc = JsonDocument.Parse schema
 
             match doc.RootElement.TryGetProperty "properties" with
             | true, properties when properties.ValueKind = JsonValueKind.Object ->
-                let byName =
-                    properties.EnumerateObject()
-                    |> Seq.choose (fun p ->
+                let all = properties.EnumerateObject() |> Seq.toList
+
+                let types =
+                    all
+                    |> List.choose (fun p ->
                         match p.Value.TryGetProperty "type" with
                         | true, t when t.ValueKind = JsonValueKind.String -> Some(p.Name, t.GetString())
                         | _ -> None)
-                    |> Map.ofSeq
+                    |> Map.ofList
 
-                if byName.IsEmpty then None else Some byName
+                Some(all |> List.map (fun p -> p.Name) |> Set.ofList, types)
             | _ -> None
         with _ ->
             None
@@ -685,23 +704,24 @@ module GraphEditorBridge =
                             // reach the tool, which then failed with whatever error it
                             // makes of a number. Catching it here is the whole point of
                             // having the schema.
-                            match declaredTypes descriptor.InputSchema with
-                            | None -> () // the schema declares no types; nothing to check against
-                            | Some declared ->
+                            match declaredProperties descriptor.InputSchema with
+                            | None -> () // the schema says nothing about properties; nothing to check
+                            | Some(declaredNames, declaredTypes) ->
                                 for KeyValue(name, value) in arguments do
-                                    match declared.TryFind name with
-                                    | None ->
+                                    if not (declaredNames.Contains name) then
                                         // The schemas say `additionalProperties: false`.
                                         error
                                             "unknown_argument"
                                             (Some node.Id)
                                             $"'{toolName}' takes no argument called '{name}'"
-                                    | Some expected when not (matchesDeclaredType expected value) ->
-                                        error
-                                            "wrong_argument_type"
-                                            (Some node.Id)
-                                            $"'{toolName}' expects '{name}' to be {expected}, not {value.ValueKind}"
-                                    | Some _ -> ()
+                                    else
+                                        match declaredTypes.TryFind name with
+                                        | Some expected when not (matchesDeclaredType expected value) ->
+                                            error
+                                                "wrong_argument_type"
+                                                (Some node.Id)
+                                                $"'{toolName}' expects '{name}' to be {expected}, not {value.ValueKind}"
+                                        | _ -> ()
 
                             if not descriptor.Approval.AutoApproved then
                                 needsApproval <-
@@ -859,6 +879,14 @@ module GraphEditorBridge =
     /// The registry is needed for the name, not for the tools: a graph may spell a tool
     /// in any case, and the plan has to carry the registry's own spelling because the
     /// executor looks it up in that same case-sensitive registry.
+    /// `Extra = Map.empty` on every node, below, is load-bearing rather than tidy.
+    ///
+    /// It is the only thing between a caller and the executor's two hidden controls:
+    /// `WoTExecutor.groupIntoSegments` reads `parallel_group` out of `Extra` and runs
+    /// those nodes under `Async.Parallel`, and `evaluateCondition` reads `condition` and
+    /// skips the node outright. Either would let a graph run in an order the validator
+    /// never computed, or not run at all while reporting success. The caller's own `tags`
+    /// go to `Metadata.Tags`, which the executor never reads.
     let toWoTPlan (registry: IToolRegistry) (spec: PlanSpec) (executionOrder: string list) : WoTPlan =
         let node (n: NodeSpec) : WoTNode =
             match n.Kind with

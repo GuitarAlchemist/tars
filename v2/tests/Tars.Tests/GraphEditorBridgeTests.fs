@@ -1103,6 +1103,95 @@ module GraphEditorBridgeTests =
 
         Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
 
+        // Valid is only half of it: the point of the test is the warning, and asserting
+        // validity alone would pass just as well with the warning deleted.
+        let warning = Assert.Single(verdict.Warnings)
+        Assert.Contains("orphan", warning)
+        Assert.DoesNotContain("start", warning)
+        Assert.DoesNotContain("next", warning)
+
+    [<Fact>]
+    let ``a tool that declares no arguments accepts none`` () =
+        // The dangerous shape, and the reason both argument checks now treat "declares an
+        // empty set of properties" as information rather than as silence. A descriptor
+        // built with no properties says the tool takes nothing; reading that as "no schema
+        // here" switched off `unknown_argument` and `wrong_argument_type` for exactly those
+        // tools. `ToolHelpers.parseStringArg` then falls back to whatever single property
+        // it is handed, whatever the property is called — so this tool, being
+        // `observes`, would have run with a caller-chosen argument and no approval asked.
+        withDescriptors
+            [ { Name = "codebase_stats"
+                InputSchema = ToolMetadata.objectSchema [] []
+                Required = []
+                Approval = ToolMetadata.Approval.observes "counts things in the working directory" } ]
+
+        let registry = registryOf [ "codebase_stats", "stats" ]
+
+        let verdict =
+            GraphEditorBridge.validate registry (spec [ toolNode "a" "codebase_stats" [ "path", "/etc" ] ] [])
+
+        Assert.False(verdict.Valid)
+        let failure = Assert.Single(verdict.Errors)
+        Assert.Equal("unknown_argument", failure.Code)
+        Assert.Equal(Some "a", failure.Step)
+
+        // And with nothing passed it is still auto-approved, so the refusal above is about
+        // the argument and not about the tool.
+        let clean = GraphEditorBridge.validate registry (spec [ toolNode "a" "codebase_stats" [] ] [])
+        Assert.True(clean.Valid, clean.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+        Assert.Empty(clean.NeedsApproval)
+
+    [<Fact>]
+    let ``a field that is present with the wrong type says so, it is not reported as absent`` () =
+        // Four fields used to be read leniently, on the argument that absent and
+        // present-but-wrong end in the same refusal anyway. True of the refusal, false of
+        // the message — and the message is all the caller gets. An editor whose node
+        // ids are integers was told the node had no id at all.
+        Assert.Contains("'id' is present but is not a string (it is Number)", refusal """{"nodes":[{"id":7,"kind":"reason","prompt":"p"}]}""")
+
+        Assert.Contains(
+            "'kind' is present but is not a string (it is True)",
+            refusal """{"nodes":[{"id":"a","kind":true,"prompt":"p"}]}"""
+        )
+
+        Assert.Contains(
+            "'from' is present but is not a string (it is Number)",
+            refusal """{"nodes":[{"id":"a","kind":"reason","prompt":"p"}],"edges":[{"from":3,"to":"a"}]}"""
+        )
+
+        Assert.Contains(
+            "'to' is present but is not a string (it is Object)",
+            refusal """{"nodes":[{"id":"a","kind":"reason","prompt":"p"}],"edges":[{"from":"a","to":{}}]}"""
+        )
+
+        // Genuinely absent still reads as absent, and says that instead.
+        Assert.Contains("a node has no 'id'", refusal """{"nodes":[{"kind":"reason","prompt":"p"}]}""")
+        Assert.Contains("a node has no 'kind'", refusal """{"nodes":[{"id":"a","prompt":"p"}]}""")
+
+        Assert.Contains(
+            "an edge has no 'from'",
+            refusal """{"nodes":[{"id":"a","kind":"reason","prompt":"p"}],"edges":[{"to":"a"}]}"""
+        )
+
+    [<Fact>]
+    let ``tags cannot reach the two node settings the executor acts on`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        let graph =
+            spec [ { reasonNode "a" "think" with Tags = Some [ "parallel_group"; "condition" ] } ] []
+
+        let plan = GraphEditorBridge.toWoTPlan registry graph [ "a" ]
+        let node = plan.Nodes |> List.exactlyOne
+
+        // `WoTExecutor` reads `parallel_group` out of `Metadata.Extra` to run nodes under
+        // `Async.Parallel`, and `condition` to skip a node outright. Either would make the
+        // graph run in an order validation never computed, or not run while reporting
+        // success. It never reads `Metadata.Tags`, so the caller's tags are inert — but
+        // only because `toWoTPlan` writes `Extra = Map.empty`, which nothing else forces.
+        Assert.True(node.Metadata.Extra.IsEmpty)
+        Assert.Equal<string>([ "parallel_group"; "condition" ], node.Metadata.Tags)
+
     // =========================================================================
     // The schema is a promise the validator has to keep
     // =========================================================================

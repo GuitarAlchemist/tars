@@ -134,8 +134,9 @@ module ToolMetadataTests =
 
     [<Fact>]
     let ``a quote in a description does not break the schema`` () =
-        // The schema is built by string concatenation, so anything a describer writes
-        // has to survive being put inside JSON.
+        // `objectSchema` writes through `Utf8JsonWriter`, which escapes for us. It used
+        // to concatenate strings, which is what these three tests were written to catch;
+        // they stay because the property is the contract, not the implementation.
         let schema =
             objectSchema [ "path", "string", """A "quoted" word and a \backslash.""" ] [ "path" ]
 
