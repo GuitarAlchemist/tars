@@ -588,10 +588,130 @@ module GraphEditorBridge =
 
         walk incoming []
 
-    /// Check a graph, and say what would happen if it ran.
-    let validate (registry: IToolRegistry) (spec: PlanSpec) : ValidateResponse =
+    // =========================================================================
+    // Validation, in three named pieces
+    //
+    // These were one two-hundred-line function with three mutable accumulators, and
+    // the approval decision - the one line anyone reviewing this file has to find -
+    // sat ninety lines into a loop inside a five-level match. Nothing below changed
+    // except where it lives.
+    // =========================================================================
+
+    /// What one reason node needs, and what it costs.
+    let private checkReasonNode (node: NodeSpec) : ValidationError list * ApprovalNotice list =
+        let errors =
+            if node.Prompt |> Option.forall String.IsNullOrWhiteSpace then
+                [ { Code = "missing_prompt"
+                    Step = Some node.Id
+                    Message = "a reason node needs a prompt" } ]
+            else
+                []
+
+        // A reasoning node reaches nothing and still spends money every run, which is
+        // exactly what the gate is for.
+        let approvals =
+            [ { NodeId = node.Id
+                Tool = "reason"
+                Tier = reasonApproval.Tier.Wire
+                Effect = reasonApproval.Effect } ]
+
+        errors, approvals
+
+    /// What one tool node needs, and whether it may run without being asked.
+    ///
+    /// **This is the gate.** Everything the editor is allowed to do without a person
+    /// saying yes is decided by the last five lines of this function.
+    let private checkToolNode (registry: IToolRegistry) (node: NodeSpec) : ValidationError list * ApprovalNotice list =
         let mutable errors: ValidationError list = []
-        let mutable warnings: string list = []
+        let mutable approvals: ApprovalNotice list = []
+
+        let error code message =
+            errors <-
+                { Code = code
+                  Step = Some node.Id
+                  Message = message }
+                :: errors
+
+        match node.Tool with
+        | None
+        | Some "" -> error "missing_tool" "a tool node needs a tool name"
+        | Some givenName ->
+            match resolveTool registry givenName with
+            | NotFound -> error "unknown_tool" $"no tool named '{givenName}' is registered"
+            | Ambiguous names ->
+                error
+                    "ambiguous_tool"
+                    ($"'{givenName}' matches more than one registered tool, differing only by case: "
+                     + String.concat ", " names
+                     + ". Name one of them exactly.")
+            | Resolved tool ->
+                // The registry's spelling from here on, so a casing variant in the
+                // graph is reported and approved under the real name.
+                let toolName = tool.Name
+
+                // The descriptor has to belong to *this* tool, not to one whose name
+                // matches case-insensitively. `ToolMetadata` is keyed loosely, so a
+                // registry holding both the described `read_file` and a custom,
+                // mutating `READ_FILE` would otherwise hand the second one the first
+                // one's schema and its `auto_approved: true` - a tool that writes,
+                // running unasked, advertised as read-only.
+                match ToolMetadata.tryFind toolName with
+                | Some descriptor when descriptor.Name <> toolName ->
+                    error
+                        "undescribed_tool"
+                        ($"'{toolName}' has no description of its own; '{descriptor.Name}' differs from it "
+                         + "only by case and describes a different tool")
+                | None ->
+                    // Fail closed: an undescribed tool is refused here, while remaining
+                    // perfectly usable everywhere else in TARS.
+                    error
+                        "undescribed_tool"
+                        $"'{toolName}' has no description, so what it expects and what it does are unknown"
+                | Some descriptor ->
+                    let arguments = node.Arguments |> Option.defaultValue Map.empty
+
+                    for required in descriptor.Required do
+                        if not (arguments.ContainsKey required) then
+                            error "missing_argument" $"'{toolName}' requires '{required}'"
+
+                    // Names alone are not enough: a schema that says `path` is a string
+                    // and a node that sends `42` used to validate and reach the tool,
+                    // which then failed with whatever error it makes of a number.
+                    // Catching it here is the whole point of having the schema.
+                    match declaredProperties descriptor.InputSchema with
+                    | None -> () // the schema says nothing about properties; nothing to check
+                    | Some(declaredNames, declaredTypes) ->
+                        for KeyValue(name, value) in arguments do
+                            if not (declaredNames.Contains name) then
+                                // The schemas say `additionalProperties: false`.
+                                error "unknown_argument" $"'{toolName}' takes no argument called '{name}'"
+                            else
+                                match declaredTypes.TryFind name with
+                                | Some expected when not (matchesDeclaredType expected value) ->
+                                    error
+                                        "wrong_argument_type"
+                                        $"'{toolName}' expects '{name}' to be {expected}, not {value.ValueKind}"
+                                | _ -> ()
+
+                    if not descriptor.Approval.AutoApproved then
+                        approvals <-
+                            [ { NodeId = node.Id
+                                Tool = toolName
+                                Tier = descriptor.Approval.Tier.Wire
+                                Effect = descriptor.Approval.Effect } ]
+
+        List.rev errors, approvals
+
+    let private checkNode (registry: IToolRegistry) (node: NodeSpec) =
+        match node.Kind with
+        | "reason" -> checkReasonNode node
+        | "tool" -> checkToolNode registry node
+        | _ -> [], [] // already reported as unsupported
+
+    /// The graph as a whole: how its nodes are joined, where it starts, and whether an
+    /// order exists at all. Returns that order, empty when a cycle means there is none.
+    let private checkShape (spec: PlanSpec) : ValidationError list * string list =
+        let mutable errors: ValidationError list = []
 
         let error code step message =
             errors <-
@@ -599,147 +719,6 @@ module GraphEditorBridge =
                   Step = step
                   Message = message }
                 :: errors
-
-        // `goal` and `id` are the two fields a graph can get wrong without hearing
-        // about it. Neither stops the graph running, so neither is an error; saying
-        // nothing at all is what makes them worth a line here.
-        if String.IsNullOrWhiteSpace spec.Goal then
-            // Both MCP tool descriptions present `goal` as part of the input, and it
-            // ends up in `WoTPlan.Metadata.SourceGoal`, which is how a run is found
-            // again afterwards. An empty one costs nothing now and everything later.
-            warnings <- "no 'goal' was given, so this run will be unlabelled in the trace" :: warnings
-
-        match spec.Id with
-        | Some id when not (fst (Guid.TryParse id)) ->
-            // `WoTPlan.Id` is a GUID, so `toWoTPlan` mints a fresh one for anything
-            // else. It is the only field in the format that does not come back out the
-            // way it went in, and an editor that keys its own state on the id it sent
-            // would silently lose track of the run.
-            warnings <-
-                $"'id' is not a GUID ('{id}'), so the run will be given a fresh one and this value will not come back"
-                :: warnings
-        | _ -> ()
-
-        // Ids must be unique, or an edge cannot say which node it means.
-        let duplicates =
-            spec.Nodes
-            |> List.countBy (fun n -> n.Id)
-            |> List.filter (fun (_, count) -> count > 1)
-            |> List.map fst
-
-        for duplicate in duplicates do
-            error "duplicate_node_id" (Some duplicate) $"more than one node has the id '{duplicate}'"
-
-        let unsupported =
-            spec.Nodes
-            |> List.filter (fun n -> n.Kind <> "reason" && n.Kind <> "tool")
-            |> List.map (fun n ->
-                { Id = n.Id
-                  Kind = n.Kind
-                  Reason =
-                    $"'{n.Kind}' nodes are not editable yet. They are shown so a plan is never "
-                    + "silently changed, but this graph cannot be saved or run while one is present." })
-
-        for node in unsupported do
-            error "unsupported_node" (Some node.Id) node.Reason
-
-        let mutable needsApproval: ApprovalNotice list = []
-
-        for node in spec.Nodes do
-            match node.Kind with
-            | "reason" ->
-                if node.Prompt |> Option.forall String.IsNullOrWhiteSpace then
-                    error "missing_prompt" (Some node.Id) "a reason node needs a prompt"
-
-                // A reasoning node reaches nothing and still spends money every run,
-                // which is exactly what the gate is for.
-                needsApproval <-
-                    { NodeId = node.Id
-                      Tool = "reason"
-                      Tier = reasonApproval.Tier.Wire
-                      Effect = reasonApproval.Effect }
-                    :: needsApproval
-
-            | "tool" ->
-                match node.Tool with
-                | None
-                | Some "" -> error "missing_tool" (Some node.Id) "a tool node needs a tool name"
-                | Some givenName ->
-                    match resolveTool registry givenName with
-                    | NotFound -> error "unknown_tool" (Some node.Id) $"no tool named '{givenName}' is registered"
-                    | Ambiguous names ->
-                        error
-                            "ambiguous_tool"
-                            (Some node.Id)
-                            ($"'{givenName}' matches more than one registered tool, differing only by case: "
-                             + String.concat ", " names
-                             + ". Name one of them exactly.")
-                    | Resolved tool ->
-                        // The registry's spelling from here on, so a casing variant in
-                        // the graph is reported and approved under the real name.
-                        let toolName = tool.Name
-
-                        // The descriptor has to belong to *this* tool, not to one whose
-                        // name matches case-insensitively. `ToolMetadata` is keyed
-                        // loosely, so a registry holding both the described `read_file`
-                        // and a custom, mutating `READ_FILE` would otherwise hand the
-                        // second one the first one's schema and its `auto_approved:
-                        // true` — a tool that writes, running unasked, advertised as
-                        // read-only.
-                        match ToolMetadata.tryFind toolName with
-                        | Some descriptor when descriptor.Name <> toolName ->
-                            error
-                                "undescribed_tool"
-                                (Some node.Id)
-                                ($"'{toolName}' has no description of its own; '{descriptor.Name}' differs from it "
-                                 + "only by case and describes a different tool")
-                        | None ->
-                            // Fail closed: an undescribed tool is refused here, while
-                            // remaining perfectly usable everywhere else in TARS.
-                            error
-                                "undescribed_tool"
-                                (Some node.Id)
-                                $"'{toolName}' has no description, so what it expects and what it does are unknown"
-                        | Some descriptor ->
-                            let arguments = node.Arguments |> Option.defaultValue Map.empty
-
-                            for required in descriptor.Required do
-                                if not (arguments.ContainsKey required) then
-                                    error "missing_argument" (Some node.Id) $"'{toolName}' requires '{required}'"
-
-                            // Names alone are not enough: a schema that says `path` is a
-                            // string and a node that sends `42` used to validate and
-                            // reach the tool, which then failed with whatever error it
-                            // makes of a number. Catching it here is the whole point of
-                            // having the schema.
-                            match declaredProperties descriptor.InputSchema with
-                            | None -> () // the schema says nothing about properties; nothing to check
-                            | Some(declaredNames, declaredTypes) ->
-                                for KeyValue(name, value) in arguments do
-                                    if not (declaredNames.Contains name) then
-                                        // The schemas say `additionalProperties: false`.
-                                        error
-                                            "unknown_argument"
-                                            (Some node.Id)
-                                            $"'{toolName}' takes no argument called '{name}'"
-                                    else
-                                        match declaredTypes.TryFind name with
-                                        | Some expected when not (matchesDeclaredType expected value) ->
-                                            error
-                                                "wrong_argument_type"
-                                                (Some node.Id)
-                                                $"'{toolName}' expects '{name}' to be {expected}, not {value.ValueKind}"
-                                        | _ -> ()
-
-                            if not descriptor.Approval.AutoApproved then
-                                needsApproval <-
-                                    { NodeId = node.Id
-                                      Tool = toolName
-                                      Tier = descriptor.Approval.Tier.Wire
-                                      Effect = descriptor.Approval.Effect }
-                                    :: needsApproval
-
-            | _ -> () // already reported as unsupported
 
         // Edges must join nodes that exist.
         let ids = spec.Nodes |> List.map (fun n -> n.Id) |> Set.ofList
@@ -776,6 +755,32 @@ module GraphEditorBridge =
                      + String.concat ", " cycle)
 
                 []
+
+        List.rev errors, order
+
+    /// Everything true of the graph that does not stop it running.
+    let private warningsFor (spec: PlanSpec) (order: string list) : string list =
+        let mutable warnings: string list = []
+
+        // `goal` and `id` are the two fields a graph can get wrong without hearing
+        // about it. Neither stops the graph running, so neither is an error; saying
+        // nothing at all is what makes them worth a line here.
+        if String.IsNullOrWhiteSpace spec.Goal then
+            // Both MCP tool descriptions present `goal` as part of the input, and it
+            // ends up in `WoTPlan.Metadata.SourceGoal`, which is how a run is found
+            // again afterwards. An empty one costs nothing now and everything later.
+            warnings <- "no 'goal' was given, so this run will be unlabelled in the trace" :: warnings
+
+        match spec.Id with
+        | Some id when not (fst (Guid.TryParse id)) ->
+            // `WoTPlan.Id` is a GUID, so `toWoTPlan` mints a fresh one for anything
+            // else. It is the only field in the format that does not come back out the
+            // way it went in, and an editor that keys its own state on the id it sent
+            // would silently lose track of the run.
+            warnings <-
+                $"'id' is not a GUID ('{id}'), so the run will be given a fresh one and this value will not come back"
+                :: warnings
+        | _ -> ()
 
         if spec.EntryNode.IsNone && not spec.Nodes.IsEmpty then
             warnings <-
@@ -821,12 +826,58 @@ module GraphEditorBridge =
                     :: warnings
         | _ -> ()
 
+        List.rev warnings
+
+    /// Check a graph, and say what would happen if it ran.
+    let validate (registry: IToolRegistry) (spec: PlanSpec) : ValidateResponse =
+        // Ids must be unique, or an edge cannot say which node it means.
+        let duplicateIds =
+            spec.Nodes
+            |> List.countBy (fun n -> n.Id)
+            |> List.filter (fun (_, count) -> count > 1)
+            |> List.map fst
+
+        let duplicateErrors =
+            duplicateIds
+            |> List.map (fun duplicate ->
+                { Code = "duplicate_node_id"
+                  Step = Some duplicate
+                  Message = $"more than one node has the id '{duplicate}'" })
+
+        let unsupported =
+            spec.Nodes
+            |> List.filter (fun n -> n.Kind <> "reason" && n.Kind <> "tool")
+            |> List.map (fun n ->
+                { Id = n.Id
+                  Kind = n.Kind
+                  Reason =
+                    $"'{n.Kind}' nodes are not editable yet. They are shown so a plan is never "
+                    + "silently changed, but this graph cannot be saved or run while one is present." })
+
+        let unsupportedErrors =
+            unsupported
+            |> List.map (fun node ->
+                { Code = "unsupported_node"
+                  Step = Some node.Id
+                  Message = node.Reason })
+
+        let perNode = spec.Nodes |> List.map (checkNode registry)
+        let shapeErrors, order = checkShape spec
+
+        // Concatenated in the order the single function used to append them, because
+        // the first error is the one a caller reads.
+        let errors =
+            duplicateErrors
+            @ unsupportedErrors
+            @ (perNode |> List.collect fst)
+            @ shapeErrors
+
         { Valid = errors.IsEmpty
-          Errors = List.rev errors
-          Warnings = List.rev warnings
+          Errors = errors
+          Warnings = warningsFor spec order
           ExecutionOrder = (if errors.IsEmpty then order else [])
           Unsupported = unsupported
-          NeedsApproval = List.rev needsApproval }
+          NeedsApproval = perNode |> List.collect snd }
 
     let validateJson (registry: IToolRegistry) (json: string) =
         match parsePlanSpec json with

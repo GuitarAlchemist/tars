@@ -1254,6 +1254,32 @@ module GraphEditorBridgeTests =
         )
 
     [<Fact>]
+    let ``errors keep their order across the four places they come from`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        // The four categories, in one graph, each with something wrong: a duplicate id,
+        // an unsupported kind, a bad node, and a dangling edge. `validate` used to
+        // append all four to one mutable list in this order; it now concatenates four
+        // lists, and nothing but this test says the order survived. The first error is
+        // the one a caller reads, so the order is part of the contract.
+        let graph =
+            { spec
+                  [ reasonNode "dup" "a"
+                    reasonNode "dup" "b"
+                    { reasonNode "odd" "c" with Kind = "decide" }
+                    { reasonNode "empty" "" with Prompt = None } ]
+                  [ edge "empty" "nowhere" ] with
+                EntryNode = None }
+
+        let codes = (GraphEditorBridge.validate registry graph).Errors |> List.map (fun e -> e.Code)
+
+        Assert.Equal<string>(
+            [ "duplicate_node_id"; "unsupported_node"; "missing_prompt"; "unknown_edge_endpoint" ],
+            codes
+        )
+
+    [<Fact>]
     let ``tags cannot reach the two node settings the executor acts on`` () =
         withDescriptors []
         let registry = registryOf []
