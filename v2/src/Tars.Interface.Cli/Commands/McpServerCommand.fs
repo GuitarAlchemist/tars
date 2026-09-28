@@ -211,6 +211,22 @@ module McpServerCommand =
                 // scope here, so `Tars.Tools.ToolDescriptors` does not compile.
                 ToolDescriptors.registerBuiltIn ()
 
+                // Built once, on first use. Construction reaches the LLM configuration,
+                // and a server whose only graph traffic is `tars_node_catalog` and
+                // `tars_plan_validate` — neither of which calls a model — should not pay
+                // for it or fail to start without it.
+                let graphExecutor =
+                    lazy
+                        // `global.` below because `Tars` on its own resolves to a
+                        // `TargetRepo` case that is in scope here.
+                        (let llm = LlmFactory.create logger
+
+                         let executor =
+                             global.Tars.Cortex.WoTExecutor.DefaultWoTExecutor(llm, toolRegistry) :> IWoTExecutor
+
+                         let context = AgentHelpers.createAgentContext ignore llm None
+                         fun (plan: WoTPlan) -> executor.Execute(plan, context))
+
                 let graphEditorTools : Tool list = [
                     { Name = "tars_node_catalog"
                       Description = "List what can go in a WoT graph: every described tool plus the reasoning node, each with its JSON Schema and what running it does. Takes no arguments. Returns {\"nodes\": [...], \"described_tools\": N, \"total_tools\": M} — the two counts say how much of the registry is described."
@@ -218,6 +234,26 @@ module McpServerCommand =
                       ParentVersion = None
                       CreatedAt = DateTime.UtcNow
                       Execute = fun _ -> async { return Result.Ok(GraphEditorBridge.catalogJson toolRegistry) } }
+                    { Name = "tars_plan_validate"
+                      Description = "Check a WoT graph before running it. Input: {\"goal\": \"...\", \"nodes\": [...], \"edges\": [...], \"entry_node\": \"...\"}. Returns {\"valid\": bool, \"errors\": [...], \"execution_order\": [...], \"unsupported\": [...], \"needs_approval\": [...]} — `needs_approval` is what a person has to say yes to before tars_plan_run will do anything. Changes nothing."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute = fun input -> async { return Result.Ok(GraphEditorBridge.validateJson toolRegistry input) } }
+                    { Name = "tars_plan_run"
+                      Description = "Run a WoT graph. Same input as tars_plan_validate, plus {\"approve\": [\"node_id\", ...]} naming the nodes the caller allows. A node that is not auto-approved and is not named there stops the whole run before anything happens. Returns {\"success\": bool, \"output\": \"...\", \"errors\": [...], \"warnings\": [...], \"steps_run\": N, \"tools_used\": [...]}. Two limits worth knowing: a graph carrying a `policy` is refused, because nothing enforces one (tars#334); and the run does not stop at the first failure, so a node after a failed one still runs — `warnings` names them when it happens (tars#335)."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute =
+                        fun input ->
+                            async {
+                                // The thunk, not `.Value`: forcing it here would build the
+                                // executor before the graph is even parsed.
+                                let! answer =
+                                    GraphEditorBridge.runJson (fun () -> graphExecutor.Value) toolRegistry input
+                                return Result.Ok answer
+                            } }
                 ]
 
                 for tool in graphEditorTools do

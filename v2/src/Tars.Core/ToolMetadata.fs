@@ -51,37 +51,29 @@ module ToolMetadata =
             /// One plain sentence naming the effect, for a human deciding whether to
             /// allow it: "writes files under the working directory", not "file I/O".
             Effect: string
-            /// May a graph run this without asking first?
-            ///
-            /// Separate from the tier because the two answer different questions: the
-            /// tier is how far the effects reach, this is whether a person should be
-            /// asked. A tool can reach nothing and still be slow or irreversible
-            /// enough to confirm, and anything above ReadOnly needs confirming anyway.
-            ///
-            /// An LLM call is not the example here: a model call sends the prompt to a
-            /// remote service, so it is `Escapes`, not a ReadOnly tool that happens to
-            /// cost money. Getting that backwards is what made the reasoning node's
-            /// tier wrong in the first place.
-            AutoApproved: bool
         }
 
+        /// May a graph run this without asking first?
+        ///
+        /// Derived from the tier, not stored beside it. An earlier version carried this
+        /// as a field, arguing that "how far do the effects reach" and "should a person
+        /// be asked" are different questions. They are — but no tool answers them
+        /// differently, and the gate reads only this one. Two fields for one fact means
+        /// the gate can be told `true` by a descriptor whose tier says `Escapes`, and the
+        /// field it reads is the weaker of the two.
+        ///
+        /// If a tool ever needs to be observed-only and still confirmed, give it a tier
+        /// that says so. Do not put back a field the gate can disagree with.
+        member this.AutoApproved = (this.Tier = ReadOnly)
+
         /// Observes, costs nothing, reaches nothing: safe to run unasked.
-        static member observes(effect: string) =
-            { Tier = ReadOnly
-              Effect = effect
-              AutoApproved = true }
+        static member observes(effect: string) = { Tier = ReadOnly; Effect = effect }
 
         /// Changes something this machine owns.
-        static member mutates(effect: string) =
-            { Tier = Mutates
-              Effect = effect
-              AutoApproved = false }
+        static member mutates(effect: string) = { Tier = Mutates; Effect = effect }
 
         /// Leaves the machine or spends money.
-        static member escapes(effect: string) =
-            { Tier = Escapes
-              Effect = effect
-              AutoApproved = false }
+        static member escapes(effect: string) = { Tier = Escapes; Effect = effect }
 
     /// Everything the editor needs about one tool, beyond its name and description.
     type ToolDescriptor =
@@ -107,8 +99,14 @@ module ToolMetadata =
         ConcurrentDictionary<string, ToolDescriptor>(StringComparer.OrdinalIgnoreCase)
 
     /// Describe a tool, replacing any previous description of the same name.
+    ///
+    /// The name is trimmed going in because `tryFind` trims coming out. Without this, a
+    /// descriptor stored under `" read_file"` is unfindable, and the editor reports the
+    /// tool as *undescribed* rather than as misnamed — the one failure mode this sidecar
+    /// exists to stop happening quietly.
     let describe (descriptor: ToolDescriptor) =
-        descriptors.[descriptor.Name] <- descriptor
+        let name = if isNull descriptor.Name then "" else descriptor.Name.Trim()
+        descriptors.[name] <- { descriptor with Name = name }
 
     /// Describe several at once.
     let describeAll (all: ToolDescriptor seq) = all |> Seq.iter describe
