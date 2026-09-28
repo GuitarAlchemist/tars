@@ -1174,6 +1174,86 @@ module GraphEditorBridgeTests =
         )
 
     [<Fact>]
+    let ``a graph with no goal is told so, and still runs`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        let verdict =
+            GraphEditorBridge.validate registry { spec [ reasonNode "a" "think" ] [] with Goal = ""; EntryNode = Some "a" }
+
+        // Not an error: nothing about the run depends on it. But both MCP tool
+        // descriptions present `goal` as part of the input and it is what labels the
+        // run in the trace, so accepting it in total silence is how a caller finds out
+        // months later that nothing is findable.
+        Assert.True(verdict.Valid)
+        let warning = Assert.Single(verdict.Warnings)
+        Assert.Contains("goal", warning)
+
+    [<Fact>]
+    let ``an id that is not a GUID is told it will not come back`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        let verdict =
+            GraphEditorBridge.validate registry { spec [ reasonNode "a" "think" ] [] with Id = Some "my-plan-7"; EntryNode = Some "a" }
+
+        Assert.True(verdict.Valid)
+        let warning = Assert.Single(verdict.Warnings)
+        Assert.Contains("my-plan-7", warning)
+
+        // And the warning is true: the plan really does get a different id. This is the
+        // only field in the format that does not round-trip, which is precisely why
+        // saying nothing was the wrong answer.
+        let plan = GraphEditorBridge.toWoTPlan registry { spec [ reasonNode "a" "think" ] [] with Id = Some "my-plan-7"; EntryNode = Some "a" } [ "a" ]
+        Assert.NotEqual<string>("my-plan-7", string plan.Id)
+
+    [<Fact>]
+    let ``a GUID id is kept, and says nothing`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        let id = "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
+        let graph = { spec [ reasonNode "a" "think" ] [] with Id = Some id; EntryNode = Some "a" }
+
+        Assert.Empty((GraphEditorBridge.validate registry graph).Warnings)
+        Assert.Equal<string>(id, string (GraphEditorBridge.toWoTPlan registry graph [ "a" ]).Id)
+
+    [<Fact>]
+    let ``the first malformed field decides the message, in the order they are read`` () =
+        // The reader used to evaluate `nodes` and `edges` twice: once to build this
+        // message and once to use the value. Collapsing that to a single read is only
+        // safe if the order survives, and nothing pinned the order. This does.
+        Assert.Contains(
+            "'nodes' is present but is not a list",
+            refusal """{"nodes":"a","edges":"b","policy":3,"id":4,"goal":5,"entry_node":6}"""
+        )
+
+        Assert.Contains(
+            "'edges' is present but is not a list",
+            refusal """{"nodes":[],"edges":"b","policy":3,"id":4,"goal":5,"entry_node":6}"""
+        )
+
+        Assert.Contains(
+            "'policy' is present but is not a list",
+            refusal """{"nodes":[],"edges":[],"policy":3,"id":4,"goal":5,"entry_node":6}"""
+        )
+
+        Assert.Contains(
+            "'id' is present but is not a string",
+            refusal """{"nodes":[],"edges":[],"id":4,"goal":5,"entry_node":6}"""
+        )
+
+        Assert.Contains(
+            "'goal' is present but is not a string",
+            refusal """{"nodes":[],"edges":[],"goal":5,"entry_node":6}"""
+        )
+
+        Assert.Contains(
+            "'entry_node' is present but is not a string",
+            refusal """{"nodes":[],"edges":[],"entry_node":6}"""
+        )
+
+    [<Fact>]
     let ``tags cannot reach the two node settings the executor acts on`` () =
         withDescriptors []
         let registry = registryOf []

@@ -326,32 +326,27 @@ module GraphEditorBridge =
             // do, so reading a malformed one as "no restrictions" fails in the
             // direction that lets more happen; `entry_node` read as absent changes
             // what runs first. Silence is the failure mode worth spending code on.
+            // Read once each, then matched together. The or-patterns below report the
+            // first field that is wrong in this order, which is the order they are read
+            // in; an earlier version checked the same fields twice to build the message
+            // and then needed a local `orNone` to unwrap values it had already proved
+            // good, with a comment explaining that its error branch could not be reached.
+            // A branch that cannot happen is a branch nobody can test.
+            let nodesField = requireArrayOrMissing "nodes" root
+            let edgesField = requireArrayOrMissing "edges" root
             let policyField = requireStringsOrMissing "policy" root
             let idField = requireStringOrMissing "id" root
             let goalField = requireStringOrMissing "goal" root
             let entryField = requireStringOrMissing "entry_node" root
 
-            let malformedField =
-                [ "nodes"; "edges" ]
-                |> List.tryPick (fun name ->
-                    match requireArrayOrMissing name root with
-                    | Result.Error message -> Some message
-                    | Result.Ok _ -> None)
-                |> Option.orElse (
-                    [ policyField |> Result.map ignore
-                      idField |> Result.map ignore
-                      goalField |> Result.map ignore
-                      entryField |> Result.map ignore ]
-                    |> List.tryPick (function
-                        | Result.Error message -> Some message
-                        | Result.Ok _ -> None)
-                )
-
-            match malformedField, requireArrayOrMissing "nodes" root, requireArrayOrMissing "edges" root with
-            | Some message, _, _ -> Result.Error message
-            | _, Result.Error message, _
-            | _, _, Result.Error message -> Result.Error message
-            | None, Result.Ok rawNodes, Result.Ok rawEdges ->
+            match nodesField, edgesField, policyField, idField, goalField, entryField with
+            | Result.Error message, _, _, _, _, _
+            | _, Result.Error message, _, _, _, _
+            | _, _, Result.Error message, _, _, _
+            | _, _, _, Result.Error message, _, _
+            | _, _, _, _, Result.Error message, _
+            | _, _, _, _, _, Result.Error message -> Result.Error message
+            | Result.Ok rawNodes, Result.Ok rawEdges, Result.Ok policy, Result.Ok id, Result.Ok goal, Result.Ok entry ->
 
                 let nodes = rawNodes |> List.map parseNode
 
@@ -372,17 +367,10 @@ module GraphEditorBridge =
                 match firstError with
                 | Some e -> Result.Error e
                 | None ->
-                    // `malformedField` has already turned any of these being wrong into an
-                    // error, so this branch only ever sees good ones.
-                    let orNone =
-                        function
-                        | Result.Ok value -> value
-                        | Result.Error _ -> None
-
                     Result.Ok
-                        { Id = orNone idField
-                          Goal = orNone goalField |> Option.defaultValue ""
-                          EntryNode = orNone entryField
+                        { Id = id
+                          Goal = goal |> Option.defaultValue ""
+                          EntryNode = entry
                           Nodes =
                             nodes
                             |> List.choose (function
@@ -393,7 +381,7 @@ module GraphEditorBridge =
                             |> List.choose (function
                                 | Result.Ok e -> Some e
                                 | _ -> None)
-                          Policy = orNone policyField }
+                          Policy = policy }
         with ex ->
             Result.Error $"the graph is not valid JSON: {ex.Message}"
 
@@ -611,6 +599,26 @@ module GraphEditorBridge =
                   Step = step
                   Message = message }
                 :: errors
+
+        // `goal` and `id` are the two fields a graph can get wrong without hearing
+        // about it. Neither stops the graph running, so neither is an error; saying
+        // nothing at all is what makes them worth a line here.
+        if String.IsNullOrWhiteSpace spec.Goal then
+            // Both MCP tool descriptions present `goal` as part of the input, and it
+            // ends up in `WoTPlan.Metadata.SourceGoal`, which is how a run is found
+            // again afterwards. An empty one costs nothing now and everything later.
+            warnings <- "no 'goal' was given, so this run will be unlabelled in the trace" :: warnings
+
+        match spec.Id with
+        | Some id when not (fst (Guid.TryParse id)) ->
+            // `WoTPlan.Id` is a GUID, so `toWoTPlan` mints a fresh one for anything
+            // else. It is the only field in the format that does not come back out the
+            // way it went in, and an editor that keys its own state on the id it sent
+            // would silently lose track of the run.
+            warnings <-
+                $"'id' is not a GUID ('{id}'), so the run will be given a fresh one and this value will not come back"
+                :: warnings
+        | _ -> ()
 
         // Ids must be unique, or an edge cannot say which node it means.
         let duplicates =
