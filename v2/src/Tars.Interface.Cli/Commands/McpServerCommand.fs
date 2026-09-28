@@ -201,6 +201,35 @@ module McpServerCommand =
 
                 logger.Information("Registered {Count} Claude Code bridge tools", bridgeTools.Length)
 
+                // --- Register graph editor tools ---
+                //
+                // The catalog answers "what can I put in a graph", and it answers it from
+                // `ToolMetadata`, so a tool nobody has described is simply absent rather
+                // than offered without its schema. `registerBuiltIn` is what puts the first
+                // descriptions there; without it the catalog is honestly empty.
+                // Unqualified: `Tars` on its own resolves to a `TargetRepo` case that is in
+                // scope here, so `Tars.Tools.ToolDescriptors` does not compile.
+                ToolDescriptors.registerBuiltIn ()
+
+                let graphEditorTools : Tool list = [
+                    { Name = "tars_node_catalog"
+                      Description = "List what can go in a WoT graph: every described tool plus the reasoning node, each with its JSON Schema and what running it does. Takes no arguments. Returns {\"nodes\": [...], \"described_tools\": N, \"total_tools\": M} — the two counts say how much of the registry is described."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute = fun _ -> async { return Result.Ok(GraphEditorBridge.catalogJson toolRegistry) } }
+                ]
+
+                for tool in graphEditorTools do
+                    registry.Register(tool)
+
+                logger.Information(
+                    "Registered {Count} graph editor tools ({Described} of {Total} tools described)",
+                    graphEditorTools.Length,
+                    ToolMetadata.describedCount (),
+                    toolRegistry.GetAll().Length
+                )
+
                 // --- Register probabilistic grammar tools ---
                 let grammarTools = Tars.Evolution.McpGrammarTools.createTools ()
                 for tool in grammarTools do
