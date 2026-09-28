@@ -206,9 +206,26 @@ module ClaudeCodeBridge =
     // =========================================================================
 
     /// Execute a single step in an active plan.
-    /// Input JSON: { "plan_id": "...", "node_id": "...", "input": "..." }
-    /// For Tool nodes, runs the tool via the registry.
-    /// For other node kinds, records the provided input as output.
+    ///
+    /// Input JSON: `{ "plan_id", "node_id", "input", "approve": ["node_id", ...] }`.
+    /// For Tool nodes, runs the tool via the registry. For other node kinds, records
+    /// the provided input as output.
+    ///
+    /// **The gate, and what it does not cover.** Until `ToolGate` existed this ran any
+    /// tool a compiled plan named, with nothing asked and nothing said - the graph
+    /// editor had a gate only because that is where the gate happened to get written.
+    /// It now asks `ToolGate.inspect`, and refuses a tool whose descriptor says it
+    /// changes something or leaves the machine unless `approve` names this node.
+    ///
+    /// An **undescribed** tool still runs. That is this surface's posture and it is
+    /// deliberately the opposite of the graph editor's, which refuses one: the editor
+    /// offers a catalog of six described tools and a graph naming anything else was not
+    /// built from that catalog, while this bridge drives the whole registry - some two
+    /// hundred tools - and failing closed would refuse every plan it runs today.
+    ///
+    /// So the gate's reach here is exactly the descriptor backfill's reach, and it
+    /// grows as that does. That is a real limit, not a hidden one, and it is the reason
+    /// this is not the same posture on both sides of a shared decision.
     let executeStep
         (toolRegistry: Tars.Core.IToolRegistry)
         (input: string)
@@ -228,6 +245,21 @@ module ClaudeCodeBridge =
                 let stepInput =
                     tryGetString "input" root |> Option.defaultValue ""
 
+                // Node ids, not tool names, so that this field means the same thing as
+                // `approve` on `tars_plan_run`. Naming the node the call already names
+                // looks redundant and is the point: a caller has to restate what it is
+                // allowing, which is a thing a person can be shown, where `true` is not.
+                let approved =
+                    let mutable value = JsonElement()
+
+                    if root.TryGetProperty("approve", &value) && value.ValueKind = JsonValueKind.Array then
+                        value.EnumerateArray()
+                        |> Seq.filter (fun e -> e.ValueKind = JsonValueKind.String)
+                        |> Seq.map (fun e -> e.GetString())
+                        |> Set.ofSeq
+                    else
+                        Set.empty
+
                 match activePlans.TryGetValue(planId) with
                 | false, _ -> return Error "Plan not found"
                 | true, activePlan ->
@@ -242,10 +274,32 @@ module ClaudeCodeBridge =
                         | Tool ->
                             match node.Payload with
                             | :? ToolPayload as payload ->
-                                let tool = toolRegistry.Get(payload.Tool)
+                                let gated =
+                                    match Tars.Core.ToolGate.inspect toolRegistry payload.Tool with
+                                    | Tars.Core.ToolGate.Allowed(t, _) -> Ok t
+                                    | Tars.Core.ToolGate.Undescribed(t, _) -> Ok t // see the note on executeStep
+                                    | Tars.Core.ToolGate.NeedsApproval(t, descriptor) ->
+                                        if approved.Contains nodeId then
+                                            Ok t
+                                        else
+                                            Error(
+                                                Tars.Core.ToolGate.refusalMessage t descriptor
+                                                + $". Send this step again with \"approve\": [\"{nodeId}\"] to allow it."
+                                            )
+                                    | Tars.Core.ToolGate.Unresolved(Tars.Core.ToolGate.Ambiguous names) ->
+                                        Error(
+                                            $"'{payload.Tool}' matches more than one registered tool, differing only by case: "
+                                            + String.concat ", " names
+                                            + ". Name one of them exactly."
+                                        )
+                                    | Tars.Core.ToolGate.Unresolved _ ->
+                                        Error $"Tool '{payload.Tool}' not found in registry"
 
-                                match tool with
-                                | Some t ->
+                                match gated with
+                                | Error refusal ->
+                                    activePlan.StepStatuses.[nodeId] <- false
+                                    return Error refusal
+                                | Ok t ->
                                     let sw = System.Diagnostics.Stopwatch.StartNew()
 
                                     let toolInput =
@@ -272,8 +326,6 @@ module ClaudeCodeBridge =
                                     | Error err ->
                                         activePlan.StepStatuses.[nodeId] <- false
                                         return Error $"Tool '{payload.Tool}' failed: {err}"
-                                | None ->
-                                    return Error $"Tool '{payload.Tool}' not found in registry"
                             | _ ->
                                 return Error "Tool node has invalid payload type"
                         | _ ->

@@ -36,6 +36,7 @@
     <Compile Include="WorkflowOfThought\AgentRegistry.fs" />
     <Compile Include="WorkflowOfThought\TraceTypes.fs" />
     <Compile Include="Abstractions.fs" />
+    <Compile Include="ToolGate.fs" />
     <Compile Include="Critique.fs" />
     <Compile Include="Tracing.fs" />
     <Compile Include="TraceRecorder.fs" />
