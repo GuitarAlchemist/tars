@@ -3,9 +3,12 @@ namespace Tars.Tests
 open System
 open System.Text.Json
 open Xunit
+open System.Threading
+open System.Threading.Tasks
 open Tars.Core
 open Tars.Cortex
 open Tars.Cortex.WoTTypes
+open Tars.Llm
 
 /// What can go in a graph, and how a graph arrives.
 ///
@@ -102,6 +105,22 @@ module GraphEditorBridgeTests =
           Arguments = None
           Label = None
           Tags = None }
+
+    /// One property of a JSON response, read as a property.
+    ///
+    /// Matching a substring like `"valid":true` also asserts that the serializer does
+    /// not indent, that it emits that field before any field whose name contains it,
+    /// and that nothing is spaced differently - none of which the editor depends on.
+    /// Every one of those would break the test without breaking the contract.
+    let private prop (name: string) (json: string) : JsonElement =
+        use doc = JsonDocument.Parse json
+
+        match doc.RootElement.TryGetProperty name with
+        | true, value -> value.Clone()
+        | _ -> failwith $"the response has no '{name}': {json}"
+
+    let private strings (element: JsonElement) =
+        element.EnumerateArray() |> Seq.map (fun e -> e.GetString()) |> List.ofSeq
 
     let private parsed input =
         match GraphEditorBridge.parsePlanSpec input with
@@ -208,10 +227,13 @@ module GraphEditorBridgeTests =
         withDescriptors [ readOnlyTool ]
         let json = GraphEditorBridge.catalogJson (registryOf [ "read_file", "Reads a file." ])
 
-        Assert.Contains("\"described_tools\"", json)
-        Assert.Contains("\"total_tools\"", json)
-        Assert.Contains("\"node_kind\"", json)
-        Assert.Contains("\"auto_approved\"", json)
+        Assert.Equal(1, (prop "described_tools" json).GetInt32())
+        Assert.Equal(1, (prop "total_tools" json).GetInt32())
+
+        let entry = (prop "nodes" json).EnumerateArray() |> Seq.find (fun e -> e.GetProperty("name").GetString() = "read_file")
+
+        Assert.Equal("tool", entry.GetProperty("node_kind").GetString())
+        Assert.True(entry.GetProperty("approval").GetProperty("auto_approved").GetBoolean())
 
         // Snake case everywhere, so a client written against one field name is not
         // surprised by another.
@@ -872,9 +894,15 @@ module GraphEditorBridgeTests =
                 registry
                 """{"goal":"g","nodes":[{"id":"a","kind":"reason","prompt":"think"}],"edges":[]}"""
 
-        Assert.Contains("\"valid\":true", answer)
-        Assert.Contains("\"execution_order\":[\"a\"]", answer)
-        Assert.Contains("\"needs_approval\"", answer)
+        Assert.True((prop "valid" answer).GetBoolean())
+        Assert.Equal<string>([ "a" ], strings (prop "execution_order" answer))
+        // A reason node costs a model call, so it is in `needs_approval` - and the
+        // entries are objects, not names: the editor has to show the caller what it is
+        // approving, not just which node.
+        let asked = (prop "needs_approval" answer).EnumerateArray() |> Seq.exactlyOne
+        Assert.Equal("a", asked.GetProperty("node_id").GetString())
+        Assert.Equal("escapes", asked.GetProperty("tier").GetString())
+        Assert.Contains("model", asked.GetProperty("effect").GetString())
 
     [<Fact>]
     let ``the node an error is about comes back as a plain string`` () =
@@ -917,8 +945,10 @@ module GraphEditorBridgeTests =
         // `parsePlanSpec` already refuses this; the point here is that the JSON entry
         // point turns that refusal into a verdict rather than letting it escape as an
         // exception through the MCP server.
-        Assert.Contains("\"valid\":false", answer)
-        Assert.Contains("malformed", answer)
+        Assert.False((prop "valid" answer).GetBoolean())
+
+        let failure = (prop "errors" answer).EnumerateArray() |> Seq.exactlyOne
+        Assert.Equal("malformed", failure.GetProperty("code").GetString())
 
     // =========================================================================
     // How the graph actually arrives
@@ -953,9 +983,10 @@ module GraphEditorBridgeTests =
                         "arguments":{"path":"out.fs","content":"x"}}],"approve":["w",7]}"""
             |> Async.RunSynchronously
 
-        Assert.Contains("\"success\":false", answer)
-        Assert.Contains("approve", answer)
-        Assert.Contains("not a string", answer)
+        Assert.False((prop "success" answer).GetBoolean())
+        let message = strings (prop "errors" answer) |> String.concat "; "
+        Assert.Contains("approve", message)
+        Assert.Contains("not a string", message)
         Assert.Empty(ran)
 
     [<Fact>]
@@ -976,7 +1007,7 @@ module GraphEditorBridgeTests =
         let answer =
             GraphEditorBridge.runJson (fun () -> executor) registry enveloped |> Async.RunSynchronously
 
-        Assert.Contains("\"success\":true", answer)
+        Assert.True((prop "success" answer).GetBoolean(), answer)
         Assert.Single(ran) |> ignore
 
     // =========================================================================
@@ -1172,6 +1203,147 @@ module GraphEditorBridgeTests =
             "an edge has no 'from'",
             refusal """{"nodes":[{"id":"a","kind":"reason","prompt":"p"}],"edges":[{"to":"a"}]}"""
         )
+
+    // =========================================================================
+    // The whole chain, once, with nothing stubbed in the middle
+    // =========================================================================
+
+    /// An LLM that fails the test if anything asks it for anything.
+    let private neverCalledLlm () =
+        let refuse name : 'a =
+            failwith $"the LLM was asked for {name}; a tool node must never reach the model"
+
+        { new ILlmService with
+            member _.CompleteAsync(_: LlmRequest) : Task<LlmResponse> = refuse "a completion"
+            member _.EmbedAsync(_: string) : Task<float32[]> = refuse "an embedding"
+            member _.CompleteStreamAsync(_: LlmRequest, _: string -> unit) : Task<LlmResponse> = refuse "a stream"
+            member _.RouteAsync(_: LlmRequest) : Task<Routing.RoutedBackend> = refuse "a route" }
+
+    [<Fact>]
+    let ``an approved tool node reaches the real tool with the arguments it was given`` () =
+        withDescriptors [ writingTool ]
+
+        // A real `Tool`, recording exactly the string the executor hands it.
+        let received = System.Collections.Concurrent.ConcurrentBag<string>()
+
+        let capturing: Tool =
+            { Name = "write_code"
+              Description = "writes a file"
+              Version = "1.0.0"
+              ParentVersion = None
+              CreatedAt = DateTime.UtcNow
+              Execute =
+                fun input ->
+                    async {
+                        received.Add input
+                        return Result.Ok "written"
+                    } }
+
+        let registry =
+            { new IToolRegistry with
+                member _.Register(_) = ()
+
+                member _.Get(name) =
+                    if name = "write_code" then Some capturing else None
+
+                member _.GetAll() = [ capturing ] }
+
+        // The real `WoTExecutor`, not a stand-in. `DefaultWoTExecutor.Execute` projects
+        // an `AgentContext` down to exactly this record and calls `execute`, so building
+        // it here skips one field copy and nothing else - and it skips
+        // `AgentHelpers.createAgentContext`, which creates directories under ~/.tars and
+        // asks the model for an embedding before it returns.
+        let llm = neverCalledLlm ()
+
+        let executionContext: WoTExecutor.ExecutionContext =
+            { Llm = llm
+              Tools = registry
+              Logger = ignore
+              OnProgress = ignore
+              CancellationToken = CancellationToken.None
+              KnowledgeGraph = None
+              Reflector = None
+              Decider = None }
+
+        let graph =
+            { spec [ toolNode "w" "write_code" [ "path", "notes.txt"; "content", "hello" ] ] [] with
+                EntryNode = Some "w" }
+
+        let result =
+            GraphEditorBridge.run
+                (fun () -> WoTExecutor.execute executionContext)
+                registry
+                graph
+                [ "w" ]
+            |> Async.RunSynchronously
+
+        Assert.True(result.Success, String.concat "; " result.Errors)
+        Assert.Equal(1, result.StepsRun)
+        Assert.Contains("write_code", result.ToolsUsed)
+
+        // This is the assertion the suite did not have. Each hop was covered on its own
+        // - the caller's JSON into a `JsonElement`, `toArgValue` narrowing it, the
+        // `ToolPayload`, `WoTExecutor.serializeToolArgs` writing it back out - and none
+        // of them covered a join. The double-encoding bug this stack already fixed once
+        // lived in a join, and would have passed every one of those tests.
+        let arrived = Assert.Single(received)
+        use doc = JsonDocument.Parse arrived
+        Assert.Equal("notes.txt", doc.RootElement.GetProperty("path").GetString())
+        Assert.Equal("hello", doc.RootElement.GetProperty("content").GetString())
+        Assert.Equal(2, doc.RootElement.EnumerateObject() |> Seq.length)
+
+    [<Fact>]
+    let ``an unapproved tool node never reaches the real tool`` () =
+        withDescriptors [ writingTool ]
+
+        let received = System.Collections.Concurrent.ConcurrentBag<string>()
+
+        let capturing: Tool =
+            { Name = "write_code"
+              Description = "writes a file"
+              Version = "1.0.0"
+              ParentVersion = None
+              CreatedAt = DateTime.UtcNow
+              Execute =
+                fun input ->
+                    async {
+                        received.Add input
+                        return Result.Ok "written"
+                    } }
+
+        let registry =
+            { new IToolRegistry with
+                member _.Register(_) = ()
+
+                member _.Get(name) =
+                    if name = "write_code" then Some capturing else None
+
+                member _.GetAll() = [ capturing ] }
+
+        let executionContext: WoTExecutor.ExecutionContext =
+            { Llm = neverCalledLlm ()
+              Tools = registry
+              Logger = ignore
+              OnProgress = ignore
+              CancellationToken = CancellationToken.None
+              KnowledgeGraph = None
+              Reflector = None
+              Decider = None }
+
+        let graph =
+            { spec [ toolNode "w" "write_code" [ "path", "notes.txt"; "content", "hello" ] ] [] with
+                EntryNode = Some "w" }
+
+        // Same wiring as the test above, same real executor, same real tool - only the
+        // approval is withheld. The refusal is already covered against a stub executor;
+        // what is covered here is that the tool itself is never touched when the real
+        // one is on the other end of the gate.
+        let result =
+            GraphEditorBridge.run (fun () -> WoTExecutor.execute executionContext) registry graph []
+            |> Async.RunSynchronously
+
+        Assert.False(result.Success)
+        Assert.Empty(received)
 
     [<Fact>]
     let ``a graph with no goal is told so, and still runs`` () =
