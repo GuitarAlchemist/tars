@@ -1,8 +1,13 @@
+/// The metadata registry is process-wide and these tests now write to it, so this
+/// module joins the collection the graph-editor tests use. xUnit runs collections in
+/// parallel, and one test calling `clear()` while another counts is a race.
+[<Xunit.Collection("ToolMetadata registry")>]
 module Tars.Tests.ClaudeCodeBridgeTests
 
 open System
 open System.Text.Json
 open Xunit
+open Tars.Core
 open Tars.Cortex
 open Tars.Cortex.WoTTypes
 open Tars.Cortex.ClaudeCodeBridge
@@ -325,3 +330,124 @@ let ``memoryOp fails on unknown operation`` () =
     match result with
     | Result.Error msg -> Assert.Contains("Unknown operation", msg)
     | Result.Ok _ -> Assert.Fail "Should have failed"
+
+// =========================================================================
+// The gate, on this side of it
+// =========================================================================
+
+/// The first node the compiler turned into a tool call, and the tool it named.
+let private firstToolNode (planJson: string) =
+    let doc = JsonDocument.Parse planJson
+
+    doc.RootElement.GetProperty("nodes").EnumerateArray()
+    |> Seq.tryPick (fun n ->
+        if n.GetProperty("kind").GetString() = "Tool" then
+            let named = n.GetProperty("toolName")
+
+            if named.ValueKind = JsonValueKind.String then
+                Some(n.GetProperty("id").GetString(), named.GetString())
+            else
+                None
+        else
+            None)
+
+let private planWithAToolNode () =
+    let reg, planResult = compile "Search the codebase for something" 3
+
+    match planResult with
+    | Result.Error err -> failwith err
+    | Result.Ok planJson ->
+        let planId = JsonDocument.Parse(planJson).RootElement.GetProperty("planId").GetString()
+
+        match firstToolNode planJson with
+        | None -> failwith $"the compiler produced no tool node, so the gate is untested: {planJson}"
+        | Some(nodeId, toolName) -> reg, planId, nodeId, toolName
+
+let private step planId nodeId approve =
+    let approveJson =
+        approve |> List.map (sprintf "\"%s\"") |> String.concat ", "
+
+    sprintf """{"plan_id": "%s", "node_id": "%s", "input": "x", "approve": [%s]}""" planId nodeId approveJson
+
+[<Fact>]
+let ``a tool that changes something is refused until the step names the node approved`` () =
+    let reg, planId, nodeId, toolName = planWithAToolNode ()
+
+    ToolMetadata.clear ()
+
+    ToolMetadata.describe
+        { Name = toolName
+          InputSchema = ToolMetadata.objectSchema [] []
+          Required = []
+          Approval = ToolMetadata.Approval.mutates "writes a file to disk" }
+
+    // Before `ToolGate`, this ran. Nothing asked, nothing said - the graph editor had a
+    // gate only because that is where the gate happened to get written.
+    let refused =
+        executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId [])
+        |> Async.RunSynchronously
+
+    match refused with
+    | Result.Ok output -> Assert.Fail $"the tool ran unapproved: {output}"
+    | Result.Error message ->
+        // The refusal has to say what running it would do, not just that it was
+        // refused: the person deciding is reading this sentence.
+        Assert.Contains("writes a file to disk", message)
+        Assert.Contains("mutates", message)
+        Assert.Contains(nodeId, message)
+
+    // And naming the node lets it through.
+    let allowed =
+        executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId [ nodeId ])
+        |> Async.RunSynchronously
+
+    match allowed with
+    | Result.Ok _ -> ()
+    | Result.Error err -> Assert.Fail $"approving it did not let it run: {err}"
+
+    ToolMetadata.clear ()
+
+[<Fact>]
+let ``a tool that only observes still runs unasked`` () =
+    let reg, planId, nodeId, toolName = planWithAToolNode ()
+
+    ToolMetadata.clear ()
+
+    ToolMetadata.describe
+        { Name = toolName
+          InputSchema = ToolMetadata.objectSchema [] []
+          Required = []
+          Approval = ToolMetadata.Approval.observes "reads without changing anything" }
+
+    let result =
+        executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId [])
+        |> Async.RunSynchronously
+
+    match result with
+    | Result.Ok _ -> ()
+    | Result.Error err -> Assert.Fail $"a read-only tool was refused: {err}"
+
+    ToolMetadata.clear ()
+
+[<Fact>]
+let ``an undescribed tool still runs here, which is the opposite of the graph editor`` () =
+    let reg, planId, nodeId, _ = planWithAToolNode ()
+
+    // Nothing described at all. `GraphEditorBridge` refuses this case outright; this
+    // bridge allows it, and the difference is deliberate: the editor offers a catalog
+    // of six described tools, so an undescribed one in a graph means the graph was not
+    // built from the catalog. This bridge drives the whole registry - some two hundred
+    // tools - and failing closed would refuse every plan it runs today.
+    //
+    // The gate's reach here is therefore exactly the descriptor backfill's reach. This
+    // test exists so that limit is stated somewhere that fails when it changes, rather
+    // than living only in a comment.
+    ToolMetadata.clear ()
+
+    let result =
+        executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId [])
+        |> Async.RunSynchronously
+
+    match result with
+    | Result.Ok _ -> ()
+    | Result.Error err -> Assert.Fail $"an undescribed tool was refused, which this surface does not do: {err}"

@@ -460,37 +460,9 @@ module GraphEditorBridge =
     // =========================================================================
 
     /// What a name in a graph resolves to.
-    type private Resolution =
-        | Resolved of Tool
-        | NotFound
-        /// More than one registered tool differs from the name only by case.
-        | Ambiguous of string list
-
-    /// Find a tool by name, ignoring case, and return the registry's own spelling.
-    ///
-    /// `ToolMetadata` is keyed case-insensitively and says why: names are typed by hand
-    /// into graphs, and `Read_File` should not be a different tool from `read_file`.
-    /// `ToolRegistry` is a plain `ConcurrentDictionary`, so it is case-sensitive, and an
-    /// exact-only lookup answered `unknown_tool` before the metadata lookup could run.
-    ///
-    /// The registry's spelling is what matters: accepting a variant without
-    /// canonicalising it would only move the failure to the executor, which looks the
-    /// name up in that same case-sensitive registry.
-    ///
-    /// Two registered tools whose names differ only by case make the graph ambiguous,
-    /// and picking either one would be picking for the caller. The registry allows it
-    /// — it is a case-sensitive dictionary — so this has to say so rather than guess.
-    let private resolveTool (registry: IToolRegistry) (name: string) =
-        match registry.Get name with
-        | Some tool -> Resolved tool
-        | None ->
-            match
-                registry.GetAll()
-                |> List.filter (fun t -> String.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase))
-            with
-            | [] -> NotFound
-            | [ only ] -> Resolved only
-            | many -> Ambiguous(many |> List.map (fun t -> t.Name) |> List.sort)
+    // Tool resolution and the approval decision live in `Tars.Core.ToolGate`, shared
+    // with `ClaudeCodeBridge`. They used to live here, which is why that bridge had no
+    // gate at all: not a decision anybody took, just where the code happened to sit.
 
     /// What a schema declares: every property name, and the subset that names a type.
     ///
@@ -636,69 +608,65 @@ module GraphEditorBridge =
         | None
         | Some "" -> error "missing_tool" "a tool node needs a tool name"
         | Some givenName ->
-            match resolveTool registry givenName with
-            | NotFound -> error "unknown_tool" $"no tool named '{givenName}' is registered"
-            | Ambiguous names ->
+            match ToolGate.inspect registry givenName with
+            | ToolGate.Unresolved ToolGate.NotFound ->
+                error "unknown_tool" $"no tool named '{givenName}' is registered"
+            | ToolGate.Unresolved(ToolGate.Ambiguous names) ->
                 error
                     "ambiguous_tool"
                     ($"'{givenName}' matches more than one registered tool, differing only by case: "
                      + String.concat ", " names
                      + ". Name one of them exactly.")
-            | Resolved tool ->
+            | ToolGate.Unresolved(ToolGate.Resolved _) -> () // `inspect` never returns this
+            | ToolGate.Undescribed(tool, Some nearMiss) ->
+                error
+                    "undescribed_tool"
+                    ($"'{tool.Name}' has no description of its own; '{nearMiss.Name}' differs from it "
+                     + "only by case and describes a different tool")
+            | ToolGate.Undescribed(tool, None) ->
+                // Fail closed, which is this surface's posture and not the gate's: the
+                // catalog only offers described tools, so an undescribed one in a graph
+                // means the graph was not built from the catalog. `ClaudeCodeBridge`
+                // decides the opposite, for reasons written down there.
+                error
+                    "undescribed_tool"
+                    $"'{tool.Name}' has no description, so what it expects and what it does are unknown"
+            | ToolGate.Allowed(tool, descriptor)
+            | ToolGate.NeedsApproval(tool, descriptor) ->
                 // The registry's spelling from here on, so a casing variant in the
                 // graph is reported and approved under the real name.
                 let toolName = tool.Name
+                let arguments = node.Arguments |> Option.defaultValue Map.empty
 
-                // The descriptor has to belong to *this* tool, not to one whose name
-                // matches case-insensitively. `ToolMetadata` is keyed loosely, so a
-                // registry holding both the described `read_file` and a custom,
-                // mutating `READ_FILE` would otherwise hand the second one the first
-                // one's schema and its `auto_approved: true` - a tool that writes,
-                // running unasked, advertised as read-only.
-                match ToolMetadata.tryFind toolName with
-                | Some descriptor when descriptor.Name <> toolName ->
-                    error
-                        "undescribed_tool"
-                        ($"'{toolName}' has no description of its own; '{descriptor.Name}' differs from it "
-                         + "only by case and describes a different tool")
-                | None ->
-                    // Fail closed: an undescribed tool is refused here, while remaining
-                    // perfectly usable everywhere else in TARS.
-                    error
-                        "undescribed_tool"
-                        $"'{toolName}' has no description, so what it expects and what it does are unknown"
-                | Some descriptor ->
-                    let arguments = node.Arguments |> Option.defaultValue Map.empty
+                for required in descriptor.Required do
+                    if not (arguments.ContainsKey required) then
+                        error "missing_argument" $"'{toolName}' requires '{required}'"
 
-                    for required in descriptor.Required do
-                        if not (arguments.ContainsKey required) then
-                            error "missing_argument" $"'{toolName}' requires '{required}'"
+                // Names alone are not enough: a schema that says `path` is a string and
+                // a node that sends `42` used to validate and reach the tool, which
+                // then failed with whatever error it makes of a number. Catching it
+                // here is the whole point of having the schema.
+                match declaredProperties descriptor.InputSchema with
+                | None -> () // the schema says nothing about properties; nothing to check
+                | Some(declaredNames, declaredTypes) ->
+                    for KeyValue(name, value) in arguments do
+                        if not (declaredNames.Contains name) then
+                            // The schemas say `additionalProperties: false`.
+                            error "unknown_argument" $"'{toolName}' takes no argument called '{name}'"
+                        else
+                            match declaredTypes.TryFind name with
+                            | Some expected when not (matchesDeclaredType expected value) ->
+                                error
+                                    "wrong_argument_type"
+                                    $"'{toolName}' expects '{name}' to be {expected}, not {value.ValueKind}"
+                            | _ -> ()
 
-                    // Names alone are not enough: a schema that says `path` is a string
-                    // and a node that sends `42` used to validate and reach the tool,
-                    // which then failed with whatever error it makes of a number.
-                    // Catching it here is the whole point of having the schema.
-                    match declaredProperties descriptor.InputSchema with
-                    | None -> () // the schema says nothing about properties; nothing to check
-                    | Some(declaredNames, declaredTypes) ->
-                        for KeyValue(name, value) in arguments do
-                            if not (declaredNames.Contains name) then
-                                // The schemas say `additionalProperties: false`.
-                                error "unknown_argument" $"'{toolName}' takes no argument called '{name}'"
-                            else
-                                match declaredTypes.TryFind name with
-                                | Some expected when not (matchesDeclaredType expected value) ->
-                                    error
-                                        "wrong_argument_type"
-                                        $"'{toolName}' expects '{name}' to be {expected}, not {value.ValueKind}"
-                                | _ -> ()
-
-                    if not descriptor.Approval.AutoApproved then
-                        approvals <-
-                            [ { NodeId = node.Id
-                                Tool = toolName
-                                Tier = descriptor.Approval.Tier.Wire
-                                Effect = descriptor.Approval.Effect } ]
+                if not descriptor.Approval.AutoApproved then
+                    approvals <-
+                        [ { NodeId = node.Id
+                            Tool = toolName
+                            Tier = descriptor.Approval.Tier.Wire
+                            Effect = descriptor.Approval.Effect } ]
 
         List.rev errors, approvals
 
@@ -957,10 +925,10 @@ module GraphEditorBridge =
                         { ToolPayload.Tool =
                             n.Tool
                             |> Option.bind (fun given ->
-                                match resolveTool registry given with
-                                | Resolved tool -> Some tool.Name
-                                | NotFound
-                                | Ambiguous _ -> None)
+                                match ToolGate.resolve registry given with
+                                | ToolGate.Resolved tool -> Some tool.Name
+                                | ToolGate.NotFound
+                                | ToolGate.Ambiguous _ -> None)
                             |> Option.orElse n.Tool
                             |> Option.defaultValue ""
                           Args =
