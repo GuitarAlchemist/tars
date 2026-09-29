@@ -373,7 +373,7 @@ let private step planId nodeId approve =
 let ``a tool that changes something is refused until the step names the node approved`` () =
     let reg, planId, nodeId, toolName = planWithAToolNode ()
 
-    ToolMetadata.clear ()
+    ToolMetadata.Testing.reset ()
 
     ToolMetadata.describe
         { Name = toolName
@@ -405,13 +405,13 @@ let ``a tool that changes something is refused until the step names the node app
     | Result.Ok _ -> ()
     | Result.Error err -> Assert.Fail $"approving it did not let it run: {err}"
 
-    ToolMetadata.clear ()
+    ToolMetadata.Testing.reset ()
 
 [<Fact>]
 let ``a tool that only observes still runs unasked`` () =
     let reg, planId, nodeId, toolName = planWithAToolNode ()
 
-    ToolMetadata.clear ()
+    ToolMetadata.Testing.reset ()
 
     ToolMetadata.describe
         { Name = toolName
@@ -427,7 +427,7 @@ let ``a tool that only observes still runs unasked`` () =
     | Result.Ok _ -> ()
     | Result.Error err -> Assert.Fail $"a read-only tool was refused: {err}"
 
-    ToolMetadata.clear ()
+    ToolMetadata.Testing.reset ()
 
 [<Fact>]
 let ``an undescribed tool still runs here, which is the opposite of the graph editor`` () =
@@ -442,7 +442,7 @@ let ``an undescribed tool still runs here, which is the opposite of the graph ed
     // The gate's reach here is therefore exactly the descriptor backfill's reach. This
     // test exists so that limit is stated somewhere that fails when it changes, rather
     // than living only in a comment.
-    ToolMetadata.clear ()
+    ToolMetadata.Testing.reset ()
 
     let result =
         executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId [])

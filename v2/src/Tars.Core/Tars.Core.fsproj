@@ -115,11 +115,6 @@
     <Compile Include="MetaCognition\AdaptiveSignals.fs" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- ToolMetadata.clear exists only so a test can state the whole world it
-         expects; it stays internal so nothing in the running system can call it. -->
-    <InternalsVisibleTo Include="Tars.Tests" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="FSharp.SystemTextJson" Version="1.3.13" />
