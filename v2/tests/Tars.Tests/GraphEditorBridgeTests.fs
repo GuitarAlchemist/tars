@@ -1338,12 +1338,15 @@ module GraphEditorBridgeTests =
           Decider = None }
 
     /// The executor's own trace for a graph, run in the order the validator gives.
-    let private executeDirectly (registry: IToolRegistry) (graph: GraphEditorBridge.PlanSpec) (adjust: WoTPlan -> WoTPlan) =
+    let private executeWith context (registry: IToolRegistry) (graph: GraphEditorBridge.PlanSpec) (adjust: WoTPlan -> WoTPlan) =
         let verdict = GraphEditorBridge.validate registry graph
         Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
 
         let plan = GraphEditorBridge.toWoTPlan registry graph verdict.ExecutionOrder |> adjust
-        WoTExecutor.execute (realContext registry) plan |> Async.RunSynchronously
+        WoTExecutor.execute context plan |> Async.RunSynchronously
+
+    let private executeDirectly (registry: IToolRegistry) graph adjust =
+        executeWith (realContext registry) registry graph adjust
 
     let private statusOf (result: WoTResult) (nodeId: string) =
         (result.Trace.Steps |> List.find (fun s -> s.NodeId = nodeId)).Status
@@ -1441,6 +1444,48 @@ module GraphEditorBridgeTests =
 
         // The last thing that actually completed, not the failure's stand-in.
         Assert.Equal("start output", result.Output)
+
+    [<Fact>]
+    let ``the knowledge graph does not record a failed step as having produced its predecessor's output`` () =
+        let names = [ "start"; "check" ]
+        withDescriptors (names |> List.map observing)
+        let registry, _ = recordingTools names [ "check" ]
+
+        let recorded = System.Collections.Concurrent.ConcurrentQueue<TarsEntity>()
+
+        let graphService =
+            { new IGraphService with
+                member _.AddNodeAsync(e) =
+                    recorded.Enqueue e
+                    Task.FromResult "id"
+
+                member _.AddFactAsync(_) = Task.FromResult(Guid.NewGuid())
+                member _.AddEpisodeAsync(_) = Task.FromResult "ep"
+                member _.QueryAsync(_) = Task.FromResult([]: TarsFact list)
+                member _.PersistAsync() = Task.FromResult(()) }
+
+        let graph =
+            { spec
+                  [ toolNode "start" "start" [ "path", "." ]
+                    toolNode "check" "check" [ "path", "a.txt" ] ]
+                  [ edge "start" "check" ] with
+                EntryNode = Some "start" }
+
+        executeWith { realContext registry with KnowledgeGraph = Some graphService } registry graph id
+        |> ignore
+
+        // Withholding the stand-in from `stepOutputs` is not enough if the same string
+        // is written to the graph, which is insert-only for a step id: reflection over
+        // the run would read it as what `check` produced.
+        let contentOf stepId =
+            recorded
+            |> Seq.pick (fun e ->
+                match e with
+                | StepE s when s.StepId = stepId -> Some s.Content
+                | _ -> None)
+
+        Assert.Equal("start output", contentOf "start")
+        Assert.Equal("", contentOf "check")
 
     [<Fact>]
     let ``a node skipped by its condition does not stop what comes after it`` () =

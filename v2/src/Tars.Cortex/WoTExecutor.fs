@@ -713,12 +713,16 @@ Respond with ONLY the number of your choice."""
                     // Record step in KG
                     match ctx.KnowledgeGraph with
                     | Some kg ->
+                        // `step.Output`, not `output`: for a failed step they differ, and
+                        // `output` is the predecessor's. The graph is insert-only for a
+                        // step id, so whatever is written here stays attributed to this
+                        // step for good.
                         let stepE =
                             StepE
                                 { RunId = runId
                                   StepId = node.Id
                                   NodeType = node.Kind.ToString()
-                                  Content = output
+                                  Content = step.Output |> Option.defaultValue ""
                                   Timestamp = DateTime.UtcNow }
 
                         let! _ = kg.AddNodeAsync(stepE) |> Async.AwaitTask
