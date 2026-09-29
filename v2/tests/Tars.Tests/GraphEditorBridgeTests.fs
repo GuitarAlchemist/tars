@@ -820,66 +820,6 @@ module GraphEditorBridgeTests =
         Assert.Equal(1, config.GetProperty("x").GetInt32())
         Assert.Equal(2, config.GetProperty("nested").GetArrayLength())
 
-    [<Fact>]
-    let ``a run with a failed step says the rest of the graph ran anyway`` () =
-        withDescriptors [ readOnlyTool ]
-        let registry = registryOf [ "read_file", "r" ]
-
-        // `WoTExecutor` does not stop at the first failure, and a later node is handed
-        // the previous output in place of the missing one (tars#335). The runner cannot
-        // prevent that from here — it hands over the whole plan in one call — so it has
-        // to say so rather than report a clean run.
-        let failing (plan: WoTPlan) =
-            async {
-                return
-                    { Output = "ran"
-                      Success = false
-                      Trace =
-                        { RunId = Guid.NewGuid()
-                          Plan = plan
-                          Steps =
-                            plan.Nodes
-                            |> List.mapi (fun i n ->
-                                { NodeId = n.Id
-                                  NodeType = string n.Kind
-                                  StartedAt = DateTime.UtcNow
-                                  Status = (if i = 0 then Failed("no such file", 1L) else Completed("ok", 1L))
-                                  Input = None
-                                  Output = Some "ok"
-                                  Confidence = None
-                                  TokensUsed = None })
-                          StartedAt = DateTime.UtcNow
-                          CompletedAt = Some DateTime.UtcNow
-                          FinalStatus = "Failed" }
-                      TriplesDelta = []
-                      ToolsUsed = []
-                      Metrics =
-                        { TotalSteps = plan.Nodes.Length
-                          SuccessfulSteps = plan.Nodes.Length - 1
-                          FailedSteps = 1
-                          TotalTokens = 0
-                          TotalDurationMs = 0L
-                          BranchingFactor = 0.0
-                          ConstraintScore = None }
-                      Warnings = []
-                      Errors = [ "no such file" ]
-                      CognitiveStateAfter = None }
-            }
-
-        let graph =
-            spec
-                [ toolNode "check" "read_file" [ "path", "missing.txt" ]
-                  toolNode "then" "read_file" [ "path", "README.md" ] ]
-                [ edge "check" "then" ]
-
-        let result =
-            GraphEditorBridge.run (fun () -> failing) registry graph []
-            |> Async.RunSynchronously
-
-        let warnings = String.concat " " result.Warnings
-        Assert.Contains("check", warnings)
-        Assert.Contains("ran anyway", warnings)
-
     // =========================================================================
     // The wire
     // =========================================================================
@@ -1344,6 +1284,194 @@ module GraphEditorBridgeTests =
 
         Assert.False(result.Success)
         Assert.Empty(received)
+
+    // =========================================================================
+    // After a failure (tars#335)
+    // =========================================================================
+
+    /// Real tools that answer to the node ids below, record every call in order, and
+    /// fail when their name is in `failing`.
+    let private recordingTools (names: string list) (failing: string list) =
+        let calls = System.Collections.Concurrent.ConcurrentQueue<string>()
+
+        let tools: Tool list =
+            names
+            |> List.map (fun name ->
+                { Name = name
+                  Description = name
+                  Version = "1.0.0"
+                  ParentVersion = None
+                  CreatedAt = DateTime.UtcNow
+                  Execute =
+                    fun _ ->
+                        async {
+                            calls.Enqueue name
+
+                            if List.contains name failing then
+                                return Result.Error $"{name} failed"
+                            else
+                                return Result.Ok $"{name} output"
+                        } })
+
+        let registry =
+            { new IToolRegistry with
+                member _.Register(_) = ()
+                member _.Get(name) = tools |> List.tryFind (fun t -> t.Name = name)
+                member _.GetAll() = tools }
+
+        registry, calls
+
+    let private observing name : ToolMetadata.ToolDescriptor =
+        { Name = name
+          InputSchema = ToolMetadata.objectSchema [ "path", "string", "The file." ] [ "path" ]
+          Required = [ "path" ]
+          Approval = ToolMetadata.Approval.observes $"reads {name}" }
+
+    let private realContext (registry: IToolRegistry) : WoTExecutor.ExecutionContext =
+        { Llm = neverCalledLlm ()
+          Tools = registry
+          Logger = ignore
+          OnProgress = ignore
+          CancellationToken = CancellationToken.None
+          KnowledgeGraph = None
+          Reflector = None
+          Decider = None }
+
+    /// The executor's own trace for a graph, run in the order the validator gives.
+    let private executeDirectly (registry: IToolRegistry) (graph: GraphEditorBridge.PlanSpec) (adjust: WoTPlan -> WoTPlan) =
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.True(verdict.Valid, verdict.Errors |> List.map (fun e -> e.Message) |> String.concat "; ")
+
+        let plan = GraphEditorBridge.toWoTPlan registry graph verdict.ExecutionOrder |> adjust
+        WoTExecutor.execute (realContext registry) plan |> Async.RunSynchronously
+
+    let private statusOf (result: WoTResult) (nodeId: string) =
+        (result.Trace.Steps |> List.find (fun s -> s.NodeId = nodeId)).Status
+
+    [<Fact>]
+    let ``nothing downstream of a failed node runs, and the runner names what was skipped`` () =
+        let names = [ "check"; "write"; "publish" ]
+        withDescriptors (names |> List.map observing)
+        let registry, calls = recordingTools names [ "check" ]
+
+        // "Check the file is there, then write to it, then publish it." Before tars#335
+        // the check failed and the write and the publish ran anyway: a `Failed` step
+        // appended an error and the loop carried on to the next node.
+        let graph =
+            { spec
+                  [ toolNode "check" "check" [ "path", "a.txt" ]
+                    toolNode "write" "write" [ "path", "a.txt" ]
+                    toolNode "publish" "publish" [ "path", "a.txt" ] ]
+                  [ edge "check" "write"; edge "write" "publish" ] with
+                EntryNode = Some "check" }
+
+        let result =
+            GraphEditorBridge.run (fun () -> WoTExecutor.execute (realContext registry)) registry graph []
+            |> Async.RunSynchronously
+
+        Assert.False(result.Success)
+
+        // The tools themselves, not the trace: the write was never attempted.
+        Assert.Equal<string>([ "check" ], List.ofSeq calls)
+
+        // `publish` depends on `write`, not on `check` - it is skipped because what it
+        // depends on was skipped, all the way down.
+        let warning = Assert.Single(result.Warnings |> List.filter (fun w -> w.Contains "failed"))
+        Assert.Contains("these nodes failed: check", warning)
+        Assert.Contains("write", warning)
+        Assert.Contains("publish", warning)
+
+    [<Fact>]
+    let ``a branch that does not depend on the failure still runs`` () =
+        let names = [ "start"; "check"; "write"; "other" ]
+        withDescriptors (names |> List.map observing)
+        let registry, calls = recordingTools names [ "check" ]
+
+        let graph =
+            { spec
+                  [ toolNode "start" "start" [ "path", "." ]
+                    toolNode "check" "check" [ "path", "a.txt" ]
+                    toolNode "write" "write" [ "path", "a.txt" ]
+                    toolNode "other" "other" [ "path", "b.txt" ] ]
+                  [ edge "start" "check"; edge "check" "write"; edge "start" "other" ] with
+                EntryNode = Some "start" }
+
+        let result = executeDirectly registry graph id
+
+        // Stopping the whole run at the first failure would have been simpler, and
+        // wrong: `other` never needed `check`, and the graph says so.
+        Assert.Contains("other", List.ofSeq calls)
+        Assert.DoesNotContain("write", List.ofSeq calls)
+
+        match statusOf result "other" with
+        | Completed _ -> ()
+        | status -> failwith $"expected 'other' to complete, got %A{status}"
+
+        match statusOf result "write" with
+        | Skipped reason -> Assert.Contains("'check'", reason)
+        | status -> failwith $"expected 'write' to be skipped, got %A{status}"
+
+        Assert.Equal("Failed", result.Trace.FinalStatus)
+
+    [<Fact>]
+    let ``a reason node after a failure is skipped, not handed the output before it`` () =
+        let names = [ "start"; "check" ]
+        withDescriptors (names |> List.map observing)
+        let registry, _ = recordingTools names [ "check" ]
+
+        // `executeNode` hands back the previous node's output in place of a failed
+        // node's, and that stand-in used to be recorded as the failed node's own output.
+        // The reason node's context then read "[check]: start output" - a model asked to
+        // reason over a check that never produced anything, shown someone else's text
+        // under its name. `neverCalledLlm` throws if the reason node gets as far as
+        // the model.
+        let graph =
+            { spec
+                  [ toolNode "start" "start" [ "path", "." ]
+                    toolNode "check" "check" [ "path", "a.txt" ]
+                    reasonNode "think" "is the file usable?" ]
+                  [ edge "start" "check"; edge "check" "think" ] with
+                EntryNode = Some "start" }
+
+        let result = executeDirectly registry graph id
+
+        match statusOf result "think" with
+        | Skipped reason -> Assert.Contains("'check'", reason)
+        | status -> failwith $"expected 'think' to be skipped, got %A{status}"
+
+        // The last thing that actually completed, not the failure's stand-in.
+        Assert.Equal("start output", result.Output)
+
+    [<Fact>]
+    let ``a node skipped by its condition does not stop what comes after it`` () =
+        let names = [ "start"; "maybe"; "after" ]
+        withDescriptors (names |> List.map observing)
+        let registry, calls = recordingTools names []
+
+        let graph =
+            { spec
+                  [ toolNode "start" "start" [ "path", "." ]
+                    toolNode "maybe" "maybe" [ "path", "a.txt" ]
+                    toolNode "after" "after" [ "path", "b.txt" ] ]
+                  [ edge "start" "maybe"; edge "maybe" "after" ] with
+                EntryNode = Some "start" }
+
+        // A condition that does not hold is the graph working as written, not a
+        // failure, so it must not start the skipping that a failure does.
+        let withFalseCondition (plan: WoTPlan) =
+            { plan with
+                Nodes =
+                    plan.Nodes
+                    |> List.map (fun n ->
+                        if n.Id = "maybe" then
+                            { n with Metadata = { n.Metadata with Extra = n.Metadata.Extra.Add("condition", "false") } }
+                        else
+                            n) }
+
+        let result = executeDirectly registry graph withFalseCondition
+
+        Assert.Equal<string>([ "start"; "after" ], List.ofSeq calls)
+        Assert.Equal("Success", result.Trace.FinalStatus)
 
     [<Fact>]
     let ``a graph with no goal is told so, and still runs`` () =

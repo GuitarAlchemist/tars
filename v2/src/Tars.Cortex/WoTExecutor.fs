@@ -656,11 +656,59 @@ Respond with ONLY the number of your choice."""
             // Track per-node outputs for progressive context disclosure
             let mutable stepOutputs: Map<string, string> = Map.empty
 
+            // Nodes that did not complete: the ones that failed, and - transitively -
+            // the ones skipped because something they depend on is in here (tars#335).
+            //
+            // Before this, a `Failed` step appended an error and the loop carried on. A
+            // graph written as "check the file exists -> write to it" ran the write even
+            // when the check failed, and a reason node after a failure was handed the
+            // previous node's output labelled as its own input, so it reasoned over the
+            // wrong text and produced an answer that read exactly like a normal one.
+            //
+            // The edges already say what depends on what, so a node whose predecessor
+            // fell is now skipped, and independent branches keep running. A node skipped
+            // by its *condition* is not in here: that is the graph working as written,
+            // and what comes after it may legitimately run.
+            let mutable fallen: Set<string> = Set.empty
+
+            let fallenPredecessor (node: WoTNode) =
+                plan.Edges
+                |> List.tryFind (fun e -> e.To = node.Id && fallen.Contains e.From)
+                |> Option.map (fun e -> e.From)
+
+            let skipBecauseFallen (node: WoTNode) (cause: string) =
+                let skipStep =
+                    { NodeId = node.Id
+                      NodeType = node.Kind.ToString()
+                      StartedAt = DateTime.UtcNow
+                      Status = Skipped $"'{cause}', which it depends on, did not complete"
+                      Input = None
+                      Output = None
+                      Confidence = None
+                      TokensUsed = None }
+
+                ctx.OnProgress(skipStep)
+                steps <- steps @ [ skipStep ]
+                fallen <- fallen.Add node.Id
+
             // Helper: process a single executed node result (KG recording, tracking)
             let recordNodeResult (node: WoTNode) (step: WoTTraceStep) (output: string) =
                 async {
                     let nodeId = PatternCompiler.nodeId node
-                    stepOutputs <- stepOutputs |> Map.add nodeId output
+
+                    let completed =
+                        match step.Status with
+                        | Failed _ -> false
+                        | _ -> true
+
+                    // A failed node has no output. `executeNode` hands back the previous
+                    // one in its place so the loop has a string to thread through, and
+                    // recording that as *this* node's output is what let a later node read
+                    // it as if the failed step had produced it.
+                    if completed then
+                        stepOutputs <- stepOutputs |> Map.add nodeId output
+                    else
+                        fallen <- fallen.Add node.Id
 
                     // Record step in KG
                     match ctx.KnowledgeGraph with
@@ -702,7 +750,9 @@ Respond with ONLY the number of your choice."""
                     | None -> ()
 
                     steps <- steps @ [ step ]
-                    currentOutput <- output
+
+                    if completed then
+                        currentOutput <- output
 
                     match node.Kind with
                     | Tool ->
@@ -726,11 +776,13 @@ Respond with ONLY the number of your choice."""
                 if not ctx.CancellationToken.IsCancellationRequested then
                     match segment with
                     | Single node ->
+                        match fallenPredecessor node with
+                        | Some cause -> skipBecauseFallen node cause
                         // Check condition before executing
-                        if evaluateCondition ctx node stepOutputs then
+                        | None when evaluateCondition ctx node stepOutputs ->
                             let! (step, output) = executeNode ctx node currentOutput plan.Edges stepOutputs
                             do! recordNodeResult node step output
-                        else
+                        | None ->
                             // Skip node: record a Skipped trace step
                             let skipStep =
                                 { NodeId = node.Id
@@ -747,11 +799,22 @@ Respond with ONLY the number of your choice."""
                     | ParallelGroup(groupId, nodes) ->
                         ctx.Logger $"[WoT] Executing parallel group '%s{groupId}' with %d{nodes.Length} nodes"
 
+                        // A member whose predecessor fell is skipped first, for the same
+                        // reason as a single node; the rest go through their conditions.
+                        let reachable =
+                            nodes
+                            |> List.filter (fun n ->
+                                match fallenPredecessor n with
+                                | Some cause ->
+                                    skipBecauseFallen n cause
+                                    false
+                                | None -> true)
+
                         // Filter nodes by condition, skip those that don't pass
                         let executableNodes =
-                            nodes |> List.filter (fun n -> evaluateCondition ctx n stepOutputs)
+                            reachable |> List.filter (fun n -> evaluateCondition ctx n stepOutputs)
                         let skippedNodes =
-                            nodes |> List.filter (fun n -> not (evaluateCondition ctx n stepOutputs))
+                            reachable |> List.filter (fun n -> not (evaluateCondition ctx n stepOutputs))
 
                         // Record skipped nodes
                         for skipped in skippedNodes do
@@ -777,15 +840,10 @@ Respond with ONLY the number of your choice."""
 
                             // Record results from all parallel nodes
                             for (node, (step, output)) in List.zip executableNodes (Array.toList parallelResults) do
+                                // `recordNodeResult` moves `currentOutput` on for each member
+                                // that completed, in order, so it ends on the last one that
+                                // did - not on a failed member's stand-in for an output.
                                 do! recordNodeResult node step output
-
-                            // Set currentOutput to the combined output of the last parallel node
-                            let lastOutput =
-                                parallelResults
-                                |> Array.toList
-                                |> List.map snd
-                                |> List.last
-                            currentOutput <- lastOutput
 
             if ctx.CancellationToken.IsCancellationRequested then
                 warnings <- "Execution cancelled" :: warnings
