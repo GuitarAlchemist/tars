@@ -1098,11 +1098,11 @@ module GraphEditorBridge =
                     let plan = toWoTPlan registry spec verdict.ExecutionOrder
                     let! result = getExecutor () plan
 
-                    // `WoTExecutor` does not stop at the first failure: a `Failed` step
-                    // appends an error and the loop carries on, and a later node is
-                    // handed the previous output in place of the missing one. So a node
-                    // downstream of a failure still runs, and a caller who approved it
-                    // as a step *after* a guard needs to be told that (tars#335).
+                    // `WoTExecutor` skips every node downstream of a failure and keeps
+                    // running the branches that do not depend on it (tars#335). A caller
+                    // who approved a node as a step *after* a guard still needs to hear
+                    // that it did not run, and why - an approved node that silently did
+                    // nothing reads like one that did.
                     let failed =
                         result.Trace.Steps
                         |> List.filter (fun step ->
@@ -1111,14 +1111,24 @@ module GraphEditorBridge =
                             | _ -> false)
                         |> List.map (fun step -> step.NodeId)
 
+                    let skipped =
+                        result.Trace.Steps
+                        |> List.choose (fun step ->
+                            match step.Status with
+                            | Skipped reason when reason.EndsWith "which it depends on, did not complete" -> Some step.NodeId
+                            | _ -> None)
+
                     let failureWarning =
                         if failed.IsEmpty then
                             []
                         else
-                            [ "these nodes failed and the rest of the graph ran anyway: "
+                            [ "these nodes failed: "
                               + String.concat ", " failed
-                              + ". Nodes after a failure are not skipped, and a reason node after one is "
-                              + "given the previous node's output in place of the missing one." ]
+                              + (if skipped.IsEmpty then
+                                     ". Nothing depended on them."
+                                 else
+                                     ". These were skipped because they depend on one of them: "
+                                     + String.concat ", " skipped) ]
 
                     return
                         { Success = result.Success
