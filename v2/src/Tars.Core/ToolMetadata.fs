@@ -157,8 +157,24 @@ module ToolMetadata =
     /// "N of M tools described" an editor shows while the backfill is incomplete.
     let describedCount () = descriptors.Count
 
-    /// Forget every description. For tests; nothing in the running system calls it.
-    let internal clear () = descriptors.Clear()
+    /// The one thing only a test needs.
+    ///
+    /// Public, and under a module that says who it is for, because the alternative was
+    /// `InternalsVisibleTo Tars.Tests` on `Tars.Core.fsproj`: opening *every* internal
+    /// of this assembly to the test project in order to reach one function. `AGENTS.md`
+    /// counts a `.fsproj` change as a one-way door, and that was a wide one bought for
+    /// a narrow need.
+    ///
+    /// One public function names its own purpose; an assembly-wide attribute names
+    /// nothing. What the attribute did buy was the compiler refusing to let production
+    /// code call this. `ToolMetadataTests.nothing in the running system resets the
+    /// registry` now enforces that instead, by reading the source tree - a weaker
+    /// guarantee than the type system, honestly weaker, and traded for a much smaller
+    /// hole.
+    module Testing =
+
+        /// Forget every description, so a test can state the whole world it expects.
+        let reset () = descriptors.Clear()
 
     // =========================================================================
     // Schema helpers
