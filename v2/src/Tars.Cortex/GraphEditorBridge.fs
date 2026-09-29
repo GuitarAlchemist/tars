@@ -726,6 +726,61 @@ module GraphEditorBridge =
 
         List.rev errors, order
 
+    /// A policy says what a graph must not do. Checked against the tier each node
+    /// declares, before anything runs - see `ToolGate.Policy` for what that does and
+    /// does not cover.
+    let private checkPolicy (registry: IToolRegistry) (spec: PlanSpec) : ValidationError list =
+        let words =
+            spec.Policy
+            |> Option.defaultValue []
+            |> List.filter (String.IsNullOrWhiteSpace >> not)
+
+        let parsed = words |> List.map (fun w -> w, ToolGate.Policy.parse w)
+
+        // Refused, not skipped. A restriction nobody recognises is a restriction
+        // nobody applies, and running under it is the bug this check exists to end.
+        let unknown =
+            parsed
+            |> List.choose (fun (word, restriction) ->
+                match restriction with
+                | None ->
+                    Some
+                        { Code = "unknown_policy"
+                          Step = None
+                          Message =
+                            $"'{word}' is not a policy this runner can enforce; known: "
+                            + (ToolGate.Policy.all |> List.map (fun r -> r.Word) |> String.concat ", ") }
+                | Some _ -> None)
+
+        let restrictions = parsed |> List.choose snd |> List.distinct
+
+        // The tier each node would run at. A node whose tool cannot be resolved or is
+        // undescribed has no tier, and has already been refused by `checkToolNode`.
+        let tierOf (node: NodeSpec) =
+            match node.Kind with
+            | "reason" -> Some reasonApproval.Tier
+            | "tool" ->
+                match node.Tool |> Option.map (ToolGate.inspect registry) with
+                | Some(ToolGate.Allowed(_, descriptor))
+                | Some(ToolGate.NeedsApproval(_, descriptor)) -> Some descriptor.Approval.Tier
+                | _ -> None
+            | _ -> None
+
+        let violations =
+            [ for node in spec.Nodes do
+                  match tierOf node with
+                  | None -> ()
+                  | Some tier ->
+                      for restriction in restrictions do
+                          if not (ToolGate.Policy.permits restriction tier) then
+                              { Code = "policy_violation"
+                                Step = Some node.Id
+                                Message =
+                                  $"the graph says '{restriction.Word}', and node '{node.Id}' is "
+                                  + $"{tier.Wire}: it could do what the policy rules out" } ]
+
+        unknown @ violations
+
     /// Everything true of the graph that does not stop it running.
     let private warningsFor (spec: PlanSpec) (order: string list) : string list =
         let mutable warnings: string list = []
@@ -755,15 +810,14 @@ module GraphEditorBridge =
                 "no entry node given; the first node in execution order will be used"
                 :: warnings
 
-        // Reading a graph does nothing, so an unenforceable policy is only a warning
-        // here. `run` refuses it outright, because running under a restriction nobody
-        // applies is claiming a guarantee that does not exist (tars#334).
+        // A policy is now checked, but statically: against what each node declares,
+        // before the run, not by watching it. Said once, on every graph that carries
+        // one, so nobody reads "policy satisfied" as more than it is.
         match spec.Policy with
         | Some policy when not (policy |> List.filter (String.IsNullOrWhiteSpace >> not)).IsEmpty ->
             warnings <-
-                ("nothing enforces a policy: the executor never reads it, so "
-                 + String.concat ", " policy
-                 + " will not be applied. `tars_plan_run` refuses a graph carrying one (tars#334)")
+                "the policy was checked against the tier each node declares, before running; "
+                + "it is not enforced while the graph runs, and it does not limit what a read_only tool may read"
                 :: warnings
         | _ -> ()
 
@@ -831,6 +885,7 @@ module GraphEditorBridge =
 
         let perNode = spec.Nodes |> List.map (checkNode registry)
         let shapeErrors, order = checkShape spec
+        let policyErrors = checkPolicy registry spec
 
         // Concatenated in the order the single function used to append them, because
         // the first error is the one a caller reads.
@@ -839,6 +894,7 @@ module GraphEditorBridge =
             @ unsupportedErrors
             @ (perNode |> List.collect fst)
             @ shapeErrors
+            @ policyErrors
 
         { Valid = errors.IsEmpty
           Errors = errors
@@ -1027,24 +1083,11 @@ module GraphEditorBridge =
                     verdict.NeedsApproval
                     |> List.filter (fun notice -> not (approvedSet.Contains notice.NodeId))
 
-                // A policy list says what the graph may *not* do, and nothing reads it:
-                // `WoTExecutor` never looks at `plan.Policy`. Accepting `no-network`
-                // and then running a graph that reaches the network is worse than
-                // refusing, because the caller believes a restriction is in force.
-                // Validation only warns — reading a graph is not doing anything — but
-                // running one under a restriction nobody enforces is refused outright.
-                let policy = spec.Policy |> Option.defaultValue [] |> List.filter (String.IsNullOrWhiteSpace >> not)
-
-                if not policy.IsEmpty then
-                    return
-                        refuse
-                            [ "this graph carries a policy ("
-                              + String.concat ", " policy
-                              + "), and nothing here enforces one: the executor never reads it. "
-                              + "Running the graph would claim a restriction that is not in force. "
-                              + "Remove the policy to run it (tars#334)." ]
-                            verdict.Warnings
-                elif not refused.IsEmpty then
+                // A policy no longer needs refusing here: `validate` has already refused
+                // any graph whose policy is unknown or which holds a node whose declared
+                // tier exceeds it, and an invalid graph never reaches this line. What is
+                // left is a graph whose every node fits under its policy (tars#334).
+                if not refused.IsEmpty then
                     return
                         refuse
                             (refused
