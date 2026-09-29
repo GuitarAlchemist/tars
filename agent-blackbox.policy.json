@@ -20,8 +20,7 @@
     "migrations/**",
     "**/*.sln",
     "**/*.slnx",
-    "**/*.csproj",
-    "**/*.fsproj",
+    "**/Directory.Build.props",
     "governance/demerzel/policies/**",
     "governance/demerzel/schemas/**"
   ],
