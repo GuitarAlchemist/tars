@@ -655,29 +655,116 @@ module GraphEditorBridgeTests =
         Assert.Equal<string>([ "read"; "summarise" ], plan.Nodes |> List.map (fun n -> n.Id))
 
     [<Fact>]
-    let ``a graph carrying a policy nobody enforces is refused rather than run`` () =
+    let ``a graph whose every node fits under its policy runs`` () =
         withDescriptors [ readOnlyTool ]
         let registry = registryOf [ "read_file", "r" ]
         let executor, ran = recordingExecutor ()
 
         let graph =
             { spec [ toolNode "read" "read_file" [ "path", "README.md" ] ] [] with
-                Policy = Some [ "no-network" ] }
+                Policy = Some [ "no-network" ]
+                EntryNode = Some "read" }
 
-        // `WoTExecutor` never reads `plan.Policy` (tars#334). Running this would tell
-        // the caller their restriction held while the graph did whatever it liked.
+        // Until tars#334 this was refused outright, because nothing read the policy and
+        // running under it would have claimed a restriction that was not in force. It is
+        // now checked against each node's declared tier, and `read_file` is read_only.
         let result =
             GraphEditorBridge.run (fun () -> executor) registry graph []
             |> Async.RunSynchronously
 
+        Assert.True(result.Success, String.concat "; " result.Errors)
+        Assert.Single(ran) |> ignore
+
+        // And it says, every time, what kind of check that was.
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.Contains(verdict.Warnings, fun (w: string) -> w.Contains "not enforced while the graph runs")
+
+    [<Fact>]
+    let ``a node that reaches further than the policy allows is refused, and nothing runs`` () =
+        withDescriptors [ readOnlyTool; writingTool ]
+        let registry = registryOf [ "read_file", "r"; "write_code", "w" ]
+        let executor, ran = recordingExecutor ()
+
+        let graph =
+            { spec
+                  [ toolNode "read" "read_file" [ "path", "README.md" ]
+                    toolNode "write" "write_code" [ "path", "out.fs"; "content", "x" ] ]
+                  [ edge "read" "write" ] with
+                Policy = Some [ "no-writes" ]
+                EntryNode = Some "read" }
+
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.False(verdict.Valid)
+
+        let violation = Assert.Single(verdict.Errors |> List.filter (fun e -> e.Code = "policy_violation"))
+        Assert.Equal(Some "write", violation.Step)
+        Assert.Contains("no-writes", violation.Message)
+        Assert.Contains("mutates", violation.Message)
+
+        // Approving the node does not help: approval is "yes, run it", and the graph
+        // itself has said it must not. The graph's own restriction wins.
+        let result =
+            GraphEditorBridge.run (fun () -> executor) registry graph [ "write" ]
+            |> Async.RunSynchronously
+
         Assert.False(result.Success)
-        Assert.Contains("no-network", String.concat " " result.Errors)
         Assert.Empty(ran)
 
-        // Reading a graph does nothing, so validation only says so.
+    [<Fact>]
+    let ``a reason node is refused under no-network, because a model call leaves the machine`` () =
+        withDescriptors []
+        let registry = registryOf []
+
+        let graph =
+            { spec [ reasonNode "think" "about it" ] [] with
+                Policy = Some [ "no-network" ]
+                EntryNode = Some "think" }
+
         let verdict = GraphEditorBridge.validate registry graph
-        Assert.True(verdict.Valid)
-        Assert.Contains(verdict.Warnings, fun (w: string) -> w.Contains "nothing enforces a policy")
+
+        let violation = Assert.Single(verdict.Errors |> List.filter (fun e -> e.Code = "policy_violation"))
+        Assert.Equal(Some "think", violation.Step)
+        Assert.Contains("escapes", violation.Message)
+
+    [<Fact>]
+    let ``a policy word nobody recognises is refused, not ignored`` () =
+        withDescriptors [ readOnlyTool ]
+        let registry = registryOf [ "read_file", "r" ]
+
+        // Ignoring it is the whole defect tars#334 was about: a graph that said
+        // `no-network` ran the network, and nothing said so. A misspelt or invented
+        // restriction is exactly as unenforced, so it gets the same answer.
+        let graph =
+            { spec [ toolNode "read" "read_file" [ "path", "README.md" ] ] [] with
+                Policy = Some [ "no-netwrk" ]
+                EntryNode = Some "read" }
+
+        let verdict = GraphEditorBridge.validate registry graph
+        Assert.False(verdict.Valid)
+
+        let unknown = Assert.Single(verdict.Errors |> List.filter (fun e -> e.Code = "unknown_policy"))
+        Assert.Contains("no-netwrk", unknown.Message)
+        Assert.Contains("no-network", unknown.Message) // the known words are listed
+
+    [<Fact>]
+    let ``restrictions compose by taking the stricter ceiling`` () =
+        // `no-network` alone allows a mutating tool; `no-writes` does not. Together the
+        // lower ceiling wins, rather than either one being dropped.
+        Assert.True(ToolGate.Policy.permits ToolGate.Policy.NoNetwork ToolMetadata.Mutates)
+        Assert.False(ToolGate.Policy.permits ToolGate.Policy.NoWrites ToolMetadata.Mutates)
+        Assert.False(ToolGate.Policy.permits ToolGate.Policy.NoNetwork ToolMetadata.Escapes)
+        Assert.True(ToolGate.Policy.permits ToolGate.Policy.NoWrites ToolMetadata.ReadOnly)
+
+        withDescriptors [ writingTool ]
+        let registry = registryOf [ "write_code", "w" ]
+
+        let graph =
+            { spec [ toolNode "write" "write_code" [ "path", "out.fs"; "content", "x" ] ] [] with
+                Policy = Some [ "no-network"; "no-writes" ]
+                EntryNode = Some "write" }
+
+        let codes = (GraphEditorBridge.validate registry graph).Errors |> List.map (fun e -> e.Code)
+        Assert.Contains("policy_violation", codes)
 
     [<Fact>]
     let ``the policy still reaches the plan, so enforcing it later needs no new wiring`` () =
