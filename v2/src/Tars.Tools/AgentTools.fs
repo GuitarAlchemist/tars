@@ -1,6 +1,7 @@
 namespace Tars.Tools.Standard
 
 open System
+open System.Threading.Tasks
 open Tars.Tools
 open Tars.Core
 
@@ -14,7 +15,10 @@ module AgentTools =
 
     [<TarsToolAttribute("delegate_task",
                         "Looks up an agent to hand a task to. It cannot run another agent: it says whether the agent is registered, and that nothing was started. Input JSON: { \"agent\": \"Reviewer\", \"task\": \"Review this code for bugs\", \"context\": \"optional context\" }")>]
-    let delegateTask (args: string) =
+    // Both of these only ever fail, so without the annotation F# makes the success
+    // type generic - and reflection, which is how the registry calls a tool, cannot
+    // invoke a generic method.
+    let delegateTask (args: string) : Task<Result<string, string>> =
         task {
             try
                 let doc = System.Text.Json.JsonDocument.Parse(args)
@@ -107,7 +111,7 @@ module AgentTools =
 
     [<TarsToolAttribute("query_agent",
                         "Cannot reach another agent: it says the question was not asked. Use list_agents to see what is registered. Input JSON: { \"agent\": \"Curriculum\", \"question\": \"What tasks are pending?\" }")>]
-    let queryAgent (args: string) =
+    let queryAgent (args: string) : Task<Result<string, string>> =
         task {
             try
                 let doc = System.Text.Json.JsonDocument.Parse(args)

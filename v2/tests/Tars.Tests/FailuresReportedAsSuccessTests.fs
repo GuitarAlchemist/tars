@@ -369,6 +369,23 @@ type FailuresReportedAsSuccessTests() =
 
         Assert.Equal(Result.Ok "true", run "health_check" "")
 
+        // And the agent tools, through the same path: a tool that only ever fails
+        // must still be one the registry can call.
+        match run "query_agent" """{"agent": "reviewer", "question": "Is this safe to merge?"}""" with
+        | Result.Error message -> Assert.StartsWith("Not asked", message)
+        | Result.Ok text -> failwith $"answered for an agent nobody asked: {text}"
+
+        match run "delegate_task" """{"agent": "reviewer", "task": "Review the parser"}""" with
+        | Result.Error message ->
+            // Which refusal depends on whether a test has set an agent registry; each
+            // of them is the tool's own answer, not a failure to call it.
+            Assert.True(
+                [ "Not delegated"; "Agent '"; "AgentRegistry not initialized" ]
+                |> List.exists message.StartsWith,
+                message
+            )
+        | Result.Ok text -> failwith $"reported a delegation that started nothing: {text}"
+
     // ------------------------------------------------------------ a verdict, or a word
 
     [<Fact>]
