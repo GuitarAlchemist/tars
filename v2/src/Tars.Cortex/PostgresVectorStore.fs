@@ -53,10 +53,15 @@ type PostgresVectorStore(connectionString: string, ?dimension: int) =
     /// swallowed every failure. `tars evolve` and the UI both construct a store at
     /// startup, so each of them wiped every persisted embedding, every time (#284).
     ///
-    /// A table created for another dimension is now left as it is. Writing a vector
-    /// of the wrong size into it fails loudly - pgvector refuses it - which is the
-    /// right outcome: which dimension should win is a migration decision, not
-    /// something to settle by deleting data.
+    /// A table created for another dimension is re-typed only while it is **empty**,
+    /// where there is nothing to lose. That is the table an upgrade leaves behind when
+    /// a model's dimension was wrong: `mxbai` was mapped to 512, every vector it made
+    /// was refused, and the column stayed `vector(512)` with no rows in it.
+    ///
+    /// One that holds vectors is left as it is. Writing a vector of the wrong size into
+    /// it fails loudly - pgvector refuses it - which is the right outcome: which
+    /// dimension should win is a migration decision, not something to settle by
+    /// deleting data.
     ///
     /// DDL cannot take SQL parameters for a type definition, so the dimension is
     /// interpolated; it is an int, never caller text.
@@ -82,6 +87,18 @@ type PostgresVectorStore(connectionString: string, ?dimension: int) =
             );
 
             CREATE INDEX IF NOT EXISTS idx_vectors_collection ON vectors(collection);
+
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM vectors)
+                   AND (SELECT format_type(atttypid, atttypmod)
+                        FROM pg_attribute
+                        WHERE attrelid = 'vectors'::regclass AND attname = 'vector')
+                       <> 'vector({dimension})'
+                THEN
+                    ALTER TABLE vectors ALTER COLUMN vector TYPE vector({dimension});
+                END IF;
+            END $$;
         """
 
     interface IVectorStore with

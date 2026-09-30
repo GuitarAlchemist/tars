@@ -68,6 +68,19 @@ type PostgresVectorStoreTests() =
         Assert.Contains("vector(768)", sql)
 
     [<Fact>]
+    member this.``the schema re-types an empty table left at another dimension, and only an empty one``() =
+        // `mxbai` was mapped to 512 while it returns 1024, so every vector it made was
+        // refused and the table stayed `vector(512)`, empty. `CREATE TABLE IF NOT
+        // EXISTS` alone would keep that column, and pgvector would refuse every
+        // 1024-long vector the corrected mapping now lets through.
+        //
+        // This reads the SQL; nothing here runs it against Postgres.
+        let sql = PostgresVectorStore.SchemaSql 1024
+
+        Assert.Contains("ALTER TABLE vectors ALTER COLUMN vector TYPE vector(1024)", sql)
+        Assert.Contains("IF NOT EXISTS (SELECT 1 FROM vectors)", sql)
+
+    [<Fact>]
     member this.``a store constructed later keeps what an earlier one saved``() =
         task {
             if not (TestHelpers.requirePostgres ()) then () else
