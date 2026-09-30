@@ -555,3 +555,30 @@ let ``a plan in which nothing ran is not a success, and teaches the selector not
     | Result.Error err -> Assert.Fail err
 
     Assert.Empty(selector.Recorded)
+
+[<Fact>]
+let ``a plan whose only step the gate refused is not a success, and teaches the selector nothing`` () =
+    let reg, planId, nodeId, toolName = planWithAToolNode ()
+
+    ToolMetadata.Testing.reset ()
+
+    ToolMetadata.describe
+        { Name = toolName
+          InputSchema = ToolMetadata.objectSchema [] []
+          Required = []
+          Approval = ToolMetadata.Approval.mutates "writes a file to disk" }
+
+    match executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId []) |> Async.RunSynchronously with
+    | Result.Ok output -> Assert.Fail $"the tool ran unapproved: {output}"
+    | Result.Error _ -> ()
+
+    ToolMetadata.Testing.reset ()
+
+    // Declining a tool says nothing about how well the pattern works.
+    let selector = RecordingSelector()
+
+    match completePlan selector (sprintf """{"plan_id": "%s"}""" planId) with
+    | Result.Ok json -> Assert.False(JsonDocument.Parse(json).RootElement.GetProperty("success").GetBoolean())
+    | Result.Error err -> Assert.Fail err
+
+    Assert.Empty(selector.Recorded)

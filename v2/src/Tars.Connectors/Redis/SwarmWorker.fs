@@ -71,6 +71,7 @@ type SwarmWorker
                 // what matters for tracing and regression checking)
                 let mutable stepCount = 0
                 let mutable allSuccess = true
+                let mutable lastOutput = ""
 
                 for i in 0 .. nodes.GetArrayLength() - 1 do
                     let node = nodes[i]
@@ -91,8 +92,30 @@ type SwarmWorker
                                 planId nodeId
 
                     let result =
-                        executeStep toolRegistry stepInput
-                        |> Async.RunSynchronously
+                        if kind = "Validate" then
+                            // executeStep refuses a Validate node - recording one would
+                            // pass it unchecked - so it is checked, against what the last
+                            // step produced. A check that fails is a failed step.
+                            let check =
+                                System.Text.Json.JsonSerializer.Serialize
+                                    {| plan_id = planId; node_id = nodeId; content = lastOutput |}
+
+                            match validateStep check with
+                            | Result.Ok json ->
+                                use verdict = System.Text.Json.JsonDocument.Parse json
+
+                                if verdict.RootElement.GetProperty("passed").GetBoolean() then
+                                    Result.Ok json
+                                else
+                                    Result.Error json
+                            | failed -> failed
+                        else
+                            match executeStep toolRegistry stepInput |> Async.RunSynchronously with
+                            | Result.Ok json ->
+                                use stepResult = System.Text.Json.JsonDocument.Parse json
+                                lastOutput <- stepResult.RootElement.GetProperty("output").GetString()
+                                Result.Ok json
+                            | failed -> failed
 
                     match result with
                     | Result.Ok _ -> stepCount <- stepCount + 1

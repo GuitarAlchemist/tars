@@ -55,7 +55,11 @@ module ClaudeCodeBridge =
           PatternKind: PatternKind
           StartedAt: DateTime
           StepOutputs: ConcurrentDictionary<string, string>
-          StepStatuses: ConcurrentDictionary<string, bool> }
+          StepStatuses: ConcurrentDictionary<string, bool>
+          /// Nodes the gate refused that have not run since. Their status is `false` -
+          /// the plan did not do them - but nothing was attempted, so they are not what
+          /// "a step ran" means when the plan completes.
+          Refused: ConcurrentDictionary<string, unit> }
 
     let private activePlans = ConcurrentDictionary<string, ActivePlan>()
 
@@ -186,7 +190,8 @@ module ClaudeCodeBridge =
                   PatternKind = patternKind
                   StartedAt = DateTime.UtcNow
                   StepOutputs = ConcurrentDictionary<string, string>()
-                  StepStatuses = ConcurrentDictionary<string, bool>() }
+                  StepStatuses = ConcurrentDictionary<string, bool>()
+                  Refused = ConcurrentDictionary<string, unit>() }
 
             // Build manifest
             let manifest =
@@ -299,8 +304,10 @@ module ClaudeCodeBridge =
                                 match gated with
                                 | Error refusal ->
                                     activePlan.StepStatuses.[nodeId] <- false
+                                    activePlan.Refused.[nodeId] <- ()
                                     return Error refusal
                                 | Ok t ->
+                                    activePlan.Refused.TryRemove(nodeId) |> ignore
                                     let sw = System.Diagnostics.Stopwatch.StartNew()
 
                                     let toolInput =
@@ -484,8 +491,11 @@ module ClaudeCodeBridge =
                 let failedSteps =
                     activePlan.StepStatuses.Values |> Seq.filter (not) |> Seq.length
 
-                // A plan in which no step was recorded did not succeed: nothing ran.
-                let ran = activePlan.StepStatuses.Count > 0
+                // A plan in which no step ran did not succeed. A step the gate refused
+                // was declined, not run.
+                let ran =
+                    activePlan.StepStatuses.Keys
+                    |> Seq.exists (fun node -> not (activePlan.Refused.ContainsKey node))
 
                 let success = ran && failedSteps = 0
 
