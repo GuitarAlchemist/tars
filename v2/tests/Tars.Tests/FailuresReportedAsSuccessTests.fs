@@ -124,6 +124,82 @@ type FailuresReportedAsSuccessTests() =
     // ------------------------------------------------------------ work nobody did
 
     [<Fact>]
+    member _.``A swarm worker with no LLM says it did not work on the goal, and teaches the selector nothing``() =
+        // The worker recorded "[Worker ...] Reasoning: <prompt>" as each Reason node's
+        // output, reported the job a success, and recorded that success for the pattern.
+        let recorded = ResizeArray<PatternOutcome>()
+
+        let selector =
+            { new IPatternSelector with
+                member _.Recommend(_, _) = PatternKind.ChainOfThought
+                member _.Score(_) = Map.empty
+                member _.RecordOutcome(outcome) = recorded.Add outcome }
+
+        // A plan that reasons, then runs a tool: the tool runs, the reasoning cannot.
+        let echo: Tool =
+            { Name = "swarm_echo"
+              Description = "Echo the input back"
+              Version = "1.0.0"
+              ParentVersion = None
+              CreatedAt = DateTime.UtcNow
+              Execute = fun input -> async { return Result.Ok input } }
+
+        let registry =
+            { new IToolRegistry with
+                member _.Register(_) = ()
+                member _.Get(name) = if name = echo.Name then Some echo else None
+                member _.GetAll() = [ echo ] }
+
+        let think = PatternCompiler.think "Why is the sky blue?" None
+        let act = PatternCompiler.act echo.Name Map.empty
+
+        let plan: WoTPlan =
+            { Id = Guid.NewGuid()
+              Nodes = [ think; act ]
+              Edges =
+                [ { From = think.Id
+                    To = act.Id
+                    Label = None
+                    Confidence = None } ]
+              EntryNode = think.Id
+              Metadata =
+                ({ Kind = PatternKind.ChainOfThought
+                   SourceGoal = "Explain why the sky is blue"
+                   CompiledAt = DateTime.UtcNow
+                   EstimatedTokens = None
+                   EstimatedSteps = None }
+                : PatternMetadata)
+              Policy = [] }
+
+        let compiler =
+            { new IPatternCompiler with
+                member _.CompileFor(_, _) = plan
+                member _.CompileChainOfThought(_, _) = failwith "not used"
+                member _.CompileReAct(_, _, _) = failwith "not used"
+                member _.CompileGraphOfThoughts(_, _, _) = failwith "not used"
+                member _.CompileTreeOfThoughts(_, _, _) = failwith "not used"
+                member _.CompilePattern(_, _) = failwith "not used" }
+
+        // Never connected: running one job does not touch the bus.
+        use bus = new Tars.Connectors.Redis.SwarmBus("localhost:1")
+        let worker = Tars.Connectors.Redis.SwarmWorker(bus, compiler, selector, registry)
+
+        let result =
+            worker.ExecuteJob
+                { JobId = "job-1"
+                  Goal = "Explain why the sky is blue"
+                  PatternHint = None
+                  MaxSteps = 3
+                  Priority = 1
+                  PostedBy = "test"
+                  PostedAt = DateTime.UtcNow }
+
+        Assert.False(result.Success, result.Output)
+        Assert.Contains("1 Reason node(s) were not run", result.Output)
+        Assert.Contains("1 other step(s) ran", result.Output)
+        Assert.Empty(recorded)
+
+    [<Fact>]
     member _.``A tool nobody registered fails its node, rather than the model making up what it returned``() =
         // The executor used to ask the LLM to "produce a plausible output for this tool
         // call" and record the answer as the tool's result, with the step Completed.

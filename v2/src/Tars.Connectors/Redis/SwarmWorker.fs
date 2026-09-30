@@ -66,74 +66,85 @@ type SwarmWorker
                 let pattern = root.GetProperty("pattern").GetString()
                 let nodes = root.GetProperty("nodes")
 
-                // Execute each node (for Reason nodes, we produce stub output
-                // since there's no LLM in worker mode — the plan structure is
-                // what matters for tracing and regression checking)
+                // This worker has no LLM, so it cannot run a Reason node. It used to
+                // record "[Worker ...] Reasoning: <prompt>" as the node's output - text
+                // standing in for reasoning nobody did - then report the job a success
+                // and teach the pattern selector from it. A Reason node is now counted
+                // as not run; the rest of the plan runs as before.
                 let mutable stepCount = 0
                 let mutable allSuccess = true
                 let mutable lastOutput = ""
+                let mutable notRun = 0
 
                 for i in 0 .. nodes.GetArrayLength() - 1 do
                     let node = nodes[i]
                     let nodeId = node.GetProperty("id").GetString()
                     let kind = node.GetProperty("kind").GetString()
 
-                    let stepInput =
-                        match kind with
-                        | "Reason" ->
-                            let prompt =
-                                match node.GetProperty("prompt").ValueKind with
-                                | System.Text.Json.JsonValueKind.String -> node.GetProperty("prompt").GetString()
-                                | _ -> job.Goal
-                            sprintf """{"plan_id": "%s", "node_id": "%s", "input": "[Worker %s] Reasoning: %s"}"""
-                                planId nodeId workerId (prompt.Substring(0, min 80 prompt.Length))
-                        | _ ->
-                            sprintf """{"plan_id": "%s", "node_id": "%s", "input": ""}"""
-                                planId nodeId
+                    if kind = "Reason" then
+                        notRun <- notRun + 1
+                    else
+                        let stepInput =
+                            sprintf """{"plan_id": "%s", "node_id": "%s", "input": ""}""" planId nodeId
 
-                    let result =
-                        if kind = "Validate" then
-                            // executeStep refuses a Validate node - recording one would
-                            // pass it unchecked - so it is checked, against what the last
-                            // step produced. A check that fails is a failed step.
-                            let check =
-                                System.Text.Json.JsonSerializer.Serialize
-                                    {| plan_id = planId; node_id = nodeId; content = lastOutput |}
+                        let result =
+                            if kind = "Validate" then
+                                // executeStep refuses a Validate node - recording one would
+                                // pass it unchecked - so it is checked, against what the last
+                                // step produced. A check that fails is a failed step.
+                                let check =
+                                    System.Text.Json.JsonSerializer.Serialize
+                                        {| plan_id = planId; node_id = nodeId; content = lastOutput |}
 
-                            match validateStep check with
-                            | Result.Ok json ->
-                                use verdict = System.Text.Json.JsonDocument.Parse json
+                                match validateStep check with
+                                | Result.Ok json ->
+                                    use verdict = System.Text.Json.JsonDocument.Parse json
 
-                                if verdict.RootElement.GetProperty("passed").GetBoolean() then
+                                    if verdict.RootElement.GetProperty("passed").GetBoolean() then
+                                        Result.Ok json
+                                    else
+                                        Result.Error json
+                                | failed -> failed
+                            else
+                                match executeStep toolRegistry stepInput |> Async.RunSynchronously with
+                                | Result.Ok json ->
+                                    use stepResult = System.Text.Json.JsonDocument.Parse json
+                                    lastOutput <- stepResult.RootElement.GetProperty("output").GetString()
                                     Result.Ok json
-                                else
-                                    Result.Error json
-                            | failed -> failed
-                        else
-                            match executeStep toolRegistry stepInput |> Async.RunSynchronously with
-                            | Result.Ok json ->
-                                use stepResult = System.Text.Json.JsonDocument.Parse json
-                                lastOutput <- stepResult.RootElement.GetProperty("output").GetString()
-                                Result.Ok json
-                            | failed -> failed
+                                | failed -> failed
 
-                    match result with
-                    | Result.Ok _ -> stepCount <- stepCount + 1
-                    | Result.Error _ ->
-                        stepCount <- stepCount + 1
-                        allSuccess <- false
+                        match result with
+                        | Result.Ok _ -> stepCount <- stepCount + 1
+                        | Result.Error _ ->
+                            stepCount <- stepCount + 1
+                            allSuccess <- false
 
                 // Complete the plan
                 let completeInput =
                     sprintf """{"plan_id": "%s", "final_output": "Completed by worker %s"}"""
                         planId workerId
 
-                let _ = completePlan selector completeInput
+                // A run that skipped its reasoning is not the pattern's outcome, so it
+                // teaches the selector nothing.
+                let learnFrom =
+                    if notRun = 0 then
+                        selector
+                    else
+                        { new IPatternSelector with
+                            member _.Recommend(goal, state) = selector.Recommend(goal, state)
+                            member _.Score(goal) = selector.Score(goal)
+                            member _.RecordOutcome(_) = () }
+
+                let _ = completePlan learnFrom completeInput
 
                 { JobId = job.JobId
                   WorkerId = workerId
-                  Success = allSuccess
-                  Output = $"Executed {stepCount} steps via {pattern}"
+                  Success = allSuccess && notRun = 0
+                  Output =
+                    if notRun = 0 then
+                        $"Executed {stepCount} steps via {pattern}"
+                    else
+                        $"Not worked on: this worker has no LLM, so {notRun} Reason node(s) were not run. {stepCount} other step(s) ran via {pattern}."
                   PatternUsed = pattern
                   DurationMs = sw.ElapsedMilliseconds
                   StepCount = stepCount
@@ -148,6 +159,9 @@ type SwarmWorker
               DurationMs = sw.ElapsedMilliseconds
               StepCount = 0
               CompletedAt = DateTime.UtcNow }
+
+    /// Run one job outside the poll loop and return its result, without posting it.
+    member _.ExecuteJob(job: SwarmJob) = executeJob job
 
     /// The worker's main loop.
     member _.Run(ct: CancellationToken) =
