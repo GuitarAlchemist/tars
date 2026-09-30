@@ -17,11 +17,14 @@ jobs:
     if: github.event.pull_request.draft == false
 
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
+    outputs:
+      ok: ${{ steps.gate.outputs.ok }}
 
     steps:
       # Cost-safe: auto-review runs ONLY on the $0 subscription token. Without
@@ -50,8 +53,76 @@ jobs:
         with:
           # Subscription OAuth token ($0/call), never the pay-per-use ANTHROPIC_API_KEY.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          # This review is one vote in the cross-review (.github/scripts/cross_review.py).
+          # The code-review plugin used here before posted nothing when it found
+          # nothing, or when it judged a PR not worth reviewing, and on #350-#360 it
+          # posted nothing at all, so a silent run could not be told apart from a
+          # clean one. This prompt always ends in one vote comment.
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            HEAD COMMIT: ${{ github.event.pull_request.head.sha }}
+
+            You are one of two independent reviewers of this pull request; the other
+            is Codex. Form your own judgement from the code, and do not read other
+            reviews or comments on the PR. The PR's merge commit is checked out in
+            the working directory. Read the change with `gh pr diff`, and the code
+            around it in the working tree.
+
+            Look for real bugs in the change: behaviour that is wrong, output that
+            reports something that did not happen, a test that cannot fail or does
+            not test what it says. Ignore style, and anything the compiler or CI
+            would catch. Report only findings you have checked against the code.
+
+            Rate each finding:
+            P0  breaks something important for everyone (data loss, security)
+            P1  a real bug that will be hit in normal use
+            P2  a real bug on a less common path
+            P3  minor
+
+            Finish by posting exactly one comment with `gh pr comment`, even when
+            you found nothing and even when you could not review. Its first line
+            must be exactly one of these:
+
+            Cross-review vote: blocking @ ${{ github.event.pull_request.head.sha }}
+            Cross-review vote: to-fix @ ${{ github.event.pull_request.head.sha }}
+            Cross-review vote: clean @ ${{ github.event.pull_request.head.sha }}
+            Cross-review vote: not-reviewed @ ${{ github.event.pull_request.head.sha }}
+
+            blocking: at least one P0 or P1. to-fix: only P2 or P3. clean: no
+            findings. not-reviewed: you could not review it; say why.
+            After a blank line, write one line per finding, in this form:
+            - [P1] path/to/file.fs:123 - what is wrong, and how it shows up
+          claude_args: |
+            --allowedTools "Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Read,Grep,Glob"
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
+
+  # A comment posted with the workflow's token does not start other workflows,
+  # so cross-review.yml may never see Claude's vote. The verdict is posted from
+  # here too, even when the review failed.
+  cross-review-verdict:
+    needs: claude-review
+    if: always() && needs.claude-review.outputs.ok == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    # The same group as cross-review.yml, so two verdicts are never posted at
+    # once (both would find no verdict comment and each add one).
+    concurrency:
+      group: cross-review-${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Always the default branch's script, never the PR's.
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: .github/scripts
+
+      - name: Post the cross-review verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: python3 .github/scripts/cross_review.py post "$PR"
