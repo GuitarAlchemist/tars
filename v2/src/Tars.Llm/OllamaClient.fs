@@ -73,8 +73,12 @@ module OllamaClient =
           tools: obj[] option }
 
     /// <summary>DTO for tool call function response.</summary>
+    ///
+    /// `arguments` is whatever JSON the server sent. Ollama sends an object; typed as
+    /// a string, every reply that asked for a tool failed to deserialize, so the
+    /// non-streaming path threw on exactly the replies the tool loop exists for.
     [<CLIMutable>]
-    type ToolCallFunctionDto = { name: string; arguments: string }
+    type ToolCallFunctionDto = { name: string; arguments: JsonElement }
 
     /// <summary>DTO for tool call in response.</summary>
     [<CLIMutable>]
@@ -411,12 +415,28 @@ module OllamaClient =
             let mutable completionTokens = 0
             let mutable isDone = false
 
+            // Ollama streams each tool call whole, in the `message.tool_calls` of some
+            // chunk before the last. Kept as the JSON it arrived as (#317).
+            let toolCalls = ResizeArray<string>()
+
             while not isDone && not reader.EndOfStream do
                 let! line = reader.ReadLineAsync()
 
                 if not (String.IsNullOrWhiteSpace(line)) then
                     try
                         let chunk = JsonSerializer.Deserialize<OllamaResponseDto>(line, jsonOptions)
+
+                        if line.Contains "\"tool_calls\"" then
+                            use doc = JsonDocument.Parse line
+
+                            match doc.RootElement.TryGetProperty "message" with
+                            | true, message ->
+                                match message.TryGetProperty "tool_calls" with
+                                | true, calls when calls.ValueKind = JsonValueKind.Array ->
+                                    for call in calls.EnumerateArray() do
+                                        toolCalls.Add(call.GetRawText())
+                                | _ -> ()
+                            | _ -> ()
 
                         if not (isNull (box chunk)) then
                             if not (isNull (box chunk.message)) && not (isNull chunk.message.content) then
@@ -446,9 +466,21 @@ module OllamaClient =
                 else
                     None
 
+            // The calls have to reach the caller, and `LlmResponse` carries them only in
+            // `Raw` - which is where `ChatClientMapping.toolCallsOf` reads them from on
+            // the non-streaming path. So the reply is written back in the shape that
+            // path receives, holding what the stream said and nothing else.
+            let raw =
+                if toolCalls.Count = 0 then
+                    None
+                else
+                    Some(
+                        $"""{{"message":{{"role":"assistant","content":{JsonSerializer.Serialize fullText},"tool_calls":[{String.Join(",", toolCalls)}]}},"done":true}}"""
+                    )
+
             return
                 { Text = fullText
                   FinishReason = Some "done"
                   Usage = usage
-                  Raw = None }
+                  Raw = raw }
         }
