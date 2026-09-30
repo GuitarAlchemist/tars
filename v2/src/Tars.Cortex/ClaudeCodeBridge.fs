@@ -56,10 +56,10 @@ module ClaudeCodeBridge =
           StartedAt: DateTime
           StepOutputs: ConcurrentDictionary<string, string>
           StepStatuses: ConcurrentDictionary<string, bool>
-          /// Nodes the gate refused that have not run since. Their status is `false` -
-          /// the plan did not do them - but nothing was attempted, so they are not what
-          /// "a step ran" means when the plan completes.
-          Refused: ConcurrentDictionary<string, unit> }
+          /// Nodes that were run, checked or recorded at least once. A status alone
+          /// cannot say this: a node the gate refused has status `false` without
+          /// anything having been attempted.
+          Ran: ConcurrentDictionary<string, unit> }
 
     let private activePlans = ConcurrentDictionary<string, ActivePlan>()
 
@@ -191,7 +191,7 @@ module ClaudeCodeBridge =
                   StartedAt = DateTime.UtcNow
                   StepOutputs = ConcurrentDictionary<string, string>()
                   StepStatuses = ConcurrentDictionary<string, bool>()
-                  Refused = ConcurrentDictionary<string, unit>() }
+                  Ran = ConcurrentDictionary<string, unit>() }
 
             // Build manifest
             let manifest =
@@ -303,11 +303,11 @@ module ClaudeCodeBridge =
 
                                 match gated with
                                 | Error refusal ->
-                                    activePlan.StepStatuses.[nodeId] <- false
-                                    activePlan.Refused.[nodeId] <- ()
+                                    // The plan has not done this node - unless an earlier
+                                    // run did, and then that run's result stands.
+                                    activePlan.StepStatuses.TryAdd(nodeId, false) |> ignore
                                     return Error refusal
                                 | Ok t ->
-                                    activePlan.Refused.TryRemove(nodeId) |> ignore
                                     let sw = System.Diagnostics.Stopwatch.StartNew()
 
                                     let toolInput =
@@ -316,6 +316,7 @@ module ClaudeCodeBridge =
 
                                     let! result = Tars.Core.ToolExecution.runDefault t toolInput
                                     sw.Stop()
+                                    activePlan.Ran.[nodeId] <- ()
 
                                     match result with
                                     | Ok output ->
@@ -347,6 +348,7 @@ module ClaudeCodeBridge =
                             // For non-tool nodes, record the input as output
                             activePlan.StepOutputs.[nodeId] <- stepInput
                             activePlan.StepStatuses.[nodeId] <- true
+                            activePlan.Ran.[nodeId] <- ()
                             let nextNodes = nextNodesFor activePlan.Plan.Edges nodeId
 
                             let stepResult =
@@ -444,6 +446,7 @@ module ClaudeCodeBridge =
                                 else sprintf "FAIL: %s" (String.Join(", ", failed))
 
                             activePlan.StepStatuses.[nodeId] <- allPassed
+                            activePlan.Ran.[nodeId] <- ()
 
                             let nextNodes = nextNodesFor activePlan.Plan.Edges nodeId
 
@@ -493,9 +496,7 @@ module ClaudeCodeBridge =
 
                 // A plan in which no step ran did not succeed. A step the gate refused
                 // was declined, not run.
-                let ran =
-                    activePlan.StepStatuses.Keys
-                    |> Seq.exists (fun node -> not (activePlan.Refused.ContainsKey node))
+                let ran = not activePlan.Ran.IsEmpty
 
                 let success = ran && failedSteps = 0
 

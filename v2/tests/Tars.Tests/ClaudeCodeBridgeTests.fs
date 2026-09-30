@@ -582,3 +582,37 @@ let ``a plan whose only step the gate refused is not a success, and teaches the 
     | Result.Error err -> Assert.Fail err
 
     Assert.Empty(selector.Recorded)
+
+[<Fact>]
+let ``a step that ran keeps its result when a later retry is refused`` () =
+    let reg, planId, nodeId, toolName = planWithAToolNode ()
+
+    ToolMetadata.Testing.reset ()
+
+    ToolMetadata.describe
+        { Name = toolName
+          InputSchema = ToolMetadata.objectSchema [] []
+          Required = []
+          Approval = ToolMetadata.Approval.mutates "writes a file to disk" }
+
+    match executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId [ nodeId ]) |> Async.RunSynchronously with
+    | Result.Ok _ -> ()
+    | Result.Error err -> Assert.Fail $"approving it did not let it run: {err}"
+
+    // Sent again without `approve`: refused, and the run above still happened.
+    match executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId []) |> Async.RunSynchronously with
+    | Result.Ok output -> Assert.Fail $"the tool ran unapproved: {output}"
+    | Result.Error _ -> ()
+
+    ToolMetadata.Testing.reset ()
+
+    let selector = RecordingSelector()
+
+    match completePlan selector (sprintf """{"plan_id": "%s"}""" planId) with
+    | Result.Ok json ->
+        let root = JsonDocument.Parse(json).RootElement
+        Assert.True(root.GetProperty("success").GetBoolean(), json)
+        Assert.Equal(0, root.GetProperty("failedSteps").GetInt32())
+    | Result.Error err -> Assert.Fail err
+
+    Assert.True((List.exactlyOne selector.Recorded).Success)
