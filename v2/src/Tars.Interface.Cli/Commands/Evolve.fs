@@ -288,7 +288,9 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 let vecDim =
                     match config.Llm.EmbeddingModel.ToLowerInvariant() with
                     | m when m.Contains("nomic") -> 768
-                    | m when m.Contains("mxbai") -> 512
+                    // mxbai-embed-large returns 1024. At 512, SaveAsync's length check
+                    // rejected every vector it produced.
+                    | m when m.Contains("mxbai") -> 1024
                     | m when m.Contains("text-embedding-3-large") -> 3072
                     | m when m.Contains("text-embedding-3-small") -> 1536
                     | _ -> 1536
