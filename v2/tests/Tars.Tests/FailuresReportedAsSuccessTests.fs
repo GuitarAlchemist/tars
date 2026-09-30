@@ -121,6 +121,41 @@ type FailuresReportedAsSuccessTests() =
         for content in [ "[1,2]"; "42"; "\"just text\"" ] do
             Assert.Equal(Result.Ok false, Verification.verify content (Schema schema) noTools |> Async.RunSynchronously)
 
+    // ------------------------------------------------------------ work nobody did
+
+    [<Fact>]
+    member _.``Spawning a subagent says nothing was started, rather than reporting research it never did``() =
+        // The MCP server's only subagent runner waited a second and reported
+        // `Success = true`, "Completed research on: <goal>", for any goal at all.
+        let registry =
+            { new IToolRegistry with
+                member _.Register(_) = ()
+                member _.Get(_) = None
+                member _.GetAll() = [] }
+
+        let server = Tars.Connectors.Mcp.McpServer(registry)
+
+        let answer =
+            server.HandleRequest(
+                """{"jsonrpc":"2.0","id":1,"method":"subagents/spawn","params":{"goal":"survey the literature"}}"""
+            )
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        match answer with
+        | None -> failwith "the server gave no answer"
+        | Some json ->
+            use doc = System.Text.Json.JsonDocument.Parse json
+            let root = doc.RootElement
+
+            // No subagent id to poll, so no later "completed" to believe.
+            match root.TryGetProperty "result" with
+            | true, result when result.ValueKind <> System.Text.Json.JsonValueKind.Null ->
+                failwith $"spawn was accepted: {json}"
+            | _ -> ()
+
+            Assert.Contains("nothing was started", root.GetProperty("error").GetProperty("message").GetString())
+
     // ------------------------------------------------------------ a verdict, or a word
 
     [<Fact>]
