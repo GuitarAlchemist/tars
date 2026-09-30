@@ -67,7 +67,11 @@ assert rows[1][2] == [(1, "v2/src/A.fs", 42)], rows[1]
 
 # 3. Both clean: clean, no disagreement.
 fake([], [], [codex_done, claude_clean])
-assert cr.verdict(1)[1:] == ("clean", [("Codex", "clean", [], None), ("Claude", "clean", [], None)], False)
+assert cr.verdict(1)[1:] == (
+    "clean",
+    [("Codex", "clean", [], None), ("Claude", "clean", [], None), ("TARS", "not-reviewed", [], None)],
+    False,
+)
 
 # 4. Only Codex voted; a forged vote from another account is ignored: incomplete.
 fake([], [], [codex_done, forged])
@@ -109,7 +113,17 @@ assert cr.verdict(1)[2][0][1] == "to-fix"
 fake([codex_review], [codex_inline], [codex_row("2026-10-01T10:00:00.1Z"), claude_clean])
 assert cr.verdict(1)[2][0][1] == "clean"
 
-# 10. Findings seen by both reviewers are matched by file and nearby line.
+# 10. TARS is advisory: its blocking vote is shown, but it changes neither the
+#     verdict nor the label, and it is not taken for Claude's vote.
+tars_p1 = {"user": {"login": "github-actions[bot]"}, "created_at": "2026-10-01T10:05:00Z",
+           "body": f"Cross-review vote (TARS): blocking @ {HEAD}\n\n- [P1] v2/src/A.fs:41 - loses the error"}
+fake([], [], [codex_done, claude_clean, tars_p1])
+head, overall, rows, disagree = cr.verdict(1)
+assert overall == "clean" and not disagree, (overall, disagree)
+assert rows[1][:2] == ("Claude", "clean") and rows[2][:3] == ("TARS", "blocking", [(1, "v2/src/A.fs", 41)]), rows
+assert "| TARS (advisory) | blocking |" in cr.render(head, overall, rows, disagree)
+
+# 11. Findings seen by both reviewers are matched by file and nearby line.
 assert cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/A.fs", 42))
 assert not cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/B.fs", 40))
 
