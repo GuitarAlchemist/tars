@@ -78,3 +78,14 @@ module ToolHelpers =
             match System.Int32.TryParse(args.Trim()) with
             | true, v -> Some v
             | _ -> None
+
+    /// Why a search was not run, or None when the service ran it. Both search
+    /// services answer a search they ran with 200. Anything else (Semantic
+    /// Scholar's 429, DuckDuckGo's 202 challenge page) used to be parsed like a
+    /// result page, found nothing in it, and came back as "No results found".
+    let searchNotRun (service: string) (status: System.Net.HttpStatusCode) =
+        if status = System.Net.HttpStatusCode.OK then
+            None
+        else
+            Some
+                $"{service} answered {int status} ({status}), so nothing was searched. This says nothing about whether results exist."
