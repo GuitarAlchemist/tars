@@ -457,6 +457,62 @@ type FailuresReportedAsSuccessTests() =
               "<think>weighing it up</think>\nVERIFIED: matches the cited source" ] do
             Assert.True(EpistemicVerdict.saysVerified answer, $"'{answer}' was not read as a verification")
 
+    [<Fact>]
+    member _.``Saving a memory whose flush failed says it was not saved``() =
+        if not (TestHelpers.requireTools ()) then () else
+
+        // save_memory dropped the flush's result and answered "Memory saved" either way.
+        let ingestion =
+            { new Tars.Connectors.EpisodeIngestion.IEpisodeIngestionService with
+                member _.Queue(_) = ()
+                member _.FlushAsync() = Threading.Tasks.Task.FromResult(Result.Error "graph server unreachable")
+                member _.IngestAsync(_) = failwith "not used"
+                member _.SearchAsync(_, _) = failwith "not used"
+                member _.HealthCheckAsync() = failwith "not used"
+                member _.GetEntitiesAsync() = failwith "not used"
+                member _.GetFactsAsync() = failwith "not used"
+                member _.GetCommunitiesAsync() = failwith "not used"
+                member _.Dispose() = () }
+
+        let tool = Tars.Tools.Standard.KnowledgeTools.createSaveMemoryTool ingestion
+
+        match tool.Execute """{"fact": "the build is green"}""" |> Async.RunSynchronously with
+        | Result.Error message -> Assert.Contains("graph server unreachable", message)
+        | Result.Ok text -> failwith $"reported a save that failed: {text}"
+
+    [<Fact>]
+    member _.``A generated test template is skipped until written, not passing while testing nothing``() =
+        if not (TestHelpers.requireTools ()) then () else
+
+        let template =
+            Tars.Tools.Standard.TestingTools.generateTest """{"function": "parse", "module": "Parser"}"""
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        Assert.DoesNotContain("Assert.True(true)", template)
+        Assert.Contains("Skip =", template)
+
+    [<Fact>]
+    member _.``Listing a small directory lists it``() =
+        if not (TestHelpers.requireTools ()) then () else
+
+        // `Seq.take 200` threw for any directory with fewer than 200 entries.
+        let dir = IO.Path.Combine(IO.Path.GetTempPath(), "tars-list-dir-" + Guid.NewGuid().ToString("N"))
+        IO.Directory.CreateDirectory dir |> ignore
+        IO.File.WriteAllText(IO.Path.Combine(dir, "a.txt"), "a")
+        IO.File.WriteAllText(IO.Path.Combine(dir, "b.txt"), "b")
+
+        try
+            let listing =
+                Tars.Tools.Standard.StandardTools.listDir (Text.Json.JsonSerializer.Serialize {| path = dir |})
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+
+            Assert.Contains("a.txt", listing)
+            Assert.Contains("b.txt", listing)
+        finally
+            IO.Directory.Delete(dir, true)
+
     // ----------------------------------------------------- a budget that stopped counting
 
     [<Fact>]
