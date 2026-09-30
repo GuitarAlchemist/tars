@@ -19,6 +19,10 @@ Votes are read from:
           (see claude-code-review.yml). claude-code-action may post it with
           the Claude app or with the workflow's token, so both accounts are
           accepted. Only this repo's workflows can post as github-actions[bot].
+  TARS    a comment whose first line is "Cross-review vote (TARS): <vote> @ <sha>"
+          (see tars-review.yml). It is advisory: shown, and counted by
+          `report`, but left out of the verdict and the label until its
+          findings have been checked against the other reviewers'.
 
 Usage:
   cross_review.py verdict <pr>            print the verdict for the head commit
@@ -34,8 +38,9 @@ from datetime import datetime
 
 REPO = os.environ.get("GITHUB_REPOSITORY", "GuitarAlchemist/tars")
 CODEX = "chatgpt-codex-connector[bot]"
-CLAUDE = ("claude[bot]", "github-actions[bot]")
+VOTE_ACCOUNTS = ("claude[bot]", "github-actions[bot]")
 REVIEWERS = ("Codex", "Claude")
+ADVISORY = ("TARS",)
 MARKER = "<!-- cross-review -->"
 DISAGREE_LABEL = "reviewers-disagree"
 ORDER = ["not-reviewed", "clean", "to-fix", "blocking"]
@@ -45,9 +50,9 @@ CODEX_CLEAN = re.compile(r"Didn't find any major issues.*?Reviewed commit:\*\*\s
 # A row of Codex's summary table. A review that finishes with no findings
 # leaves only this row (and a thumbs-up), not a comment.
 CODEX_DONE = re.compile(r"\*\*Completed\*\* <relative-time datetime=\"([^\"]+)\">.*?\|\s*`([0-9a-f]{7,40})`")
-CLAUDE_VOTE = re.compile(r"Cross-review vote: (blocking|to-fix|clean|not-reviewed) @ `?([0-9a-f]{7,40})")
+VOTE = re.compile(r"Cross-review vote(?: \((TARS)\))?: (blocking|to-fix|clean|not-reviewed) @ `?([0-9a-f]{7,40})")
 # The path runs up to the first ":<line>", so paths with spaces parse too.
-CLAUDE_FINDING = re.compile(r"^- \[P([0-3])\] `?(.+?)`?:(\d+)", re.M)
+FINDING = re.compile(r"^- \[P([0-3])\] `?(.+?)`?:(\d+)", re.M)
 
 
 def gh(*args):
@@ -108,15 +113,16 @@ def collect(pr):
                 )
                 if not same_run:
                     votes.append((at, "Codex", sha, "clean", []))
-        elif login in CLAUDE:
-            m = CLAUDE_VOTE.match(c["body"].lstrip())
+        elif login in VOTE_ACCOUNTS:
+            m = VOTE.match(c["body"].lstrip())
             if m:
-                findings = [(int(p), path, int(line)) for p, path, line in CLAUDE_FINDING.findall(c["body"])]
+                tag, stated, sha = m.groups()
+                findings = [(int(p), path, int(line)) for p, path, line in FINDING.findall(c["body"])]
                 # A "clean" header over a P1 finding counts as blocking: the
                 # stricter of the stated vote and the findings wins.
-                implied = vote_for([f[0] for f in findings]) if findings else m.group(1)
-                vote = max(m.group(1), implied, key=ORDER.index)
-                votes.append((c["created_at"], "Claude", m.group(2), vote, findings))
+                implied = vote_for([f[0] for f in findings]) if findings else stated
+                vote = max(stated, implied, key=ORDER.index)
+                votes.append((c["created_at"], tag or "Claude", sha, vote, findings))
     votes.sort(key=lambda v: when(v[0]))
     return [v[1:] for v in votes]
 
@@ -125,18 +131,20 @@ def verdict(pr):
     head = gh(f"repos/{REPO}/pulls/{pr}")["head"]["sha"]
     votes = collect(pr)
     rows = []
-    for reviewer in REVIEWERS:
+    for reviewer in REVIEWERS + ADVISORY:
         mine = [v for v in votes if v[0] == reviewer]
         here = [v for v in mine if same_commit(v[1], head)]
         if here:
             rows.append((reviewer, here[-1][2], here[-1][3], None))
         else:
             rows.append((reviewer, "not-reviewed", [], mine[-1] if mine else None))
-    cast = [vote for _, vote, _, _ in rows if vote != "not-reviewed"]
-    worst = max((vote for _, vote, _, _ in rows), key=ORDER.index)
+    # Advisory votes are shown but do not count.
+    counted = [row for row in rows if row[0] in REVIEWERS]
+    cast = [vote for _, vote, _, _ in counted if vote != "not-reviewed"]
+    worst = max((vote for _, vote, _, _ in counted), key=ORDER.index)
     if worst in ("blocking", "to-fix"):
         overall = worst
-    elif len(cast) == len(rows):
+    elif len(cast) == len(counted):
         overall = "clean"
     else:
         overall = "incomplete"
@@ -149,7 +157,8 @@ def render(head, overall, rows, disagree):
         MARKER,
         f"### Cross-review @ `{head[:7]}`",
         "",
-        f"**Verdict: {overall}.** The strictest vote wins. A reviewer with no vote on this commit is not counted as clean.",
+        f"**Verdict: {overall}.** The strictest counted vote wins; advisory votes are shown but not counted. "
+        "A reviewer with no vote on this commit is not counted as clean.",
         "",
         "| Reviewer | Vote on this commit | Findings |",
         "|---|---|---|",
@@ -159,7 +168,8 @@ def render(head, overall, rows, disagree):
         if last:
             shown += f" (last vote: {last[2]} @ `{last[1][:7]}`)"
         found = ", ".join(f"P{p} `{path}:{line}`" for p, path, line in findings)
-        lines.append(f"| {reviewer} | {shown} | {found or ('none' if vote == 'clean' else '-')} |")
+        name = f"{reviewer} (advisory)" if reviewer in ADVISORY else reviewer
+        lines.append(f"| {name} | {shown} | {found or ('none' if vote == 'clean' else '-')} |")
     if disagree:
         lines += ["", f"The reviewers disagree, so a human should decide (label `{DISAGREE_LABEL}`)."]
     return "\n".join(lines)
@@ -186,29 +196,57 @@ def post(pr):
 
 
 def near(a, b):
-    return a[1] == b[1] and abs(a[2] - b[2]) <= 10
+    """Two (commit, finding) pairs on the same commit, in the same file, within
+    10 lines. Findings on different pushes are never the same finding."""
+    (sha_a, fa), (sha_b, fb) = a, b
+    return same_commit(sha_a, sha_b) and fa[1] == fb[1] and abs(fa[2] - fb[2]) <= 10
+
+
+def findings_of(votes, reviewer):
+    """A reviewer's findings as (commit, finding) pairs, each counted once. A
+    second vote on a commit repeats the first one's findings, perhaps at another
+    severity or a nearby line: a finding near one from an earlier vote on the
+    same commit is the same finding. Findings within one vote are all kept."""
+    kept = []
+    for v in votes:
+        if v[0] != reviewer:
+            continue
+        earlier = list(kept)
+        for f in v[3]:
+            pair = (v[1][:7], f)
+            if pair not in kept and not any(near(pair, g) for g in earlier):
+                kept.append(pair)
+    return kept
 
 
 def report(first, last):
-    print("| PR | Codex votes | Claude votes | Codex findings | Claude findings | Seen by both |")
-    print("|---|---|---|---|---|---|")
-    totals = {"Codex": 0, "Claude": 0, "both": 0}
+    everyone = REVIEWERS + ADVISORY
+    print("| PR | Codex votes | Claude votes | TARS votes | Codex findings | Claude findings | TARS findings "
+          "| Codex and Claude | TARS confirmed |")
+    print("|---|---|---|---|---|---|---|---|---|")
+    totals = {"Codex": 0, "Claude": 0, "TARS": 0, "both": 0, "confirmed": 0}
     for pr in range(first, last + 1):
         try:
             votes = collect(pr)
         except subprocess.CalledProcessError:
             continue  # an issue number, not a PR
-        found = {r: [f for v in votes if v[0] == r for f in v[3]] for r in REVIEWERS}
+        found = {r: findings_of(votes, r) for r in everyone}
         both = sum(1 for f in found["Codex"] if any(near(f, g) for g in found["Claude"]))
-        cast = {r: ", ".join(dict.fromkeys(f"{v[2]}@{v[1][:7]}" for v in votes if v[0] == r)) or "none" for r in REVIEWERS}
-        print(f"| #{pr} | {cast['Codex']} | {cast['Claude']} | {len(found['Codex'])} | {len(found['Claude'])} | {both} |")
-        totals["Codex"] += len(found["Codex"])
-        totals["Claude"] += len(found["Claude"])
+        # A TARS finding is confirmed when Codex or Claude found the same thing.
+        others = found["Codex"] + found["Claude"]
+        confirmed = sum(1 for f in found["TARS"] if any(near(f, g) for g in others))
+        cast = {r: ", ".join(dict.fromkeys(f"{v[2]}@{v[1][:7]}" for v in votes if v[0] == r)) or "none" for r in everyone}
+        print(f"| #{pr} | {cast['Codex']} | {cast['Claude']} | {cast['TARS']} | {len(found['Codex'])} "
+              f"| {len(found['Claude'])} | {len(found['TARS'])} | {both} | {confirmed} |")
+        for r in everyone:
+            totals[r] += len(found[r])
         totals["both"] += both
+        totals["confirmed"] += confirmed
     print()
     print(
-        f"Findings: Codex {totals['Codex']}, Claude {totals['Claude']}, seen by both {totals['both']} "
-        "(same file, within 10 lines)."
+        f"Findings: Codex {totals['Codex']}, Claude {totals['Claude']}, TARS {totals['TARS']}. "
+        f"Seen by both Codex and Claude: {totals['both']}. TARS findings confirmed by Codex or Claude: "
+        f"{totals['confirmed']} (same commit, same file, within 10 lines)."
     )
 
 

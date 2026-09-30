@@ -1,0 +1,96 @@
+name: TARS review
+
+# The third reviewer in the cross-review: the declared TARS agent
+# v2/agents/code-reviewer.md (`tars review`), on a local Ollama model, on the
+# self-hosted runner. It costs nothing per PR and comes from a model family
+# other than Claude's and Codex's.
+#
+# Its vote is advisory: cross_review.py shows it but leaves it out of the
+# verdict and the label until `cross_review.py report` shows its findings
+# being confirmed by Codex or Claude.
+#
+# Safety: TARS is built from the default branch, never from the PR. The PR's
+# diff is only read, as text, by an agent that has no tools. Fork PRs never
+# run here.
+#
+# Opt-in: skipped unless the repo variable TARS_REVIEW_ENABLED is "true". It
+# is separate from SELFHOSTED_RUNNER_ENABLED, which also runs PR code (build-
+# selfhosted in dotnet.yml) on the runner. When the runner is offline the
+# job waits in the queue and TARS simply has no vote.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+
+concurrency:
+  group: tars-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  tars-review:
+    if: >-
+      vars.TARS_REVIEW_ENABLED == 'true'
+      && github.event.pull_request.draft == false
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Always the default branch's TARS, never the PR's.
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build TARS
+        working-directory: v2
+        run: dotnet build src/Tars.Interface.Cli/Tars.Interface.Cli.fsproj -c Release -o "$RUNNER_TEMP/tars-cli" -p:NuGetAudit=false -v q
+
+      - name: Review the diff
+        # From v2/, so TARS finds the agent definitions in v2/agents/.
+        working-directory: v2
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          TARS_Llm__Provider: Ollama
+          TARS_Llm__BaseUrl: http://localhost:11434
+        run: |
+          gh pr diff "$PR" > "$RUNNER_TEMP/pr.diff"
+          dotnet "$RUNNER_TEMP/tars-cli/Tars.Interface.Cli.dll" review "$RUNNER_TEMP/pr.diff" \
+            --sha "$SHA" --out "$RUNNER_TEMP/vote.md" --model qwen2.5-coder:7b
+          gh pr comment "$PR" --body-file "$RUNNER_TEMP/vote.md"
+
+  # TARS posts with the workflow token, which starts no other workflow, so the
+  # verdict is refreshed from here, in cross-review.yml's concurrency group.
+  cross-review-verdict:
+    needs: tars-review
+    if: needs.tars-review.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    concurrency:
+      group: cross-review-${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: .github/scripts
+
+      - name: Post the cross-review verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: python3 .github/scripts/cross_review.py post "$PR"

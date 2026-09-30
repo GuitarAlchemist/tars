@@ -492,6 +492,10 @@ let main argv =
             let subArgs = args |> Array.skip 1 |> Array.toList
             return PromoteCommand.run subArgs
 
+        // TARS Review - TARS's vote in the cross-review of a pull request
+        | args when args.Length > 0 && args.[0] = "review" ->
+            return! ReviewCommand.run (TarsRuntime.production logger) (args |> Array.skip 1 |> Array.toList)
+
         | args when args.Length > 0 && args.[0] = "wot" ->
             return! WotCommand.execute (args |> Array.skip 1 |> Array.toList)
 
@@ -662,6 +666,7 @@ let main argv =
             printfn "       lineage                     Show promotion history"
             printfn "       run [--min N]               Run pipeline on test data"
             printfn "       report                      Generate JSON audit report"
+            printfn "  tars review <diff> --sha S --out F [--model M]  Cross-review vote on a PR diff"
             printfn "  tars know <command>              TARS Knowledge Ledger (Phase 9)"
             printfn "       status [--pg]               Show ledger statistics"
             printfn "       assert <s> <p> <o> [--pg]   Add a belief triple"
