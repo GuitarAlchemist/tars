@@ -321,6 +321,60 @@ module OpenAiCompatibleClient =
         { id: string
           choices: OpenAiStreamChoiceDto[] }
 
+    /// One tool call as the stream has delivered it so far. The OpenAI family sends
+    /// the id and name first and the arguments in pieces, keyed by `index` (#317).
+    type private StreamedCall =
+        { mutable Id: string
+          Name: Text.StringBuilder
+          Arguments: Text.StringBuilder }
+
+    /// Fold one SSE event's `tool_calls` deltas into the calls seen so far.
+    let private accumulateToolCalls (calls: Collections.Generic.SortedDictionary<int, StreamedCall>) (event: string) =
+        use doc = JsonDocument.Parse event
+
+        match doc.RootElement.TryGetProperty "choices" with
+        | true, choices when choices.ValueKind = JsonValueKind.Array && choices.GetArrayLength() > 0 ->
+            match choices[0].TryGetProperty "delta" with
+            | true, delta ->
+                match delta.TryGetProperty "tool_calls" with
+                | true, deltas when deltas.ValueKind = JsonValueKind.Array ->
+                    for position, piece in deltas.EnumerateArray() |> Seq.indexed do
+                        let index =
+                            match piece.TryGetProperty "index" with
+                            | true, i when i.ValueKind = JsonValueKind.Number -> i.GetInt32()
+                            | _ -> position
+
+                        let call =
+                            match calls.TryGetValue index with
+                            | true, existing -> existing
+                            | _ ->
+                                let fresh =
+                                    { Id = null
+                                      Name = Text.StringBuilder()
+                                      Arguments = Text.StringBuilder() }
+
+                                calls[index] <- fresh
+                                fresh
+
+                        match piece.TryGetProperty "id" with
+                        | true, id when id.ValueKind = JsonValueKind.String -> call.Id <- id.GetString()
+                        | _ -> ()
+
+                        match piece.TryGetProperty "function" with
+                        | true, fn ->
+                            match fn.TryGetProperty "name" with
+                            | true, n when n.ValueKind = JsonValueKind.String -> call.Name.Append(n.GetString()) |> ignore
+                            | _ -> ()
+
+                            match fn.TryGetProperty "arguments" with
+                            | true, a when a.ValueKind = JsonValueKind.String ->
+                                call.Arguments.Append(a.GetString()) |> ignore
+                            | _ -> ()
+                        | _ -> ()
+                | _ -> ()
+            | _ -> ()
+        | _ -> ()
+
     /// <summary>
     /// Sends a streaming chat completion request to an OpenAI-compatible API.
     /// Yields tokens as they are generated.
@@ -369,6 +423,7 @@ module OpenAiCompatibleClient =
             let mutable fullText = ""
             let mutable isDone = false
             let mutable finishReason = "unknown"
+            let toolCalls = Collections.Generic.SortedDictionary<int, StreamedCall>()
 
             while not isDone && not reader.EndOfStream do
                 let! line = reader.ReadLineAsync()
@@ -385,6 +440,9 @@ module OpenAiCompatibleClient =
                         isDone <- true
                     elif not (String.IsNullOrWhiteSpace(dataLine)) then
                         try
+                            if dataLine.Contains "\"tool_calls\"" then
+                                accumulateToolCalls toolCalls dataLine
+
                             let chunk =
                                 JsonSerializer.Deserialize<OpenAiStreamResponseDto>(dataLine, jsonOptions)
 
@@ -406,11 +464,34 @@ module OpenAiCompatibleClient =
                         with _ ->
                             ()
 
+            // Written back in the shape the non-streaming path receives, so the calls
+            // reach the caller the same way: `ChatClientMapping.toolCallsOf` reads `Raw`.
+            let raw =
+                if toolCalls.Count = 0 then
+                    None
+                else
+                    let reply =
+                        {| choices =
+                            [| {| index = 0
+                                  finish_reason = finishReason
+                                  message =
+                                   {| role = "assistant"
+                                      content = fullText
+                                      tool_calls =
+                                       [| for call in toolCalls.Values ->
+                                              {| id = call.Id
+                                                 ``type`` = "function"
+                                                 ``function`` =
+                                                  {| name = call.Name.ToString()
+                                                     arguments = call.Arguments.ToString() |} |} |] |} |} |] |}
+
+                    Some(JsonSerializer.Serialize reply)
+
             return
                 { Text = fullText
                   FinishReason = Some finishReason
                   Usage = None
-                  Raw = None }
+                  Raw = raw }
         }
 
     /// Back-compat entry points. `vllmExtensions` defaults to false — the
