@@ -19,37 +19,7 @@ type PostgresVectorStore(connectionString: string, ?dimension: int) =
         use conn = new NpgsqlConnection(connectionString)
         conn.Open()
         use cmd = conn.CreateCommand()
-
-        // DDL statements can't use SQL parameters for type definitions,
-        // so we interpolate the dimension directly into the SQL string.
-        // This is safe because vecDim is always an int from our code.
-        cmd.CommandText <-
-            $"""
-            CREATE EXTENSION IF NOT EXISTS vector;
-
-            CREATE TABLE IF NOT EXISTS collections (
-                name TEXT PRIMARY KEY
-            );
-
-            -- Drop and recreate to ensure correct dimension (dev only)
-            DROP TABLE IF EXISTS vectors;
-
-            CREATE TABLE vectors (
-                id TEXT NOT NULL,
-                collection TEXT NOT NULL,
-                vector vector({vecDim}),
-                metadata JSONB NOT NULL,
-                checksum TEXT NOT NULL,
-                version INTEGER DEFAULT 1,
-                created_at TIMESTAMPTZ NOT NULL,
-                last_used TIMESTAMPTZ NOT NULL,
-                PRIMARY KEY (collection, id),
-                FOREIGN KEY (collection) REFERENCES collections(name) ON DELETE CASCADE
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_vectors_collection ON vectors(collection);
-        """
-
+        cmd.CommandText <- PostgresVectorStore.SchemaSql vecDim
         cmd.ExecuteNonQuery() |> ignore
 
     let computeChecksum (vector: float32[]) (payload: Map<string, string>) =
@@ -75,6 +45,44 @@ type PostgresVectorStore(connectionString: string, ?dimension: int) =
             initializeDb ()
         with _ ->
             ()
+
+    /// The schema every construction applies. Creates what is missing and nothing else.
+    ///
+    /// It used to `DROP TABLE IF EXISTS vectors` first, "to ensure correct dimension
+    /// (dev only)" - unconditionally, from the constructor, inside a `try` that
+    /// swallowed every failure. `tars evolve` and the UI both construct a store at
+    /// startup, so each of them wiped every persisted embedding, every time (#284).
+    ///
+    /// A table created for another dimension is now left as it is. Writing a vector
+    /// of the wrong size into it fails loudly - pgvector refuses it - which is the
+    /// right outcome: which dimension should win is a migration decision, not
+    /// something to settle by deleting data.
+    ///
+    /// DDL cannot take SQL parameters for a type definition, so the dimension is
+    /// interpolated; it is an int, never caller text.
+    static member SchemaSql(dimension: int) : string =
+        $"""
+            CREATE EXTENSION IF NOT EXISTS vector;
+
+            CREATE TABLE IF NOT EXISTS collections (
+                name TEXT PRIMARY KEY
+            );
+
+            CREATE TABLE IF NOT EXISTS vectors (
+                id TEXT NOT NULL,
+                collection TEXT NOT NULL,
+                vector vector({dimension}),
+                metadata JSONB NOT NULL,
+                checksum TEXT NOT NULL,
+                version INTEGER DEFAULT 1,
+                created_at TIMESTAMPTZ NOT NULL,
+                last_used TIMESTAMPTZ NOT NULL,
+                PRIMARY KEY (collection, id),
+                FOREIGN KEY (collection) REFERENCES collections(name) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_vectors_collection ON vectors(collection);
+        """
 
     interface IVectorStore with
         member _.SaveAsync(collection: string, id: string, vector: float32[], payload: Map<string, string>) =

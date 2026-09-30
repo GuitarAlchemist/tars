@@ -55,3 +55,31 @@ type PostgresVectorStoreTests() =
             Assert.Equal("vec1", searchResults.Item(0).Id)
             Assert.Equal("vec3", searchResults.Item(1).Id)
         }
+
+    [<Fact>]
+    member this.``the schema creates what is missing and never drops anything``() =
+        // Runs everywhere, Postgres or not. Every `tars evolve` and every UI start
+        // constructs a store, and construction applied a schema that began with
+        // `DROP TABLE IF EXISTS vectors` - wiping every persisted embedding (#284).
+        let sql = PostgresVectorStore.SchemaSql 768
+
+        Assert.DoesNotContain("DROP", sql.ToUpperInvariant())
+        Assert.Contains("CREATE TABLE IF NOT EXISTS vectors", sql)
+        Assert.Contains("vector(768)", sql)
+
+    [<Fact>]
+    member this.``a store constructed later keeps what an earlier one saved``() =
+        task {
+            if not (TestHelpers.requirePostgres ()) then () else
+
+            let first = PostgresVectorStore(connectionString, testDim) :> IVectorStore
+            let collection = "persist_" + Guid.NewGuid().ToString("N")
+            do! first.SaveAsync(collection, "kept", Array.create testDim 0.1f, Map [ "content", "still here" ])
+
+            // What a restart does.
+            let second = PostgresVectorStore(connectionString, testDim)
+
+            let! count = second.GetCountAsync(collection)
+            Assert.Equal(1, count)
+        }
+
