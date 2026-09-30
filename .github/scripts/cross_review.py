@@ -157,7 +157,8 @@ def render(head, overall, rows, disagree):
         MARKER,
         f"### Cross-review @ `{head[:7]}`",
         "",
-        f"**Verdict: {overall}.** The strictest vote wins. A reviewer with no vote on this commit is not counted as clean.",
+        f"**Verdict: {overall}.** The strictest counted vote wins; advisory votes are shown but not counted. "
+        "A reviewer with no vote on this commit is not counted as clean.",
         "",
         "| Reviewer | Vote on this commit | Findings |",
         "|---|---|---|",
@@ -195,7 +196,10 @@ def post(pr):
 
 
 def near(a, b):
-    return a[1] == b[1] and abs(a[2] - b[2]) <= 10
+    """Two (commit, finding) pairs on the same commit, in the same file, within
+    10 lines. Findings on different pushes are never the same finding."""
+    (sha_a, fa), (sha_b, fb) = a, b
+    return same_commit(sha_a, sha_b) and fa[1] == fb[1] and abs(fa[2] - fb[2]) <= 10
 
 
 def report(first, last):
@@ -209,7 +213,7 @@ def report(first, last):
             votes = collect(pr)
         except subprocess.CalledProcessError:
             continue  # an issue number, not a PR
-        found = {r: [f for v in votes if v[0] == r for f in v[3]] for r in everyone}
+        found = {r: [(v[1], f) for v in votes if v[0] == r for f in v[3]] for r in everyone}
         both = sum(1 for f in found["Codex"] if any(near(f, g) for g in found["Claude"]))
         # A TARS finding is confirmed when Codex or Claude found the same thing.
         others = found["Codex"] + found["Claude"]
@@ -225,7 +229,7 @@ def report(first, last):
     print(
         f"Findings: Codex {totals['Codex']}, Claude {totals['Claude']}, TARS {totals['TARS']}. "
         f"Seen by both Codex and Claude: {totals['both']}. TARS findings confirmed by Codex or Claude: "
-        f"{totals['confirmed']} (same file, within 10 lines)."
+        f"{totals['confirmed']} (same commit, same file, within 10 lines)."
     )
 
 

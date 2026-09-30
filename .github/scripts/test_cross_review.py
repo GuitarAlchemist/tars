@@ -124,7 +124,13 @@ assert rows[1][:2] == ("Claude", "clean") and rows[2][:3] == ("TARS", "blocking"
 assert "| TARS (advisory) | blocking |" in cr.render(head, overall, rows, disagree)
 
 # 11. Findings seen by both reviewers are matched by file and nearby line.
-assert cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/A.fs", 42))
-assert not cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/B.fs", 40))
+#     Findings on different commits of the PR never match.
+OTHER = "1234567890abcdef1234567890abcdef12345678"
+assert cr.near((HEAD, (2, "v2/src/A.fs", 40)), (HEAD[:7], (1, "v2/src/A.fs", 42)))
+assert not cr.near((HEAD, (2, "v2/src/A.fs", 40)), (HEAD, (1, "v2/src/B.fs", 40)))
+assert not cr.near((HEAD, (2, "v2/src/A.fs", 40)), (OTHER, (1, "v2/src/A.fs", 40)))
+
+# 12. The verdict says that only counted votes decide it.
+assert "strictest counted vote wins" in cr.render(*cr.verdict(1))
 
 print("all checks passed")
