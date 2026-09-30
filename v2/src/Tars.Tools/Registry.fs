@@ -93,6 +93,18 @@ type ToolRegistry(failureThreshold: int, durationOfBreak: TimeSpan) =
                 else
                     [| input :> obj |]
 
+        // What a finished task produced. Its runtime type is often a compiler-generated
+        // subclass, so `Result` is looked up on the Task<T> it derives from.
+        let taskValue (finished: Task) =
+            let rec generic (t: Type) =
+                if isNull t then None
+                elif t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<Task<_>> then Some t
+                else generic t.BaseType
+
+            match generic (finished.GetType()) with
+            | Some t -> t.GetProperty("Result").GetValue(finished)
+            | None -> null
+
         for (m, attr) in methods do
             let execute (input: string) : Async<Result<string, string>> =
                 async {
@@ -113,8 +125,25 @@ type ToolRegistry(failureThreshold: int, durationOfBreak: TimeSpan) =
                         | :? Task<string> as t ->
                             let! r = Async.AwaitTask t
                             return Result.Ok r
+                        // A tool that can fail says so in its result. Without these cases
+                        // its task fell through to `ToString` below, and every call - a
+                        // failed compile included - came back Ok, with a type name for text.
+                        | :? Task<Result<string, string>> as t -> return! Async.AwaitTask t
+                        | :? Result<string, string> as r -> return r
                         | :? string as s -> return Result.Ok s
                         | null -> return Result.Ok "null"
+                        // Any other task: what it produced, not the task's type name.
+                        | :? Task as t ->
+                            do! Async.AwaitTask t
+                            let value = taskValue t
+
+                            let text =
+                                try
+                                    JsonSerializer.Serialize value
+                                with _ ->
+                                    sprintf "%A" value
+
+                            return Result.Ok text
                         | _ -> return Result.Ok(result.ToString())
                     with ex ->
                         return Result.Error ex.Message

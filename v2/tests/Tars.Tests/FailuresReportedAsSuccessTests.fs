@@ -315,8 +315,11 @@ type FailuresReportedAsSuccessTests() =
             |> Async.AwaitTask
             |> Async.RunSynchronously
 
-        Assert.Contains("Not asked", answer)
-        Assert.DoesNotContain("Can approve or request changes", answer)
+        match answer with
+        | Result.Error message ->
+            Assert.Contains("Not asked", message)
+            Assert.DoesNotContain("Can approve or request changes", message)
+        | Result.Ok text -> failwith $"answered for an agent nobody asked: {text}"
 
     [<Fact>]
     member _.``Delegating to a registered agent says nothing was started``() =
@@ -339,9 +342,32 @@ type FailuresReportedAsSuccessTests() =
             |> Async.AwaitTask
             |> Async.RunSynchronously
 
-        Assert.Contains("Not delegated", answer)
-        Assert.Contains("nothing was started", answer)
-        Assert.DoesNotContain("initiated", answer)
+        match answer with
+        | Result.Error message ->
+            Assert.Contains("Not delegated", message)
+            Assert.Contains("nothing was started", message)
+        | Result.Ok text -> failwith $"reported a delegation that started nothing: {text}"
+
+    [<Fact>]
+    member _.``A tool's failure reaches the caller as a failure, and its value rather than a type name``() =
+        if not (TestHelpers.requireTools ()) then () else
+
+        // The registry knew Task<string> and string. A tool returning
+        // Task<Result<string, string>> - fsharp_compile, the refactor tools - or a
+        // Task<bool> came back Ok, with the task's type name for its text.
+        let registry = Tars.Tools.ToolRegistry()
+        registry.RegisterAssembly(typeof<Tars.Tools.ToolRegistry>.Assembly)
+
+        let run name (input: string) =
+            match registry.Get name with
+            | Some tool -> tool.Execute input |> Async.RunSynchronously
+            | None -> failwith $"{name} is not registered"
+
+        match run "fsharp_compile" """{"path": "no/such/project.fsproj"}""" with
+        | Result.Error message -> Assert.Contains("Path not found", message)
+        | Result.Ok text -> failwith $"compiling a project that does not exist came back Ok: {text}"
+
+        Assert.Equal(Result.Ok "true", run "health_check" "")
 
     // ------------------------------------------------------------ a verdict, or a word
 

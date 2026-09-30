@@ -46,12 +46,15 @@ module AgentTools =
                         // delegated ... Agent-to-agent execution initiated via registry",
                         // and the caller moved on as if someone were doing the task.
                         return
-                            $"❌ Not delegated: %s{a.Name} (%s{a.Version}) is registered, but this tool cannot run another agent, so nothing was started.\nTask: %s{taskDesc}"
+                            Result.Error
+                                $"Not delegated: %s{a.Name} (%s{a.Version}) is registered, but this tool cannot run another agent, so nothing was started.\nTask: %s{taskDesc}"
                     | None ->
-                        return $"❌ Agent '%s{agent}' not found in registry. Use list_agents to see available targets."
-                | None -> return "Error: AgentRegistry not initialized."
+                        return
+                            Result.Error
+                                $"Agent '%s{agent}' not found in registry. Use list_agents to see available targets."
+                | None -> return Result.Error "AgentRegistry not initialized."
             with ex ->
-                return "delegate_task error: " + ex.Message
+                return Result.Error("delegate_task error: " + ex.Message)
         }
 
     [<TarsToolAttribute("request_review",
@@ -119,9 +122,10 @@ module AgentTools =
                 // in advance, one per agent name, and returned whatever the question was
                 // - presented as that agent's reply.
                 return
-                    $"❌ Not asked: this tool cannot reach another agent, so %s{agent} was not asked \"%s{question}\". Use list_agents to see what is registered."
+                    Result.Error
+                        $"Not asked: this tool cannot reach another agent, so %s{agent} was not asked \"%s{question}\". Use list_agents to see what is registered."
             with ex ->
-                return "query_agent error: " + ex.Message
+                return Result.Error("query_agent error: " + ex.Message)
         }
 
     [<TarsToolAttribute("list_agents", "Lists all available agents and their capabilities. No input required.")>]
