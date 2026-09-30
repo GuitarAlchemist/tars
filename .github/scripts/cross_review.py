@@ -213,7 +213,9 @@ def report(first, last):
             votes = collect(pr)
         except subprocess.CalledProcessError:
             continue  # an issue number, not a PR
-        found = {r: [(v[1], f) for v in votes if v[0] == r for f in v[3]] for r in everyone}
+        # A reviewer that votes twice on a commit repeats its findings; each
+        # (commit, finding) counts once.
+        found = {r: list(dict.fromkeys((v[1][:7], f) for v in votes if v[0] == r for f in v[3])) for r in everyone}
         both = sum(1 for f in found["Codex"] if any(near(f, g) for g in found["Claude"]))
         # A TARS finding is confirmed when Codex or Claude found the same thing.
         others = found["Codex"] + found["Claude"]

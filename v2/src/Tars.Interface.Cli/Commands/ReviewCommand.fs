@@ -18,14 +18,35 @@ open Tars.Interface.Cli
 // to read, a model that could not be reached, an answer with no vote), the vote
 // says "not-reviewed" and why, so it is never mistaken for a clean review.
 
-/// The most diff this reviewer reads. A larger diff is not reviewed at all:
-/// reviewing its first part only would read as a vote on the whole PR.
-let maxDiffChars = 60_000
+/// The model's context, in tokens. Ollama's default is far smaller and would
+/// cut the diff off without saying so, so every request sets it.
+let contextWindow = 32768
+
+let private maxAnswerTokens = 2048
+
+/// Room for the chat template's own tokens around the messages.
+let private templateMargin = 256
+
+/// Whether the whole request is sure to fit in the context. A token always
+/// covers at least one byte, so text of N UTF-8 bytes is at most N tokens.
+/// Counting characters would let dense text (CJK, minified code) overflow the
+/// context, and the model would then vote on a diff it only partly read. A
+/// diff that may not fit is not reviewed at all.
+let fitsContext (systemPrompt: string) (userMessage: string) =
+    Text.Encoding.UTF8.GetByteCount systemPrompt
+    + Text.Encoding.UTF8.GetByteCount userMessage
+    + maxAnswerTokens
+    + templateMargin
+    <= contextWindow
 
 let private voteLine =
-    System.Text.RegularExpressions.Regex(@"^\s*VOTE:\s*(blocking|to-fix|clean)\b", RegexOptions.IgnoreCase ||| RegexOptions.Multiline)
+    System.Text.RegularExpressions.Regex(
+        @"^\s*VOTE:\s*(blocking|to-fix|clean)\b",
+        RegexOptions.IgnoreCase ||| RegexOptions.Multiline
+    )
 
-let private findingLine = System.Text.RegularExpressions.Regex(@"^- \[P[0-3]\] .+?:\d+.*$", RegexOptions.Multiline)
+let private findingLine =
+    System.Text.RegularExpressions.Regex(@"^- \[P[0-3]\] .+?:\d+.*$", RegexOptions.Multiline)
 
 let private footer (model: string) =
     $"\n\nTARS agent `code-reviewer` on `{model}`. Advisory: this vote is shown in the cross-review but not counted in its verdict."
@@ -70,35 +91,37 @@ let review
             return notReviewed sha shown "The agent definition `code-reviewer` was not found, so nothing was reviewed."
         | Some _ when String.IsNullOrWhiteSpace diff ->
             return notReviewed sha shown "The diff is empty, so there was nothing to review."
-        | Some _ when diff.Length > maxDiffChars ->
-            return
-                notReviewed
-                    sha
-                    shown
-                    $"The diff is {diff.Length} characters, more than the {maxDiffChars} this reviewer reads, so none of it was reviewed."
         | Some agent ->
-            let request =
-                { LlmRequest.Default with
-                    ModelHint = agent.ModelHint
-                    Model = model
-                    SystemPrompt = Some agent.SystemPrompt
-                    Temperature = agent.Temperature |> Option.orElse (Some 0.1)
-                    MaxTokens = Some 2048
-                    // Ollama's default context would cut the diff off without saying so.
-                    ContextWindow = Some 32768
-                    Messages =
-                        [ { Role = Role.User
-                            Content = $"Commit: {sha}\n\n```diff\n{diff}\n```" } ] }
+            let message = $"Commit: {sha}\n\n```diff\n{diff}\n```"
 
-            try
-                let! response = llm.CompleteAsync request
+            if not (fitsContext agent.SystemPrompt message) then
+                return
+                    notReviewed
+                        sha
+                        shown
+                        $"The diff is {Text.Encoding.UTF8.GetByteCount diff} bytes. With the prompt and room for the answer it may not fit in the model's {contextWindow}-token context, so none of it was reviewed."
+            else
+                let request =
+                    { LlmRequest.Default with
+                        ModelHint = agent.ModelHint
+                        Model = model
+                        SystemPrompt = Some agent.SystemPrompt
+                        Temperature = agent.Temperature |> Option.orElse (Some 0.1)
+                        MaxTokens = Some maxAnswerTokens
+                        ContextWindow = Some contextWindow
+                        Messages = [ { Role = Role.User; Content = message } ] }
 
-                if response.FinishReason = Some "parse_error" then
-                    return notReviewed sha shown "The model's response could not be parsed, so nothing was reviewed."
-                else
-                    return formatVote sha shown response.Text
-            with ex ->
-                return notReviewed sha shown $"The model could not be reached, so nothing was reviewed: {ex.Message}"
+                try
+                    let! response = llm.CompleteAsync request
+
+                    if response.FinishReason = Some "parse_error" then
+                        return
+                            notReviewed sha shown "The model's response could not be parsed, so nothing was reviewed."
+                    else
+                        return formatVote sha shown response.Text
+                with ex ->
+                    return
+                        notReviewed sha shown $"The model could not be reached, so nothing was reviewed: {ex.Message}"
     }
 
 let private usage () =

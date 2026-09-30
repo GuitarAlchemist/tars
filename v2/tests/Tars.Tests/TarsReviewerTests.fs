@@ -77,7 +77,15 @@ let ``Only the vote and the finding lines are kept from the answer`` () =
 [<Fact>]
 let ``A diff too large to read is not reviewed, and the model is not asked`` () =
     let llm = ScriptedLlm(fun () -> "VOTE: clean")
-    let vote = reviewWith llm agent (String('x', ReviewCommand.maxDiffChars + 1))
+    let vote = reviewWith llm agent (String('x', ReviewCommand.contextWindow))
+    Assert.StartsWith($"Cross-review vote (TARS): not-reviewed @ {sha}", vote)
+    Assert.Equal(0, llm.Calls)
+
+[<Fact>]
+let ``A diff of few characters but many bytes is measured in bytes, not characters`` () =
+    // 12,000 characters, 36,000 UTF-8 bytes: it could need more tokens than the context holds.
+    let llm = ScriptedLlm(fun () -> "VOTE: clean")
+    let vote = reviewWith llm agent (String('語', 12_000))
     Assert.StartsWith($"Cross-review vote (TARS): not-reviewed @ {sha}", vote)
     Assert.Equal(0, llm.Calls)
 

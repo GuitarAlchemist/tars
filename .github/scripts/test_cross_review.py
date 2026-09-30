@@ -133,4 +133,15 @@ assert not cr.near((HEAD, (2, "v2/src/A.fs", 40)), (OTHER, (1, "v2/src/A.fs", 40
 # 12. The verdict says that only counted votes decide it.
 assert "strictest counted vote wins" in cr.render(*cr.verdict(1))
 
+# 13. A vote posted twice on a commit counts its findings once in the report.
+import contextlib
+import io
+
+fake([codex_review], [codex_inline], [claude_clean, tars_p1, dict(tars_p1, created_at="2026-10-01T10:06:00Z")])
+out = io.StringIO()
+with contextlib.redirect_stdout(out):
+    cr.report(1, 1)
+row = next(line for line in out.getvalue().splitlines() if line.startswith("| #1 "))
+assert row.endswith("| 1 | 0 | 1 | 0 | 1 |"), row
+
 print("all checks passed")
