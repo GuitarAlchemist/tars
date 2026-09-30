@@ -10,25 +10,31 @@ HEAD = "abcdef1234567890abcdef1234567890abcdef12"
 
 
 def fake(reviews, inline, comments, labels=()):
-    """A stand-in for `gh api` that answers reads and records writes."""
+    """A stand-in for `gh api` that answers reads and records writes. List
+    endpoints answer one item per page, as `--paginate --slurp` would for a
+    long list, so a read that stops at the first page misses items."""
     writes = []
 
     def gh(*args):
         if args[0] == "-X":
             writes.append((args[1], args[2]))
             return None
-        path = args[0]
-        if path.endswith("/reviews?per_page=100"):
-            return reviews
-        if "/pulls/1/comments" in path:
-            return inline
-        if "/issues/1/comments" in path:
-            return comments
-        if path.endswith("/issues/1/labels"):
-            return [{"name": name} for name in labels]
-        if path.endswith("/pulls/1"):
+        if args[:2] == ("--paginate", "--slurp"):
+            path = args[2]
+            if path.endswith("/reviews?per_page=100"):
+                items = reviews
+            elif "/pulls/1/comments" in path:
+                items = inline
+            elif "/issues/1/comments" in path:
+                items = comments
+            elif "/issues/1/labels" in path:
+                items = [{"name": name} for name in labels]
+            else:
+                raise AssertionError(path)
+            return [[item] for item in items]
+        if args[0].endswith("/pulls/1"):
             return {"head": {"sha": HEAD}}
-        raise AssertionError(path)
+        raise AssertionError(args)
 
     cr.gh = gh
     return writes

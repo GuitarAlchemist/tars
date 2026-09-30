@@ -53,6 +53,12 @@ def gh(*args):
     return json.loads(out) if out.strip() else None
 
 
+def gh_list(path):
+    """Every item of a list endpoint, across all pages: a vote past the first
+    page must not read as a reviewer that never voted."""
+    return [item for page in gh("--paginate", "--slurp", path) for item in page]
+
+
 def same_commit(a, b):
     n = min(len(a), len(b))
     return n >= 7 and a[:n] == b[:n]
@@ -66,9 +72,9 @@ def vote_for(severities):
 
 def collect(pr):
     """Every vote cast on the PR, oldest first, as (reviewer, sha, vote, findings)."""
-    reviews = gh(f"repos/{REPO}/pulls/{pr}/reviews?per_page=100")
-    inline = gh(f"repos/{REPO}/pulls/{pr}/comments?per_page=100")
-    comments = gh(f"repos/{REPO}/issues/{pr}/comments?per_page=100")
+    reviews = gh_list(f"repos/{REPO}/pulls/{pr}/reviews?per_page=100")
+    inline = gh_list(f"repos/{REPO}/pulls/{pr}/comments?per_page=100")
+    comments = gh_list(f"repos/{REPO}/issues/{pr}/comments?per_page=100")
     votes = []
     for r in reviews:
         if r["user"]["login"] != CODEX:
@@ -147,7 +153,7 @@ def post(pr):
     head, overall, rows, disagree = verdict(pr)
     body = render(head, overall, rows, disagree)
     mine = [
-        c for c in gh(f"repos/{REPO}/issues/{pr}/comments?per_page=100")
+        c for c in gh_list(f"repos/{REPO}/issues/{pr}/comments?per_page=100")
         if c["user"]["login"] == "github-actions[bot]" and MARKER in c["body"]
     ]
     if mine:
@@ -155,7 +161,7 @@ def post(pr):
     else:
         gh("-X", "POST", f"repos/{REPO}/issues/{pr}/comments", "-f", f"body={body}")
     # The label follows the current head commit: it goes once the reviewers agree.
-    labelled = any(label["name"] == DISAGREE_LABEL for label in gh(f"repos/{REPO}/issues/{pr}/labels"))
+    labelled = any(label["name"] == DISAGREE_LABEL for label in gh_list(f"repos/{REPO}/issues/{pr}/labels?per_page=100"))
     if disagree and not labelled:
         gh("-X", "POST", f"repos/{REPO}/issues/{pr}/labels", "-f", f"labels[]={DISAGREE_LABEL}")
     elif labelled and not disagree:
