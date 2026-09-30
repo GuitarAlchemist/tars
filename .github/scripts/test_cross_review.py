@@ -133,11 +133,15 @@ assert not cr.near((HEAD, (2, "v2/src/A.fs", 40)), (OTHER, (1, "v2/src/A.fs", 40
 # 12. The verdict says that only counted votes decide it.
 assert "strictest counted vote wins" in cr.render(*cr.verdict(1))
 
-# 13. A vote posted twice on a commit counts its findings once in the report.
+# 13. A vote posted again on a commit counts its findings once in the report,
+#     even when the rerun gives the finding another severity or a nearby line.
 import contextlib
 import io
 
-fake([codex_review], [codex_inline], [claude_clean, tars_p1, dict(tars_p1, created_at="2026-10-01T10:06:00Z")])
+tars_rerun = dict(tars_p1, created_at="2026-10-01T10:07:00Z",
+                  body=f"Cross-review vote (TARS): to-fix @ {HEAD}\n\n- [P2] v2/src/A.fs:42 - loses the error")
+fake([codex_review], [codex_inline],
+     [claude_clean, tars_p1, dict(tars_p1, created_at="2026-10-01T10:06:00Z"), tars_rerun])
 out = io.StringIO()
 with contextlib.redirect_stdout(out):
     cr.report(1, 1)

@@ -13,7 +13,7 @@ open Tars.Interface.Cli.Commands
 // way the vote could claim a review that did not happen.
 
 /// Answers with whatever `answer` returns, and counts the calls.
-type private ScriptedLlm(answer: unit -> string) =
+type private ScriptedLlm(answer: unit -> string, ?usage: Tars.Llm.TokenUsage) =
     let mutable calls = 0
     member _.Calls = calls
 
@@ -24,7 +24,7 @@ type private ScriptedLlm(answer: unit -> string) =
             Task.FromResult
                 { Text = answer ()
                   FinishReason = Some "stop"
-                  Usage = None
+                  Usage = usage
                   Raw = None }
 
         member this.CompleteStreamAsync(req, _) = (this :> ILlmService).CompleteAsync req
@@ -80,6 +80,19 @@ let ``A diff too large to read is not reviewed, and the model is not asked`` () 
     let vote = reviewWith llm agent (String('x', ReviewCommand.contextWindow))
     Assert.StartsWith($"Cross-review vote (TARS): not-reviewed @ {sha}", vote)
     Assert.Equal(0, llm.Calls)
+
+[<Fact>]
+let ``An answer cut off at the token limit is not counted as a review`` () =
+    // Ollama reports a cut-off answer as finished; only the token count shows the cut.
+    let usage: Tars.Llm.TokenUsage =
+        { PromptTokens = 500
+          CompletionTokens = ReviewCommand.maxAnswerTokens
+          TotalTokens = 500 + ReviewCommand.maxAnswerTokens }
+
+    let answer = "VOTE: to-fix\n- [P2] v2/src/A.fs:12 - drops the error\n- [P1] v2/src/B.fs:"
+    let vote = reviewWith (ScriptedLlm((fun () -> answer), usage)) agent diff
+    Assert.StartsWith($"Cross-review vote (TARS): not-reviewed @ {sha}", vote)
+    Assert.Contains("token limit", vote)
 
 [<Fact>]
 let ``A diff of few characters but many bytes is measured in bytes, not characters`` () =

@@ -202,6 +202,23 @@ def near(a, b):
     return same_commit(sha_a, sha_b) and fa[1] == fb[1] and abs(fa[2] - fb[2]) <= 10
 
 
+def findings_of(votes, reviewer):
+    """A reviewer's findings as (commit, finding) pairs, each counted once. A
+    second vote on a commit repeats the first one's findings, perhaps at another
+    severity or a nearby line: a finding near one from an earlier vote on the
+    same commit is the same finding. Findings within one vote are all kept."""
+    kept = []
+    for v in votes:
+        if v[0] != reviewer:
+            continue
+        earlier = list(kept)
+        for f in v[3]:
+            pair = (v[1][:7], f)
+            if pair not in kept and not any(near(pair, g) for g in earlier):
+                kept.append(pair)
+    return kept
+
+
 def report(first, last):
     everyone = REVIEWERS + ADVISORY
     print("| PR | Codex votes | Claude votes | TARS votes | Codex findings | Claude findings | TARS findings "
@@ -213,9 +230,7 @@ def report(first, last):
             votes = collect(pr)
         except subprocess.CalledProcessError:
             continue  # an issue number, not a PR
-        # A reviewer that votes twice on a commit repeats its findings; each
-        # (commit, finding) counts once.
-        found = {r: list(dict.fromkeys((v[1][:7], f) for v in votes if v[0] == r for f in v[3])) for r in everyone}
+        found = {r: findings_of(votes, r) for r in everyone}
         both = sum(1 for f in found["Codex"] if any(near(f, g) for g in found["Claude"]))
         # A TARS finding is confirmed when Codex or Claude found the same thing.
         others = found["Codex"] + found["Claude"]

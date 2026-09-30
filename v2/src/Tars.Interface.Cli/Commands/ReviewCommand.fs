@@ -22,7 +22,7 @@ open Tars.Interface.Cli
 /// cut the diff off without saying so, so every request sets it.
 let contextWindow = 32768
 
-let private maxAnswerTokens = 2048
+let maxAnswerTokens = 2048
 
 /// Room for the chat template's own tokens around the messages.
 let private templateMargin = 256
@@ -38,6 +38,14 @@ let fitsContext (systemPrompt: string) (userMessage: string) =
     + maxAnswerTokens
     + templateMargin
     <= contextWindow
+
+/// Whether the answer stopped at the token budget, so its findings may be cut
+/// short. Ollama reports every finished answer as "done", so the number of
+/// generated tokens is checked as well as the finish reason.
+let private cutOff (response: LlmResponse) =
+    response.FinishReason = Some "length"
+    || response.FinishReason = Some "max_tokens"
+    || response.Usage |> Option.exists (fun u -> u.CompletionTokens >= maxAnswerTokens)
 
 let private voteLine =
     System.Text.RegularExpressions.Regex(
@@ -117,6 +125,12 @@ let review
                     if response.FinishReason = Some "parse_error" then
                         return
                             notReviewed sha shown "The model's response could not be parsed, so nothing was reviewed."
+                    elif cutOff response then
+                        return
+                            notReviewed
+                                sha
+                                shown
+                                $"The model's answer reached the {maxAnswerTokens}-token limit and may be cut short, so it is not counted as a review."
                     else
                         return formatVote sha shown response.Text
                 with ex ->
