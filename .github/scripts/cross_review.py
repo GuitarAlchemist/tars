@@ -30,6 +30,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 
 REPO = os.environ.get("GITHUB_REPOSITORY", "GuitarAlchemist/tars")
 CODEX = "chatgpt-codex-connector[bot]"
@@ -65,6 +66,10 @@ def same_commit(a, b):
     return n >= 7 and a[:n] == b[:n]
 
 
+def when(timestamp):
+    return datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+
+
 def vote_for(severities):
     if any(p <= 1 for p in severities):
         return "blocking"
@@ -87,15 +92,21 @@ def collect(pr):
                 findings.append((int(m.group(1)), c["path"], c.get("original_line") or c.get("line") or 0))
         if findings:
             votes.append((r["submitted_at"], "Codex", r["commit_id"], vote_for([f[0] for f in findings]), findings))
-    with_findings = [v[2] for v in votes]
+    with_findings = [(v[2], when(v[0])) for v in votes]
     for c in comments:
         login = c["user"]["login"]
         if login == CODEX:
             m = CODEX_CLEAN.search(c["body"])
             if m:
                 votes.append((c["created_at"], "Codex", m.group(1), "clean", []))
+            # A Completed row is the run that posted a review with findings when
+            # both are on the same commit within two minutes. Any other
+            # Completed row, such as a later rerun on that commit, is clean.
             for at, sha in CODEX_DONE.findall(c["body"]):
-                if not any(same_commit(sha, s) for s in with_findings):
+                same_run = any(
+                    same_commit(sha, s) and abs((when(at) - t).total_seconds()) <= 120 for s, t in with_findings
+                )
+                if not same_run:
                     votes.append((at, "Codex", sha, "clean", []))
         elif login in CLAUDE:
             m = CLAUDE_VOTE.match(c["body"].lstrip())
@@ -106,7 +117,7 @@ def collect(pr):
                 implied = vote_for([f[0] for f in findings]) if findings else m.group(1)
                 vote = max(m.group(1), implied, key=ORDER.index)
                 votes.append((c["created_at"], "Claude", m.group(2), vote, findings))
-    votes.sort(key=lambda v: v[0])
+    votes.sort(key=lambda v: when(v[0]))
     return [v[1:] for v in votes]
 
 

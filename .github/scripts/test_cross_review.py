@@ -99,7 +99,17 @@ spaced = dict(claude_p1, body=f"Cross-review vote: to-fix @ {HEAD}\n\n"
 fake([], [], [codex_done, spaced])
 assert cr.verdict(1)[2][1][2] == [(2, "v2/docs/Building an IA Agent.md", 42), (3, "v2/docs/a b.md", 7)]
 
-# 9. Findings seen by both reviewers are matched by file and nearby line.
+# 9. A Completed row from the same run as a review with findings is not a clean
+#    vote, but a later clean rerun on the same commit is.
+def codex_row(at):
+    return dict(codex_done, body=f'| x | **Completed** <relative-time datetime="{at}">t</relative-time> | `abcdef1` | Manual |')
+
+fake([codex_review], [codex_inline], [codex_row("2026-10-01T09:00:02.5Z"), claude_clean])
+assert cr.verdict(1)[2][0][1] == "to-fix"
+fake([codex_review], [codex_inline], [codex_row("2026-10-01T10:00:00.1Z"), claude_clean])
+assert cr.verdict(1)[2][0][1] == "clean"
+
+# 10. Findings seen by both reviewers are matched by file and nearby line.
 assert cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/A.fs", 42))
 assert not cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/B.fs", 40))
 
