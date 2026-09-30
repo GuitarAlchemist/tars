@@ -12,11 +12,14 @@ type McpServer(registry: IToolRegistry, ?skillRegistry: ISkillRegistry, ?knowled
     let instanceId = Guid.NewGuid().ToString().Substring(0, 8)
     let startTime = DateTime.UtcNow
     
-    // Attempt to get git commit hash or use a placeholder
-    let gitCommit = 
+    // The commit this server was built from, when the environment says so. The
+    // fallback used to be a hash typed in by hand ("Updated from git rev-parse
+    // HEAD"), reported as fact by every build after the one it was copied from.
+    let gitCommit =
         match Environment.GetEnvironmentVariable("GIT_COMMIT") with
-        | null -> "8bddcb89" // Updated from git rev-parse HEAD
-        | s -> s.Substring(0, 8)
+        | null
+        | "" -> "unknown"
+        | s -> s.Substring(0, min 8 s.Length)
 
     let serializerOptions =
         JsonSerializerOptions(
@@ -284,44 +287,31 @@ type McpServer(registry: IToolRegistry, ?skillRegistry: ISkillRegistry, ?knowled
         match subagentManager with
         | Some mgr -> mgr
         | None ->
+            // Nothing that can run a subagent is connected to this server. The runner
+            // used to wait a second and report `Success = true`, "Completed research
+            // on: <goal>" - research nobody did, presented as done. `subagents/spawn`
+            // now refuses up front; this runner is what anything else reaching the
+            // manager gets.
             let mgr =
-                SubagentManager(fun req ct obs ->
-                    task {
-                        // Placeholder implementation - will be connected to Evolution engine
-                        do! Task.Delay(1000, ct)
-
-                        return
-                            { Id = Guid.NewGuid()
-                              Success = true
-                              Output = $"Completed research on: {req.Goal}"
-                              Artifacts = []
-                              Duration = TimeSpan.FromSeconds(1.0)
-                              Error = None }
-                    })
+                SubagentManager(fun req _ _ ->
+                    Task.FromResult
+                        { Id = Guid.NewGuid()
+                          Success = false
+                          Output = ""
+                          Artifacts = []
+                          Duration = TimeSpan.Zero
+                          Error = Some $"no subagent executor is connected to this server; '{req.Goal}' was not run" })
 
             subagentManager <- Some mgr
             mgr
 
-    let handleSubagentsSpawn (id: int) (params': JsonElement) =
-        let goal = params'.GetProperty("goal").GetString()
-        let mutable maxDuration = 30
-        let mutable durationElem = Unchecked.defaultof<JsonElement>
-
-        if params'.TryGetProperty("maxDurationMinutes", &durationElem) then
-            maxDuration <- durationElem.GetInt32()
-
-        let request =
-            { Goal = goal
-              MaxDurationMinutes = maxDuration
-              AllowTools = None
-              ParentTaskId = None
-              AgentHint = Some "research" }
-
-        let mgr = getSubagentManager ()
-        let subagentId = mgr.Spawn(request, createProgressObserver ())
-
-        log $"Spawned subagent {subagentId}: {goal}"
-        createSuccessResponse id {| subagentId = subagentId.ToString() |}
+    /// Refused, because nothing here can run a subagent: accepting the goal and
+    /// handing back an id would promise work that will not happen.
+    let handleSubagentsSpawn (id: int) (_params: JsonElement) =
+        createError
+            id
+            -32601
+            "subagents/spawn: no subagent executor is connected to this server, so nothing was started"
 
     let handleSubagentsList (id: int) =
         let mgr = getSubagentManager ()
