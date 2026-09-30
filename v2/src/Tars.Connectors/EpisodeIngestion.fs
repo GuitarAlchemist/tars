@@ -156,11 +156,7 @@ type GraphitiIngestionService(config: IngestionConfig) =
                         totalIngested <- totalIngested + messages.Length
                         lastFlush <- DateTime.UtcNow
                         return Ok messages.Length
-                    | Error err ->
-                        // The queue was emptied before the send. Put them back, or a
-                        // failed send loses every episode it carried.
-                        lock pendingEpisodes (fun () -> pendingEpisodes.InsertRange(0, episodesToFlush))
-                        return Error err
+                    | Error err -> return Error err
             }
 
         member _.IngestAsync(episode: Episode) =
