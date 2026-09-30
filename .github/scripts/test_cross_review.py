@@ -92,7 +92,14 @@ fake([], [], [codex_done, claude_inconsistent])
 head, overall, rows, disagree = cr.verdict(1)
 assert rows[1][1] == "blocking" and overall == "blocking" and disagree, rows
 
-# 8. Findings seen by both reviewers are matched by file and nearby line.
+# 8. A finding in a path with spaces is parsed, backticked or not.
+spaced = dict(claude_p1, body=f"Cross-review vote: to-fix @ {HEAD}\n\n"
+              "- [P2] `v2/docs/Building an IA Agent.md:42` - wrong command\n"
+              "- [P3] v2/docs/a b.md:7 - typo")
+fake([], [], [codex_done, spaced])
+assert cr.verdict(1)[2][1][2] == [(2, "v2/docs/Building an IA Agent.md", 42), (3, "v2/docs/a b.md", 7)]
+
+# 9. Findings seen by both reviewers are matched by file and nearby line.
 assert cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/A.fs", 42))
 assert not cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/B.fs", 40))
 

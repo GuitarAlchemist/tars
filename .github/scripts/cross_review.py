@@ -45,7 +45,8 @@ CODEX_CLEAN = re.compile(r"Didn't find any major issues.*?Reviewed commit:\*\*\s
 # leaves only this row (and a thumbs-up), not a comment.
 CODEX_DONE = re.compile(r"\*\*Completed\*\* <relative-time datetime=\"([^\"]+)\">.*?\|\s*`([0-9a-f]{7,40})`")
 CLAUDE_VOTE = re.compile(r"Cross-review vote: (blocking|to-fix|clean|not-reviewed) @ `?([0-9a-f]{7,40})")
-CLAUDE_FINDING = re.compile(r"^- \[P([0-3])\] `?([^\s:`]+):(\d+)", re.M)
+# The path runs up to the first ":<line>", so paths with spaces parse too.
+CLAUDE_FINDING = re.compile(r"^- \[P([0-3])\] `?(.+?)`?:(\d+)", re.M)
 
 
 def gh(*args):
