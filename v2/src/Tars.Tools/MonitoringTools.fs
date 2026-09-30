@@ -9,16 +9,13 @@ open Tars.Tools
 open System.Text.Json
 
 /// <summary>
-/// Performs a basic health check of the system.
-/// Returns true if the system is responding, false otherwise.
+/// Answers true while the tool host is running - which answering at all shows.
+/// It checks nothing else. It used to be described as "Checks if the system is
+/// healthy" and answered true whatever the state of the database, the LLM or the
+/// network.
 /// </summary>
-[<TarsToolAttribute("health_check", "Checks if the system is healthy. No input required.")>]
-let health_check () : Task<bool> =
-    task {
-        // In a real scenario, this would check DB connection, LLM connectivity, etc.
-        // For now, it just confirms the agent is running.
-        return true
-    }
+[<TarsToolAttribute("health_check", "Answers true while the tool host is running. It checks nothing else: not the database, the LLM or the network. No input required.")>]
+let health_check () : Task<bool> = task { return true }
 
 /// <summary>
 /// Retrieves a snapshot of current system metrics.

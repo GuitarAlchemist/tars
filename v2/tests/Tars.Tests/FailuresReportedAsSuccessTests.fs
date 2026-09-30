@@ -228,6 +228,45 @@ type FailuresReportedAsSuccessTests() =
 
             Assert.Contains("nothing was started", root.GetProperty("error").GetProperty("message").GetString())
 
+    [<Fact>]
+    member _.``Asking another agent says it was not asked, rather than answering for it``() =
+        if not (TestHelpers.requireTools ()) then () else
+
+        // query_agent returned text written in advance for each agent name - "Can approve
+        // or request changes" - whatever the question, as that agent's reply.
+        let answer =
+            Tars.Tools.Standard.AgentTools.queryAgent """{"agent": "reviewer", "question": "Is this safe to merge?"}"""
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        Assert.Contains("Not asked", answer)
+        Assert.DoesNotContain("Can approve or request changes", answer)
+
+    [<Fact>]
+    member _.``Delegating to a registered agent says nothing was started``() =
+        if not (TestHelpers.requireTools ()) then () else
+
+        // delegate_task answered "Task delegated ... Agent-to-agent execution initiated
+        // via registry" and started nothing.
+        let reviewer =
+            { Tars.Tests.AgentWorkflowTests.createTestAgent () with
+                Name = "Reviewer" }
+
+        Tars.Tools.Standard.AgentTools.setRegistry
+            { new IAgentRegistry with
+                member _.GetAgent(_) = async { return Some reviewer }
+                member _.FindAgents(_) = async { return [ reviewer ] }
+                member _.GetAllAgents() = async { return [ reviewer ] } }
+
+        let answer =
+            Tars.Tools.Standard.AgentTools.delegateTask """{"agent": "reviewer", "task": "Review the parser"}"""
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        Assert.Contains("Not delegated", answer)
+        Assert.Contains("nothing was started", answer)
+        Assert.DoesNotContain("initiated", answer)
+
     // ------------------------------------------------------------ a verdict, or a word
 
     [<Fact>]
