@@ -538,6 +538,8 @@ type FailuresReportedAsSuccessTests() =
 
     [<Fact>]
     member _.``A refused search is not reported as finding nothing``() =
+        if not (TestHelpers.requireTools ()) then () else
+
         // Semantic Scholar answers a rate limit with 429 and a body with no "data",
         // and DuckDuckGo answers one with a 202 page that has no result links. Both
         // used to come back as "No results found".
