@@ -100,7 +100,11 @@ def collect(pr):
             m = CLAUDE_VOTE.match(c["body"].lstrip())
             if m:
                 findings = [(int(p), path, int(line)) for p, path, line in CLAUDE_FINDING.findall(c["body"])]
-                votes.append((c["created_at"], "Claude", m.group(2), m.group(1), findings))
+                # A "clean" header over a P1 finding counts as blocking: the
+                # stricter of the stated vote and the findings wins.
+                implied = vote_for([f[0] for f in findings]) if findings else m.group(1)
+                vote = max(m.group(1), implied, key=ORDER.index)
+                votes.append((c["created_at"], "Claude", m.group(2), vote, findings))
     votes.sort(key=lambda v: v[0])
     return [v[1:] for v in votes]
 

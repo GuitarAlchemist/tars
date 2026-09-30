@@ -86,7 +86,13 @@ writes = fake([], [], [codex_done, claude_clean], labels=[cr.DISAGREE_LABEL])
 cr.post(1)
 assert ("DELETE", f"repos/{cr.REPO}/issues/1/labels/{cr.DISAGREE_LABEL}") in writes, writes
 
-# 7. Findings seen by both reviewers are matched by file and nearby line.
+# 7. A "clean" header over a P1 finding counts as blocking.
+claude_inconsistent = dict(claude_p1, body=f"Cross-review vote: clean @ {HEAD}\n\n- [P1] v2/src/A.fs:42 - drops the result")
+fake([], [], [codex_done, claude_inconsistent])
+head, overall, rows, disagree = cr.verdict(1)
+assert rows[1][1] == "blocking" and overall == "blocking" and disagree, rows
+
+# 8. Findings seen by both reviewers are matched by file and nearby line.
 assert cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/A.fs", 42))
 assert not cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/B.fs", 40))
 
