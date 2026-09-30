@@ -150,11 +150,17 @@ module ResearchTools =
 
                     // doi.org answers an unknown DOI with a 404 page. That page used to
                     // fail to parse and come back as "Paper found but metadata format
-                    // unexpected".
-                    if not response.IsSuccessStatusCode then
+                    // unexpected". Only 404 and 410 say the DOI is not there: a 429 or a
+                    // 503 says nothing about the paper either way.
+                    if response.StatusCode = Net.HttpStatusCode.NotFound
+                       || response.StatusCode = Net.HttpStatusCode.Gone then
                         return
                             Result.Error
                                 $"doi.org answered {int response.StatusCode} for {doi}: no paper was found."
+                    elif not response.IsSuccessStatusCode then
+                        return
+                            Result.Error
+                                $"Lookup failed: doi.org answered {int response.StatusCode} for {doi}. That says nothing about whether the paper exists."
                     else
                     try
                         let doc = JsonDocument.Parse(json)

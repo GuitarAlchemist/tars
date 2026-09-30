@@ -63,7 +63,7 @@ module LlmTools =
         task {
             return
                 Result.Error
-                    $"Not switched: the model TARS calls is set in its configuration, which this tool cannot change, so nothing changed. Asked for: %s{modelName.Trim()}"
+                    $"Not switched: the model TARS calls is set in its configuration, which this tool cannot change, so nothing changed. To change it, set Llm:Model in appsettings.json (or the TARS_Llm__Model environment variable) and restart TARS. Asked for: %s{modelName.Trim()}"
         }
 
     [<TarsToolAttribute("recommend_model", "Recommends the best model for a specific task. Input: task description")>]
@@ -112,7 +112,7 @@ module LlmTools =
 
             return
                 sprintf
-                    "Task: %s\n\n%s\n\nUse switch_model to change models, or list_models to see what's installed."
+                    "Task: %s\n\n%s\n\nTo use a model, set Llm:Model in appsettings.json (or the TARS_Llm__Model environment variable) and restart TARS. list_models shows what's installed."
                     (if task.Length > 100 then
                          task.Substring(0, 100) + "..."
                      else
@@ -151,7 +151,7 @@ module LlmTools =
 
                         if proc.ExitCode = 0 then
                             return
-                                $"Model '%s{model}' pulled successfully!\n%s{output}\n\nUse switch_model to activate it."
+                                $"Model '%s{model}' pulled successfully!\n%s{output}\n\nTo use it, set Llm:Model in appsettings.json (or the TARS_Llm__Model environment variable) and restart TARS."
                         else
                             return $"Error pulling model '%s{model}': %s{error}"
                     else
