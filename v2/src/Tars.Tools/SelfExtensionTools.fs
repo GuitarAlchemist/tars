@@ -18,6 +18,8 @@ EXECUTION CONTRACT:
 3. The script MUST print its final result to stdout (e.g. using printfn).
 4. Do not just define a function; you must call it or process the input and print the result.
 
+NOTE: this saves the definition only. Nothing loads or runs saved tools yet, so the tool does not become callable.
+
 Input JSON: { \"name\": \"my_tool\", \"description\": \"...\", \"implementation_code\": \"...F# script...\", \"input_schema\": \"...\", \"output_schema\": \"...\" }")>]
     let createDynamicTool (args: string) =
         task {
@@ -47,7 +49,10 @@ Input JSON: { \"name\": \"my_tool\", \"description\": \"...\", \"implementation_
                 
                 let ext = SelfExtensionService.generateTool (getPaths()) toolDef
                 
-                return $"✅ Created dynamic tool '{name}' (ID: {ext.Id}). It will be available in the next execution cycle."
+                // Nothing loads saved tools (`SelfExtensionService.loadAllTools` has no
+                // caller), so "It will be available in the next execution cycle" was false.
+                return
+                    $"Saved the definition of '{name}' (ID: {ext.Id}). Nothing loads or runs saved tools yet, so it is not callable."
             with ex ->
                 return $"❌ Failed to create tool: {ex.Message}"
         }

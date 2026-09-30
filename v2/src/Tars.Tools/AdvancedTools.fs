@@ -117,7 +117,10 @@ module ResilienceTools =
                         else
                             return $"🟢 CIRCUIT CLOSED: '%s{service}' has %d{failCount}/%d{threshold} failures."
                     else
-                        return $"🟢 CIRCUIT CLOSED: '%s{service}' is healthy."
+                        // Nothing has been recorded about this service here - which says
+                        // nothing about its health. This used to answer "is healthy".
+                        return
+                            $"🟢 CIRCUIT CLOSED: no failures have been recorded here for '%s{service}'. That says nothing about whether it works."
 
                 | "trip" ->
                     if circuitStates.ContainsKey(service) then

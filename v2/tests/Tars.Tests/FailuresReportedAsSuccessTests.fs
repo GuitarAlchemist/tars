@@ -386,6 +386,45 @@ type FailuresReportedAsSuccessTests() =
             )
         | Result.Ok text -> failwith $"reported a delegation that started nothing: {text}"
 
+    [<Fact>]
+    member _.``Tools with nothing behind them say so, rather than reporting a switch, a registry or a run``() =
+        if not (TestHelpers.requireTools ()) then () else
+
+        // Through the registry, as MCP and evolve reach them.
+        let registry = Tars.Tools.ToolRegistry()
+        registry.RegisterAssembly(typeof<Tars.Tools.ToolRegistry>.Assembly)
+
+        let run name (input: string) =
+            match registry.Get name with
+            | Some tool -> tool.Execute input |> Async.RunSynchronously
+            | None -> failwith $"{name} is not registered"
+
+        let refused name input (expected: string) =
+            match run name input with
+            | Result.Error message -> Assert.StartsWith(expected, message)
+            | Result.Ok text -> failwith $"{name} reported something that did not happen: {text}"
+
+        // switch_model reported a switch nothing read; get_active_model reported a
+        // default nobody configured as the model in use.
+        refused "switch_model" "llama3:8b" "Not switched"
+        refused "get_active_model" "" "Unknown here"
+
+        // search_skills_registry answered from eight entries written in advance.
+        refused "search_skills_registry" "payment" "Not searched"
+
+        // run_metascript listed an EXECUTE step it did not run, then said
+        // "Metascript execution complete".
+        match run "run_metascript" "EXECUTE git_commit: ship it" with
+        | Result.Ok text ->
+            Assert.Contains("not run", text)
+            Assert.DoesNotContain("execution complete", text)
+        | Result.Error message -> failwith message
+
+        // circuit_breaker called a service it had never heard of "healthy".
+        match run "circuit_breaker" """{"service": "payments", "action": "check"}""" with
+        | Result.Ok text -> Assert.DoesNotContain("healthy", text)
+        | Result.Error message -> failwith message
+
     // ------------------------------------------------------------ a verdict, or a word
 
     [<Fact>]
