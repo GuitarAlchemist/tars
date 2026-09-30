@@ -124,6 +124,78 @@ type FailuresReportedAsSuccessTests() =
     // ------------------------------------------------------------ work nobody did
 
     [<Fact>]
+    member _.``A tool nobody registered fails its node, rather than the model making up what it returned``() =
+        // The executor used to ask the LLM to "produce a plausible output for this tool
+        // call" and record the answer as the tool's result, with the step Completed.
+        let asked = ref 0
+
+        let answer () =
+            task {
+                asked.Value <- asked.Value + 1
+
+                return
+                    { Text = "AAPL 191.20"
+                      FinishReason = Some "stop"
+                      Usage = None
+                      Raw = None }
+            }
+
+        let llm =
+            { new ILlmService with
+                member _.CompleteAsync(_req) = answer ()
+                member _.CompleteStreamAsync(_req, _onToken) = answer ()
+                member _.EmbedAsync(_text) = task { return [| 0.1f |] }
+
+                member _.RouteAsync(_) =
+                    task {
+                        return
+                            { Backend = Ollama "mock"
+                              Endpoint = Uri "http://localhost:11434"
+                              ApiKey = None }
+                    } }
+
+        let registry =
+            { new IToolRegistry with
+                member _.Register(_) = ()
+                member _.Get(_) = None
+                member _.GetAll() = [] }
+
+        let fetch = PatternCompiler.act "fetch_prices" Map.empty
+
+        let plan: WoTPlan =
+            { Id = Guid.NewGuid()
+              Nodes = [ fetch ]
+              Edges = []
+              EntryNode = fetch.Id
+              Metadata =
+                ({ Kind = PatternKind.ReAct
+                   SourceGoal = "today's prices"
+                   CompiledAt = DateTime.UtcNow
+                   EstimatedTokens = None
+                   EstimatedSteps = None }
+                : PatternMetadata)
+              Policy = [] }
+
+        let context: WoTExecutor.ExecutionContext =
+            { Llm = llm
+              Tools = registry
+              Logger = ignore
+              OnProgress = ignore
+              CancellationToken = System.Threading.CancellationToken.None
+              KnowledgeGraph = None
+              Reflector = None
+              Decider = None }
+
+        let result = WoTExecutor.execute context plan |> Async.RunSynchronously
+
+        match (result.Trace.Steps |> List.find (fun s -> s.NodeId = fetch.Id)).Status with
+        | NodeStatus.Failed(error, _) -> Assert.Contains("not registered", error)
+        | other -> failwith $"the step was {other}"
+
+        Assert.False(result.Success)
+        Assert.Equal(0, asked.Value)
+
+    [<Fact>]
     member _.``Spawning a subagent says nothing was started, rather than reporting research it never did``() =
         // The MCP server's only subagent runner waited a second and reported
         // `Success = true`, "Completed research on: <goal>", for any goal at all.
