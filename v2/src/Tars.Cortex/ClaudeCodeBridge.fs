@@ -349,9 +349,30 @@ module ClaudeCodeBridge =
     // validateStep
     // =========================================================================
 
+    /// What `tars_validate_step` makes of each invariant: `Ok true` verified, `Ok false`
+    /// failed, `Error` not checked - and not checked is never counted as a pass.
+    ///
+    /// The checks are `Verification.verify`'s, the same ones the executor runs. This
+    /// used to keep its own copy of the simple ones and answer `true // placeholder`
+    /// for the rest, so a `Schema` or `CustomOp` invariant passed every payload, and a
+    /// `ToolCheck` passed without the tool being run (#284).
+    let checkInvariants (content: string) (invariants: WoTInvariant list) : (string * Result<bool, string>) list =
+        let noTools _name _args =
+            async { return Result.Error "tars_validate_step does not execute tools" }
+
+        invariants
+        |> List.map (fun inv ->
+            let outcome =
+                match inv.Op with
+                // Running a tool is not validation: it can have effects, and this
+                // entry point has no approval to run anything under.
+                | ToolCheck(tool, _) -> Result.Error $"tool check '{tool}' was not run: tars_validate_step does not execute tools"
+                | op -> Verification.verify content op noTools |> Async.RunSynchronously
+
+            inv.Name, outcome)
+
     /// Validate content against a Validate node's invariants.
     /// Input JSON: { "plan_id": "...", "node_id": "...", "content": "..." }
-    /// Uses synchronous subset of Verification (Contains, Regex, JsonPath, Schema, CustomOp).
     let validateStep (input: string) : Result<string, string> =
         try
             let doc = JsonDocument.Parse(input)
@@ -383,31 +404,25 @@ module ClaudeCodeBridge =
                     | Validate ->
                         match node.Payload with
                         | :? ValidatePayload as payload ->
-                            // Perform synchronous verification for simple ops
-                            let results =
-                                payload.Invariants
-                                |> List.map (fun inv ->
-                                    let passed =
-                                        match inv.Op with
-                                        | Contains substring ->
-                                            content.Contains(substring, StringComparison.OrdinalIgnoreCase)
-                                        | VerificationOp.Regex pattern ->
-                                            System.Text.RegularExpressions.Regex.IsMatch(
-                                                content, pattern,
-                                                System.Text.RegularExpressions.RegexOptions.IgnoreCase)
-                                        | JsonPath path ->
-                                            content.Contains(path) || content.Contains($"\"{path}\"")
-                                        | Schema _ -> true // placeholder
-                                        | CustomOp _ -> true // placeholder
-                                        | ToolCheck _ -> true // skip tool checks in sync validate
-                                    inv.Name, passed)
+                            let results = checkInvariants content payload.Invariants
 
-                            let allPassed = results |> List.forall snd
+                            let verified (_, outcome) = outcome = Result.Ok true
+
+                            let allPassed = results |> List.forall verified
 
                             let failed =
                                 results
-                                |> List.filter (fun (_, p) -> not p)
+                                |> List.filter (verified >> not)
                                 |> List.map fst
+
+                            // Why an invariant in `failed` was never checked, so a caller
+                            // can tell "the content is wrong" from "nothing looked at it".
+                            let notVerified =
+                                results
+                                |> List.choose (fun (name, outcome) ->
+                                    match outcome with
+                                    | Result.Error reason -> Some $"{name}: {reason}"
+                                    | Result.Ok _ -> None)
 
                             activePlan.StepOutputs.[nodeId] <-
                                 if allPassed then "PASS"
@@ -420,6 +435,7 @@ module ClaudeCodeBridge =
                             let result =
                                 {| passed = allPassed
                                    failed_invariants = failed
+                                   not_verified = notVerified
                                    next_nodes = nextNodes |}
 
                             Ok(JsonSerializer.Serialize(result, jsonOptions))
