@@ -73,6 +73,44 @@ type FailuresReportedAsSuccessTests() =
         Assert.True(verdict """{"answer":"yes"}""")
         Assert.False(verdict """{"other":"no"}""")
 
+    // ------------------------------------------------------------ a check nobody knows
+
+    [<Fact>]
+    member _.``A custom check nobody knows verifies nothing``() =
+        // `Ok true` before #284: `CustomOp "valid_jsn"` passed every payload.
+        match Verification.verify "anything" (CustomOp "valid_jsn") noTools |> Async.RunSynchronously with
+        | Result.Ok verdict -> failwith $"expected an error, got {verdict}"
+        | Result.Error message -> Assert.Contains("valid_jsn", message)
+
+    [<Fact>]
+    member _.``The MCP validator never counts an unchecked invariant as a pass``() =
+        let invariant name op : WoTInvariant = { Name = name; Op = op; Weight = 1.0 }
+
+        // Each of these answered `true // placeholder` in `ClaudeCodeBridge.validateStep`,
+        // whatever the content: an MCP caller was told its payload satisfied a schema
+        // nothing had read, and a tool check nothing had run.
+        let results =
+            ClaudeCodeBridge.checkInvariants
+                """{"other":"no"}"""
+                [ invariant "has answer" (Schema """{"type":"object","required":["answer"]}""")
+                  invariant "made up" (CustomOp "valid_jsn")
+                  invariant "file exists" (ToolCheck("file_exists", Map.empty))
+                  invariant "non empty" (CustomOp "non_empty") ]
+            |> Map.ofList
+
+        // Checked, and the content is wrong.
+        Assert.Equal(Result.Ok false, results["has answer"])
+
+        // Not checked, and it says why.
+        match results["made up"], results["file exists"] with
+        | Result.Error unknown, Result.Error tool ->
+            Assert.Contains("valid_jsn", unknown)
+            Assert.Contains("was not run", tool)
+        | other -> failwith $"expected both to be reported unchecked, got %A{other}"
+
+        // And a check that holds still holds.
+        Assert.Equal(Result.Ok true, results["non empty"])
+
     // ------------------------------------------------------------ a verdict, or a word
 
     [<Fact>]

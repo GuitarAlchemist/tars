@@ -132,7 +132,12 @@ module Verification =
                         else
                             return Result.Ok false
                     | _ ->
-                        return Result.Ok true
+                        // This used to be `Ok true`: a misspelt or invented check passed
+                        // every payload, and the gate reported it verified (#284). The
+                        // DSL only ever produces the two above.
+                        return
+                            Result.Error
+                                $"'{name}' is not a check this runner knows (non_empty, threshold:<metric>:<value>), so nothing was verified"
             with ex ->
                 return Result.Error ex.Message
         }
