@@ -111,6 +111,16 @@ type FailuresReportedAsSuccessTests() =
         // And a check that holds still holds.
         Assert.Equal(Result.Ok true, results["non empty"])
 
+    [<Fact>]
+    member _.``Content of the wrong shape fails a schema, rather than going unchecked``() =
+        // Codex on #350: an array or a scalar made the required-field lookup throw, and
+        // the catch reported a valid schema as unreadable - so the MCP validator said
+        // "not verified" about content that had simply failed.
+        let schema = """{"type":"object","required":["answer"]}"""
+
+        for content in [ "[1,2]"; "42"; "\"just text\"" ] do
+            Assert.Equal(Result.Ok false, Verification.verify content (Schema schema) noTools |> Async.RunSynchronously)
+
     // ------------------------------------------------------------ a verdict, or a word
 
     [<Fact>]
