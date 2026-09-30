@@ -158,8 +158,8 @@ module WoTExecutor =
         else
             JsonSerializer.Serialize(args)
 
-    /// Execute an Act node â€” invokes the real tool if registered, otherwise
-    /// falls back to asking the LLM to simulate the tool call.
+    /// Execute an Act node: invokes the tool if it is registered. A tool that is not
+    /// registered fails the node - it is never stood in for.
     let private executeAct
         (ctx: ExecutionContext)
         (id: string)
@@ -189,36 +189,14 @@ module WoTExecutor =
                     return Result.Error err
 
             | None ->
-                // Tool not registered â€” fall back to LLM simulation
-                ctx.Logger $"[WoT] Tool '%s{toolName}' not found, falling back to LLM simulation"
-
-                let argsDesc =
-                    if args.IsEmpty then "no arguments"
-                    else
-                        args
-                        |> Map.toList
-                        |> List.map (fun (k, v) -> $"%s{k}=%O{v}")
-                        |> String.concat ", "
-
-                let prompt =
-                    $"You are simulating the tool '%s{toolName}' with arguments: %s{argsDesc}.\n\
-                      Produce a plausible output for this tool call. Be concise and factual."
-
-                try
-                    let! response =
-                        Prompt.ask prompt
-                        |> Prompt.withSystem "You are TARS, an autonomous reasoning agent simulating a tool call."
-                        |> Prompt.withMaxTokens 512
-                        |> Prompt.withTemp 0.3
-                        |> Prompt.complete ctx.Llm
-                        |> Async.AwaitTask
-
-                    ctx.Logger $"[WoT] LLM fallback for '%s{toolName}': %d{response.Text.Length} chars"
-                    return Result.Ok response.Text
-                with ex ->
-                    let err = $"Tool '%s{toolName}' not found and LLM fallback failed: %s{ex.Message}"
-                    ctx.Logger $"[WoT] %s{err}"
-                    return Result.Error err
+                // Nothing ran. This used to ask the LLM to "produce a plausible output
+                // for this tool call" and return it as the tool's result: an invented
+                // observation, recorded as a completed step and handed to every node
+                // downstream as if the tool had run. Separating Reason nodes from Work
+                // nodes exists to stop exactly that (WotTypes.fs).
+                let err = $"Tool '%s{toolName}' is not registered, so it was not run"
+                ctx.Logger $"[WoT] %s{err}"
+                return Result.Error err
         }
 
     /// Execute an Observe node
