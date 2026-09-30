@@ -304,6 +304,88 @@ type FailuresReportedAsSuccessTests() =
 
             Assert.Contains("nothing was started", root.GetProperty("error").GetProperty("message").GetString())
 
+    [<Fact>]
+    member _.``Asking another agent says it was not asked, rather than answering for it``() =
+        if not (TestHelpers.requireTools ()) then () else
+
+        // query_agent returned text written in advance for each agent name - "Can approve
+        // or request changes" - whatever the question, as that agent's reply.
+        let answer =
+            Tars.Tools.Standard.AgentTools.queryAgent """{"agent": "reviewer", "question": "Is this safe to merge?"}"""
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        match answer with
+        | Result.Error message ->
+            Assert.Contains("Not asked", message)
+            Assert.DoesNotContain("Can approve or request changes", message)
+        | Result.Ok text -> failwith $"answered for an agent nobody asked: {text}"
+
+    [<Fact>]
+    member _.``Delegating to a registered agent says nothing was started``() =
+        if not (TestHelpers.requireTools ()) then () else
+
+        // delegate_task answered "Task delegated ... Agent-to-agent execution initiated
+        // via registry" and started nothing.
+        let reviewer =
+            { Tars.Tests.AgentWorkflowTests.createTestAgent () with
+                Name = "Reviewer" }
+
+        Tars.Tools.Standard.AgentTools.setRegistry
+            { new IAgentRegistry with
+                member _.GetAgent(_) = async { return Some reviewer }
+                member _.FindAgents(_) = async { return [ reviewer ] }
+                member _.GetAllAgents() = async { return [ reviewer ] } }
+
+        let answer =
+            Tars.Tools.Standard.AgentTools.delegateTask """{"agent": "reviewer", "task": "Review the parser"}"""
+            |> Async.AwaitTask
+            |> Async.RunSynchronously
+
+        match answer with
+        | Result.Error message ->
+            Assert.Contains("Not delegated", message)
+            Assert.Contains("nothing was started", message)
+        | Result.Ok text -> failwith $"reported a delegation that started nothing: {text}"
+
+    [<Fact>]
+    member _.``A tool's failure reaches the caller as a failure, and its value rather than a type name``() =
+        if not (TestHelpers.requireTools ()) then () else
+
+        // The registry knew Task<string> and string. A tool returning
+        // Task<Result<string, string>> - fsharp_compile, the refactor tools - or a
+        // Task<bool> came back Ok, with the task's type name for its text.
+        let registry = Tars.Tools.ToolRegistry()
+        registry.RegisterAssembly(typeof<Tars.Tools.ToolRegistry>.Assembly)
+
+        let run name (input: string) =
+            match registry.Get name with
+            | Some tool -> tool.Execute input |> Async.RunSynchronously
+            | None -> failwith $"{name} is not registered"
+
+        match run "fsharp_compile" """{"path": "no/such/project.fsproj"}""" with
+        | Result.Error message -> Assert.Contains("Path not found", message)
+        | Result.Ok text -> failwith $"compiling a project that does not exist came back Ok: {text}"
+
+        Assert.Equal(Result.Ok "true", run "health_check" "")
+
+        // And the agent tools, through the same path: a tool that only ever fails
+        // must still be one the registry can call.
+        match run "query_agent" """{"agent": "reviewer", "question": "Is this safe to merge?"}""" with
+        | Result.Error message -> Assert.StartsWith("Not asked", message)
+        | Result.Ok text -> failwith $"answered for an agent nobody asked: {text}"
+
+        match run "delegate_task" """{"agent": "reviewer", "task": "Review the parser"}""" with
+        | Result.Error message ->
+            // Which refusal depends on whether a test has set an agent registry; each
+            // of them is the tool's own answer, not a failure to call it.
+            Assert.True(
+                [ "Not delegated"; "Agent '"; "AgentRegistry not initialized" ]
+                |> List.exists message.StartsWith,
+                message
+            )
+        | Result.Ok text -> failwith $"reported a delegation that started nothing: {text}"
+
     // ------------------------------------------------------------ a verdict, or a word
 
     [<Fact>]
