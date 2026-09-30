@@ -240,6 +240,11 @@ module ResearchTools =
 
                     printfn $"🔬 Searching Semantic Scholar: {query}"
                     let! response = httpClient.Value.GetAsync(apiUrl)
+                    let notRun = ToolHelpers.searchNotRun "Semantic Scholar" response.StatusCode
+
+                    if notRun.IsSome then
+                        return $"search_semantic_scholar error: {notRun.Value}"
+                    else
                     let! json = response.Content.ReadAsStringAsync()
 
                     let doc = JsonDocument.Parse(json)

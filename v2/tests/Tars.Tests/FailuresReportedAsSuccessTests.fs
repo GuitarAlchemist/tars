@@ -533,3 +533,19 @@ type FailuresReportedAsSuccessTests() =
         epistemic.Verify("another statement").GetAwaiter().GetResult() |> ignore
 
         Assert.Equal(120, int governor.Consumed.Tokens)
+
+    // ----------------------------------------------------- a refused search read as empty
+
+    [<Fact>]
+    member _.``A refused search is not reported as finding nothing``() =
+        // Semantic Scholar answers a rate limit with 429 and a body with no "data",
+        // and DuckDuckGo answers one with a 202 page that has no result links. Both
+        // used to come back as "No results found".
+        match Tars.Tools.ToolHelpers.searchNotRun "Semantic Scholar" Net.HttpStatusCode.TooManyRequests with
+        | Some reason ->
+            Assert.Contains("429", reason)
+            Assert.Contains("nothing was searched", reason)
+        | None -> failwith "a 429 was read as a search that ran"
+
+        Assert.True((Tars.Tools.ToolHelpers.searchNotRun "DuckDuckGo" Net.HttpStatusCode.Accepted).IsSome)
+        Assert.True((Tars.Tools.ToolHelpers.searchNotRun "DuckDuckGo" Net.HttpStatusCode.OK).IsNone)

@@ -274,6 +274,11 @@ module WebTools =
                     request.Headers.Add("Accept-Language", "en-US,en;q=0.9")
 
                     let! response = httpClient.Value.SendAsync(request)
+                    let notRun = ToolHelpers.searchNotRun "DuckDuckGo" response.StatusCode
+
+                    if notRun.IsSome then
+                        return $"search_web error: {notRun.Value}"
+                    else
                     let! html = response.Content.ReadAsStringAsync()
 
                     // Parse DuckDuckGo results
