@@ -451,3 +451,168 @@ let ``an undescribed tool still runs here, which is the opposite of the graph ed
     match result with
     | Result.Ok _ -> ()
     | Result.Error err -> Assert.Fail $"an undescribed tool was refused, which this surface does not do: {err}"
+
+// =========================================================================
+// Nothing counted as passed that nobody checked
+// =========================================================================
+
+/// Keeps outcomes in memory. The real selector writes them to the user's outcome
+/// store, which is also what a pattern learns from.
+type private RecordingSelector() =
+    let recorded = ResizeArray<PatternOutcome>()
+    member _.Recorded = List.ofSeq recorded
+
+    interface IPatternSelector with
+        member _.Recommend(_, _) = PatternKind.ChainOfThought
+        member _.Score(_) = Map.empty
+        member _.RecordOutcome(outcome) = recorded.Add outcome
+
+/// An active plan of one Validate node, "check", whose invariant "nope" does not meet.
+let private planWithAValidateNode (reg: StubToolRegistry) =
+    let check: WoTNode =
+        { Id = "check"
+          Kind = Validate
+          Payload =
+            box (
+                { Invariants =
+                    [ ({ Name = "mentions the answer"
+                         Op = VerificationOp.Contains "42"
+                         Weight = 1.0 }
+                      : WoTInvariant) ] }
+                : ValidatePayload
+            )
+          Metadata = ({ Label = None; Tags = []; Extra = Map.empty }: NodeMetadata) }
+
+    let plan: WoTPlan =
+        { Id = Guid.NewGuid()
+          Nodes = [ check ]
+          Edges = []
+          EntryNode = check.Id
+          Metadata =
+            ({ Kind = PatternKind.ChainOfThought
+               SourceGoal = "answer"
+               CompiledAt = DateTime.UtcNow
+               EstimatedTokens = None
+               EstimatedSteps = None }
+            : PatternMetadata)
+          Policy = [] }
+
+    let compiler =
+        { new IPatternCompiler with
+            member _.CompileFor(_, _) = plan
+            member _.CompileChainOfThought(_, _) = failwith "not used"
+            member _.CompileReAct(_, _, _) = failwith "not used"
+            member _.CompileGraphOfThoughts(_, _, _) = failwith "not used"
+            member _.CompileTreeOfThoughts(_, _, _) = failwith "not used"
+            member _.CompilePattern(_, _) = failwith "not used" }
+
+    match compilePlan compiler (RecordingSelector()) (reg :> Tars.Core.IToolRegistry) """{"goal": "answer"}""" with
+    | Result.Error err -> failwith err
+    | Result.Ok planJson -> JsonDocument.Parse(planJson).RootElement.GetProperty("planId").GetString()
+
+[<Fact>]
+let ``executeStep will not record a Validate node as passed, even over a failed validation`` () =
+    let reg = makeRegistry ()
+    let planId = planWithAValidateNode reg
+
+    match validateStep (sprintf """{"plan_id": "%s", "node_id": "check", "content": "nope"}""" planId) with
+    | Result.Ok json -> Assert.False(JsonDocument.Parse(json).RootElement.GetProperty("passed").GetBoolean())
+    | Result.Error err -> Assert.Fail err
+
+    // What used to turn that failure into a pass: the input, recorded as the output
+    // of a node that "succeeded".
+    let recorded =
+        executeStep
+            (reg :> Tars.Core.IToolRegistry)
+            (sprintf """{"plan_id": "%s", "node_id": "check", "input": "nope"}""" planId)
+        |> Async.RunSynchronously
+
+    match recorded with
+    | Result.Ok json -> Assert.Fail $"a Validate node was recorded as run: {json}"
+    | Result.Error msg -> Assert.Contains("tars_validate_step", msg)
+
+    let selector = RecordingSelector()
+
+    match completePlan selector (sprintf """{"plan_id": "%s"}""" planId) with
+    | Result.Ok json ->
+        let root = JsonDocument.Parse(json).RootElement
+        Assert.False(root.GetProperty("success").GetBoolean())
+        Assert.Equal(1, root.GetProperty("failedSteps").GetInt32())
+    | Result.Error err -> Assert.Fail err
+
+    Assert.False((List.exactlyOne selector.Recorded).Success)
+
+[<Fact>]
+let ``a plan in which nothing ran is not a success, and teaches the selector nothing`` () =
+    let planId = planWithAValidateNode (makeRegistry ())
+    let selector = RecordingSelector()
+
+    match completePlan selector (sprintf """{"plan_id": "%s"}""" planId) with
+    | Result.Ok json ->
+        let root = JsonDocument.Parse(json).RootElement
+        Assert.False(root.GetProperty("success").GetBoolean())
+        Assert.Equal(0, root.GetProperty("successfulSteps").GetInt32())
+    | Result.Error err -> Assert.Fail err
+
+    Assert.Empty(selector.Recorded)
+
+[<Fact>]
+let ``a plan whose only step the gate refused is not a success, and teaches the selector nothing`` () =
+    let reg, planId, nodeId, toolName = planWithAToolNode ()
+
+    ToolMetadata.Testing.reset ()
+
+    ToolMetadata.describe
+        { Name = toolName
+          InputSchema = ToolMetadata.objectSchema [] []
+          Required = []
+          Approval = ToolMetadata.Approval.mutates "writes a file to disk" }
+
+    match executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId []) |> Async.RunSynchronously with
+    | Result.Ok output -> Assert.Fail $"the tool ran unapproved: {output}"
+    | Result.Error _ -> ()
+
+    ToolMetadata.Testing.reset ()
+
+    // Declining a tool says nothing about how well the pattern works.
+    let selector = RecordingSelector()
+
+    match completePlan selector (sprintf """{"plan_id": "%s"}""" planId) with
+    | Result.Ok json -> Assert.False(JsonDocument.Parse(json).RootElement.GetProperty("success").GetBoolean())
+    | Result.Error err -> Assert.Fail err
+
+    Assert.Empty(selector.Recorded)
+
+[<Fact>]
+let ``a step that ran keeps its result when a later retry is refused`` () =
+    let reg, planId, nodeId, toolName = planWithAToolNode ()
+
+    ToolMetadata.Testing.reset ()
+
+    ToolMetadata.describe
+        { Name = toolName
+          InputSchema = ToolMetadata.objectSchema [] []
+          Required = []
+          Approval = ToolMetadata.Approval.mutates "writes a file to disk" }
+
+    match executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId [ nodeId ]) |> Async.RunSynchronously with
+    | Result.Ok _ -> ()
+    | Result.Error err -> Assert.Fail $"approving it did not let it run: {err}"
+
+    // Sent again without `approve`: refused, and the run above still happened.
+    match executeStep (reg :> Tars.Core.IToolRegistry) (step planId nodeId []) |> Async.RunSynchronously with
+    | Result.Ok output -> Assert.Fail $"the tool ran unapproved: {output}"
+    | Result.Error _ -> ()
+
+    ToolMetadata.Testing.reset ()
+
+    let selector = RecordingSelector()
+
+    match completePlan selector (sprintf """{"plan_id": "%s"}""" planId) with
+    | Result.Ok json ->
+        let root = JsonDocument.Parse(json).RootElement
+        Assert.True(root.GetProperty("success").GetBoolean(), json)
+        Assert.Equal(0, root.GetProperty("failedSteps").GetInt32())
+    | Result.Error err -> Assert.Fail err
+
+    Assert.True((List.exactlyOne selector.Recorded).Success)
