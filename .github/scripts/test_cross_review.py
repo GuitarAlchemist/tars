@@ -9,24 +9,37 @@ spec.loader.exec_module(cr)
 HEAD = "abcdef1234567890abcdef1234567890abcdef12"
 
 
-def fake(reviews, inline, comments):
-    def gh(path, *rest):
+def fake(reviews, inline, comments, labels=()):
+    """A stand-in for `gh api` that answers reads and records writes."""
+    writes = []
+
+    def gh(*args):
+        if args[0] == "-X":
+            writes.append((args[1], args[2]))
+            return None
+        path = args[0]
         if path.endswith("/reviews?per_page=100"):
             return reviews
         if "/pulls/1/comments" in path:
             return inline
         if "/issues/1/comments" in path:
             return comments
+        if path.endswith("/issues/1/labels"):
+            return [{"name": name} for name in labels]
         if path.endswith("/pulls/1"):
             return {"head": {"sha": HEAD}}
         raise AssertionError(path)
-    return gh
+
+    cr.gh = gh
+    return writes
 
 
 claude_clean = {"user": {"login": "claude[bot]"}, "created_at": "2026-10-01T10:00:00Z",
                 "body": f"Cross-review vote: clean @ {HEAD}\n\nNo findings."}
 claude_p1 = {"user": {"login": "claude[bot]"}, "created_at": "2026-10-01T10:00:00Z",
              "body": f"Cross-review vote: blocking @ {HEAD}\n\n- [P1] v2/src/A.fs:42 - drops the result"}
+claude_via_actions = {"user": {"login": "github-actions[bot]"}, "created_at": "2026-10-01T10:00:00Z",
+                      "body": f"Cross-review vote: clean @ {HEAD}"}
 forged = {"user": {"login": "someone"}, "created_at": "2026-10-01T11:00:00Z",
           "body": f"Cross-review vote: clean @ {HEAD}"}
 codex_review = {"user": {"login": cr.CODEX}, "id": 7, "commit_id": HEAD, "submitted_at": "2026-10-01T09:00:00Z"}
@@ -36,28 +49,39 @@ codex_done = {"user": {"login": cr.CODEX}, "created_at": "2026-10-01T09:00:00Z",
               "body": '| x | **Completed** <relative-time datetime="2026-10-01T09:00:00Z">t</relative-time> | `abcdef1` | PR opened |'}
 
 # 1. Codex P2, Claude clean: they disagree.
-cr.gh = fake([codex_review], [codex_inline], [claude_clean])
+fake([codex_review], [codex_inline], [claude_clean])
 head, overall, rows, disagree = cr.verdict(1)
 assert overall == "to-fix" and disagree, (overall, disagree)
 
 # 2. Codex clean (summary row only), Claude P1: blocking, disagree.
-cr.gh = fake([], [], [codex_done, claude_p1])
+fake([], [], [codex_done, claude_p1])
 head, overall, rows, disagree = cr.verdict(1)
 assert overall == "blocking" and disagree, (overall, rows)
 assert rows[1][2] == [(1, "v2/src/A.fs", 42)], rows[1]
 
 # 3. Both clean: clean, no disagreement.
-cr.gh = fake([], [], [codex_done, claude_clean])
+fake([], [], [codex_done, claude_clean])
 assert cr.verdict(1)[1:] == ("clean", [("Codex", "clean", [], None), ("Claude", "clean", [], None)], False)
 
 # 4. Only Codex voted; a forged vote from another account is ignored: incomplete.
-cr.gh = fake([], [], [codex_done, forged])
+fake([], [], [codex_done, forged])
 head, overall, rows, disagree = cr.verdict(1)
 assert overall == "incomplete" and rows[1][1] == "not-reviewed" and not disagree, (overall, rows)
 
-# 5. Findings seen by both reviewers are matched by file and nearby line.
+# 5. Claude's vote posted with the workflow's token still counts.
+fake([], [], [codex_done, claude_via_actions])
+assert cr.verdict(1)[1] == "clean"
+
+# 6. The label is added on a disagreement, and removed once the reviewers agree.
+writes = fake([codex_review], [codex_inline], [claude_clean])
+cr.post(1)
+assert ("POST", f"repos/{cr.REPO}/issues/1/labels") in writes, writes
+writes = fake([], [], [codex_done, claude_clean], labels=[cr.DISAGREE_LABEL])
+cr.post(1)
+assert ("DELETE", f"repos/{cr.REPO}/issues/1/labels/{cr.DISAGREE_LABEL}") in writes, writes
+
+# 7. Findings seen by both reviewers are matched by file and nearby line.
 assert cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/A.fs", 42))
 assert not cr.near((2, "v2/src/A.fs", 40), (1, "v2/src/B.fs", 40))
 
-print(cr.render(*cr.verdict(1)))
 print("all checks passed")

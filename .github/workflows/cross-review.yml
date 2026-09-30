@@ -6,8 +6,10 @@ name: Cross-review verdict
 # "not reviewed", never as clean. See .github/scripts/cross_review.py.
 #
 # It runs when a reviewer votes: Codex through its review or its summary
-# comment, Claude through its "Cross-review vote:" comment
-# (claude-code-review.yml). Only those two accounts can trigger it.
+# comment, Claude through its "Cross-review vote:" comment when that comes
+# from the Claude app. Only those two accounts can trigger it. A vote posted
+# with a workflow token starts no workflow, so claude-code-review.yml also
+# posts the verdict itself after Claude votes.
 
 on:
   issue_comment:

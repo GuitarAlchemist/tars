@@ -15,12 +15,14 @@ Votes are read from:
   Codex   its PR reviews (inline comments carry P0-P3 badges), its
           "Didn't find any major issues" comment, and the "Completed" rows
           of its summary comment, which name the commit
-  Claude  a comment from claude[bot] whose first line is
-          "Cross-review vote: <vote> @ <sha>" (see claude-code-review.yml)
+  Claude  a comment whose first line is "Cross-review vote: <vote> @ <sha>"
+          (see claude-code-review.yml). claude-code-action may post it with
+          the Claude app or with the workflow's token, so both accounts are
+          accepted. Only this repo's workflows can post as github-actions[bot].
 
 Usage:
   cross_review.py verdict <pr>            print the verdict for the head commit
-  cross_review.py post <pr>               post it on the PR, labelled if the reviewers disagree
+  cross_review.py post <pr>               post it on the PR, and label the PR while the reviewers disagree
   cross_review.py report <first> <last>   count each reviewer's findings over a range of PRs
 """
 import json
@@ -31,7 +33,7 @@ import sys
 
 REPO = os.environ.get("GITHUB_REPOSITORY", "GuitarAlchemist/tars")
 CODEX = "chatgpt-codex-connector[bot]"
-CLAUDE = "claude[bot]"
+CLAUDE = ("claude[bot]", "github-actions[bot]")
 REVIEWERS = ("Codex", "Claude")
 MARKER = "<!-- cross-review -->"
 DISAGREE_LABEL = "reviewers-disagree"
@@ -88,7 +90,7 @@ def collect(pr):
             for at, sha in CODEX_DONE.findall(c["body"]):
                 if not any(same_commit(sha, s) for s in with_findings):
                     votes.append((at, "Codex", sha, "clean", []))
-        elif login == CLAUDE:
+        elif login in CLAUDE:
             m = CLAUDE_VOTE.match(c["body"].lstrip())
             if m:
                 findings = [(int(p), path, int(line)) for p, path, line in CLAUDE_FINDING.findall(c["body"])]
@@ -152,8 +154,12 @@ def post(pr):
         gh("-X", "PATCH", f"repos/{REPO}/issues/comments/{mine[-1]['id']}", "-f", f"body={body}")
     else:
         gh("-X", "POST", f"repos/{REPO}/issues/{pr}/comments", "-f", f"body={body}")
-    if disagree:
+    # The label follows the current head commit: it goes once the reviewers agree.
+    labelled = any(label["name"] == DISAGREE_LABEL for label in gh(f"repos/{REPO}/issues/{pr}/labels"))
+    if disagree and not labelled:
         gh("-X", "POST", f"repos/{REPO}/issues/{pr}/labels", "-f", f"labels[]={DISAGREE_LABEL}")
+    elif labelled and not disagree:
+        gh("-X", "DELETE", f"repos/{REPO}/issues/{pr}/labels/{DISAGREE_LABEL}")
     print(body)
 
 
