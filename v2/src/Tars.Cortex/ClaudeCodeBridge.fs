@@ -208,8 +208,9 @@ module ClaudeCodeBridge =
     /// Execute a single step in an active plan.
     ///
     /// Input JSON: `{ "plan_id", "node_id", "input", "approve": ["node_id", ...] }`.
-    /// For Tool nodes, runs the tool via the registry. For other node kinds, records
-    /// the provided input as output.
+    /// For Tool nodes, runs the tool via the registry. A Validate node is refused:
+    /// `validateStep` checks it. For other node kinds, records the provided input as
+    /// output.
     ///
     /// **The gate, and what it does not cover.** Until `ToolGate` existed this ran any
     /// tool a compiled plan named, with nothing asked and nothing said - the graph
@@ -328,6 +329,13 @@ module ClaudeCodeBridge =
                                         return Error $"Tool '{payload.Tool}' failed: {err}"
                             | _ ->
                                 return Error "Tool node has invalid payload type"
+                        | Validate ->
+                            // Recording this node would mark it passed with none of its
+                            // invariants checked - and would turn a failed
+                            // tars_validate_step on the same node into a pass.
+                            return
+                                Error
+                                    $"'{nodeId}' is a Validate node: its invariants are checked by tars_validate_step. Nothing was recorded."
                         | _ ->
                             // For non-tool nodes, record the input as output
                             activePlan.StepOutputs.[nodeId] <- stepInput
@@ -448,8 +456,8 @@ module ClaudeCodeBridge =
     // completePlan
     // =========================================================================
 
-    /// Complete an active plan, record outcome for pattern learning, and check
-    /// for golden trace regression.
+    /// Complete an active plan, record its outcome for pattern learning, and say
+    /// whether a golden trace exists for its goal (nothing here compares against it).
     /// Input JSON: { "plan_id": "...", "final_output": "..." }
     let completePlan
         (selector: IPatternSelector)
@@ -476,21 +484,30 @@ module ClaudeCodeBridge =
                 let failedSteps =
                     activePlan.StepStatuses.Values |> Seq.filter (not) |> Seq.length
 
-                let success = failedSteps = 0
+                // A plan in which no step was recorded did not succeed: nothing ran.
+                let ran = activePlan.StepStatuses.Count > 0
+
+                let success = ran && failedSteps = 0
 
                 let duration =
                     (DateTime.UtcNow - activePlan.StartedAt).TotalMilliseconds |> int64
 
-                // Record outcome for pattern learning
-                selector.RecordOutcome(
-                    PatternOutcome.Create(activePlan.PatternKind, activePlan.Goal, success, duration))
+                // Record outcome for pattern learning - unless nothing ran, which says
+                // nothing about the pattern either way.
+                if ran then
+                    selector.RecordOutcome(
+                        PatternOutcome.Create(activePlan.PatternKind, activePlan.Goal, success, duration))
 
                 // Check golden regression (best-effort)
                 let regressionMsg =
                     let goldenName = RegressionChecker.goalToGoldenName activePlan.Goal
 
                     match GoldenTraceStore.load goldenName with
-                    | Ok _ -> Some "PASS (golden trace exists)"
+                    // Nothing here compares the run against it. This used to say
+                    // "PASS", for a comparison that never happened.
+                    | Ok _ ->
+                        Some
+                            "not compared: a golden trace exists for this goal, but completing a plan does not compare against it"
                     | Error _ -> None
 
                 let result =
