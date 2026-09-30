@@ -4,6 +4,7 @@ open System
 open System.Net.Http
 open System.Text.RegularExpressions
 open System.Text.Json
+open System.Threading.Tasks
 open Tars.Tools
 
 /// Tools for arXiv paper retrieval and PDF handling
@@ -131,13 +132,13 @@ module ResearchTools =
         }
 
     [<TarsToolAttribute("fetch_doi", "Fetches paper metadata by DOI. Input JSON: { \"doi\": \"10.1000/xyz123\" }")>]
-    let fetchDoi (args: string) =
+    let fetchDoi (args: string) : Task<Result<string, string>> =
         task {
             try
                 let doi = ToolHelpers.parseStringArg args "doi"
 
                 if String.IsNullOrWhiteSpace doi then
-                    return "fetch_doi error: missing doi"
+                    return Result.Error "fetch_doi error: missing doi"
                 else
                     printfn $"📚 Fetching DOI: {doi}"
 
@@ -147,6 +148,20 @@ module ResearchTools =
                     let! response = httpClient.Value.SendAsync(request)
                     let! json = response.Content.ReadAsStringAsync()
 
+                    // doi.org answers an unknown DOI with a 404 page. That page used to
+                    // fail to parse and come back as "Paper found but metadata format
+                    // unexpected". Only 404 and 410 say the DOI is not there: a 429 or a
+                    // 503 says nothing about the paper either way.
+                    if response.StatusCode = Net.HttpStatusCode.NotFound
+                       || response.StatusCode = Net.HttpStatusCode.Gone then
+                        return
+                            Result.Error
+                                $"doi.org answered {int response.StatusCode} for {doi}: no paper was found."
+                    elif not response.IsSuccessStatusCode then
+                        return
+                            Result.Error
+                                $"Lookup failed: doi.org answered {int response.StatusCode} for {doi}. That says nothing about whether the paper exists."
+                    else
                     try
                         let doc = JsonDocument.Parse(json)
                         let root = doc.RootElement
@@ -186,11 +201,14 @@ module ResearchTools =
                                 "Unknown"
 
                         return
-                            $"# DOI: {doi}\n\n**Title:** {title}\n**Authors:** {authors}\n**Link:** https://doi.org/{doi}"
+                            Result.Ok
+                                $"# DOI: {doi}\n\n**Title:** {title}\n**Authors:** {authors}\n**Link:** https://doi.org/{doi}"
                     with _ ->
-                        return $"Paper found but metadata format unexpected. View at: https://doi.org/{doi}"
+                        return
+                            Result.Error
+                                $"doi.org answered, but not with metadata this tool can read, so nothing about the paper was confirmed. View at: https://doi.org/{doi}"
             with ex ->
-                return $"fetch_doi error: {ex.Message}"
+                return Result.Error $"fetch_doi error: {ex.Message}"
         }
 
     [<TarsToolAttribute("search_semantic_scholar",

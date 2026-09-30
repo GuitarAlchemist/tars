@@ -4,12 +4,16 @@ open System
 open System.Diagnostics
 open System.Net.Http
 open System.Text.Json
+open System.Threading.Tasks
 open Tars.Tools
 
 module LlmTools =
 
-    /// Current active model (mutable for runtime switching)
-    let mutable private activeModel = "qwen2.5-coder:1.5b"
+    // There is no "active model" here. The model TARS calls is set by its
+    // configuration, which these tools can neither read nor change. A private
+    // `activeModel = "qwen2.5-coder:1.5b"` used to stand in for it: `switch_model`
+    // changed it and reported the switch, `get_active_model` and `list_models`
+    // reported it as the model in use, and nothing else ever read it.
 
     /// HTTP client for Ollama API
     let private httpClient = new HttpClient()
@@ -45,32 +49,21 @@ module LlmTools =
                         |> String.concat "\n"
 
                     return
-                        $"Available Models (from Ollama):\n%s{modelList}\n\nActive model: %s{activeModel}\n\nUse switch_model to change, or pull_model to download new models."
+                        $"Available Models (from Ollama):\n%s{modelList}\n\nUse pull_model to download new models."
                 else
-                    return $"Could not reach Ollama API. Active model: %s{activeModel}"
+                    return "Could not reach Ollama API."
             with ex ->
                 // Fallback if Ollama not running
-                return
-                    $"Ollama API error: %s{ex.Message}\n\nMake sure Ollama is running. Active model: %s{activeModel}"
+                return $"Ollama API error: %s{ex.Message}\n\nMake sure Ollama is running."
         }
 
     [<TarsToolAttribute("switch_model",
-                        "Switches to a different LLM model. Input: model name (e.g., 'llama3:8b', 'codestral:latest')")>]
-    let switchModel (modelName: string) =
+                        "Cannot switch the model TARS uses: that is set in its configuration, which this tool cannot change. It says so, and changes nothing. Input: model name (e.g., 'llama3:8b', 'codestral:latest')")>]
+    let switchModel (modelName: string) : Task<Result<string, string>> =
         task {
-            let model = modelName.Trim()
-            printfn $"🔄 SWITCHING MODEL to: %s{model}"
-
-            if String.IsNullOrWhiteSpace(model) then
-                return $"Model name required. Current model: %s{activeModel}"
-            else
-                let oldModel = activeModel
-                activeModel <- model
-
-                // Note: Actual model switching happens in the LLM layer
-                // This tool updates the preference and informs what to do
-                return
-                    $"Model preference changed: %s{oldModel} -> %s{activeModel}\n\nNote: The actual model switch takes effect on next LLM call. Use list_models to see available models."
+            return
+                Result.Error
+                    $"Not switched: the model TARS calls is set in its configuration, which this tool cannot change, so nothing changed. To change it, set Llm:Model in appsettings.json (or the TARS_Llm__Model environment variable) and restart TARS. Asked for: %s{modelName.Trim()}"
         }
 
     [<TarsToolAttribute("recommend_model", "Recommends the best model for a specific task. Input: task description")>]
@@ -119,7 +112,7 @@ module LlmTools =
 
             return
                 sprintf
-                    "Task: %s\n\n%s\n\nUse switch_model to change models, or list_models to see what's installed."
+                    "Task: %s\n\n%s\n\nTo use a model, set Llm:Model in appsettings.json (or the TARS_Llm__Model environment variable) and restart TARS. list_models shows what's installed."
                     (if task.Length > 100 then
                          task.Substring(0, 100) + "..."
                      else
@@ -158,7 +151,7 @@ module LlmTools =
 
                         if proc.ExitCode = 0 then
                             return
-                                $"Model '%s{model}' pulled successfully!\n%s{output}\n\nUse switch_model to activate it."
+                                $"Model '%s{model}' pulled successfully!\n%s{output}\n\nTo use it, set Llm:Model in appsettings.json (or the TARS_Llm__Model environment variable) and restart TARS."
                         else
                             return $"Error pulling model '%s{model}': %s{error}"
                     else
@@ -171,11 +164,8 @@ module LlmTools =
     [<TarsToolAttribute("model_info", "Gets detailed information about a specific model. Input: model name")>]
     let modelInfo (modelName: string) =
         task {
-            let model =
-                if String.IsNullOrWhiteSpace(modelName) then
-                    activeModel
-                else
-                    modelName.Trim()
+            // A name is needed: there is no "active model" to fall back to.
+            let model = modelName.Trim()
 
             printfn $"ℹ️ MODEL INFO: %s{model}"
 
@@ -201,11 +191,11 @@ module LlmTools =
                 return $"model_info error: %s{ex.Message}"
         }
 
-    [<TarsToolAttribute("get_active_model", "Returns the currently active LLM model. No input required.")>]
-    let getActiveModel (_: string) =
+    [<TarsToolAttribute("get_active_model",
+                        "Cannot tell which model TARS uses: that is set in its configuration, which this tool cannot read. It says so. No input required.")>]
+    let getActiveModel (_: string) : Task<Result<string, string>> =
         task {
-            printfn $"🔍 ACTIVE MODEL: %s{activeModel}"
-
             return
-                $"Current active model: %s{activeModel}\n\nUse switch_model to change, or list_models to see alternatives."
+                Result.Error
+                    "Unknown here: the model TARS calls is set in its configuration, which this tool cannot read. list_models shows what Ollama has installed."
         }
