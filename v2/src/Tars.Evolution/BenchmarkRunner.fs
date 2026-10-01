@@ -88,17 +88,25 @@ Do not use 'open' statements — write self-contained code."""
           Seed = None
           ContextWindow = None }
 
-    /// "<provider>/<model>" for a routed backend.
+    /// "<provider>/<model>" for a routed backend, or "unknown" when the backend
+    /// names no model: some services route every request to a placeholder such as
+    /// `Ollama "unknown"`, and that is not a model a result can be credited to.
     let private modelId (backend: LlmBackend) =
-        match backend with
-        | Ollama m -> $"ollama/{m}"
-        | Vllm m -> $"vllm/{m}"
-        | OpenAI m -> $"openai/{m}"
-        | GoogleGemini m -> $"gemini/{m}"
-        | Anthropic m -> $"anthropic/{m}"
-        | DockerModelRunner m -> $"docker/{m}"
-        | LlamaCpp(m, _) -> $"llamacpp/{m}"
-        | LlamaSharp path -> $"llamasharp/{Path.GetFileName path}"
+        let provider, model =
+            match backend with
+            | Ollama m -> "ollama", m
+            | Vllm m -> "vllm", m
+            | OpenAI m -> "openai", m
+            | GoogleGemini m -> "gemini", m
+            | Anthropic m -> "anthropic", m
+            | DockerModelRunner m -> "docker", m
+            | LlamaCpp(m, _) -> "llamacpp", m
+            | LlamaSharp path -> "llamasharp", Path.GetFileName path
+
+        if String.IsNullOrWhiteSpace model || model = "unknown" then
+            "unknown"
+        else
+            $"{provider}/{model}"
 
     /// The model that serves the solver's requests, as the router chooses it.
     /// "unknown" when the backend cannot be resolved: a run is never credited to a
