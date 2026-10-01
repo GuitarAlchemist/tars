@@ -74,4 +74,8 @@ DefaultContextWindow = if config.Llm.ContextWindow > 0 then Some config.Llm.Cont
 For current RTX 5080 hardware:
 1. Always use **Ollama** backend.
 2. Keep **Context Window <= 4096** for 7B models.
+   *Update (2026-10-01):* the CLI now uses 16384. At 4096, the evolve executor's instructions and
+   tool list took most of the window, so the task prompt was summarized and never reached the model.
+   At 16k, an executor request is about 3,700 tokens with its task, and `qwen2.5-coder:7b` takes
+   5.7 GB, all on the GPU.
 3. Use **Mistral 7B** for best balance of speed and intelligence.
