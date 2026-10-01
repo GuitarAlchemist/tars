@@ -91,6 +91,14 @@ module ClaudeCodeServiceTests =
         | other -> Assert.Fail(sprintf "Expected Anthropic, got %A" other)
 
     [<Fact>]
+    let ``RouteAsync names the model Claude Code was told to use`` () =
+        let service = ClaudeCodeService.create (Some "opus")
+        let routed = service.RouteAsync(LlmRequest.Default).Result
+        match routed.Backend with
+        | Anthropic model -> Assert.Equal("opus", model)
+        | other -> Assert.Fail(sprintf "Expected Anthropic, got %A" other)
+
+    [<Fact>]
     let ``EmbedAsync returns empty array`` () =
         let service = ClaudeCodeService.create None
         let result = service.EmbedAsync("test").Result

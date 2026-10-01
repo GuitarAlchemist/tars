@@ -72,28 +72,62 @@ Output ONLY the F# code. No explanations, no markdown, no module declarations.
 The code must define the function(s) with exactly the required signature(s).
 Do not use 'open' statements — write self-contained code."""
 
+    let private solverRequest (prompt: string) : LlmRequest =
+        { ModelHint = None
+          Model = None
+          SystemPrompt = Some solverSystemPrompt
+          MaxTokens = Some 800
+          Temperature = Some 0.2
+          Stop = []
+          Messages = [ { Role = Role.User; Content = prompt } ]
+          Tools = []
+          ToolChoice = None
+          ResponseFormat = None
+          Stream = false
+          JsonMode = false
+          Seed = None
+          ContextWindow = None }
+
+    /// "<provider>/<model>" for a routed backend, or "unknown" when the backend
+    /// names no model: some services route every request to a placeholder, such as
+    /// `Ollama "unknown"` or Claude Code's `Anthropic "claude-code"` when no model
+    /// was given, and that is not a model a result can be credited to.
+    let private modelId (backend: LlmBackend) =
+        let provider, model =
+            match backend with
+            | Ollama m -> "ollama", m
+            | Vllm m -> "vllm", m
+            | OpenAI m -> "openai", m
+            | GoogleGemini m -> "gemini", m
+            | Anthropic m -> "anthropic", m
+            | DockerModelRunner m -> "docker", m
+            | LlamaCpp(m, _) -> "llamacpp", m
+            | LlamaSharp path -> "llamasharp", Path.GetFileName path
+
+        if String.IsNullOrWhiteSpace model || model = "unknown" || model = "claude-code" then
+            "unknown"
+        else
+            $"{provider}/{model}"
+
+    /// The model that serves the solver's requests, as the router chooses it.
+    /// "unknown" when the backend cannot be resolved: a run is never credited to a
+    /// model it cannot name.
+    let private solverModel (llm: ILlmService) : Task<string> =
+        task {
+            try
+                let! routed = llm.RouteAsync(solverRequest "")
+                return modelId routed.Backend
+            with _ ->
+                return "unknown"
+        }
+
     /// Generate a solution via LLM.
     let private solveWithLlm (llm: ILlmService) (problem: BenchmarkProblem) : Task<string * int64> =
         task {
             let prompt = buildSolverPrompt problem
 
             let sw = Stopwatch.StartNew()
-            let! response =
-                llm.CompleteAsync(
-                    { ModelHint = None
-                      Model = None
-                      SystemPrompt = Some solverSystemPrompt
-                      MaxTokens = Some 800
-                      Temperature = Some 0.2
-                      Stop = []
-                      Messages = [ { Role = Role.User; Content = prompt } ]
-                      Tools = []
-                      ToolChoice = None
-                      ResponseFormat = None
-                      Stream = false
-                      JsonMode = false
-                      Seed = None
-                      ContextWindow = None })
+            let! response = llm.CompleteAsync(solverRequest prompt)
             sw.Stop()
             return extractCode response.Text, sw.ElapsedMilliseconds
         }
@@ -351,7 +385,8 @@ Do not use 'open' statements — write self-contained code."""
                     | Some n -> ps |> List.truncate n
                     | None -> ps
 
-            logger $"Running {problems.Length} benchmark problems..."
+            let! model = solverModel llm
+            logger $"Running {problems.Length} benchmark problems on {model}..."
             let sw = Stopwatch.StartNew()
 
             let mutable attempts = []
@@ -367,7 +402,8 @@ Do not use 'open' statements — write self-contained code."""
             return
                 { RunId = Guid.NewGuid()
                   Timestamp = DateTime.UtcNow
-                  ModelUsed = "default"
+                  ModelUsed = model
+                  CycleId = None
                   TotalProblems = attempts.Length
                   Compiled = compiled
                   Validated = validated
@@ -398,7 +434,12 @@ Do not use 'open' statements — write self-contained code."""
                     attempt.Validated,
                     attempt.GenerationTimeMs + attempt.ValidationTimeMs) with
                     Timestamp = attempt.Timestamp
-                    ModelId = (if summary.ModelUsed = "default" then None else Some summary.ModelUsed) }
+                    CycleId = summary.CycleId
+                    ModelId =
+                        match summary.ModelUsed with
+                        | "default"
+                        | "unknown" -> None
+                        | model -> Some model }
 
     /// Persist results to ~/.tars/benchmark_results/.
     let saveResults (summary: BenchmarkRunSummary) : string =
