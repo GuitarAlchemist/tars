@@ -141,6 +141,91 @@ module AdaptiveReflectionTests =
         }
 
     [<Fact>]
+    let ``A task's duration is measured, not derived from its reflection count`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Evolve showed "completed in 20.0s" for every task: the duration was 10 s per
+            // reflection plus 10, while the tasks took a second or two.
+            let agent = createTestAgent ()
+
+            let slowLlm =
+                { new ILlmService with
+                    member _.CompleteAsync req =
+                        task {
+                            do! Task.Delay 200
+
+                            return
+                                { Text = "Initial Solution"
+                                  Usage = None
+                                  FinishReason = Some "stop"
+                                  Raw = None }
+                        }
+
+                    member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
+                    member _.EmbedAsync text = Task.FromResult [| 0.1f |]
+
+                    member _.RouteAsync _ =
+                        Task.FromResult
+                            { Backend = Ollama "mock"
+                              Endpoint = Uri "http://localhost:11434"
+                              ApiKey = None } }
+
+            let ctx: Engine.EvolutionContext =
+                { Registry = createMockRegistry agent
+                  Llm = slowLlm
+                  VectorStore = Unchecked.defaultof<_>
+                  Logger = fun _ -> ()
+                  Memory =
+                    { SemanticMemory = None
+                      KnowledgeBase = None
+                      KnowledgeGraph = None
+                      MemoryBuffer = None
+                      EpisodeService = None
+                      Ledger = None
+                      EvidenceStore = None }
+                  Governance =
+                    { Epistemic = Some(createMockEpistemic true "Good job")
+                      PreLlm = None
+                      Budget = None
+                      OutputGuard = None
+                      Evaluator = None }
+                  Options =
+                    { RunId = None
+                      Verbose = false
+                      ShowSemanticMessage = fun _ _ -> ()
+                      Focus = None
+                      ToolRegistry = None
+                      ResearchEnhanced = false
+                      SelfImprovement = false } }
+
+            let taskDef =
+                { Id = Guid.NewGuid()
+                  DifficultyLevel = 1
+                  Goal = "Test Task"
+                  Constraints = []
+                  ValidationCriteria = "None"
+                  Timeout = TimeSpan.FromMinutes(1.0)
+                  Score = 1.0 }
+
+            let state =
+                { Generation = 0
+                  CompletedTasks = []
+                  TaskQueue = []
+                  CurrentTask = Some taskDef
+                  ActiveBeliefs = []
+                  CurriculumAgentId = AgentId(Guid.NewGuid())
+                  ExecutorAgentId = agent.Id }
+
+            let! newState = Engine.step ctx state
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Duration >= TimeSpan.FromMilliseconds 200.0, $"duration {completed.Duration}")
+                Assert.True(completed.Duration < TimeSpan.FromSeconds 10.0, $"duration {completed.Duration}")
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
     let ``Reflection loop continues when Epistemic Governor rejects`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
