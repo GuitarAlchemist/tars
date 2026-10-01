@@ -189,12 +189,40 @@ module Engine =
                 | Some elem -> Result.Ok elem
                 | None -> Result.Error "Response was not valid JSON."
 
-    /// Whether the curriculum agent's answer holds JSON the task parser can read.
-    /// A prose answer ("Please provide the current context...") does not; it is
-    /// retried as a direct request constrained to the task schema rather than
-    /// replaced by a canned task.
-    let curriculumAnswerIsJson (text: string) =
-        not (String.IsNullOrWhiteSpace text) && Result.isOk (tryExtractJsonElement text)
+    /// Whether the curriculum agent's answer holds a task list the parser below can
+    /// read: a JSON array of tasks, or an object with a "tasks" array, where every
+    /// task has a string "goal", an array of strings "constraints" and a string
+    /// "validation_criteria". Anything else, whether prose ("Please provide the
+    /// current context...") or JSON of another shape, is retried as a direct request
+    /// constrained to the task schema rather than replaced by a canned task.
+    let curriculumAnswerHasTasks (text: string) =
+        let has (t: JsonElement) (name: string) (kind: JsonValueKind) =
+            let mutable value = Unchecked.defaultof<JsonElement>
+            t.TryGetProperty(name, &value) && value.ValueKind = kind
+
+        let isTask (t: JsonElement) =
+            t.ValueKind = JsonValueKind.Object
+            && has t "goal" JsonValueKind.String
+            && has t "validation_criteria" JsonValueKind.String
+            && has t "constraints" JsonValueKind.Array
+            && (t.GetProperty("constraints").EnumerateArray()
+                |> Seq.forall (fun c -> c.ValueKind = JsonValueKind.String))
+
+        let taskList (root: JsonElement) =
+            if root.ValueKind = JsonValueKind.Array then
+                Some root
+            elif root.ValueKind = JsonValueKind.Object && has root "tasks" JsonValueKind.Array then
+                Some(root.GetProperty("tasks"))
+            else
+                None
+
+        not (String.IsNullOrWhiteSpace text)
+        && (match tryExtractJsonElement text with
+            | Result.Ok root ->
+                match taskList root with
+                | Some tasks -> tasks.GetArrayLength() > 0 && (tasks.EnumerateArray() |> Seq.forall isTask)
+                | None -> false
+            | Result.Error _ -> false)
 
     let private formatBelief (belief: Belief) =
         let predicate =
@@ -513,14 +541,14 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 // "Please provide the current context"), ask the model directly, with
                 // the answer constrained to the task schema.
                 let! effectiveResponse =
-                    if curriculumAnswerIsJson responseText then
+                    if curriculumAnswerHasTasks responseText then
                         task { return responseText }
                     else
                         task {
                             if String.IsNullOrWhiteSpace(responseText) then
                                 ctx.Logger("[Curriculum] No response from agent loop, trying direct LLM call...")
                             else
-                                ctx.Logger("[Curriculum] Agent answer was not task JSON, trying a direct call constrained to the task schema...")
+                                ctx.Logger("[Curriculum] Agent answer held no task list, trying a direct call constrained to the task schema...")
 
                             try
                                 let! directResponse =
