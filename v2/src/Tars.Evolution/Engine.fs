@@ -189,6 +189,13 @@ module Engine =
                 | Some elem -> Result.Ok elem
                 | None -> Result.Error "Response was not valid JSON."
 
+    /// Whether the curriculum agent's answer holds JSON the task parser can read.
+    /// A prose answer ("Please provide the current context...") does not; it is
+    /// retried as a direct request constrained to the task schema rather than
+    /// replaced by a canned task.
+    let curriculumAnswerIsJson (text: string) =
+        not (String.IsNullOrWhiteSpace text) && Result.isOk (tryExtractJsonElement text)
+
     let private formatBelief (belief: Belief) =
         let predicate =
             match belief.Predicate with
@@ -502,30 +509,40 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         Timeout = TimeSpan.FromMinutes(5.0)
                         Score = 1.0 } ]
 
-                // If agent loop produced nothing, try direct LLM call with reasoning model
+                // If the agent loop produced no task JSON (nothing, or prose such as
+                // "Please provide the current context"), ask the model directly, with
+                // the answer constrained to the task schema.
                 let! effectiveResponse =
-                    if not (String.IsNullOrWhiteSpace(responseText)) then
+                    if curriculumAnswerIsJson responseText then
                         task { return responseText }
                     else
                         task {
-                            ctx.Logger("[Curriculum] No response from agent loop, trying direct LLM call...")
-                            let! directResponse =
-                                ctx.Llm.CompleteAsync(
-                                    { ModelHint = Some "reasoning"
-                                      Model = None
-                                      SystemPrompt = Some "You generate F# coding tasks. Output ONLY valid JSON."
-                                      MaxTokens = Some 500
-                                      Temperature = Some 0.7
-                                      Stop = []
-                                      Messages = [ { Role = Role.User; Content = prompt } ]
-                                      Tools = []
-                                      ToolChoice = None
-                                      ResponseFormat = Some (ResponseFormat.Constrained (Grammar.JsonSchema EvolutionSchemas.taskGenerationSchema))
-                                      Stream = false
-                                      JsonMode = true
-                                      Seed = None
-                                      ContextWindow = None })
-                            return directResponse.Text
+                            if String.IsNullOrWhiteSpace(responseText) then
+                                ctx.Logger("[Curriculum] No response from agent loop, trying direct LLM call...")
+                            else
+                                ctx.Logger("[Curriculum] Agent answer was not task JSON, trying a direct call constrained to the task schema...")
+
+                            try
+                                let! directResponse =
+                                    ctx.Llm.CompleteAsync(
+                                        { ModelHint = Some "reasoning"
+                                          Model = None
+                                          SystemPrompt = Some "You generate F# coding tasks. Output ONLY valid JSON."
+                                          MaxTokens = Some 500
+                                          Temperature = Some 0.7
+                                          Stop = []
+                                          Messages = [ { Role = Role.User; Content = prompt } ]
+                                          Tools = []
+                                          ToolChoice = None
+                                          ResponseFormat = Some (ResponseFormat.Constrained (Grammar.JsonSchema EvolutionSchemas.taskGenerationSchema))
+                                          Stream = false
+                                          JsonMode = true
+                                          Seed = None
+                                          ContextWindow = None })
+                                return directResponse.Text
+                            with ex ->
+                                ctx.Logger($"[Curriculum] Direct task call failed: {ex.Message}")
+                                return ""
                         }
 
                 if String.IsNullOrWhiteSpace(effectiveResponse) then
