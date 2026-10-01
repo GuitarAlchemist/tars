@@ -511,7 +511,23 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             let entropyMonitor = EntropyMonitor()
             let compressor = ContextCompressor(llmService, entropyMonitor)
-            let summarizerStage = ContextSummarizerStage(compressor) :> IPreLlmStage
+            // A task prompt is summarized only when it cannot be sent as is: after the
+            // executor's own instructions and tool list, with the 1024 tokens it keeps
+            // for its answer (GraphRuntime.handleThinking).
+            let executorPreambleBytes =
+                System.Text.Encoding.UTF8.GetByteCount(Tars.Graph.PromptBuilder.buildSystemPrompt executorAgent [])
+
+            let taskPromptLimit =
+                ContextSummarizerStage.PromptLimit(config.Llm.ContextWindow, executorPreambleBytes, 1024)
+
+            if taskPromptLimit = 0 then
+                logger.Warning(
+                    "Context window of {Window} tokens leaves no room for a task after the executor's instructions; tasks will be blocked. Use 16384.",
+                    config.Llm.ContextWindow
+                )
+
+            let summarizerStage =
+                ContextSummarizerStage(compressor, taskPromptLimit) :> IPreLlmStage
 
             let preLlmPipeline = PreLlmPipeline([ policyStage; intentStage; summarizerStage ])
 
