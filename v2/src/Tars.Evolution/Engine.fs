@@ -290,6 +290,45 @@ module Engine =
             let lines = beliefs |> List.map formatBelief |> String.concat "\n"
             $"\nKnown Beliefs:\n{lines}\n"
 
+    /// The prompt that hands a task to the executor. It does not list tools: the executor's
+    /// own prompt lists the tools it can call. Listing the whole registry here as well made
+    /// the evolve task prompt 22 KB, past the context window, so it was summarized and the
+    /// executor never saw its goal.
+    let buildTaskPrompt (taskDef: TaskDefinition) (codeContext: string) (memoryContext: string) (ledgerContext: string) =
+        $"""[TASK]
+Goal: {taskDef.Goal}
+Constraints: {taskDef.Constraints}
+Validation Criteria: {taskDef.ValidationCriteria}
+
+[KNOWLEDGE CONTEXT]
+{codeContext}
+{memoryContext}
+{ledgerContext}
+
+CRITICAL INSTRUCTIONS:
+1. You are an AUTONOMOUS AGENT in a self-evolving loop, NOT a chat assistant.
+2. DO NOT ASK QUESTIONS. There is no human to answer you. You must resolve all unknowns using tools.
+3. If you need to see the contents of a file, USE THE 'read_file' TOOL. DO NOT ASK THE USER FOR IT.
+4. DO NOT REFUSE TASKS. You are the sole executor. If a task seems impossible, break it down or ask for a simplified version via 'Error'.
+5. Use your tools to gather information, read files, or analyze code.
+6. If you hit a wall, explain the failure and use 'Finish' with your best partial result.
+7. DO NOT hallucinate file paths. Always use tools like 'list_files' or 'find_files' to verify paths before reading.
+8. YOU HAVE FULL FILE SYSTEM ACCESS. Do not ask for permissions or file contents. Just take them using tools.
+9. Provide your final solution as a 'Tell' or 'Inform' performative. IF THE TASK CREATED CODE, YOU MUST INDICATE THE FILE PATH.
+10. If your previous attempt failed (see logs), analyze the error and try a different approach.
+11. MANDATORY: If the task requires creating code or documentation, you MUST use 'write_to_file' or 'write_code' to save it to disk. Providing the content in the chat response is NOT enough and will be considered a FAILURE.
+12. FOR COMPLEX REASONING: Create a Workflow of Thought (.trsx) DSL script and run it using 'execute_workflow'.
+13. SPEECH ACTS vs TOOLS: Do NOT create dynamic tools for things like 'inform', 'response', 'ask', or 'tell'. Use the 'ACT: Tell' or 'ACT: Inform' performatives in your chat response for these. Only use 'create_dynamic_tool' for NEW functional capabilities (e.g. data processing, specific API integrations).
+
+[DYNAMIC TOOL EXAMPLE]
+If you use 'create_dynamic_tool', your F# script must look like this:
+```fsharp
+open System.IO
+let input = fsi.CommandLineArgs.[1] // Get JSON input
+// ... process input ...
+printfn "Tool Result: %%s" result // Output MUST be printed to stdout
+```"""
+
     let private evaluateContradiction (ctx: EvolutionContext) (goal: string) (beliefs: Belief list) =
         task {
             if beliefs.IsEmpty then
@@ -787,51 +826,8 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                     let ledgerContext = formatLedgerContext relevantBeliefs
 
-                    let toolList =
-                        match ctx.Options.ToolRegistry with
-                        | Some r ->
-                            r.GetAll()
-                            |> List.map (fun t -> $"- {t.Name}: {t.Description}")
-                            |> String.concat "\n"
-                        | None -> "No tools available."
-
                     let taskPrompt =
-                        $"""[TASK]
-Goal: {taskDef.Goal}
-Constraints: {taskDef.Constraints}
-Validation Criteria: {taskDef.ValidationCriteria}
-
-[AVAILABLE TOOLS] (You MUST use these for any environment interaction)
-{toolList}
-
-[KNOWLEDGE CONTEXT]
-{codeContext}
-{memoryContext}
-{ledgerContext}
-
-CRITICAL INSTRUCTIONS:
-1. You are an AUTONOMOUS AGENT in a self-evolving loop, NOT a chat assistant.
-2. DO NOT ASK QUESTIONS. There is no human to answer you. You must resolve all unknowns using tools.
-3. If you need to see the contents of a file, USE THE 'read_file' TOOL. DO NOT ASK THE USER FOR IT.
-4. DO NOT REFUSE TASKS. You are the sole executor. If a task seems impossible, break it down or ask for a simplified version via 'Error'.
-5. Use the TOOLS listed above to gather information, read files, or analyze code.
-6. If you hit a wall, explain the failure and use 'Finish' with your best partial result.
-7. DO NOT hallucinate file paths. Always use tools like 'list_files' or 'find_files' to verify paths before reading.
-8. YOU HAVE FULL FILE SYSTEM ACCESS. Do not ask for permissions or file contents. Just take them using tools.
-9. Provide your final solution as a 'Tell' or 'Inform' performative. IF THE TASK CREATED CODE, YOU MUST INDICATE THE FILE PATH.
-10. If your previous attempt failed (see logs), analyze the error and try a different approach.
-11. MANDATORY: If the task requires creating code or documentation, you MUST use 'write_to_file' or 'write_code' to save it to disk. Providing the content in the chat response is NOT enough and will be considered a FAILURE.
-12. FOR COMPLEX REASONING: Create a Workflow of Thought (.trsx) DSL script and run it using 'execute_workflow'.
-13. SPEECH ACTS vs TOOLS: Do NOT create dynamic tools for things like 'inform', 'response', 'ask', or 'tell'. Use the 'ACT: Tell' or 'ACT: Inform' performatives in your chat response for these. Only use 'create_dynamic_tool' for NEW functional capabilities (e.g. data processing, specific API integrations).
-
-[DYNAMIC TOOL EXAMPLE]
-If you use 'create_dynamic_tool', your F# script must look like this:
-```fsharp
-open System.IO
-let input = fsi.CommandLineArgs.[1] // Get JSON input
-// ... process input ...
-printfn "Tool Result: %%s" result // Output MUST be printed to stdout
-```"""
+                        buildTaskPrompt taskDef codeContext memoryContext ledgerContext
 
                     // Pre-LLM Pipeline Check
                     let! (finalPrompt, isSafe) =

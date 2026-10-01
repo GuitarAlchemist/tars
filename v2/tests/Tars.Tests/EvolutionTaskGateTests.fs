@@ -120,3 +120,24 @@ let ``a task list answer, bare, wrapped or fenced, is used as it is`` () =
     Assert.True(Engine.curriculumAnswerHasTasks tasks)
     Assert.True(Engine.curriculumAnswerHasTasks $"[{task}]")
     Assert.True(Engine.curriculumAnswerHasTasks("Here are the tasks:\n```json\n" + tasks + "\n```"))
+
+[<Fact>]
+let ``the task prompt states the task and leaves the tool list to the executor`` () =
+    // In evolve, the task prompt listed the whole tool registry: 17.7 KB of its 22 KB,
+    // past the 4k context window. It was summarized, and the executor never saw its goal.
+    let taskDef =
+        { Id = Guid.NewGuid()
+          DifficultyLevel = 1
+          Goal = "Write a function in F# that checks if a given string is a palindrome."
+          Constraints = [ "Use recursion" ]
+          ValidationCriteria = "racecar is a palindrome, tars is not"
+          Timeout = TimeSpan.FromMinutes 1.0
+          Score = 0.0 }
+
+    let prompt = Engine.buildTaskPrompt taskDef "Related Code Structure: none" "" ""
+
+    Assert.Contains(taskDef.Goal, prompt)
+    Assert.Contains("Use recursion", prompt)
+    Assert.Contains(taskDef.ValidationCriteria, prompt)
+    Assert.Contains("Related Code Structure: none", prompt)
+    Assert.DoesNotContain("[AVAILABLE TOOLS]", prompt)
