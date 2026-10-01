@@ -224,6 +224,13 @@ module Engine =
                 | None -> false
             | Result.Error _ -> false)
 
+    /// Whether an executor answer shows code: a fenced block other than a tool call. The
+    /// semantic evaluation reads only the answer, so a solution that is described, planned
+    /// or asked about, rather than shown, fails it.
+    let answerHasCode (answer: string) =
+        System.Text.RegularExpressions.Regex.Matches(answer, @"```([^\n`]*)\n[\s\S]*?```")
+        |> Seq.exists (fun m -> m.Groups.[1].Value.Trim() <> "tool")
+
     let private formatBelief (belief: Belief) =
         let predicate =
             match belief.Predicate with
@@ -328,6 +335,16 @@ let input = fsi.CommandLineArgs.[1] // Get JSON input
 // ... process input ...
 printfn "Tool Result: %%s" result // Output MUST be printed to stdout
 ```"""
+
+    /// How many times an answer that shows no code goes back to the executor.
+    let private maxCodeRequests = 2
+
+    /// What the executor is told when its answer shows no code.
+    let private codeRequest =
+        """Your answer contains no code. There is no one to answer questions, and a description or a plan is not a solution.
+1. Write the complete code now. Save it with write_code if you can.
+2. Reply with the complete code in a fenced block (```fsharp ... ```), and the file path if you saved it.
+If the task truly asks for no code, give your final result instead."""
 
     let private evaluateContradiction (ctx: EvolutionContext) (goal: string) (beliefs: Belief list) =
         task {
@@ -913,10 +930,56 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             }
 
                         // 5. Run Initial Execution
-                        let! outcomeResult =
+                        let! firstOutcome =
                             runWithTimeout
                                 "Execution"
                                 (graphExecutor.RunAgentLoop(agentWithMsg, 20, cancellationToken = cts.Token))
+
+                        // 5.1 An answer that shows no code goes back to the executor. In evolve it
+                        // described the function, planned it or asked for the project structure
+                        // instead of writing it, and the evaluation rejected that.
+                        let! outcomeResult =
+                            task {
+                                let mutable current = firstOutcome
+                                let mutable requests = 0
+                                let mutable asking = true
+
+                                while asking do
+                                    match current with
+                                    | Choice1Of2(Success(agentAfter, answer, trace))
+                                    | Choice1Of2(PartialSuccess((agentAfter, answer, trace), _)) when
+                                        requests < maxCodeRequests && not (answerHasCode answer)
+                                        ->
+                                        requests <- requests + 1
+                                        ctx.Logger $"[Executor] Answer shows no code; asking for it ({requests}/{maxCodeRequests})."
+
+                                        let request =
+                                            { msg with
+                                                Id = Guid.NewGuid()
+                                                Content = codeRequest
+                                                Timestamp = DateTime.UtcNow }
+
+                                        let! next =
+                                            runWithTimeout
+                                                "Code request"
+                                                (graphExecutor.RunAgentLoop(
+                                                    agentAfter.ReceiveMessage(request),
+                                                    20,
+                                                    cancellationToken = cts.Token
+                                                ))
+
+                                        let asked = trace @ [ $"--- NO CODE, ASKED AGAIN ({requests}) ---" ]
+
+                                        current <-
+                                            match next with
+                                            | Choice1Of2(Success(a, o, t)) -> Choice1Of2(Success(a, o, asked @ t))
+                                            | Choice1Of2(PartialSuccess((a, o, t), w)) ->
+                                                Choice1Of2(PartialSuccess((a, o, asked @ t), w))
+                                            | other -> other
+                                    | _ -> asking <- false
+
+                                return current
+                            }
 
                         match outcomeResult with
                         | Choice2Of2 reason ->

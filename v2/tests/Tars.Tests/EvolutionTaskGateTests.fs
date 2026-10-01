@@ -141,3 +141,18 @@ let ``the task prompt states the task and leaves the tool list to the executor``
     Assert.Contains(taskDef.ValidationCriteria, prompt)
     Assert.Contains("Related Code Structure: none", prompt)
     Assert.DoesNotContain("[AVAILABLE TOOLS]", prompt)
+
+[<Fact>]
+let ``an answer that only talks about the code shows no code`` () =
+    // Answers the evolve executor gave in place of a solution.
+    Assert.False(Engine.answerHasCode "ACT: REQUEST: Please provide the current project structure so I can understand the file paths.")
+    Assert.False(Engine.answerHasCode "ACT: INFORM: I will create a function to reverse a string in F# using immutable data structures.")
+    Assert.False(Engine.answerHasCode "")
+    // A tool call is not code shown in the answer.
+    Assert.False(Engine.answerHasCode "```tool\n{\"name\": \"plan_task\", \"arguments\": {}}\n```")
+
+[<Fact>]
+let ``an answer with a fenced code block shows code`` () =
+    Assert.True(Engine.answerHasCode "Here it is:\n```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```")
+    Assert.True(Engine.answerHasCode "```\nlet x = 1\n```")
+    Assert.True(Engine.answerHasCode "```tool\n{}\n```\nDone:\n```fsharp\nlet x = 1\n```")
