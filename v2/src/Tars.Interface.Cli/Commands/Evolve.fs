@@ -630,6 +630,10 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 { evoState with
                     TaskQueue = initialTasks }
 
+            // Names this evolve run, so each cycle's benchmark results can be told
+            // apart on disk ("<run>/<cycle>").
+            let evolveRun = Guid.NewGuid().ToString("N").Substring(0, 8)
+
             for cycle in 1 .. options.LoopCount do
                 if options.LoopCount > 1 && not options.Quiet then
                     RichOutput.info $"=== Evolution Cycle {cycle}/{options.LoopCount} ==="
@@ -785,7 +789,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         | _ -> ProblemBank.all ()
 
                     let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
-                    let! benchSummary =
+                    let! benchRun =
                         BenchmarkRunner.runSuiteFromProblems
                             llmService
                             benchSource
@@ -794,6 +798,8 @@ let run (logger: ILogger) (options: EvolveOptions) =
                             None    // no limit
                             true    // retry on failure
                             benchLogger
+
+                    let benchSummary = { benchRun with CycleId = Some $"{evolveRun}/{cycle}" }
 
                     BenchmarkRunner.recordOutcomes selector benchSummary
                     let benchPath = BenchmarkRunner.saveResults benchSummary

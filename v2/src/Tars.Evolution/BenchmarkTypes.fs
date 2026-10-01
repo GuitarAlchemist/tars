@@ -68,7 +68,12 @@ type BenchmarkAttempt =
 type BenchmarkRunSummary =
     { RunId: Guid
       Timestamp: DateTime
+      /// "<provider>/<model>" of the backend that served the solver, or "unknown".
+      /// Runs saved before this was recorded say "default".
       ModelUsed: string
+      /// The evolve cycle the run belongs to ("<evolve run>/<cycle>"); None outside
+      /// `tars evolve`, and in runs saved before cycles were recorded.
+      CycleId: string option
       TotalProblems: int
       Compiled: int
       Validated: int

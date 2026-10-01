@@ -59,6 +59,7 @@ let ``self-train never selects a held-out problem for export`` () =
         { RunId = Guid.NewGuid()
           Timestamp = DateTime.UtcNow
           ModelUsed = "stub"
+          CycleId = None
           TotalProblems = bank.Length
           Compiled = bank.Length
           Validated = bank.Length
