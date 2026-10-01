@@ -743,6 +743,10 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
     /// Attempts to solve a task using the Executor Agent
     let private executeTask (ctx: EvolutionContext) (state: EvolutionState) (taskDef: TaskDefinition) =
         task {
+            // Every result reports the time the task really took; the display and the
+            // knowledge ledger both read it.
+            let stopwatch = Diagnostics.Stopwatch.StartNew()
+
             // 1. Retrieve Executor Agent
             let! agentOpt = ctx.Registry.GetAgent(state.ExecutorAgentId)
 
@@ -755,7 +759,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                       Success = false
                       Output = "Executor Agent not found in Kernel"
                       ExecutionTrace = []
-                      Duration = TimeSpan.Zero
+                      Duration = stopwatch.Elapsed
                       Evaluation = None }
             | Some executor ->
                 // Log: Curriculum → Request → Executor
@@ -820,7 +824,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                           Success = false
                           Output = $"Blocked by ledger contradiction policy: {reason}"
                           ExecutionTrace = [ "LEDGER_CONTRADICTION" ]
-                          Duration = TimeSpan.Zero
+                          Duration = stopwatch.Elapsed
                           Evaluation = None }
                 | None ->
 
@@ -851,7 +855,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                               Success = false
                               Output = $"Blocked by Safety Filter: {finalPrompt}"
                               ExecutionTrace = []
-                              Duration = TimeSpan.Zero
+                              Duration = stopwatch.Elapsed
                               Evaluation = None }
                     else
                         let msg =
@@ -923,7 +927,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                   Success = false
                                   Output = $"Task timed out: {reason}"
                                   ExecutionTrace = [ "TIMEOUT" ]
-                                  Duration = taskDef.Timeout
+                                  Duration = stopwatch.Elapsed
                                   Evaluation = None }
                         | Choice1Of2 outcome ->
 
@@ -1004,7 +1008,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                       Success = false
                                       Output = issueOutput
                                       ExecutionTrace = trace @ [ "PROTOCOL_VIOLATION" ]
-                                      Duration = TimeSpan.FromSeconds(5.0)
+                                      Duration = stopwatch.Elapsed
                                       Evaluation = None }
                             | None ->
                                 let (agentAfterExec, _, output, trace) =
@@ -1025,7 +1029,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                           Success = false
                                           Output = output
                                           ExecutionTrace = trace
-                                          Duration = TimeSpan.FromSeconds(5.0)
+                                          Duration = stopwatch.Elapsed
                                           Evaluation = None }
                                 else
                                     // Handle Speech Act prefix in output using new helper
@@ -1212,7 +1216,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                             else
                                                 currentOutput
                                           ExecutionTrace = currentTrace
-                                          Duration = TimeSpan.FromSeconds(10.0 * float (reflectionCount + 1))
+                                          Duration = stopwatch.Elapsed
                                           Evaluation = None }
         }
 
