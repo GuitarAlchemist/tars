@@ -522,7 +522,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             if taskPromptLimit = 0 then
                 logger.Warning(
-                    "Context window of {Window} tokens leaves no room for a task after the executor's instructions; task prompts will be summarized. Use 16384.",
+                    "Context window of {Window} tokens leaves no room for a task after the executor's instructions; tasks will be blocked. Use 16384.",
                     config.Llm.ContextWindow
                 )
 

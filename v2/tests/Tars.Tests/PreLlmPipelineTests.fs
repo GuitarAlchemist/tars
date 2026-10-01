@@ -105,6 +105,33 @@ module PreLlmPipelineTests =
         }
 
     [<Fact>]
+    let ``ContextSummarizer blocks a summary still too long to send`` () =
+        task {
+            // The stub's summary is 10 bytes; 5 are allowed.
+            let compressor = ContextCompressor(StubLlm(), EntropyMonitor())
+            let stage = ContextSummarizerStage(compressor, 5) :> IPreLlmStage
+
+            let! result = stage.ExecuteAsync(PreLlmContext.Create(String.replicate 200 "repeat "))
+
+            Assert.False(result.IsSafe)
+            Assert.Contains("does not fit", result.BlockReason |> Option.defaultValue "")
+        }
+
+    [<Fact>]
+    let ``ContextSummarizer blocks a prompt the compressor leaves too long`` () =
+        task {
+            // Every word distinct, under 2,000 characters: the compressor returns it unchanged.
+            let prompt = String.Join(" ", [ for i in 1..150 -> $"word{i}" ])
+            let compressor = ContextCompressor(StubLlm(), EntropyMonitor())
+            let stage = ContextSummarizerStage(compressor, 500) :> IPreLlmStage
+
+            let! result = stage.ExecuteAsync(PreLlmContext.Create(prompt))
+
+            Assert.True(prompt.Length > 500 && prompt.Length < 2000)
+            Assert.False(result.IsSafe)
+        }
+
+    [<Fact>]
     let ``PromptLimit reserves the agent's preamble and answer`` () =
         // The evolve executor's preamble measured 10,447 bytes, and its largest task
         // prompt 4,830 bytes. At 16k such a prompt is sent as is.
