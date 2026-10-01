@@ -197,9 +197,11 @@ module ClaudeCodeService =
                     return response
                 }
 
+            // The model Claude Code is told to use. Without one it picks its own
+            // default, which this service cannot name, so it reports "claude-code".
             member _.RouteAsync(_req: LlmRequest) : Task<RoutedBackend> =
                 Task.FromResult(
-                    { Backend = Anthropic "claude-code"
+                    { Backend = Anthropic(config.Model |> Option.defaultValue "claude-code")
                       Endpoint = Uri "https://api.anthropic.com"
                       ApiKey = None })
 

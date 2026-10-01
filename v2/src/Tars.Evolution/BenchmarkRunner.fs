@@ -89,8 +89,9 @@ Do not use 'open' statements — write self-contained code."""
           ContextWindow = None }
 
     /// "<provider>/<model>" for a routed backend, or "unknown" when the backend
-    /// names no model: some services route every request to a placeholder such as
-    /// `Ollama "unknown"`, and that is not a model a result can be credited to.
+    /// names no model: some services route every request to a placeholder, such as
+    /// `Ollama "unknown"` or Claude Code's `Anthropic "claude-code"` when no model
+    /// was given, and that is not a model a result can be credited to.
     let private modelId (backend: LlmBackend) =
         let provider, model =
             match backend with
@@ -103,7 +104,7 @@ Do not use 'open' statements — write self-contained code."""
             | LlamaCpp(m, _) -> "llamacpp", m
             | LlamaSharp path -> "llamasharp", Path.GetFileName path
 
-        if String.IsNullOrWhiteSpace model || model = "unknown" then
+        if String.IsNullOrWhiteSpace model || model = "unknown" || model = "claude-code" then
             "unknown"
         else
             $"{provider}/{model}"

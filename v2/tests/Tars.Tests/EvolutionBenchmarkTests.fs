@@ -192,9 +192,12 @@ module BenchmarkProvenanceTests =
 
     [<Fact>]
     let ``a placeholder model name from the router is not credited as a model`` () =
-        // ChatClientLlmService routes every request to `Ollama "unknown"`.
+        // ChatClientLlmService routes every request to `Ollama "unknown"`, and
+        // Claude Code with no model to `Anthropic "claude-code"`.
         Assert.Equal("unknown", (run (RoutedLlm(Some(Ollama "unknown")))).ModelUsed)
         Assert.Equal("unknown", (run (RoutedLlm(Some(Ollama " ")))).ModelUsed)
+        Assert.Equal("unknown", (run (RoutedLlm(Some(Anthropic "claude-code")))).ModelUsed)
+        Assert.Equal("anthropic/opus", (run (RoutedLlm(Some(Anthropic "opus")))).ModelUsed)
 
     [<Fact>]
     let ``a run outside an evolve cycle has no cycle id`` () =
