@@ -511,7 +511,12 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             let entropyMonitor = EntropyMonitor()
             let compressor = ContextCompressor(llmService, entropyMonitor)
-            let summarizerStage = ContextSummarizerStage(compressor) :> IPreLlmStage
+            // A task prompt is summarized only when it cannot be sent as is. A token
+            // covers at least one byte, so a prompt within three quarters of the
+            // context window, in bytes, fits with room left for the agent's own
+            // instructions and its answer.
+            let summarizerStage =
+                ContextSummarizerStage(compressor, max 2048 (config.Llm.ContextWindow * 3 / 4)) :> IPreLlmStage
 
             let preLlmPipeline = PreLlmPipeline([ policyStage; intentStage; summarizerStage ])
 

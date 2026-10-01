@@ -60,17 +60,46 @@ module PreLlmPipelineTests =
         }
 
     [<Fact>]
-    let ``ContextSummarizer compresses long prompts`` () =
+    let ``ContextSummarizer compresses a prompt too long to send as is`` () =
         task {
             let llm = StubLlm()
             let monitor = EntropyMonitor()
             let compressor = ContextCompressor(llm, monitor)
-            let stage = ContextSummarizerStage(compressor) :> IPreLlmStage
+            let stage = ContextSummarizerStage(compressor, 1000) :> IPreLlmStage
 
-            let longPrompt = String.replicate 200 "repeat " // > 1000 chars
+            let longPrompt = String.replicate 200 "repeat " // 1,400 bytes, over the 1,000 allowed
             let ctx = PreLlmContext.Create(longPrompt)
 
             let! result = stage.ExecuteAsync(ctx)
+
+            Assert.Equal("compressed", result.CurrentPrompt)
+        }
+
+    [<Fact>]
+    let ``ContextSummarizer sends a prompt that fits unchanged`` () =
+        task {
+            // In evolve, every task prompt over 500 characters was summarized, and the
+            // summary of one came back as "Understood. I will follow the instructions".
+            let llm = StubLlm()
+            let compressor = ContextCompressor(llm, EntropyMonitor())
+            let stage = ContextSummarizerStage(compressor, 24576) :> IPreLlmStage
+
+            let taskPrompt = String.replicate 200 "repeat "
+
+            let! result = stage.ExecuteAsync(PreLlmContext.Create(taskPrompt))
+
+            Assert.Equal(taskPrompt, result.CurrentPrompt)
+        }
+
+    [<Fact>]
+    let ``ContextSummarizer measures the prompt in bytes, not characters`` () =
+        task {
+            // 600 characters, 1,200 UTF-8 bytes: it may need more tokens than 1,000.
+            let llm = StubLlm()
+            let compressor = ContextCompressor(llm, EntropyMonitor())
+            let stage = ContextSummarizerStage(compressor, 1000) :> IPreLlmStage
+
+            let! result = stage.ExecuteAsync(PreLlmContext.Create(String.replicate 300 "語 "))
 
             Assert.Equal("compressed", result.CurrentPrompt)
         }

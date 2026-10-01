@@ -195,15 +195,21 @@ type IntentClassifierStage(classifier: IIntentClassifier) =
             }
 
 /// <summary>
-/// Compresses the context using the compressor's adaptive policy.
+/// Compresses a prompt too long to send as is, using the compressor's adaptive policy.
+/// A prompt of at most `maxPromptBytes` UTF-8 bytes is sent unchanged: summarizing is
+/// lossy, and a small model asked to summarize an instruction can answer it instead.
+/// In evolve, the summary of a task prompt came back as "Understood. I will follow
+/// the instructions...", and the executor never saw its task.
 /// </summary>
-type ContextSummarizerStage(compressor: ContextCompressor) =
+type ContextSummarizerStage(compressor: ContextCompressor, maxPromptBytes: int) =
     interface IPreLlmStage with
         member _.Name = "ContextSummarizer"
 
         member _.ExecuteAsync(ctx) =
             task {
                 if not ctx.IsSafe then
+                    return ctx
+                elif System.Text.Encoding.UTF8.GetByteCount(ctx.CurrentPrompt) <= maxPromptBytes then
                     return ctx
                 else
                     let! compressed = compressor.AutoCompress(ctx.CurrentPrompt)
