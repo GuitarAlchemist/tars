@@ -220,6 +220,14 @@ type ContextSummarizerStage(compressor: ContextCompressor, maxPromptBytes: int) 
                         return { ctx with CurrentPrompt = compressed }
             }
 
+    /// The most UTF-8 bytes a prompt can have and still be sent as is, when an agent sends it
+    /// after its own text of `preambleBytes` and keeps `answerTokens` of a `contextWindow`-token
+    /// window for its answer. The prompt's content is unknown, so each of its bytes may be a
+    /// token. The preamble is the agent's own English instructions and tool list, measured at
+    /// about four bytes a token, so three are counted. 0 when the preamble and answer leave no room.
+    static member PromptLimit(contextWindow: int, preambleBytes: int, answerTokens: int) =
+        max 0 (contextWindow - preambleBytes / 3 - answerTokens)
+
 /// <summary>
 /// Runs the Pre-LLM pipeline.
 /// </summary>

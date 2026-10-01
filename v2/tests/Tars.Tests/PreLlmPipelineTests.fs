@@ -105,6 +105,17 @@ module PreLlmPipelineTests =
         }
 
     [<Fact>]
+    let ``PromptLimit reserves the agent's preamble and answer`` () =
+        // The evolve executor's preamble measured 10,447 bytes, and its largest task
+        // prompt 4,830 bytes. At 16k such a prompt is sent as is.
+        let limit = ContextSummarizerStage.PromptLimit(16384, 10447, 1024)
+        Assert.True(limit >= 4830, $"limit {limit}")
+        Assert.True(limit + 10447 / 3 + 1024 <= 16384)
+
+        // At 4096, the preamble and the answer leave no room for a task prompt.
+        Assert.Equal(0, ContextSummarizerStage.PromptLimit(4096, 10447, 1024))
+
+    [<Fact>]
     let ``Pipeline runs stages sequentially`` () =
         task {
             let safety = SafetyFilterStage() :> IPreLlmStage

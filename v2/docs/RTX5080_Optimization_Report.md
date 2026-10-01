@@ -9,7 +9,7 @@
 **Configuration:**
 - **Provider:** Ollama
 - **Model:** `mistral:7b`
-- **Context Window:** 4096 (Strictly enforced)
+- **Context Window:** 4096 (Strictly enforced; 16384 since 2026-10-01, see Recommendations)
 - **Status:** ✅ Passing "River Crossing" Logic Puzzle (Score: 100%)
 
 ---
@@ -40,7 +40,7 @@ TARS was not correctly propagating the configured `ContextWindow` from `appsetti
 "Llm": {
     "Provider": "Ollama",
     "Model": "mistral:7b",
-    "ContextWindow": 4096,  // CRITICAL: Fits model + KV cache in 16GB
+    "ContextWindow": 4096,  // CRITICAL: Fits model + KV cache in 16GB (16384 since 2026-10-01)
     "Temperature": 0.2
 }
 ```
@@ -73,8 +73,8 @@ DefaultContextWindow = if config.Llm.ContextWindow > 0 then Some config.Llm.Cont
 ## 📝 Recommendations
 For current RTX 5080 hardware:
 1. Always use **Ollama** backend.
-2. Keep **Context Window <= 4096** for 7B models.
-   *Update (2026-10-01):* the CLI now uses 16384. At 4096, the evolve executor's instructions and
+2. Use a **16384-token Context Window** for 7B models (the CLI setting since 2026-10-01; it was 4096).
+   32k overflowed VRAM with Mistral 7B (see above). At 4096, the evolve executor's instructions and
    tool list took most of the window, so the task prompt was summarized and never reached the model.
    At 16k, an executor request is about 3,700 tokens with its task, and `qwen2.5-coder:7b` takes
    5.7 GB, all on the GPU.
