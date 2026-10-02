@@ -238,3 +238,66 @@ let ``a script that does not compile, throws or never ends fails with what went 
             Assert.Contains("did not finish", timedOut)
         | other -> Assert.Fail $"%A{other}"
     }
+
+let private taskWith goal constraints =
+    { Id = Guid.NewGuid()
+      DifficultyLevel = 1
+      Goal = goal
+      Constraints = constraints
+      ValidationCriteria = ""
+      Timeout = TimeSpan.FromMinutes 1.0
+      Score = 0.0 }
+
+[<Fact>]
+let ``a task about code it does not include, or about an unnamed tool, is not specified`` () =
+    // Goals the curriculum generated, or fell back to, in live evolve runs. All of them failed:
+    // the executor asked for the code or the specification, or refused.
+    for goal in
+        [ "Failed to generate novel tasks. Refactor the existing code for better readability."
+          "Refactor an existing F# codebase to use pattern matching instead of if-else statements."
+          "Refactor the provided F# code to use pattern matching instead of traditional conditional statements wherever possible."
+          "Refactor the prime number checking function to use a different algorithm for better performance"
+          "Refactor a given piece of code to use immutable data structures in F#"
+          "Create a tool to analyze the performance of F# code snippets"
+          "Create a tool for analyzing F# code complexity."
+          "Create a tool for analyzing and refactoring F# code to improve readability." ] do
+        Assert.False(Engine.taskIsSpecified (taskWith goal []), goal)
+
+[<Fact>]
+let ``a self-contained task, a refactor that includes its code, or a named tool is specified`` () =
+    for goal in
+        [ "Implement a function in F# that calculates the nth Fibonacci number using recursion."
+          "Write a function in F# that checks if a given string is a palindrome."
+          "Refactor this F# function to use pattern matching: `let sign x = if x > 0 then 1 elif x < 0 then -1 else 0`"
+          "Create a new dynamic tool named 'check_todo' that searches the project for 'TODO' comments and returns a formatted list." ] do
+        Assert.True(Engine.taskIsSpecified (taskWith goal []), goal)
+
+    // The code to refactor may come in a constraint.
+    Assert.True(
+        Engine.taskIsSpecified (
+            taskWith
+                "Refactor this function to use pattern matching in F#."
+                [ "The function: `let sign x = if x > 0 then 1 elif x < 0 then -1 else 0`" ]
+        )
+    )
+
+[<Fact>]
+let ``the concrete tasks are specified coding tasks with examples`` () =
+    Assert.True(Engine.concreteTasks.Length >= 10)
+
+    for goal, criteria in Engine.concreteTasks do
+        Assert.True(Engine.taskIsSpecified (taskWith goal []), goal)
+        Assert.True(Engine.taskAsksForCode goal, goal)
+        Assert.Contains("in F#", goal)
+        Assert.Contains(" = ", criteria)
+
+[<Fact>]
+let ``the next concrete task is the first one not done yet`` () =
+    let first, _ = Engine.concreteTasks.[0]
+    let second, _ = Engine.concreteTasks.[1]
+    let all = Engine.concreteTasks |> List.map fst
+
+    Assert.Equal(first, fst (Engine.nextConcreteTask []))
+    Assert.Equal(second, fst (Engine.nextConcreteTask [ first.ToUpperInvariant() ]))
+    // When every one is done, it still gives one.
+    Assert.Contains(fst (Engine.nextConcreteTask all), all)
