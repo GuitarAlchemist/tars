@@ -239,6 +239,28 @@ let ``a script that does not compile, throws or never ends fails with what went 
         | other -> Assert.Fail $"%A{other}"
     }
 
+[<Fact>]
+let ``a script can use System without opening it, and its errors keep their line numbers`` () =
+    task {
+        // The model writes Char.IsLetter or String.IsNullOrEmpty without `open System`: in a
+        // live run that was 3 of the 5 answers that did not compile.
+        let! usingSystem =
+            Engine.runScript
+                (TimeSpan.FromSeconds 60.0)
+                "let letters (s: string) = s |> Seq.filter Char.IsLetter |> Seq.length\nif letters \"a1b\" <> 2 || not (String.IsNullOrEmpty \"\") then failwith \"wrong\""
+
+        let! notCompiling = Engine.runScript (TimeSpan.FromSeconds 60.0) "let x = 1\nlet y: int = \"a\""
+
+        Assert.Equal(Result.Ok(), usingSystem)
+
+        match notCompiling with
+        | Result.Error compile ->
+            // The error points at line 2 of the code the executor wrote, not of the script.
+            Assert.Contains("answer.fsx(2,", compile)
+            Assert.DoesNotContain("tars-evolve-run", compile)
+        | other -> Assert.Fail $"%A{other}"
+    }
+
 let private taskWith goal constraints =
     { Id = Guid.NewGuid()
       DifficultyLevel = 1
