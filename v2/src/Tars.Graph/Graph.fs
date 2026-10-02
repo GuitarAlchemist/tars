@@ -67,9 +67,10 @@ module PromptBuilder =
             sb.AppendLine("\nInstructions: Reply to the user. Use tools when needed to accomplish tasks.")
             |> ignore
 
+            // Not ToolGrammar.spec.PromptHint: its "Respond ONLY with a JSON object... No prose"
+            // made agents answer with tool calls instead of their result.
             sb.AppendLine(
-                ToolGrammar.spec.PromptHint
-                + " Wrap tool calls in ```tool``` fenced JSON with fields \"name\" and \"arguments\"."
+                "When you call a tool, write only the call: a JSON object with fields \"name\" and \"arguments\", wrapped in ```tool``` fences. When you give your answer, write it as text, with no tool call."
             )
             |> ignore
 
