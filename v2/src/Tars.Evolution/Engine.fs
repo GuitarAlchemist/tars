@@ -336,9 +336,6 @@ let input = fsi.CommandLineArgs.[1] // Get JSON input
 printfn "Tool Result: %%s" result // Output MUST be printed to stdout
 ```"""
 
-    /// How many times an answer that shows no code goes back to the executor.
-    let private maxCodeRequests = 2
-
     /// What the executor is told when its answer shows no code.
     let private codeRequest =
         """Your answer contains no code. There is no one to answer questions, and a description or a plan is not a solution.
@@ -935,51 +932,44 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 "Execution"
                                 (graphExecutor.RunAgentLoop(agentWithMsg, 20, cancellationToken = cts.Token))
 
-                        // 5.1 An answer that shows no code goes back to the executor. In evolve it
-                        // described the function, planned it or asked for the project structure
-                        // instead of writing it, and the evaluation rejected that.
+                        // 5.1 An answer that shows no code goes back to the executor, once. In evolve
+                        // it described the function, planned it or asked for the project structure
+                        // instead of writing it, and the evaluation rejected that. In a live run a
+                        // second request never brought code that the first had not.
                         let! outcomeResult =
-                            task {
-                                let mutable current = firstOutcome
-                                let mutable requests = 0
-                                let mutable asking = true
+                            match firstOutcome with
+                            | Choice1Of2(Success(agentAfter, answer, trace))
+                            | Choice1Of2(PartialSuccess((agentAfter, answer, trace), _)) when not (answerHasCode answer) ->
+                                task {
+                                    ctx.Logger "[Executor] Answer shows no code; asking for it."
 
-                                while asking do
-                                    match current with
-                                    | Choice1Of2(Success(agentAfter, answer, trace))
-                                    | Choice1Of2(PartialSuccess((agentAfter, answer, trace), _)) when
-                                        requests < maxCodeRequests && not (answerHasCode answer)
-                                        ->
-                                        requests <- requests + 1
-                                        ctx.Logger $"[Executor] Answer shows no code; asking for it ({requests}/{maxCodeRequests})."
+                                    let request =
+                                        { msg with
+                                            Id = Guid.NewGuid()
+                                            Content = codeRequest
+                                            Timestamp = DateTime.UtcNow }
 
-                                        let request =
-                                            { msg with
-                                                Id = Guid.NewGuid()
-                                                Content = codeRequest
-                                                Timestamp = DateTime.UtcNow }
+                                    let! next =
+                                        runWithTimeout
+                                            "Code request"
+                                            (graphExecutor.RunAgentLoop(
+                                                agentAfter.ReceiveMessage(request),
+                                                20,
+                                                cancellationToken = cts.Token
+                                            ))
 
-                                        let! next =
-                                            runWithTimeout
-                                                "Code request"
-                                                (graphExecutor.RunAgentLoop(
-                                                    agentAfter.ReceiveMessage(request),
-                                                    20,
-                                                    cancellationToken = cts.Token
-                                                ))
+                                    let asked = trace @ [ "--- NO CODE, ASKED AGAIN ---" ]
 
-                                        let asked = trace @ [ $"--- NO CODE, ASKED AGAIN ({requests}) ---" ]
-
-                                        current <-
-                                            match next with
-                                            | Choice1Of2(Success(a, o, t)) -> Choice1Of2(Success(a, o, asked @ t))
-                                            | Choice1Of2(PartialSuccess((a, o, t), w)) ->
-                                                Choice1Of2(PartialSuccess((a, o, asked @ t), w))
-                                            | other -> other
-                                    | _ -> asking <- false
-
-                                return current
-                            }
+                                    match next with
+                                    | Choice1Of2(Success(a, o, t)) -> return Choice1Of2(Success(a, o, asked @ t))
+                                    | Choice1Of2(PartialSuccess((a, o, t), w)) ->
+                                        return Choice1Of2(PartialSuccess((a, o, asked @ t), w))
+                                    | _ ->
+                                        // The request failed or timed out: keep the answer the executor gave.
+                                        ctx.Logger "[Executor] Asking for code failed; keeping the first answer."
+                                        return firstOutcome
+                                }
+                            | _ -> Task.FromResult firstOutcome
 
                         match outcomeResult with
                         | Choice2Of2 reason ->

@@ -322,6 +322,93 @@ module AdaptiveReflectionTests =
         }
 
     [<Fact>]
+    let ``The first answer is kept when asking for code fails`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let agent = createTestAgent ()
+            let mutable calls = 0
+
+            let llm =
+                { new ILlmService with
+                    member _.CompleteAsync req =
+                        task {
+                            calls <- calls + 1
+
+                            if calls > 1 then
+                                raise (OperationCanceledException())
+
+                            return
+                                { Text = "I will write a recursive factorial function in F#."
+                                  Usage = None
+                                  FinishReason = Some "stop"
+                                  Raw = None }
+                        }
+
+                    member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
+                    member _.EmbedAsync text = Task.FromResult [| 0.1f |]
+
+                    member _.RouteAsync _ =
+                        Task.FromResult
+                            { Backend = Ollama "mock"
+                              Endpoint = Uri "http://localhost:11434"
+                              ApiKey = None } }
+
+            let ctx: Engine.EvolutionContext =
+                { Registry = createMockRegistry agent
+                  Llm = llm
+                  VectorStore = Unchecked.defaultof<_>
+                  Logger = fun _ -> ()
+                  Memory =
+                    { SemanticMemory = None
+                      KnowledgeBase = None
+                      KnowledgeGraph = None
+                      MemoryBuffer = None
+                      EpisodeService = None
+                      Ledger = None
+                      EvidenceStore = None }
+                  Governance =
+                    { Epistemic = Some(createMockEpistemic true "Good job")
+                      PreLlm = None
+                      Budget = None
+                      OutputGuard = None
+                      Evaluator = None }
+                  Options =
+                    { RunId = None
+                      Verbose = false
+                      ShowSemanticMessage = fun _ _ -> ()
+                      Focus = None
+                      ToolRegistry = None
+                      ResearchEnhanced = false
+                      SelfImprovement = false } }
+
+            let taskDef =
+                { Id = Guid.NewGuid()
+                  DifficultyLevel = 1
+                  Goal = "Write a recursive factorial function in F#"
+                  Constraints = []
+                  ValidationCriteria = "fact 5 = 120"
+                  Timeout = TimeSpan.FromMinutes(1.0)
+                  Score = 1.0 }
+
+            let state =
+                { Generation = 0
+                  CompletedTasks = []
+                  TaskQueue = []
+                  CurrentTask = Some taskDef
+                  ActiveBeliefs = []
+                  CurriculumAgentId = AgentId(Guid.NewGuid())
+                  ExecutorAgentId = agent.Id }
+
+            let! newState = Engine.step ctx state
+
+            Assert.Equal(2, calls)
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.Contains("I will write a recursive factorial function", completed.Output)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
     let ``Reflection loop continues when Epistemic Governor rejects`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
