@@ -249,9 +249,18 @@ let ``a script can use System without opening it, and its errors keep their line
                 (TimeSpan.FromSeconds 60.0)
                 "let letters (s: string) = s |> Seq.filter Char.IsLetter |> Seq.length\nif letters \"a1b\" <> 2 || not (String.IsNullOrEmpty \"\") then failwith \"wrong\""
 
+        // An answer that starts with a module, as a .fs file does, still runs after the open.
+        let! moduleFirst =
+            Engine.runScript
+                (TimeSpan.FromSeconds 60.0)
+                (Engine.scriptOfAnswer
+                    "```fsharp\nmodule Text\n\nlet letters (s: string) = s |> Seq.filter Char.IsLetter |> Seq.length\nprintfn \"%d\" (letters \"a1\")\n```")
+                    .Value
+
         let! notCompiling = Engine.runScript (TimeSpan.FromSeconds 60.0) "let x = 1\nlet y: int = \"a\""
 
         Assert.Equal(Result.Ok(), usingSystem)
+        Assert.Equal(Result.Ok(), moduleFirst)
 
         match notCompiling with
         | Result.Error compile ->
