@@ -106,7 +106,7 @@ module SemanticTools =
         | Error msg -> Task.FromResult($"read_code error: {msg}")
         | Ok path ->
             try
-                let fullPath = Path.GetFullPath(path)
+                let fullPath = ToolWorkspace.resolveRead path
 
                 if not (File.Exists fullPath) then
                     Task.FromResult($"File not found: {fullPath}")
@@ -149,8 +149,7 @@ module SemanticTools =
         | Ok(path, target, original, replacement) ->
             try
                 // In a workspace, the first patch reads the repository's file and writes a copy.
-                let fullPath =
-                    if File.Exists target then target else Path.GetFullPath(path)
+                let fullPath = ToolWorkspace.resolveRead path
 
                 if not (File.Exists fullPath) then
                     Task.FromResult($"File not found: {fullPath}")

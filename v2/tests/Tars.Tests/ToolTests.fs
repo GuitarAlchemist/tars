@@ -97,3 +97,29 @@ type ToolTests() =
                 Directory.Delete(ws, true)
                 File.Delete name
         }
+
+    [<Fact>]
+    member _.``read_code reads the workspace copy first, then the repository's file``() =
+        task {
+            if not (TestHelpers.requireTools ()) then () else
+            let ws = newWorkspace ()
+            let written = $"ws-written-{Guid.NewGuid():N}.fs"
+            let repoOnly = $"ws-repo-{Guid.NewGuid():N}.fs"
+            File.WriteAllText(repoOnly, "let fromRepo = 1")
+            Tars.Tools.ToolWorkspace.set (Some ws)
+
+            try
+                let readArgs (path: string) =
+                    "{\"path\": " + Text.Json.JsonSerializer.Serialize(path) + "}"
+
+                let! _ = Tars.Tools.Standard.GitTools.writeCode (writeArgs written)
+                let! fromWorkspace = Tars.Tools.Semantic.SemanticTools.readCode (readArgs written)
+                let! fromRepo = Tars.Tools.Semantic.SemanticTools.readCode (readArgs repoOnly)
+
+                Assert.Contains("let x = 1", fromWorkspace)
+                Assert.Contains("let fromRepo = 1", fromRepo)
+            finally
+                Tars.Tools.ToolWorkspace.set None
+                Directory.Delete(ws, true)
+                File.Delete repoOnly
+        }

@@ -121,3 +121,10 @@ module ToolWorkspace =
                 Error $"'{path}' leaves the workspace {dir}."
             else
                 Ok full
+
+    /// The file a tool reads for `path`: the workspace copy if there is one, otherwise
+    /// `path` as before. Reading outside the workspace stays allowed.
+    let resolveRead (path: string) =
+        match resolveWrite path with
+        | Ok target when File.Exists target -> target
+        | _ -> Path.GetFullPath path
