@@ -201,6 +201,11 @@ let ``the script of an answer is its F# code and nothing else`` () =
 let ``code that uses TARS's own projects is not run as a script`` () =
     Assert.Equal(None, Engine.scriptOfAnswer "```fsharp\nopen Tars.Core\nlet x = 1\n```")
     Assert.Equal(None, Engine.scriptOfAnswer "```fsharp\nlet run = Tars.Evolution.Engine.step\n```")
+    // Mentioning TARS in a comment does not make the code need it.
+    Assert.Equal(
+        Some "// Like Tars.Core.Domain, but on its own.\nlet x = 1",
+        Engine.scriptOfAnswer "```fsharp\n// Like Tars.Core.Domain, but on its own.\nlet x = 1\n```"
+    )
 
 [<Fact>]
 let ``an answer written as a .fs file runs as a script`` () =

@@ -247,7 +247,9 @@ module Engine =
 
     /// One fenced block as dotnet fsi accepts it. A .fs file may start with a namespace line
     /// or a top-level `module X`, and fsi rejects both: the namespace line is dropped, and the
-    /// module becomes `module X =` with the rest of the block indented under it.
+    /// module becomes `module X =` with the rest of the block indented under it. A multi-line
+    /// string under that module is indented too, which changes its text but not whether the
+    /// code compiles, throws or finishes, the only things checked.
     let private asScript (block: string) =
         let lines =
             block.Replace("\r\n", "\n").TrimEnd().Split('\n')
@@ -281,7 +283,16 @@ module Engine =
 
         let script = String.concat "\n\n" blocks
 
-        if blocks.IsEmpty || System.Text.RegularExpressions.Regex.IsMatch(script, @"\bopen\s+Tars\b|\bTars\.\w") then
+        // Line comments are not checked: mentioning TARS there does not make the code need it.
+        let code =
+            System.Text.RegularExpressions.Regex.Replace(
+                script,
+                @"//.*$",
+                "",
+                System.Text.RegularExpressions.RegexOptions.Multiline
+            )
+
+        if blocks.IsEmpty || System.Text.RegularExpressions.Regex.IsMatch(code, @"\bopen\s+Tars\b|\bTars\.\w") then
             None
         else
             Some script
@@ -1102,13 +1113,18 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 ctx.Options.RunCode && taskAsksForCode taskDef.Goal
                                 ->
                                 match scriptOfAnswer answer with
-                                | None -> Task.FromResult outcomeResult
+                                | None ->
+                                    if answerHasCode answer then
+                                        ctx.Logger "[Executor] The answer has no F# code that runs on its own; not run."
+
+                                    Task.FromResult outcomeResult
                                 | Some script ->
                                     task {
                                         let! run =
                                             task {
                                                 try
-                                                    let! result = runScript (TimeSpan.FromSeconds 30.0) script
+                                                    // The limit includes fsi's startup and compile (about 1 s here).
+                                                    let! result = runScript (TimeSpan.FromSeconds 60.0) script
                                                     return Some result
                                                 with ex ->
                                                     ctx.Logger $"[Executor] Could not run the code: {ex.Message}"
