@@ -333,7 +333,8 @@ let main argv =
                   SelfImprovement = false
                   Benchmark = false
                   BenchmarkDomain = "code"
-                  GrammarMesh = false }
+                  GrammarMesh = false
+                  RunCode = false }
 
             let mutable i = 1
 
@@ -379,6 +380,7 @@ let main argv =
                 | "--self-improve" -> options <- { options with SelfImprovement = true }
                 | "--benchmark" -> options <- { options with Benchmark = true }
                 | "--grammar-mesh" -> options <- { options with GrammarMesh = true }
+                | "--run-code" -> options <- { options with RunCode = true }
                 | "--benchmark-domain" when i + 1 < args.Length ->
                     i <- i + 1
                     options <- { options with BenchmarkDomain = args.[i] }

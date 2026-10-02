@@ -107,6 +107,7 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let taskDef =
@@ -196,6 +197,7 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let taskDef =
@@ -292,6 +294,7 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let taskDef =
@@ -379,6 +382,7 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let taskDef =
@@ -475,6 +479,7 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let taskDef =
@@ -507,4 +512,127 @@ module AdaptiveReflectionTests =
                 // Should NOT have "VERIFIED" since we forced rejection
                 Assert.False(completed.ExecutionTrace |> List.exists (fun t -> t.Contains("--- VERIFIED")))
             | [] -> Assert.Fail("Task was not completed")
+        }
+
+    /// Runs one evolve step on a coding task whose executor answers with `answers`, in order
+    /// (the last one repeats), with evolve's --run-code set to `runCode`. Returns the new state
+    /// and every request the executor got.
+    let private stepWithAnswers (runCode: bool) (answers: string list) =
+        task {
+            let agent = createTestAgent ()
+            let requests = Collections.Generic.List<string>()
+
+            let llm =
+                { new ILlmService with
+                    member _.CompleteAsync req =
+                        task {
+                            requests.Add(req.Messages |> List.map (fun m -> m.Content) |> String.concat "\n")
+
+                            return
+                                { Text = answers.[min (requests.Count - 1) (answers.Length - 1)]
+                                  Usage = None
+                                  FinishReason = Some "stop"
+                                  Raw = None }
+                        }
+
+                    member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
+                    member _.EmbedAsync text = Task.FromResult [| 0.1f |]
+
+                    member _.RouteAsync _ =
+                        Task.FromResult
+                            { Backend = Ollama "mock"
+                              Endpoint = Uri "http://localhost:11434"
+                              ApiKey = None } }
+
+            let ctx: Engine.EvolutionContext =
+                { Registry = createMockRegistry agent
+                  Llm = llm
+                  VectorStore = Unchecked.defaultof<_>
+                  Logger = fun _ -> ()
+                  Memory =
+                    { SemanticMemory = None
+                      KnowledgeBase = None
+                      KnowledgeGraph = None
+                      MemoryBuffer = None
+                      EpisodeService = None
+                      Ledger = None
+                      EvidenceStore = None }
+                  Governance =
+                    { Epistemic = Some(createMockEpistemic true "Good job")
+                      PreLlm = None
+                      Budget = None
+                      OutputGuard = None
+                      Evaluator = None }
+                  Options =
+                    { RunId = None
+                      Verbose = false
+                      ShowSemanticMessage = fun _ _ -> ()
+                      Focus = None
+                      ToolRegistry = None
+                      ResearchEnhanced = false
+                      SelfImprovement = false
+                      RunCode = runCode } }
+
+            let taskDef =
+                { Id = Guid.NewGuid()
+                  DifficultyLevel = 1
+                  Goal = "Write a recursive factorial function in F#"
+                  Constraints = []
+                  ValidationCriteria = "fact 5 = 120"
+                  Timeout = TimeSpan.FromMinutes(2.0)
+                  Score = 1.0 }
+
+            let state =
+                { Generation = 0
+                  CompletedTasks = []
+                  TaskQueue = []
+                  CurrentTask = Some taskDef
+                  ActiveBeliefs = []
+                  CurriculumAgentId = AgentId(Guid.NewGuid())
+                  ExecutorAgentId = agent.Id }
+
+            let! newState = Engine.step ctx state
+            return newState, List.ofSeq requests
+        }
+
+    [<Fact>]
+    let ``Code that fails to run is sent back to the executor with its errors`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Nothing ran the executor's code: the evaluation only reads the answer.
+            let! newState, requests =
+                stepWithAnswers
+                    true
+                    [ "```fsharp\nlet fact (n: int) : int = \"not a number\"\n```"
+                      "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
+
+            Assert.Contains(requests, fun r -> r.Contains "error FS0001")
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.Contains("let rec fact n", completed.Output)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Code that runs is not sent back`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let! newState, requests =
+                stepWithAnswers true [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nprintfn \"%d\" (fact 5)\n```" ]
+
+            Assert.DoesNotContain(requests, fun r -> r.Contains "Your code was run")
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.Contains("let rec fact n", completed.Output)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Code is not run without --run-code`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // It runs with the user's rights, outside any sandbox, so evolve runs it only when asked.
+            let! _, requests = stepWithAnswers false [ "```fsharp\nlet fact (n: int) : int = \"not a number\"\n```" ]
+
+            Assert.DoesNotContain(requests, fun r -> r.Contains "Your code was run")
         }

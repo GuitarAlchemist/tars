@@ -39,7 +39,10 @@ type EvolveOptions =
       BenchmarkDomain: string
       /// Run a parallel grammar-mesh sweep each cycle and record the winning
       /// derivation as a pattern outcome (ADR 0001). Off by default.
-      GrammarMesh: bool }
+      GrammarMesh: bool
+      /// Run the F# code in the executor's answers with dotnet fsi, and send failures back to
+      /// it once. The code runs with the user's rights, outside any sandbox. Off by default.
+      RunCode: bool }
 
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
@@ -587,7 +590,8 @@ let run (logger: ILogger) (options: EvolveOptions) =
                       Focus = options.Focus
                       ToolRegistry = Some toolRegistry
                       ResearchEnhanced = options.ResearchEnhanced
-                      SelfImprovement = options.SelfImprovement } }
+                      SelfImprovement = options.SelfImprovement
+                      RunCode = options.RunCode } }
 
             // Load Plan if provided
             let initialTasks =
@@ -664,6 +668,10 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             if not options.Quiet then
                 RichOutput.info $"Executor workspace: {executorWorkspace}"
+
+            if options.RunCode then
+                RichOutput.warning
+                    "--run-code: the executor's F# answers are run with dotnet fsi, with your user rights, outside any sandbox."
 
             for cycle in 1 .. options.LoopCount do
                 if options.LoopCount > 1 && not options.Quiet then

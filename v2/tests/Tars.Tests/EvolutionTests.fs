@@ -200,6 +200,7 @@ module EvolutionTests =
                   Focus = None
                   ToolRegistry = None
                   ResearchEnhanced = false
+                  RunCode = false
                   SelfImprovement = false } }
 
         let _nextState =

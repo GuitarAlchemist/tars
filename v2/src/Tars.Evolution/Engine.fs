@@ -44,7 +44,10 @@ module Engine =
           Focus: string option
           ToolRegistry: Tars.Tools.ToolRegistry option
           ResearchEnhanced: bool
-          SelfImprovement: bool }
+          SelfImprovement: bool
+          /// Run the F# code in the executor's answers with dotnet fsi (`evolve --run-code`). It runs
+          /// with the user's rights, outside any sandbox, so it is off unless asked for.
+          RunCode: bool }
 
     /// The context for the evolution engine
     type EvolutionContext =
@@ -242,6 +245,114 @@ module Engine =
             System.Text.RegularExpressions.RegexOptions.IgnoreCase
         )
 
+    /// One fenced block as dotnet fsi accepts it. A .fs file may start with a namespace line
+    /// or a top-level `module X`, and fsi rejects both: the namespace line is dropped, and the
+    /// module becomes `module X =` with the rest of the block indented under it. A multi-line
+    /// string under that module is indented too, which changes its text but not whether the
+    /// code compiles, throws or finishes, the only things checked.
+    let private asScript (block: string) =
+        let lines =
+            block.Replace("\r\n", "\n").TrimEnd().Split('\n')
+            |> Array.filter (fun l -> not (System.Text.RegularExpressions.Regex.IsMatch(l, @"^namespace\s")))
+
+        let topModule =
+            lines
+            |> Array.tryFindIndex (fun l -> System.Text.RegularExpressions.Regex.IsMatch(l, @"^module\s+(rec\s+)?[\w.]+\s*$"))
+
+        match topModule with
+        | Some i ->
+            let name = lines.[i].Trim().Split(' ') |> Array.last |> fun n -> n.Split('.') |> Array.last
+            let body = lines.[i + 1 ..] |> Array.map (fun l -> if l.Trim() = "" then l else "    " + l)
+            Array.concat [ lines.[.. i - 1]; [| $"module {name} =" |]; body ] |> String.concat "\n"
+        | None -> String.concat "\n" lines
+
+    /// The F# script to run for an executor answer: its ```fsharp blocks, joined. A block that
+    /// holds a JSON tool call is not code. None when there are none, or when the code uses
+    /// TARS's own projects, which a script cannot load.
+    let scriptOfAnswer (answer: string) : string option =
+        let blocks =
+            System.Text.RegularExpressions.Regex.Matches(
+                answer,
+                @"```(fsharp|f#|fs|fsx)[ \t]*\r?\n([\s\S]*?)```",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            )
+            |> Seq.map (fun m -> m.Groups.[2].Value)
+            |> Seq.filter (fun b -> not (b.TrimStart().StartsWith "{" && b.Contains "\"name\""))
+            |> Seq.map asScript
+            |> List.ofSeq
+
+        let script = String.concat "\n\n" blocks
+
+        // Line comments are not checked: mentioning TARS there does not make the code need it.
+        let code =
+            System.Text.RegularExpressions.Regex.Replace(
+                script,
+                @"//.*$",
+                "",
+                System.Text.RegularExpressions.RegexOptions.Multiline
+            )
+
+        if blocks.IsEmpty || System.Text.RegularExpressions.Regex.IsMatch(code, @"\bopen\s+Tars\b|\bTars\.\w") then
+            None
+        else
+            Some script
+
+    /// Runs an F# script with dotnet fsi, in a temporary directory, with no input, for at most
+    /// `timeout`. Ok when it exits with 0; otherwise Error with what went wrong.
+    let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
+        task {
+            let dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "tars-evolve-run", Guid.NewGuid().ToString("N"))
+            System.IO.Directory.CreateDirectory dir |> ignore
+            let path = System.IO.Path.Combine(dir, "answer.fsx")
+
+            try
+                System.IO.File.WriteAllText(path, script)
+                let psi = System.Diagnostics.ProcessStartInfo("dotnet", $"fsi \"{path}\"")
+                psi.WorkingDirectory <- dir
+                psi.RedirectStandardInput <- true
+                psi.RedirectStandardOutput <- true
+                psi.RedirectStandardError <- true
+                psi.UseShellExecute <- false
+                psi.CreateNoWindow <- true
+
+                use proc = System.Diagnostics.Process.Start psi
+                proc.StandardInput.Close()
+                // Both streams are read while the script runs, so a full pipe cannot block it.
+                let stdout = proc.StandardOutput.ReadToEndAsync()
+                let stderr = proc.StandardError.ReadToEndAsync()
+                use cts = new CancellationTokenSource(timeout)
+
+                try
+                    do! proc.WaitForExitAsync(cts.Token)
+                    let! _ = stdout
+                    let! errors = stderr
+
+                    if proc.ExitCode = 0 then
+                        return Result.Ok()
+                    else
+                        let errors = errors.Replace(path, "answer.fsx").Trim()
+
+                        return
+                            Result.Error(
+                                if errors.Length > 2000 then
+                                    errors.Substring(0, 2000) + "\n..."
+                                else
+                                    errors
+                            )
+                with :? OperationCanceledException ->
+                    try
+                        proc.Kill true
+                    with _ ->
+                        ()
+
+                    return Result.Error $"It did not finish within {timeout.TotalSeconds:F0} s."
+            finally
+                try
+                    System.IO.Directory.Delete(dir, true)
+                with _ ->
+                    ()
+        }
+
     let private formatBelief (belief: Belief) =
         let predicate =
             match belief.Predicate with
@@ -353,6 +464,14 @@ printfn "Tool Result: %%s" result // Output MUST be printed to stdout
 1. Write the complete code now. Save it with write_code if you can.
 2. Reply with the complete code in a fenced block (```fsharp ... ```), and the file path if you saved it.
 If the task truly asks for no code, give your final result instead."""
+
+    /// What the executor is told when the code in its answer fails to run.
+    let private fixRequest (errors: string) =
+        $"""Your code was run with dotnet fsi, as a script, and it failed:
+
+{errors}
+
+Fix the code. Reply with the complete corrected code in a fenced block (```fsharp ... ```). Save it with write_code if you can."""
 
     let private evaluateContradiction (ctx: EvolutionContext) (goal: string) (beliefs: Belief list) =
         task {
@@ -983,6 +1102,70 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                         return firstOutcome
                                 }
                             | _ -> Task.FromResult firstOutcome
+
+                        // 5.2 With --run-code, the code in the answer is run with dotnet fsi. If it does not
+                        // compile, throws or does not finish, the errors go back to the executor, once. The
+                        // evaluation only reads the answer, so nothing else ever ran the executor's code.
+                        let! outcomeResult =
+                            match outcomeResult with
+                            | Choice1Of2(Success(agentAfter, answer, trace))
+                            | Choice1Of2(PartialSuccess((agentAfter, answer, trace), _)) when
+                                ctx.Options.RunCode && taskAsksForCode taskDef.Goal
+                                ->
+                                match scriptOfAnswer answer with
+                                | None ->
+                                    if answerHasCode answer then
+                                        ctx.Logger "[Executor] The answer has no F# code that runs on its own; not run."
+
+                                    Task.FromResult outcomeResult
+                                | Some script ->
+                                    task {
+                                        let! run =
+                                            task {
+                                                try
+                                                    // The limit includes fsi's startup and compile (about 1 s here).
+                                                    let! result = runScript (TimeSpan.FromSeconds 60.0) script
+                                                    return Some result
+                                                with ex ->
+                                                    ctx.Logger $"[Executor] Could not run the code: {ex.Message}"
+                                                    return None
+                                            }
+
+                                        match run with
+                                        | Some(Result.Error errors) ->
+                                            ctx.Logger "[Executor] The code failed to run; asking for a fix."
+
+                                            let request =
+                                                { msg with
+                                                    Id = Guid.NewGuid()
+                                                    Content = fixRequest errors
+                                                    Timestamp = DateTime.UtcNow }
+
+                                            let! next =
+                                                runWithTimeout
+                                                    "Fix request"
+                                                    (graphExecutor.RunAgentLoop(
+                                                        agentAfter.ReceiveMessage(request),
+                                                        20,
+                                                        cancellationToken = cts.Token
+                                                    ))
+
+                                            let asked = trace @ [ "--- CODE FAILED TO RUN, ASKED TO FIX ---"; errors ]
+
+                                            match next with
+                                            | Choice1Of2(Success(a, o, t)) -> return Choice1Of2(Success(a, o, asked @ t))
+                                            | Choice1Of2(PartialSuccess((a, o, t), w)) ->
+                                                return Choice1Of2(PartialSuccess((a, o, asked @ t), w))
+                                            | _ ->
+                                                // The request failed or timed out: keep the answer the executor gave.
+                                                ctx.Logger "[Executor] Asking for a fix failed; keeping the answer."
+                                                return outcomeResult
+                                        | Some(Result.Ok()) ->
+                                            ctx.Logger "[Executor] The code ran."
+                                            return outcomeResult
+                                        | None -> return outcomeResult
+                                    }
+                            | _ -> Task.FromResult outcomeResult
 
                         match outcomeResult with
                         | Choice2Of2 reason ->

@@ -179,3 +179,62 @@ let ``a task that analyzes or summarizes does not ask for code`` () =
           "List all files in src/Tars.Evolution and summarize the responsibility of each file."
           "Explore the foundational principles of epistemology." ] do
         Assert.False(Engine.taskAsksForCode goal, goal)
+
+[<Fact>]
+let ``the script of an answer is its F# code and nothing else`` () =
+    Assert.Equal(None, Engine.scriptOfAnswer "I will write a recursive factorial function in F#.")
+    Assert.Equal(None, Engine.scriptOfAnswer "```tool\n{\"name\": \"write_code\", \"arguments\": {}}\n```")
+    // An unlabeled block may be program output rather than code.
+    Assert.Equal(None, Engine.scriptOfAnswer "Output:\n```\n[1; 2; 3]\n```")
+    // A tool call the executor put in an F# block, from a live evolve run.
+    Assert.Equal(
+        None,
+        Engine.scriptOfAnswer "ACT: INFORM: ```fsharp\n{\n  \"name\": \"read_code\",\n  \"arguments\": {\n    \"path\": \"Program.fs\"\n  }\n}\n```"
+    )
+
+    Assert.Equal(
+        Some "let x = 1\n\nprintfn \"%d\" x",
+        Engine.scriptOfAnswer "```tool\n{}\n```\n```fsharp\nlet x = 1\n```\nThen:\n```fsharp\nprintfn \"%d\" x\n```"
+    )
+
+[<Fact>]
+let ``code that uses TARS's own projects is not run as a script`` () =
+    Assert.Equal(None, Engine.scriptOfAnswer "```fsharp\nopen Tars.Core\nlet x = 1\n```")
+    Assert.Equal(None, Engine.scriptOfAnswer "```fsharp\nlet run = Tars.Evolution.Engine.step\n```")
+    // Mentioning TARS in a comment does not make the code need it.
+    Assert.Equal(
+        Some "// Like Tars.Core.Domain, but on its own.\nlet x = 1",
+        Engine.scriptOfAnswer "```fsharp\n// Like Tars.Core.Domain, but on its own.\nlet x = 1\n```"
+    )
+
+[<Fact>]
+let ``an answer written as a .fs file runs as a script`` () =
+    task {
+        // dotnet fsi rejects a namespace line and a top-level module declaration, which
+        // are valid, and common, at the top of a .fs file.
+        let answer =
+            "```fsharp\nnamespace Demo\n\nmodule Fact\n\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nprintfn \"%d\" (fact 5)\n```\n"
+            + "```fsharp\nprintfn \"%d\" (Fact.fact 6)\n```"
+
+        let! run = Engine.runScript (TimeSpan.FromSeconds 60.0) (Engine.scriptOfAnswer answer).Value
+
+        Assert.Equal(Result.Ok(), run)
+    }
+
+[<Fact>]
+let ``a script that does not compile, throws or never ends fails with what went wrong`` () =
+    task {
+        let! notCompiling = Engine.runScript (TimeSpan.FromSeconds 60.0) "let x: int = \"a\""
+        let! throwing =
+            Engine.runScript
+                (TimeSpan.FromSeconds 60.0)
+                "let f n = if n < 0 then failwith \"Negative input not allowed\" else n\nprintfn \"%d\" (f -1)"
+        let! endless = Engine.runScript (TimeSpan.FromSeconds 3.0) "while true do ()"
+
+        match notCompiling, throwing, endless with
+        | Result.Error compile, Result.Error thrown, Result.Error timedOut ->
+            Assert.Contains("error FS0001", compile)
+            Assert.Contains("Negative input not allowed", thrown)
+            Assert.Contains("did not finish", timedOut)
+        | other -> Assert.Fail $"%A{other}"
+    }
