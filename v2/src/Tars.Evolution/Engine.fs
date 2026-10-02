@@ -231,6 +231,17 @@ module Engine =
         System.Text.RegularExpressions.Regex.Matches(answer, @"```([^\n`]*)\n[\s\S]*?```")
         |> Seq.exists (fun m -> m.Groups.[1].Value.Trim() <> "tool")
 
+    /// Whether a task asks for code: a verb that makes something (write, implement, create,
+    /// refactor...) followed by a code artifact or "F#". A task that scans, analyzes or
+    /// summarizes ("Read Domain.fs and write a summary...") wants prose, so an answer without
+    /// code is not sent back for it.
+    let taskAsksForCode (goal: string) =
+        System.Text.RegularExpressions.Regex.IsMatch(
+            goal,
+            @"\b(write|implement|create|build|refactor|fix|add|modify|extend)\b.*\b(functions?|methods?|modules?|types?|class(es)?|tools?|scripts?|code|programs?|parsers?|tests?|F#)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase
+        )
+
     let private formatBelief (belief: Belief) =
         let predicate =
             match belief.Predicate with
@@ -939,7 +950,9 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         let! outcomeResult =
                             match firstOutcome with
                             | Choice1Of2(Success(agentAfter, answer, trace))
-                            | Choice1Of2(PartialSuccess((agentAfter, answer, trace), _)) when not (answerHasCode answer) ->
+                            | Choice1Of2(PartialSuccess((agentAfter, answer, trace), _)) when
+                                taskAsksForCode taskDef.Goal && not (answerHasCode answer)
+                                ->
                                 task {
                                     ctx.Logger "[Executor] Answer shows no code; asking for it."
 

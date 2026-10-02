@@ -156,3 +156,26 @@ let ``an answer with a fenced code block shows code`` () =
     Assert.True(Engine.answerHasCode "Here it is:\n```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```")
     Assert.True(Engine.answerHasCode "```\nlet x = 1\n```")
     Assert.True(Engine.answerHasCode "```tool\n{}\n```\nDone:\n```fsharp\nlet x = 1\n```")
+
+[<Fact>]
+let ``a task that makes code asks for code`` () =
+    // Goals the curriculum generated in evolve runs, and the one canned task that builds something.
+    for goal in
+        [ "Implement a function to calculate the nth Fibonacci number in F#."
+          "Write a function in F# that checks if a given string is a palindrome."
+          "Refactor the existing `fibonacci` function to use memoization for improved performance."
+          "Create a tool for analyzing F# code quality using a static code analysis library."
+          "Failed to generate novel tasks. Refactor the existing code for better maintainability."
+          "Create a new dynamic tool named 'check_todo' that searches the project for 'TODO' comments and returns a formatted list." ] do
+        Assert.True(Engine.taskAsksForCode goal, goal)
+
+[<Fact>]
+let ``a task that analyzes or summarizes does not ask for code`` () =
+    // The other canned tasks, and a topic the epistemic governor proposed: prose is the answer.
+    for goal in
+        [ "Scan the src/Tars.Tools directory and identify 2 tools that lack proper error handling in their JSON parsing logic."
+          "Analyze the current Evolution Engine loop in src/Tars.Evolution/Engine.fs and suggest a way to implement better task pivoting after 3 failures."
+          "Read src/Tars.Core/Domain.fs and write a summary of the 'AgentIntent' discriminated union."
+          "List all files in src/Tars.Evolution and summarize the responsibility of each file."
+          "Explore the foundational principles of epistemology." ] do
+        Assert.False(Engine.taskAsksForCode goal, goal)
