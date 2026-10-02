@@ -113,6 +113,7 @@ module EvolutionSemanticTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let state: EvolutionState =

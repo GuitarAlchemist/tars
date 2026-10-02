@@ -121,6 +121,7 @@ module EvolveIntegrationTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let! nextState = Engine.step context state |> Async.AwaitTask

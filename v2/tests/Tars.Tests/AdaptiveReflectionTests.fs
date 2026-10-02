@@ -107,6 +107,7 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let taskDef =
@@ -196,6 +197,7 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let taskDef =
@@ -292,6 +294,7 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let taskDef =
@@ -379,6 +382,7 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let taskDef =
@@ -475,6 +479,7 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
                       SelfImprovement = false } }
 
             let taskDef =
@@ -510,8 +515,9 @@ module AdaptiveReflectionTests =
         }
 
     /// Runs one evolve step on a coding task whose executor answers with `answers`, in order
-    /// (the last one repeats). Returns the new state and every request the executor got.
-    let private stepWithAnswers (answers: string list) =
+    /// (the last one repeats), with evolve's --run-code set to `runCode`. Returns the new state
+    /// and every request the executor got.
+    let private stepWithAnswers (runCode: bool) (answers: string list) =
         task {
             let agent = createTestAgent ()
             let requests = Collections.Generic.List<string>()
@@ -564,7 +570,8 @@ module AdaptiveReflectionTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
-                      SelfImprovement = false } }
+                      SelfImprovement = false
+                      RunCode = runCode } }
 
             let taskDef =
                 { Id = Guid.NewGuid()
@@ -595,11 +602,11 @@ module AdaptiveReflectionTests =
             // Nothing ran the executor's code: the evaluation only reads the answer.
             let! newState, requests =
                 stepWithAnswers
+                    true
                     [ "```fsharp\nlet fact (n: int) : int = \"not a number\"\n```"
                       "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
 
-            Assert.Equal(2, requests.Length)
-            Assert.Contains("error FS0001", requests.[1])
+            Assert.Contains(requests, fun r -> r.Contains "error FS0001")
 
             match newState.CompletedTasks with
             | completed :: _ -> Assert.Contains("let rec fact n", completed.Output)
@@ -611,11 +618,21 @@ module AdaptiveReflectionTests =
         task {
             if not (TestHelpers.requireTools()) then () else
             let! newState, requests =
-                stepWithAnswers [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nprintfn \"%d\" (fact 5)\n```" ]
+                stepWithAnswers true [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nprintfn \"%d\" (fact 5)\n```" ]
 
-            Assert.Equal(1, requests.Length)
+            Assert.DoesNotContain(requests, fun r -> r.Contains "Your code was run")
 
             match newState.CompletedTasks with
             | completed :: _ -> Assert.Contains("let rec fact n", completed.Output)
             | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Code is not run without --run-code`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // It runs with the user's rights, outside any sandbox, so evolve runs it only when asked.
+            let! _, requests = stepWithAnswers false [ "```fsharp\nlet fact (n: int) : int = \"not a number\"\n```" ]
+
+            Assert.DoesNotContain(requests, fun r -> r.Contains "Your code was run")
         }

@@ -44,7 +44,10 @@ module Engine =
           Focus: string option
           ToolRegistry: Tars.Tools.ToolRegistry option
           ResearchEnhanced: bool
-          SelfImprovement: bool }
+          SelfImprovement: bool
+          /// Run the F# code in the executor's answers with dotnet fsi (`evolve --run-code`). It runs
+          /// with the user's rights, outside any sandbox, so it is off unless asked for.
+          RunCode: bool }
 
     /// The context for the evolution engine
     type EvolutionContext =
@@ -1089,14 +1092,14 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 }
                             | _ -> Task.FromResult firstOutcome
 
-                        // 5.2 The code in the answer is run with dotnet fsi. If it does not compile, throws
-                        // or does not finish, the errors go back to the executor, once. The evaluation only
-                        // reads the answer, so nothing else ever ran the executor's code.
+                        // 5.2 With --run-code, the code in the answer is run with dotnet fsi. If it does not
+                        // compile, throws or does not finish, the errors go back to the executor, once. The
+                        // evaluation only reads the answer, so nothing else ever ran the executor's code.
                         let! outcomeResult =
                             match outcomeResult with
                             | Choice1Of2(Success(agentAfter, answer, trace))
                             | Choice1Of2(PartialSuccess((agentAfter, answer, trace), _)) when
-                                taskAsksForCode taskDef.Goal
+                                ctx.Options.RunCode && taskAsksForCode taskDef.Goal
                                 ->
                                 match scriptOfAnswer answer with
                                 | None -> Task.FromResult outcomeResult
