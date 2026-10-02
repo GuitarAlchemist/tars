@@ -508,3 +508,114 @@ module AdaptiveReflectionTests =
                 Assert.False(completed.ExecutionTrace |> List.exists (fun t -> t.Contains("--- VERIFIED")))
             | [] -> Assert.Fail("Task was not completed")
         }
+
+    /// Runs one evolve step on a coding task whose executor answers with `answers`, in order
+    /// (the last one repeats). Returns the new state and every request the executor got.
+    let private stepWithAnswers (answers: string list) =
+        task {
+            let agent = createTestAgent ()
+            let requests = Collections.Generic.List<string>()
+
+            let llm =
+                { new ILlmService with
+                    member _.CompleteAsync req =
+                        task {
+                            requests.Add(req.Messages |> List.map (fun m -> m.Content) |> String.concat "\n")
+
+                            return
+                                { Text = answers.[min (requests.Count - 1) (answers.Length - 1)]
+                                  Usage = None
+                                  FinishReason = Some "stop"
+                                  Raw = None }
+                        }
+
+                    member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
+                    member _.EmbedAsync text = Task.FromResult [| 0.1f |]
+
+                    member _.RouteAsync _ =
+                        Task.FromResult
+                            { Backend = Ollama "mock"
+                              Endpoint = Uri "http://localhost:11434"
+                              ApiKey = None } }
+
+            let ctx: Engine.EvolutionContext =
+                { Registry = createMockRegistry agent
+                  Llm = llm
+                  VectorStore = Unchecked.defaultof<_>
+                  Logger = fun _ -> ()
+                  Memory =
+                    { SemanticMemory = None
+                      KnowledgeBase = None
+                      KnowledgeGraph = None
+                      MemoryBuffer = None
+                      EpisodeService = None
+                      Ledger = None
+                      EvidenceStore = None }
+                  Governance =
+                    { Epistemic = Some(createMockEpistemic true "Good job")
+                      PreLlm = None
+                      Budget = None
+                      OutputGuard = None
+                      Evaluator = None }
+                  Options =
+                    { RunId = None
+                      Verbose = false
+                      ShowSemanticMessage = fun _ _ -> ()
+                      Focus = None
+                      ToolRegistry = None
+                      ResearchEnhanced = false
+                      SelfImprovement = false } }
+
+            let taskDef =
+                { Id = Guid.NewGuid()
+                  DifficultyLevel = 1
+                  Goal = "Write a recursive factorial function in F#"
+                  Constraints = []
+                  ValidationCriteria = "fact 5 = 120"
+                  Timeout = TimeSpan.FromMinutes(2.0)
+                  Score = 1.0 }
+
+            let state =
+                { Generation = 0
+                  CompletedTasks = []
+                  TaskQueue = []
+                  CurrentTask = Some taskDef
+                  ActiveBeliefs = []
+                  CurriculumAgentId = AgentId(Guid.NewGuid())
+                  ExecutorAgentId = agent.Id }
+
+            let! newState = Engine.step ctx state
+            return newState, List.ofSeq requests
+        }
+
+    [<Fact>]
+    let ``Code that fails to run is sent back to the executor with its errors`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Nothing ran the executor's code: the evaluation only reads the answer.
+            let! newState, requests =
+                stepWithAnswers
+                    [ "```fsharp\nlet fact (n: int) : int = \"not a number\"\n```"
+                      "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
+
+            Assert.Equal(2, requests.Length)
+            Assert.Contains("error FS0001", requests.[1])
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.Contains("let rec fact n", completed.Output)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Code that runs is not sent back`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let! newState, requests =
+                stepWithAnswers [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nprintfn \"%d\" (fact 5)\n```" ]
+
+            Assert.Equal(1, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.Contains("let rec fact n", completed.Output)
+            | [] -> Assert.Fail("Task was not completed")
+        }
