@@ -47,11 +47,14 @@ module GitTools =
                         "Writes code to a file. Creates directories if needed. Input JSON: { \"path\": \"relative/path.fs\", \"content\": \"code content\" }")>]
     let writeCode (args: string) =
         task {
-            match parseWriteCodeArgs args with
+            match
+                parseWriteCodeArgs args
+                |> Result.bind (fun (path, content) ->
+                    ToolWorkspace.resolveWrite path |> Result.map (fun fullPath -> fullPath, content))
+            with
             | Error msg -> return $"write_code error: {msg}"
-            | Ok(path, content) ->
+            | Ok(fullPath, content) ->
                 try
-                    let fullPath = Path.GetFullPath(path)
                     let dir = Path.GetDirectoryName(fullPath)
 
                     if not (Directory.Exists dir) then

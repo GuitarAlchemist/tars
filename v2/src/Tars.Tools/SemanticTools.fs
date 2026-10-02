@@ -139,11 +139,18 @@ module SemanticTools =
     [<TarsToolAttribute("patch_code",
                         "Replaces a block of code. Input JSON: { \"path\": \"file.fs\", \"original\": \"...\", \"replacement\": \"...\" }")>]
     let patchCode (args: string) =
-        match parsePatchArgs args with
+        match
+            parsePatchArgs args
+            |> Result.bind (fun (path, original, replacement) ->
+                ToolWorkspace.resolveWrite path
+                |> Result.map (fun target -> path, target, original, replacement))
+        with
         | Error msg -> Task.FromResult($"patch_code error: {msg}")
-        | Ok(path, original, replacement) ->
+        | Ok(path, target, original, replacement) ->
             try
-                let fullPath = Path.GetFullPath(path)
+                // In a workspace, the first patch reads the repository's file and writes a copy.
+                let fullPath =
+                    if File.Exists target then target else Path.GetFullPath(path)
 
                 if not (File.Exists fullPath) then
                     Task.FromResult($"File not found: {fullPath}")
@@ -156,7 +163,8 @@ module SemanticTools =
 
                     if normContent.Contains(normOriginal) then
                         let newContent = normContent.Replace(normOriginal, replacement)
-                        File.WriteAllText(fullPath, newContent)
+                        Directory.CreateDirectory(Path.GetDirectoryName target) |> ignore
+                        File.WriteAllText(target, newContent)
                         Task.FromResult("Successfully patched file.")
                     else
                         Task.FromResult(

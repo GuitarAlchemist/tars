@@ -125,7 +125,6 @@ let run (logger: ILogger) (options: EvolveOptions) =
               "read_code"
               "patch_code"
               "write_code"
-              "git_commit"
               "git_status"
               "git_diff"
               "think_step_by_step"
@@ -217,7 +216,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 "Executor"
                 "0.1.0"
                 model
-                "You are a coding assistant that solves programming tasks step by step. Use the provided tools to explore, modify, and save code. Use write_code to save your solutions and git_commit to commit changes."
+                "You are a coding assistant that solves programming tasks step by step. Use the provided tools to explore, modify, and save code. Use write_code to save your solutions."
                 semanticTools
                 executorCapabilities
 
@@ -649,6 +648,22 @@ let run (logger: ILogger) (options: EvolveOptions) =
             // Names this evolve run, so each cycle's benchmark results can be told
             // apart on disk ("<run>/<cycle>").
             let evolveRun = Guid.NewGuid().ToString("N").Substring(0, 8)
+
+            // The executor's write_code and patch_code land here, not in the repository.
+            let executorWorkspace =
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".tars",
+                    "evolve",
+                    "runs",
+                    evolveRun,
+                    "workspace"
+                )
+
+            Tars.Tools.ToolWorkspace.set (Some executorWorkspace)
+
+            if not options.Quiet then
+                RichOutput.info $"Executor workspace: {executorWorkspace}"
 
             for cycle in 1 .. options.LoopCount do
                 if options.LoopCount > 1 && not options.Quiet then
