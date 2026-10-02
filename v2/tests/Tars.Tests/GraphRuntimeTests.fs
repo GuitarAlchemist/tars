@@ -132,3 +132,38 @@ module GraphRuntimeTests =
                 )
             | _ -> Assert.Fail("Expected PartialSuccess due to tool failure")
         }
+
+    [<Fact>]
+    let ``RunAgentLoop returns Failure when a step fails`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // A failed step used to come back as Success, its error text standing as the
+            // agent's answer.
+            let failingLlm =
+                { new ILlmService with
+                    member _.CompleteAsync req =
+                        Task.FromException<LlmResponse>(OperationCanceledException())
+
+                    member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
+                    member _.EmbedAsync text = Task.FromResult [| 0.1f |]
+
+                    member _.RouteAsync _ =
+                        Task.FromResult
+                            { Backend = Ollama "mock"
+                              Endpoint = Uri "http://localhost:11434"
+                              ApiKey = None } }
+
+            let agent = { createTestAgent () with State = Thinking [] }
+
+            let registry =
+                { new IAgentRegistry with
+                    member _.GetAgent _ = async { return Some agent }
+                    member _.FindAgents _ = async { return [ agent ] }
+                    member _.GetAllAgents() = async { return [ agent ] } }
+
+            let! outcome = GraphExecutor(registry, failingLlm, None).RunAgentLoop(agent, 5)
+
+            match outcome with
+            | Failure _ -> ()
+            | other -> Assert.Fail($"Expected Failure, got %A{other}")
+        }
