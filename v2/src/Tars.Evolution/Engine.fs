@@ -245,6 +245,69 @@ module Engine =
             System.Text.RegularExpressions.RegexOptions.IgnoreCase
         )
 
+    /// Whether a task can be done from its own text. In live evolve runs, every task that asked
+    /// to refactor or fix code it did not include ("Refactor the existing code...", "Refactor the
+    /// provided F# code...") or to create a tool it did not name ("Create a tool for analyzing F#
+    /// code complexity") failed: the executor asked for the code or the specification, or refused.
+    let taskIsSpecified (taskDef: TaskDefinition) =
+        let isMatch (input: string) (pattern: string) =
+            System.Text.RegularExpressions.Regex.IsMatch(
+                input,
+                pattern,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            )
+
+        let text = String.concat "\n" (taskDef.Goal :: taskDef.Constraints)
+
+        let needsCode =
+            isMatch taskDef.Goal @"\b(refactor|rewrite|optimi[sz]e|improve|fix)"
+            || isMatch
+                taskDef.Goal
+                @"\b(existing|provided|given|current|previous|failing)\s+(\w+\s+){0,2}(code|codebase|function|module|implementation|tool)\b"
+
+        let hasCode = isMatch text @"```|`[^`\n]*\b(let|fun|match|type)\b[^`\n]*`"
+        let isTool = isMatch taskDef.Goal @"\btools?\b"
+        let namesTool = isMatch taskDef.Goal @"['""`][a-z_][a-z0-9_]*['""`]"
+        (not needsCode || hasCode) && (not isTool || namesTool)
+
+    /// Concrete exercises, as (goal, validation criteria), for when the curriculum gives no task
+    /// that is new and specified. Each names its function and gives examples to check it by.
+    let concreteTasks =
+        [ ("Write `isPalindrome : string -> bool` in F#. It ignores case and every character that is not a letter or a digit.",
+           "isPalindrome \"A man, a plan, a canal: Panama\" = true; isPalindrome \"race a car\" = false; isPalindrome \"\" = true")
+          ("Write `fizzBuzz : int -> string` in F#: \"Fizz\" for multiples of 3, \"Buzz\" for multiples of 5, \"FizzBuzz\" for both, otherwise the number.",
+           "fizzBuzz 9 = \"Fizz\"; fizzBuzz 10 = \"Buzz\"; fizzBuzz 15 = \"FizzBuzz\"; fizzBuzz 7 = \"7\"")
+          ("Write `gcd : int -> int -> int` in F#, using Euclid's algorithm.",
+           "gcd 48 18 = 6; gcd 17 5 = 1; gcd 0 9 = 9")
+          ("Write `isPrime : int -> bool` in F#.",
+           "isPrime 2 = true; isPrime 15 = false; isPrime 97 = true; isPrime 1 = false")
+          ("Write `binarySearch : int[] -> int -> int option` in F#. The array is sorted; the result is the index of the value.",
+           "binarySearch [| 1; 3; 5; 7 |] 5 = Some 2; binarySearch [| 1; 3; 5; 7 |] 4 = None; binarySearch [||] 1 = None")
+          ("Write `wordCount : string -> Map<string, int>` in F#. Words are separated by spaces and compared in lower case.",
+           "wordCount \"a B a\" = Map [ \"a\", 2; \"b\", 1 ]; wordCount \"\" = Map.empty")
+          ("Write `runLength : string -> (char * int) list` in F#, the run-length encoding of a string.",
+           "runLength \"aaabcc\" = [ ('a', 3); ('b', 1); ('c', 2) ]; runLength \"\" = []")
+          ("Write `romanToInt : string -> int` in F#, for Roman numerals up to 3999.",
+           "romanToInt \"III\" = 3; romanToInt \"XIV\" = 14; romanToInt \"MCMXC\" = 1990")
+          ("Write `balanced : string -> bool` in F#: whether the brackets (), [] and {} in a string are balanced.",
+           "balanced \"([]{})\" = true; balanced \"([)]\" = false; balanced \"((\" = false")
+          ("Write `flatten : int list list -> int list` in F#, without List.concat or List.collect.",
+           "flatten [ [ 1; 2 ]; []; [ 3 ] ] = [ 1; 2; 3 ]; flatten [] = []")
+          ("Refactor this function in F# to use pattern matching instead of if/elif, keeping its name and results: `let sign x = if x > 0 then 1 elif x < 0 then -1 else 0`",
+           "sign 5 = 1; sign -3 = -1; sign 0 = 0; the body uses match")
+          ("Refactor this function in F# to be tail-recursive, keeping its name and results: `let rec sumTo (n: int64) = if n <= 0L then 0L else n + sumTo (n - 1L)`",
+           "sumTo 0L = 0L; sumTo 10L = 55L; sumTo 1000000L = 500000500000L, with no stack overflow") ]
+
+    /// The first concrete task whose goal is not among `completedGoals`. When every one is done,
+    /// they come round again.
+    let nextConcreteTask (completedGoals: string list) =
+        let finished =
+            completedGoals |> List.map (fun g -> g.Trim().ToLowerInvariant()) |> Set.ofList
+
+        concreteTasks
+        |> List.tryFind (fun (goal, _) -> not (finished.Contains(goal.ToLowerInvariant())))
+        |> Option.defaultWith (fun () -> concreteTasks.[completedGoals.Length % concreteTasks.Length])
+
     /// One fenced block as dotnet fsi accepts it. A .fs file may start with a namespace line
     /// or a top-level `module X`, and fsi rejects both: the namespace line is dropped, and the
     /// module becomes `module X =` with the rest of the block indented under it. A multi-line
@@ -612,13 +675,14 @@ Generation: %d{state.Generation}. Completed tasks: %d{state.CompletedTasks.Lengt
        guidance}
 
 Requirements:
-- Each task must be a specific coding problem (NOT a question) and solvable with code (NOT a discussion).
-- Each task goal MUST explicitly state "in F#".
+- Each task must be a specific coding problem (NOT a question), solvable with code (NOT a discussion), and doable from its own text, without reading any file.
+- Each task goal MUST explicitly state "in F#" and name the function with its signature, e.g. "Write `isPalindrome : string -> bool` in F#".
+- validation_criteria MUST give 2 or 3 examples of input and expected output, e.g. "isPalindrome \"racecar\" = true; isPalindrome \"abc\" = false".
 - Do NOT repeat or closely rephrase any previous tasks: %s{completedList}
-- DO NOT suggest the same task if it recently failed. PIVOT to a different area of the codebase.
-- Vary domains and artifacts (algorithms, refactors, tests, tooling, docs, integrations).
-- SELF-EVOLUTION: If there was a recent failure, generate at least one task to FIX or REFACTOR the failing code.
-- TOOL GENERATION: If you identify a gap in capabilities (e.g. no way to analyze DLLs), generate a task to "Create a tool for [functional gap]" following the TARS dynamic tool pattern.
+- DO NOT suggest the same task if it recently failed. PIVOT to a different problem.
+- Vary domains and artifacts (algorithms, data structures, parsing, text processing, refactors, tooling).
+- SELF-EVOLUTION: If there was a recent failure, you may generate a task to FIX or REFACTOR code. Its goal MUST include the complete code to change, between backticks.
+- TOOL GENERATION: If you identify a gap in capabilities (e.g. no way to analyze DLLs), you may generate a task to "Create a tool named '<name>'" following the TARS dynamic tool pattern. Its goal MUST give the tool's name, its input and its output, and validation_criteria MUST give 2 examples.
 - HINT: API keys and authentication are handled by the system. Assume secrets are available in environment variables. Do NOT refuse tasks due to missing keys.
 - Include measurable validation_criteria.
 
@@ -701,23 +765,17 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         ctx.Logger("[Curriculum] Invalid response intent for task generation. Using fallback.")
                         ""
 
+                // A concrete exercise not done yet, for when the curriculum gives no usable task.
                 let fallbackPracticalTask () =
-                    let practicalTasks =
-                        [| "Scan the src/Tars.Tools directory and identify 2 tools that lack proper error handling in their JSON parsing logic."
-                           "Create a new dynamic tool named 'check_todo' that searches the project for 'TODO' comments and returns a formatted list."
-                           "Analyze the current Evolution Engine loop in src/Tars.Evolution/Engine.fs and suggest a way to implement better task pivoting after 3 failures."
-                           "Read src/Tars.Core/Domain.fs and write a summary of the 'AgentIntent' discriminated union."
-                           "List all files in src/Tars.Evolution and summarize the responsibility of each file." |]
-
-                    let random = Random()
-                    let selectedTask = practicalTasks[random.Next(practicalTasks.Length)]
+                    let goal, criteria =
+                        nextConcreteTask (state.CompletedTasks |> List.map (fun t -> t.TaskGoal))
 
                     [ { Id = Guid.NewGuid()
                         DifficultyLevel = state.Generation + 1
-                        Goal = selectedTask
-                        Constraints = [ "Work with the TARS v2 codebase" ]
-                        ValidationCriteria = "Provide concrete, actionable output"
-                        Timeout = TimeSpan.FromMinutes(5.0)
+                        Goal = goal
+                        Constraints = []
+                        ValidationCriteria = criteria
+                        Timeout = TimeSpan.FromMinutes(1.0)
                         Score = 1.0 } ]
 
                 // If the agent loop produced no task JSON (nothing, or prose such as
@@ -811,6 +869,14 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 |> List.filter (fun t ->
                                     let key = t.Goal.Trim().ToLowerInvariant()
                                     not (existingGoals.Contains(key)))
+                                // Drop tasks that cannot be done from their own text
+                                |> List.filter (fun t ->
+                                    let specified = taskIsSpecified t
+
+                                    if not specified then
+                                        ctx.Logger $"[Curriculum] Dropped a task that is not specified: {t.Goal}"
+
+                                    specified)
 
                             // 5. Semantic Scoring (Fan-out Limiting)
                             // Pre-calculate embeddings for recent tasks (last 10)
@@ -863,18 +929,10 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                             if budgetPrioritized.IsEmpty then
                                 ctx.Logger(
-                                    "[Curriculum] All generated tasks were rejected by semantic limiter. Using fallback."
+                                    "[Curriculum] No generated task was both new and specified. Using a concrete exercise."
                                 )
 
-                                return
-                                    [ { Id = Guid.NewGuid()
-                                        DifficultyLevel = state.Generation + 1
-                                        Goal =
-                                          "Failed to generate novel tasks. Refactor the existing code for better readability."
-                                        Constraints = []
-                                        ValidationCriteria = "Code is cleaner"
-                                        Timeout = TimeSpan.FromMinutes(1.0)
-                                        Score = 0.5 } ]
+                                return fallbackPracticalTask ()
                             else
                                 return budgetPrioritized
 

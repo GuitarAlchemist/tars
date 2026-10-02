@@ -636,3 +636,88 @@ module AdaptiveReflectionTests =
 
             Assert.DoesNotContain(requests, fun r -> r.Contains "Your code was run")
         }
+
+    [<Fact>]
+    let ``Vague generated tasks give way to a concrete one`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Tasks the curriculum generated in live evolve runs; every one of them failed.
+            let vague =
+                """{"tasks":[{"goal":"Refactor an existing F# codebase to use pattern matching instead of if-else statements.","constraints":[],"validation_criteria":"Code is cleaner"},{"goal":"Create a tool to analyze the performance of F# code snippets","constraints":[],"validation_criteria":"It works"}]}"""
+
+            let agent = createTestAgent ()
+            let mutable curriculumPrompt = ""
+
+            let llm =
+                { new ILlmService with
+                    member _.CompleteAsync req =
+                        task {
+                            let text = req.Messages |> List.map (fun m -> m.Content) |> String.concat "\n"
+                            let isCurriculum = text.Contains "generating F# CODING TASKS"
+
+                            if isCurriculum then
+                                curriculumPrompt <- text
+
+                            return
+                                { Text = (if isCurriculum then vague else "```fsharp\nlet x = 1\n```")
+                                  Usage = None
+                                  FinishReason = Some "stop"
+                                  Raw = None }
+                        }
+
+                    member _.CompleteStreamAsync(req, handler) = raise (NotImplementedException())
+                    member _.EmbedAsync text = Task.FromResult [| 0.1f |]
+
+                    member _.RouteAsync _ =
+                        Task.FromResult
+                            { Backend = Ollama "mock"
+                              Endpoint = Uri "http://localhost:11434"
+                              ApiKey = None } }
+
+            let ctx: Engine.EvolutionContext =
+                { Registry = createMockRegistry agent
+                  Llm = llm
+                  VectorStore = Unchecked.defaultof<_>
+                  Logger = fun _ -> ()
+                  Memory =
+                    { SemanticMemory = None
+                      KnowledgeBase = None
+                      KnowledgeGraph = None
+                      MemoryBuffer = None
+                      EpisodeService = None
+                      Ledger = None
+                      EvidenceStore = None }
+                  Governance =
+                    { Epistemic = Some(createMockEpistemic true "Good job")
+                      PreLlm = None
+                      Budget = None
+                      OutputGuard = None
+                      Evaluator = None }
+                  Options =
+                    { RunId = None
+                      Verbose = false
+                      ShowSemanticMessage = fun _ _ -> ()
+                      Focus = None
+                      ToolRegistry = None
+                      ResearchEnhanced = false
+                      RunCode = false
+                      SelfImprovement = false } }
+
+            let state =
+                { Generation = 0
+                  CompletedTasks = []
+                  TaskQueue = []
+                  CurrentTask = None
+                  ActiveBeliefs = []
+                  CurriculumAgentId = agent.Id
+                  ExecutorAgentId = agent.Id }
+
+            let! newState = Engine.step ctx state
+
+            Assert.Contains("MUST include the complete code to change", curriculumPrompt)
+            Assert.Contains("2 or 3 examples", curriculumPrompt)
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.Equal(fst Engine.concreteTasks.Head, completed.TaskGoal)
+            | [] -> Assert.Fail("No task was run")
+        }
