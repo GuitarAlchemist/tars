@@ -362,6 +362,11 @@ module Engine =
 
     /// Runs an F# script with dotnet fsi, in a temporary directory, with no input, for at most
     /// `timeout`. Ok when it exits with 0; otherwise Error with what went wrong.
+    /// System is opened first: the model writes Char or String.IsNullOrEmpty without opening it.
+    /// A leading namespace or top-level module cannot follow that open, but fsi rejects both
+    /// anyway, and scriptOfAnswer has already dropped the first and turned the second into
+    /// `module X =`, which can. The #line directive keeps error positions on the lines of the
+    /// script itself.
     let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
         task {
             let dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "tars-evolve-run", Guid.NewGuid().ToString("N"))
@@ -369,7 +374,7 @@ module Engine =
             let path = System.IO.Path.Combine(dir, "answer.fsx")
 
             try
-                System.IO.File.WriteAllText(path, script)
+                System.IO.File.WriteAllText(path, "open System\n#line 1 \"answer.fsx\"\n" + script)
                 let psi = System.Diagnostics.ProcessStartInfo("dotnet", $"fsi \"{path}\"")
                 psi.WorkingDirectory <- dir
                 psi.RedirectStandardInput <- true
