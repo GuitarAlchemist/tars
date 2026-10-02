@@ -420,6 +420,11 @@ Output a single sentence suggestion."""
                                 let name =
                                     match node with
                                     | TarsEntity.CodeModuleE m -> m.Namespace
+                                    // Evolve stores each finished task as a "Task: <goal>" concept. It is
+                                    // not code, and matched on common words it brought unrelated old
+                                    // tasks into the prompt. Past tasks reach the executor, with their
+                                    // outcome, through the lessons learned instead.
+                                    | TarsEntity.ConceptE c when c.Name.StartsWith("Task: ") -> ""
                                     | TarsEntity.ConceptE c -> c.Name
                                     | TarsEntity.FunctionE n -> n
                                     | TarsEntity.FileE p -> p
