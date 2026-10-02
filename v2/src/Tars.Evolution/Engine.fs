@@ -224,6 +224,24 @@ module Engine =
                 | None -> false
             | Result.Error _ -> false)
 
+    /// Whether an executor answer shows code: a fenced block other than a tool call. The
+    /// semantic evaluation reads only the answer, so a solution that is described, planned
+    /// or asked about, rather than shown, fails it.
+    let answerHasCode (answer: string) =
+        System.Text.RegularExpressions.Regex.Matches(answer, @"```([^\n`]*)\n[\s\S]*?```")
+        |> Seq.exists (fun m -> m.Groups.[1].Value.Trim() <> "tool")
+
+    /// Whether a task asks for code: a verb that makes something (write, implement, create,
+    /// refactor...) followed by a code artifact or "F#". A task that scans, analyzes or
+    /// summarizes ("Read Domain.fs and write a summary...") wants prose, so an answer without
+    /// code is not sent back for it.
+    let taskAsksForCode (goal: string) =
+        System.Text.RegularExpressions.Regex.IsMatch(
+            goal,
+            @"\b(write|implement|create|build|refactor|fix|add|modify|extend)\b.*\b(functions?|methods?|modules?|types?|class(es)?|tools?|scripts?|code|programs?|parsers?|tests?|F#)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase
+        )
+
     let private formatBelief (belief: Belief) =
         let predicate =
             match belief.Predicate with
@@ -328,6 +346,13 @@ let input = fsi.CommandLineArgs.[1] // Get JSON input
 // ... process input ...
 printfn "Tool Result: %%s" result // Output MUST be printed to stdout
 ```"""
+
+    /// What the executor is told when its answer shows no code.
+    let private codeRequest =
+        """Your answer contains no code. There is no one to answer questions, and a description or a plan is not a solution.
+1. Write the complete code now. Save it with write_code if you can.
+2. Reply with the complete code in a fenced block (```fsharp ... ```), and the file path if you saved it.
+If the task truly asks for no code, give your final result instead."""
 
     let private evaluateContradiction (ctx: EvolutionContext) (goal: string) (beliefs: Belief list) =
         task {
@@ -913,10 +938,51 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             }
 
                         // 5. Run Initial Execution
-                        let! outcomeResult =
+                        let! firstOutcome =
                             runWithTimeout
                                 "Execution"
                                 (graphExecutor.RunAgentLoop(agentWithMsg, 20, cancellationToken = cts.Token))
+
+                        // 5.1 An answer that shows no code goes back to the executor, once. In evolve
+                        // it described the function, planned it or asked for the project structure
+                        // instead of writing it, and the evaluation rejected that. In a live run a
+                        // second request never brought code that the first had not.
+                        let! outcomeResult =
+                            match firstOutcome with
+                            | Choice1Of2(Success(agentAfter, answer, trace))
+                            | Choice1Of2(PartialSuccess((agentAfter, answer, trace), _)) when
+                                taskAsksForCode taskDef.Goal && not (answerHasCode answer)
+                                ->
+                                task {
+                                    ctx.Logger "[Executor] Answer shows no code; asking for it."
+
+                                    let request =
+                                        { msg with
+                                            Id = Guid.NewGuid()
+                                            Content = codeRequest
+                                            Timestamp = DateTime.UtcNow }
+
+                                    let! next =
+                                        runWithTimeout
+                                            "Code request"
+                                            (graphExecutor.RunAgentLoop(
+                                                agentAfter.ReceiveMessage(request),
+                                                20,
+                                                cancellationToken = cts.Token
+                                            ))
+
+                                    let asked = trace @ [ "--- NO CODE, ASKED AGAIN ---" ]
+
+                                    match next with
+                                    | Choice1Of2(Success(a, o, t)) -> return Choice1Of2(Success(a, o, asked @ t))
+                                    | Choice1Of2(PartialSuccess((a, o, t), w)) ->
+                                        return Choice1Of2(PartialSuccess((a, o, asked @ t), w))
+                                    | _ ->
+                                        // The request failed or timed out: keep the answer the executor gave.
+                                        ctx.Logger "[Executor] Asking for code failed; keeping the first answer."
+                                        return firstOutcome
+                                }
+                            | _ -> Task.FromResult firstOutcome
 
                         match outcomeResult with
                         | Choice2Of2 reason ->
