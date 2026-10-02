@@ -301,3 +301,36 @@ let ``the next concrete task is the first one not done yet`` () =
     Assert.Equal(second, fst (Engine.nextConcreteTask [ first.ToUpperInvariant() ]))
     // When every one is done, it still gives one.
     Assert.Contains(fst (Engine.nextConcreteTask all), all)
+
+[<Fact>]
+let ``the task prompt asks for the code in the answer, not for exploring the project`` () =
+    // In live runs the executor asked for the project structure, tried to read Engine.fs or
+    // Program.fs, or saved its code and answered "saved to src/Program.fs", for tasks that
+    // gave everything it needed. The evaluation reads only the answer.
+    let prompt =
+        Engine.buildTaskPrompt (taskWith "Write `isPrime : int -> bool` in F#." []) "Related Code Structure: none" "" ""
+
+    Assert.Contains("write the code directly", prompt)
+    Assert.Contains("complete code in a fenced block", prompt)
+    Assert.Contains("The evaluation reads only your answer", prompt)
+
+    for pushToExplore in
+        [ "read_file"
+          "list_files"
+          "FULL FILE SYSTEM ACCESS"
+          "is NOT enough"
+          "execute_workflow"
+          "[DYNAMIC TOOL EXAMPLE]" ] do
+        Assert.DoesNotContain(pushToExplore, prompt)
+
+[<Fact>]
+let ``the task prompt shows the dynamic tool pattern only for a tool task`` () =
+    let prompt =
+        Engine.buildTaskPrompt
+            (taskWith "Create a dynamic tool named 'count_words' in F# that prints the number of words in its input." [])
+            ""
+            ""
+            ""
+
+    Assert.Contains("[DYNAMIC TOOL EXAMPLE]", prompt)
+    Assert.Contains("fsi.CommandLineArgs", prompt)

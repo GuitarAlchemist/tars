@@ -486,7 +486,32 @@ module Engine =
     /// own prompt lists the tools it can call. Listing the whole registry here as well made
     /// the evolve task prompt 22 KB, past the context window, so it was summarized and the
     /// executor never saw its goal.
+    /// The instructions ask for the code in the answer, because the evaluation reads only the
+    /// answer. Rules that sent the executor to read and list project files made it explore the
+    /// repository, or ask for its structure, on tasks that gave everything it needed.
     let buildTaskPrompt (taskDef: TaskDefinition) (codeContext: string) (memoryContext: string) (ledgerContext: string) =
+        let toolGuide =
+            if
+                System.Text.RegularExpressions.Regex.IsMatch(
+                    taskDef.Goal,
+                    @"\btools?\b",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                )
+            then
+                """
+8. Only use 'create_dynamic_tool' for a new functional capability. Do not create tools for speech acts like 'inform' or 'tell'.
+
+[DYNAMIC TOOL EXAMPLE]
+If you use 'create_dynamic_tool', your F# script must look like this:
+```fsharp
+open System.IO
+let input = fsi.CommandLineArgs.[1] // Get JSON input
+// ... process input ...
+printfn "Tool Result: %s" result // Output MUST be printed to stdout
+```"""
+            else
+                ""
+
         $"""[TASK]
 Goal: {taskDef.Goal}
 Constraints: {taskDef.Constraints}
@@ -498,28 +523,13 @@ Validation Criteria: {taskDef.ValidationCriteria}
 {ledgerContext}
 
 CRITICAL INSTRUCTIONS:
-1. You are an AUTONOMOUS AGENT in a self-evolving loop, NOT a chat assistant.
-2. DO NOT ASK QUESTIONS. There is no human to answer you. You must resolve all unknowns using tools.
-3. If you need to see the contents of a file, USE THE 'read_file' TOOL. DO NOT ASK THE USER FOR IT.
-4. DO NOT REFUSE TASKS. You are the sole executor. If a task seems impossible, break it down or ask for a simplified version via 'Error'.
-5. Use your tools to gather information, read files, or analyze code.
-6. If you hit a wall, explain the failure and use 'Finish' with your best partial result.
-7. DO NOT hallucinate file paths. Always use tools like 'list_files' or 'find_files' to verify paths before reading.
-8. YOU HAVE FULL FILE SYSTEM ACCESS. Do not ask for permissions or file contents. Just take them using tools.
-9. Provide your final solution as a 'Tell' or 'Inform' performative. IF THE TASK CREATED CODE, YOU MUST INDICATE THE FILE PATH.
-10. If your previous attempt failed (see logs), analyze the error and try a different approach.
-11. MANDATORY: If the task requires creating code or documentation, you MUST use 'write_to_file' or 'write_code' to save it to disk. Providing the content in the chat response is NOT enough and will be considered a FAILURE.
-12. FOR COMPLEX REASONING: Create a Workflow of Thought (.trsx) DSL script and run it using 'execute_workflow'.
-13. SPEECH ACTS vs TOOLS: Do NOT create dynamic tools for things like 'inform', 'response', 'ask', or 'tell'. Use the 'ACT: Tell' or 'ACT: Inform' performatives in your chat response for these. Only use 'create_dynamic_tool' for NEW functional capabilities (e.g. data processing, specific API integrations).
-
-[DYNAMIC TOOL EXAMPLE]
-If you use 'create_dynamic_tool', your F# script must look like this:
-```fsharp
-open System.IO
-let input = fsi.CommandLineArgs.[1] // Get JSON input
-// ... process input ...
-printfn "Tool Result: %%s" result // Output MUST be printed to stdout
-```"""
+1. You are an AUTONOMOUS AGENT in a self-evolving loop. There is no human to answer questions: DO NOT ASK QUESTIONS and DO NOT REFUSE TASKS.
+2. When the task gives everything you need (a signature, examples, the code to change), write the code directly. Do not explore the project first.
+3. Use tools only for what the task needs from the project.
+4. When the task asks for code, your final answer MUST contain the complete code in a fenced block (```fsharp ... ```). The evaluation reads only your answer, not your files. You may also save the code with 'write_code'.
+5. Check your code against the validation criteria before you answer.
+6. If your previous attempt failed (see logs), analyze the error and try a different approach.
+7. If you hit a wall, explain the failure and give your best partial result.{toolGuide}"""
 
     /// What the executor is told when its answer shows no code.
     let private codeRequest =

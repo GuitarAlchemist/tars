@@ -219,7 +219,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 "Executor"
                 "0.1.0"
                 model
-                "You are a coding assistant that solves programming tasks step by step. Use the provided tools to explore, modify, and save code. Use write_code to save your solutions."
+                "You are a coding assistant that solves programming tasks. When a task gives everything you need, write the code directly; use tools only for what it needs from the project. Your final answer contains the complete code in a ```fsharp block; you may also save it with write_code."
                 semanticTools
                 executorCapabilities
 
