@@ -513,16 +513,21 @@ module Engine =
         List.ofSeq found
 
     /// The examples in a task's validation criteria: the parts, split on a `;` or a new line
-    /// outside brackets, strings and chars, that call a function the goal names in backticks:
-    /// `isEven : int -> bool`, or, in a refactor, the code it gives (`let sign x = ...`). The
+    /// outside brackets, strings and chars, that call a function the goal names: with its
+    /// signature (`isEven : int -> bool`), in the code a refactor gives (`let sign x = ...`), or
+    /// quoted after "named" (a function named `countVowels`, a tool named 'StringAnalyzer'). The
     /// curriculum writes them as `isEven 4 = true; isEven 5 = false`.
     let examplesOf (goal: string) (criteria: string) : string list =
         let names =
             System.Text.RegularExpressions.Regex.Matches(
                 goal,
-                @"`\s*([A-Za-z_]\w*)\s*`?\s*:|`let\s+(?:rec\s+)?([A-Za-z_]\w*)"
+                @"`\s*([A-Za-z_]\w*)\s*`?\s*:|`let\s+(?:rec\s+)?([A-Za-z_]\w*)|\bnamed\s+['""`]([A-Za-z_]\w*)['""`]"
             )
-            |> Seq.map (fun m -> if m.Groups.[1].Success then m.Groups.[1].Value else m.Groups.[2].Value)
+            |> Seq.map (fun m ->
+                [ 1; 2; 3 ]
+                |> List.map (fun i -> m.Groups.[i])
+                |> List.find (fun g -> g.Success)
+                |> fun g -> g.Value)
             |> Seq.distinct
             |> List.ofSeq
 

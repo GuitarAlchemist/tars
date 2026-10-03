@@ -310,6 +310,24 @@ let ``the examples are the calls in the validation criteria`` () =
             "encode \"ab\" = \"ba\"; decode \"ba\" = \"ab\""
     )
 
+    // Live goals that name the function or the tool, with no signature.
+    Assert.Equal<string>(
+        [ "countVowels \"hello\" = 2"; "countVowels \"sky\" = 1" ],
+        Engine.examplesOf
+            "Create a function named `countVowels` that takes a string as input and returns the number of vowels it contains."
+            "countVowels \"hello\" = 2; countVowels \"sky\" = 1"
+    )
+
+    Assert.Equal<string>(
+        [ "StringLengthChecker \"hello\" = 5"; "StringLengthChecker \"\" = 0" ],
+        Engine.examplesOf "Create a tool named 'StringLengthChecker'" "StringLengthChecker \"hello\" = 5; StringLengthChecker \"\" = 0"
+    )
+
+    Assert.Equal<string>(
+        [ "wordLength \"abc\" = 3" ],
+        Engine.examplesOf "Create a tool named \"wordLength\" in F#." "wordLength \"abc\" = 3"
+    )
+
 [<Fact>]
 let ``the examples run after the code and decide`` () =
     task {
