@@ -781,6 +781,29 @@ module AdaptiveReflectionTests =
         }
 
     [<Fact>]
+    let ``A new answer the examples cannot check is not kept when its code fails to run`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let seen = ResizeArray()
+
+            let! newState, _ =
+                stepWith
+                    "Write `fact : int -> int` in F#"
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ "```fsharp\nlet fact n = n\n```"
+                      "```fsharp\nlet fact n = n\n```"
+                      "```fsharp\nlet rec factorial n = if n <= 1 then 1 else n * factorial (n - 1)\nfailwith \"boom\"\n```" ]
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.False(completed.Success)
+                Assert.Contains("fact 5 = 120, got 5", completed.Output)
+                Assert.Empty(seen)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
     let ``A new answer's code runs within the task's time`` () =
         task {
             if not (TestHelpers.requireTools()) then () else

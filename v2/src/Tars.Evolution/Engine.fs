@@ -1418,8 +1418,8 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                             task {
                                 try
                                     // The limit includes fsi's startup and compile (about 1 s here), and
-                                    // the code runs no later than the task's deadline.
-                                    let limit =
+                                    // each run ends no later than the task's deadline.
+                                    let limit () =
                                         match remaining () with
                                         | Some r when r < TimeSpan.FromSeconds 60.0 -> max r TimeSpan.Zero
                                         | _ -> TimeSpan.FromSeconds 60.0
@@ -1429,7 +1429,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                             Task.FromResult None
                                         else
                                             task {
-                                                let! run = runWithExamples limit script examples
+                                                let! run = runWithExamples (limit ()) script examples
                                                 return Some run
                                             }
 
@@ -1440,7 +1440,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                             ctx.Logger
                                                 "[Executor] The examples do not compile against the code; the evaluation decides."
 
-                                        let! alone = runScript limit script
+                                        let! alone = runScript (limit ()) script
 
                                         match alone with
                                         | Result.Ok() -> return None, None
@@ -1532,10 +1532,10 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         // examples; that answer is kept. It samples at temperature 0.7, so each answer is new.
                         // In live runs most of the tasks that still failed got a question or a refusal instead
                         // of code, which a fix in the same conversation does not change. When none passes, the
-                        // first new answer the examples could not check (they do not compile against its code,
-                        // or its run threw) is kept for the evaluator: it may be right, and the answer above is
-                        // not. Without one, the answer above stays. When the examples could not check the answer
-                        // above itself, they say nothing about it: the evaluator decides, as before.
+                        // first new answer the examples could not check (they do not compile against its code),
+                        // and whose code ran alone, is kept for the evaluator: it may be right, and the answer
+                        // above is not. Without one, the answer above stays. When the examples could not check
+                        // the answer above itself, they say nothing about it: the evaluator decides, as before.
                         let maxSamples = 3
 
                         // `unchecked`: the first new answer the examples could not check, with no verdict.
@@ -1558,11 +1558,14 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                         task {
                                             match scriptOfAnswer answer with
                                             | Some script ->
-                                                let! _, verdict = runAnswer script
+                                                let! errors, verdict = runAnswer script
                                                 logVerdict verdict
 
                                                 match verdict with
                                                 | Some v when v.Passed -> return Some(outcome, verdict)
+                                                | None when errors.IsSome ->
+                                                    ctx.Logger "[Executor] The code failed to run."
+                                                    return! sample (n + 1) unchecked
                                                 | None when Option.isNone unchecked ->
                                                     return! sample (n + 1) (Some(outcome, None))
                                                 | _ -> return! sample (n + 1) unchecked
