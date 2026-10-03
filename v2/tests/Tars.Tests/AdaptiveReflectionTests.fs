@@ -673,6 +673,52 @@ module AdaptiveReflectionTests =
         }
 
     [<Fact>]
+    let ``When the examples still do not pass, the first new answer that passes them is kept`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // In live runs the executor asked a question or refused instead of writing code, and a
+            // fix in the same conversation does not change that; a new answer to the task can.
+            let goal = "Write `fact : int -> int` in F#"
+            let wrong = "```fsharp\nlet fact n = n\n```"
+            let question = "What should fact return for negative numbers?"
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+            let afterWrong = ResizeArray()
+            let afterQuestion = ResizeArray()
+
+            // The answer, its fix, then a new answer.
+            let! fixedWrong, _ = stepWith goal (Some(fixedEvaluator true afterWrong)) true [ wrong; wrong; right ]
+            // The answer, the request for code, then a new answer.
+            let! answeredQuestion, _ =
+                stepWith goal (Some(fixedEvaluator true afterQuestion)) true [ question; question; right ]
+
+            match fixedWrong.CompletedTasks, answeredQuestion.CompletedTasks with
+            | w :: _, q :: _ ->
+                Assert.True(w.Success, w.Output)
+                Assert.True(q.Success, q.Output)
+
+                for seen in [ afterWrong; afterQuestion ] do
+                    Assert.True(seen |> Seq.exactlyOne |> Option.exists (fun e -> e.Passed))
+            | _ -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``The executor answers again at most 3 times`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let! newState, requests =
+                stepWith "Write `fact : int -> int` in F#" None true [ "```fsharp\nlet fact n = n\n```" ]
+
+            // The answer, its fix, and 3 new answers.
+            Assert.Equal(5, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.False(completed.Success)
+                Assert.Contains("fact 5 = 120, got 5", completed.Output)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
     let ``The code runs once, with its examples`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
