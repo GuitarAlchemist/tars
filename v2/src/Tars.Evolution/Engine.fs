@@ -310,7 +310,8 @@ module Engine =
 
     /// One fenced block as dotnet fsi accepts it. A .fs file may start with a namespace line
     /// or a top-level `module X`, and fsi rejects both: the namespace line is dropped, and the
-    /// module becomes `module X =` with the rest of the block indented under it. A multi-line
+    /// module becomes `module X =` with the rest of the block indented under it, then opened, so
+    /// the next blocks and the examples see its functions as the answer wrote them. A multi-line
     /// string under that module is indented too, which changes its text but not whether the
     /// code compiles, throws or finishes, the only things checked.
     let private asScript (block: string) =
@@ -326,7 +327,8 @@ module Engine =
         | Some i ->
             let name = lines.[i].Trim().Split(' ') |> Array.last |> fun n -> n.Split('.') |> Array.last
             let body = lines.[i + 1 ..] |> Array.map (fun l -> if l.Trim() = "" then l else "    " + l)
-            Array.concat [ lines.[.. i - 1]; [| $"module {name} =" |]; body ] |> String.concat "\n"
+            Array.concat [ lines.[.. i - 1]; [| $"module {name} =" |]; body; [| $"open {name}" |] ]
+            |> String.concat "\n"
         | None -> String.concat "\n" lines
 
     /// The F# script to run for an executor answer: its ```fsharp blocks, joined. A block that
@@ -398,7 +400,7 @@ module Engine =
                     if proc.ExitCode = 0 then
                         return Result.Ok()
                     else
-                        let errors = errors.Replace(path, "answer.fsx").Trim()
+                        let errors = errors.Replace(dir + string System.IO.Path.DirectorySeparatorChar, "").Trim()
 
                         return
                             Result.Error(
@@ -419,6 +421,125 @@ module Engine =
                     System.IO.Directory.Delete(dir, true)
                 with _ ->
                     ()
+        }
+
+    /// Indices of the characters of `text` outside brackets, strings and chars.
+    let private topLevel (text: string) : int list =
+        let found = ResizeArray<int>()
+        let mutable depth = 0
+        let mutable i = 0
+
+        while i < text.Length do
+            match text.[i] with
+            | '"' ->
+                i <- i + 1
+
+                while i < text.Length && text.[i] <> '"' do
+                    if text.[i] = '\\' then
+                        i <- i + 1
+
+                    i <- i + 1
+            | '\'' when i + 2 < text.Length && text.[i + 2] = '\'' -> i <- i + 2
+            | '(' | '[' | '{' -> depth <- depth + 1
+            | ')' | ']' | '}' -> depth <- max 0 (depth - 1)
+            | _ ->
+                if depth = 0 then
+                    found.Add i
+
+            i <- i + 1
+
+        List.ofSeq found
+
+    /// The examples in a task's validation criteria: the parts, split on a `;` or a new line
+    /// outside brackets, strings and chars, that call the function the goal names in backticks
+    /// (`isEven : int -> bool`). The curriculum writes them as `isEven 4 = true; isEven 5 = false`.
+    let examplesOf (goal: string) (criteria: string) : string list =
+        let name =
+            System.Text.RegularExpressions.Regex.Match(goal, @"`\s*([A-Za-z_]\w*)\s*`?\s*:")
+
+        if not name.Success then
+            []
+        else
+            let cuts =
+                topLevel criteria
+                |> List.filter (fun i -> criteria.[i] = ';' || criteria.[i] = '\n')
+
+            (-1 :: cuts) @ [ criteria.Length ]
+            |> List.pairwise
+            |> List.map (fun (a, b) -> criteria.Substring(a + 1, b - a - 1).Trim().Trim('`').Trim())
+            |> List.filter (fun part ->
+                System.Text.RegularExpressions.Regex.IsMatch(
+                    part,
+                    "^" + System.Text.RegularExpressions.Regex.Escape name.Groups.[1].Value + @"(\s|\(|$)"
+                ))
+
+    /// The F# line that checks one example. For `call = expected` it reports the value it got.
+    let private exampleCheck (example: string) =
+        let quoted =
+            "\"" + example.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\""
+
+        let equals =
+            topLevel example
+            |> List.tryFind (fun i ->
+                example.[i] = '='
+                && (i = 0 || not ("<>=!:".Contains example.[i - 1]))
+                && (i + 1 >= example.Length || not ("=>".Contains example.[i + 1])))
+
+        match equals with
+        | Some at ->
+            let call = example.Substring(0, at).Trim()
+            let expected = example.Substring(at + 1).Trim()
+            // A match, not a let: a let of `reverse []` would not compile (value restriction).
+            $"match ({call}) with actual when actual <> ({expected}) -> failwithf \"Example failed: %%s, got %%A\" {quoted} actual | _ -> ()"
+        | None -> $"if not ({example}) then failwithf \"Example failed: %%s\" {quoted}"
+
+    /// Runs `script` and then checks `examples`. Some verdict when they ran: passed when each gave
+    /// the expected value; failed when one did not, or the code did not compile or run. None when
+    /// there are no examples, or they do not compile against the code (a name or a signature it
+    /// does not have): they then say nothing about it.
+    let checkExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<EvaluationResult option> =
+        task {
+            if examples.IsEmpty then
+                return None
+            else
+                let checks = examples |> List.map exampleCheck |> String.concat "\n"
+                let! run = runScript timeout (script + "\n#line 1 \"examples.fsx\"\n" + checks)
+
+                let verdict passed (summary: string) : EvaluationResult option =
+                    Some
+                        { Passed = passed
+                          Confidence = 1.0
+                          Summary = summary
+                          Issues = (if passed then [] else [ summary ])
+                          SuggestedFixes = []
+                          EvaluatedAt = DateTime.UtcNow }
+
+                match run with
+                | Result.Ok() ->
+                    return verdict true $"The code ran and gave the expected value for all {examples.Length} examples."
+                | Result.Error errors ->
+                    let compileErrorIn (file: string) =
+                        System.Text.RegularExpressions.Regex.IsMatch(
+                            errors,
+                            System.Text.RegularExpressions.Regex.Escape file + @"\(\d+,\d+\): error"
+                        )
+
+                    let firstLine =
+                        errors.Split('\n')
+                        |> Array.map (fun l -> l.Trim())
+                        |> Array.tryFind (fun l -> l <> "")
+                        |> Option.defaultValue errors
+
+                    let failed = System.Text.RegularExpressions.Regex.Match(errors, @"Example failed: [^\r\n]*")
+
+                    if compileErrorIn "answer.fsx" then
+                        return verdict false $"The code does not compile: {firstLine}"
+                    elif compileErrorIn "examples.fsx" then
+                        return None
+                    elif failed.Success then
+                        return verdict false failed.Value
+                    else
+                        return verdict false $"The code failed on the examples: {firstLine}"
         }
 
     let private formatBelief (belief: Belief) =
@@ -1240,6 +1361,37 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                     }
                             | _ -> Task.FromResult outcomeResult
 
+                        // 5.3 With --run-code, the examples in the validation criteria run after the code
+                        // of the final answer, and their result is the evaluation. In live runs the
+                        // evaluator rejected code that ran and gave the right values, and the verifier
+                        // answered VERIFIED to every answer, right or wrong.
+                        let! examplesVerdict =
+                            match outcomeResult with
+                            | Choice1Of2(Success(_, answer, _))
+                            | Choice1Of2(PartialSuccess((_, answer, _), _)) when
+                                ctx.Options.RunCode && taskAsksForCode taskDef.Goal
+                                ->
+                                match scriptOfAnswer answer, examplesOf taskDef.Goal taskDef.ValidationCriteria with
+                                | Some script, (_ :: _ as examples) ->
+                                    task {
+                                        try
+                                            let! verdict = checkExamples (TimeSpan.FromSeconds 60.0) script examples
+
+                                            match verdict with
+                                            | Some v when v.Passed -> ctx.Logger "[Executor] The examples passed."
+                                            | Some v -> ctx.Logger $"[Executor] The examples failed: {v.Summary}"
+                                            | None ->
+                                                ctx.Logger
+                                                    "[Executor] The examples do not compile against the code; the evaluation decides."
+
+                                            return verdict
+                                        with ex ->
+                                            ctx.Logger $"[Executor] Could not run the examples: {ex.Message}"
+                                            return None
+                                    }
+                                | _ -> Task.FromResult None
+                            | _ -> Task.FromResult None
+
                         match outcomeResult with
                         | Choice2Of2 reason ->
                             return
@@ -1362,7 +1514,9 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                                     let mutable currentTrace = trace
                                     let mutable reflectionCount = 0
-                                    let mutable isOptimal = false
+                                    // Once the examples decided (5.3), reflecting could only change the
+                                    // answer they checked.
+                                    let mutable isOptimal = examplesVerdict.IsSome
                                     let mutable currentAgent = agentAfterExec
                                     let mutable timeoutOccurred = false
                                     let maxReflections = 3
@@ -1539,7 +1693,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                                 currentOutput
                                           ExecutionTrace = currentTrace
                                           Duration = stopwatch.Elapsed
-                                          Evaluation = None }
+                                          Evaluation = examplesVerdict }
         }
 
     /// Runs a Darwin-lite mutation loop on a failed workflow (Phase 15.4)
@@ -1612,8 +1766,10 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 let! result = executeTask ctx state taskDef
 
                 let! evaluation =
-                    match ctx.Governance.Evaluator with
-                    | Some evaluator ->
+                    match result.Evaluation, ctx.Governance.Evaluator with
+                    // The examples ran with the code (--run-code): their result is the evaluation.
+                    | Some decided, _ -> Task.FromResult(Some decided)
+                    | None, Some evaluator ->
                         task {
                             try
                                 let! evaluated = evaluator.Evaluate(taskDef, result)
@@ -1622,7 +1778,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 ctx.Logger($"[Evaluation] Failed: {ex.Message}")
                                 return None
                         }
-                    | None -> Task.FromResult None
+                    | None, None -> Task.FromResult None
 
                 let resultWithEvaluation = { result with Evaluation = evaluation }
 

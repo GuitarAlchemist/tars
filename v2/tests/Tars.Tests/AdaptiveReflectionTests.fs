@@ -514,10 +514,11 @@ module AdaptiveReflectionTests =
             | [] -> Assert.Fail("Task was not completed")
         }
 
-    /// Runs one evolve step on a coding task whose executor answers with `answers`, in order
-    /// (the last one repeats), with evolve's --run-code set to `runCode`. Returns the new state
-    /// and every request the executor got.
-    let private stepWithAnswers (runCode: bool) (answers: string list) =
+    /// Runs one evolve step on a coding task with `goal` and the criteria "fact 5 = 120", whose
+    /// executor answers with `answers`, in order (the last one repeats), with `evaluator` and
+    /// evolve's --run-code set to `runCode`. Returns the new state and every request the
+    /// executor got.
+    let private stepWith (goal: string) (evaluator: IEvaluationStrategy option) (runCode: bool) (answers: string list) =
         task {
             let agent = createTestAgent ()
             let requests = Collections.Generic.List<string>()
@@ -562,7 +563,7 @@ module AdaptiveReflectionTests =
                       PreLlm = None
                       Budget = None
                       OutputGuard = None
-                      Evaluator = None }
+                      Evaluator = evaluator }
                   Options =
                     { RunId = None
                       Verbose = false
@@ -576,7 +577,7 @@ module AdaptiveReflectionTests =
             let taskDef =
                 { Id = Guid.NewGuid()
                   DifficultyLevel = 1
-                  Goal = "Write a recursive factorial function in F#"
+                  Goal = goal
                   Constraints = []
                   ValidationCriteria = "fact 5 = 120"
                   Timeout = TimeSpan.FromMinutes(2.0)
@@ -593,6 +594,54 @@ module AdaptiveReflectionTests =
 
             let! newState = Engine.step ctx state
             return newState, List.ofSeq requests
+        }
+
+    /// A factorial task that names no function, so its criteria hold no example, and no evaluator.
+    let private stepWithAnswers (runCode: bool) (answers: string list) =
+        stepWith "Write a recursive factorial function in F#" None runCode answers
+
+    /// An evaluator that always gives `passed`, and counts its calls in `calls`.
+    let private fixedEvaluator (passed: bool) (calls: int ref) =
+        { new IEvaluationStrategy with
+            member _.Evaluate(_, _) =
+                task {
+                    calls.Value <- calls.Value + 1
+
+                    return
+                        { Passed = passed
+                          Confidence = 1.0
+                          Summary = "fixed verdict"
+                          Issues = []
+                          SuggestedFixes = []
+                          EvaluatedAt = DateTime.UtcNow }
+                } }
+
+    [<Fact>]
+    let ``The examples decide when they run, not the evaluator`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // In live runs the evaluator rejected code that ran and gave the right values,
+            // calling it "a description". The criteria's examples are F#, so they can run.
+            let goal = "Write `fact : int -> int` in F#"
+            let rejecting = ref 0
+            let accepting = ref 0
+
+            let! right, _ =
+                stepWith
+                    goal
+                    (Some(fixedEvaluator false rejecting))
+                    true
+                    [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
+
+            let! wrong, _ = stepWith goal (Some(fixedEvaluator true accepting)) true [ "```fsharp\nlet fact n = n\n```" ]
+
+            match right.CompletedTasks, wrong.CompletedTasks with
+            | passed :: _, failed :: _ ->
+                Assert.True(passed.Success)
+                Assert.False(failed.Success)
+                Assert.Contains("fact 5 = 120, got 5", failed.Output)
+                Assert.Equal(0, rejecting.Value + accepting.Value)
+            | _ -> Assert.Fail("Task was not completed")
         }
 
     [<Fact>]
