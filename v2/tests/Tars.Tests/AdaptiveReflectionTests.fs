@@ -514,10 +514,11 @@ module AdaptiveReflectionTests =
             | [] -> Assert.Fail("Task was not completed")
         }
 
-    /// Runs one evolve step on a coding task whose executor answers with `answers`, in order
-    /// (the last one repeats), with evolve's --run-code set to `runCode`. Returns the new state
-    /// and every request the executor got.
-    let private stepWithAnswers (runCode: bool) (answers: string list) =
+    /// Runs one evolve step on a coding task with `goal` and the criteria "fact 5 = 120", whose
+    /// executor answers with `answers`, in order (the last one repeats), with `evaluator` and
+    /// evolve's --run-code set to `runCode`. Returns the new state and every request the
+    /// executor got.
+    let private stepWith (goal: string) (evaluator: IEvaluationStrategy option) (runCode: bool) (answers: string list) =
         task {
             let agent = createTestAgent ()
             let requests = Collections.Generic.List<string>()
@@ -562,7 +563,7 @@ module AdaptiveReflectionTests =
                       PreLlm = None
                       Budget = None
                       OutputGuard = None
-                      Evaluator = None }
+                      Evaluator = evaluator }
                   Options =
                     { RunId = None
                       Verbose = false
@@ -576,7 +577,7 @@ module AdaptiveReflectionTests =
             let taskDef =
                 { Id = Guid.NewGuid()
                   DifficultyLevel = 1
-                  Goal = "Write a recursive factorial function in F#"
+                  Goal = goal
                   Constraints = []
                   ValidationCriteria = "fact 5 = 120"
                   Timeout = TimeSpan.FromMinutes(2.0)
@@ -593,6 +594,106 @@ module AdaptiveReflectionTests =
 
             let! newState = Engine.step ctx state
             return newState, List.ofSeq requests
+        }
+
+    /// A factorial task that names no function, so its criteria hold no example, and no evaluator.
+    let private stepWithAnswers (runCode: bool) (answers: string list) =
+        stepWith "Write a recursive factorial function in F#" None runCode answers
+
+    /// An evaluator that always gives `passed`, and records in `seen` the evaluation each task it
+    /// judges already had: the examples' verdict, when they ran.
+    let private fixedEvaluator (passed: bool) (seen: ResizeArray<EvaluationResult option>) =
+        { new IEvaluationStrategy with
+            member _.Evaluate(_, result) =
+                task {
+                    seen.Add result.Evaluation
+
+                    return
+                        { Passed = passed
+                          Confidence = 1.0
+                          Summary = "fixed verdict"
+                          Issues = []
+                          SuggestedFixes = []
+                          EvaluatedAt = DateTime.UtcNow }
+                } }
+
+    [<Fact>]
+    let ``A failing example decides, and passing examples leave the rest to the evaluator`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The criteria's examples are F#, so they can run, and a wrong value fails the task.
+            // They do not check what else the goal asks, like a `flatten` written without
+            // List.concat: when they pass, the evaluator judges that, told they passed.
+            let goal = "Write `fact : int -> int` in F#"
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+            let rejecting = ResizeArray()
+            let accepting = ResizeArray()
+            let afterWrong = ResizeArray()
+
+            let! rejected, _ = stepWith goal (Some(fixedEvaluator false rejecting)) true [ right ]
+            let! accepted, _ = stepWith goal (Some(fixedEvaluator true accepting)) true [ right ]
+            let! wrong, _ = stepWith goal (Some(fixedEvaluator true afterWrong)) true [ "```fsharp\nlet fact n = n\n```" ]
+
+            match rejected.CompletedTasks, accepted.CompletedTasks, wrong.CompletedTasks with
+            | r :: _, a :: _, w :: _ ->
+                Assert.False(r.Success)
+                Assert.True(a.Success)
+                Assert.False(w.Success)
+                Assert.Contains("fact 5 = 120, got 5", w.Output)
+
+                for seen in [ rejecting; accepting ] do
+                    Assert.True(seen |> Seq.exactlyOne |> Option.exists (fun e -> e.Passed))
+
+                Assert.Empty(afterWrong)
+            | _ -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``A failing example goes back to the executor, and its fixed answer is what is checked`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let seen = ResizeArray()
+
+            let! newState, requests =
+                stepWith
+                    "Write `fact : int -> int` in F#"
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ "```fsharp\nlet fact n = n\n```"
+                      "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
+
+            Assert.Contains(requests, fun r -> r.Contains "Example failed: fact 5 = 120, got 5")
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success)
+                // The evaluator then saw the fixed answer's examples pass.
+                Assert.True(seen |> Seq.exactlyOne |> Option.exists (fun e -> e.Passed))
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``The code runs once, with its examples`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Running it a second time to check the examples repeated its side effects.
+            let marks = IO.Path.GetTempFileName()
+
+            try
+                let answer =
+                    "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nSystem.IO.File.AppendAllText(@\""
+                    + marks
+                    + "\", \"x\")\n```"
+
+                let! newState, _ = stepWith "Write `fact : int -> int` in F#" None true [ answer ]
+
+                Assert.Equal("x", IO.File.ReadAllText marks)
+
+                match newState.CompletedTasks with
+                | completed :: _ -> Assert.True(completed.Success)
+                | [] -> Assert.Fail("Task was not completed")
+            finally
+                IO.File.Delete marks
         }
 
     [<Fact>]

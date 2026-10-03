@@ -270,6 +270,134 @@ let ``a script can use System without opening it, and its errors keep their line
         | other -> Assert.Fail $"%A{other}"
     }
 
+[<Fact>]
+let ``the examples are the calls in the validation criteria`` () =
+    // Criteria from live runs. A list literal, a string or a char keeps its ';'.
+    Assert.Equal<string>(
+        [ "sumOfList [1; 2; 3; 4] = 10"; "sumOfList [] = 0"; "sumOfList [-1; -2; -3] = -6" ],
+        Engine.examplesOf
+            "Write `sumOfList : int list -> int` in F#"
+            "sumOfList [1; 2; 3; 4] = 10; sumOfList [] = 0; sumOfList [-1; -2; -3] = -6"
+    )
+
+    Assert.Equal<string>(
+        [ "findLongestSubstring \"aabbcc\" 2 = \"aabb\""; "findLongestSubstring \"bbbbb\" 1 = \"bbbbb\"" ],
+        Engine.examplesOf
+            "Write `findLongestSubstring` : string -> string in F# that finds the longest substring with at most k distinct characters."
+            "findLongestSubstring \"aabbcc\" 2 = \"aabb\"; findLongestSubstring \"bbbbb\" 1 = \"bbbbb\""
+    )
+
+    Assert.Equal<string>(
+        [ "splitOn ';' \"a;b\" = [\"a\"; \"b\"]"; "splitOn ',' \"\" = [\"\"]" ],
+        Engine.examplesOf
+            "Write `splitOn : char -> string -> string list` in F#."
+            "splitOn ';' \"a;b\" = [\"a\"; \"b\"]\nsplitOn ',' \"\" = [\"\"]"
+    )
+
+    // Prose is not an example, and a goal that names no function has none.
+    Assert.Equal<string>(
+        [ "isEven 4 = true" ],
+        Engine.examplesOf "Write `isEven : int -> bool` in F#" "It returns true for even numbers; isEven 4 = true"
+    )
+
+    Assert.Empty(Engine.examplesOf "Write a recursive factorial function in F#" "fact 5 = 120")
+
+    // Every function the goal names is checked, not only the first.
+    Assert.Equal<string>(
+        [ "encode \"ab\" = \"ba\""; "decode \"ba\" = \"ab\"" ],
+        Engine.examplesOf
+            "Write `encode : string -> string` and `decode : string -> string` in F#."
+            "encode \"ab\" = \"ba\"; decode \"ba\" = \"ab\""
+    )
+
+[<Fact>]
+let ``the examples run after the code and decide`` () =
+    task {
+        let examples = [ "isEven 4 = true"; "isEven 5 = false" ]
+        let check code = Engine.checkExamples (TimeSpan.FromSeconds 60.0) code examples
+        let! right = check "let isEven n = n % 2 = 0"
+        let! wrong = check "let isEven n = n % 2 = 1"
+        let! notCompiling = check "let isEven n = n % 2 = \"0\""
+        // A name the code does not define: the examples say nothing about this code.
+        let! otherName = check "let isEvenNumber n = n % 2 = 0"
+
+        match right, wrong, notCompiling, otherName with
+        | Some passed, Some failed, Some broken, None ->
+            Assert.True(passed.Passed)
+            Assert.False(failed.Passed)
+            Assert.Contains("isEven 4 = true, got false", failed.Summary)
+            Assert.False(broken.Passed)
+        | other -> Assert.Fail $"%A{other}"
+    }
+
+[<Fact>]
+let ``an answer that ends the script before its examples does not pass them`` () =
+    task {
+        // dotnet fsi exits with 0 on `exit 0`, so the examples after the code never ran.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let isEven n = n % 2 = 1\nexit 0" [ "isEven 4 = true" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``a function in the answer's module is seen by the next block and by the examples`` () =
+    task {
+        // A live answer put composeFunctions in `module ComposeFunctions`, then called it from a
+        // second block: the call did not compile, and the examples would not either.
+        let answer =
+            "```fsharp\nmodule ComposeFunctions\n\nlet composeFunctions f g x = f (g x)\n```\n"
+            + "```fsharp\nprintfn \"%d\" (composeFunctions ((+) 1) ((*) 2) 3)\n```"
+
+        let script = (Engine.scriptOfAnswer answer).Value
+        let! run = Engine.runScript (TimeSpan.FromSeconds 60.0) script
+
+        let! examples =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                script
+                [ "composeFunctions (fun x -> x * 2) (fun x -> x + 1) 3 = 8" ]
+
+        Assert.Equal(Result.Ok(), run)
+        Assert.True(examples |> Option.exists (fun v -> v.Passed), $"%A{examples}")
+    }
+
+[<Fact>]
+let ``a multi-line string in the answer's module keeps its text`` () =
+    task {
+        // The module's lines are indented under `module Banner =`, but not those that continue
+        // a string: the examples compare its text.
+        let answer =
+            "```fsharp\nmodule Banner\n\nlet banner () = \"\"\"a\nb\"\"\"\nlet path = @\"c:\\x\ny\"\n```"
+
+        let script = (Engine.scriptOfAnswer answer).Value
+
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                script
+                [ "banner () = \"a\\nb\""; "path = \"c:\\\\x\\ny\"" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``the refactor tasks' examples check the function their goal gives`` () =
+    task {
+        // Their goals give the function as backticked code (`let sign x = ...`), not as
+        // `name : signature`.
+        let answers =
+            [ "let sign x =\n    match x with\n    | x when x > 0 -> 1\n    | x when x < 0 -> -1\n    | _ -> 0"
+              "let sumTo (n: int64) =\n    let rec go acc n = if n <= 0L then acc else go (acc + n) (n - 1L)\n    go 0L n" ]
+
+        let refactors = Engine.concreteTasks |> List.filter (fun (goal, _) -> goal.StartsWith "Refactor")
+
+        for (goal, criteria), answer in List.zip refactors answers do
+            let examples = Engine.examplesOf goal criteria
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer examples
+            Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"{goal}: %A{examples} %A{verdict}")
+    }
+
 let private taskWith goal constraints =
     { Id = Guid.NewGuid()
       DifficultyLevel = 1
@@ -321,6 +449,7 @@ let ``the concrete tasks are specified coding tasks with examples`` () =
         Assert.True(Engine.taskAsksForCode goal, goal)
         Assert.Contains("in F#", goal)
         Assert.Contains(" = ", criteria)
+        Assert.NotEmpty(Engine.examplesOf goal criteria)
 
 [<Fact>]
 let ``the next concrete task is the first one not done yet`` () =
