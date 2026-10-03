@@ -1529,17 +1529,20 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                         // 5.3 When an example failed, or the answer has no code to run, the executor answers
                         // the task again, from the request alone, up to 3 times, until an answer passes the
-                        // examples; that answer is kept, and when none does, the one above stays. It samples
-                        // at temperature 0.7, so each answer is new. In live runs most of the tasks that still
-                        // failed got a question or a refusal instead of code, which a fix in the same
-                        // conversation does not change. Examples that do not compile against the code, or a
-                        // run that threw, say nothing about the answer: the evaluator decides, as before.
+                        // examples; that answer is kept. It samples at temperature 0.7, so each answer is new.
+                        // In live runs most of the tasks that still failed got a question or a refusal instead
+                        // of code, which a fix in the same conversation does not change. When none passes, the
+                        // first new answer the examples could not check (they do not compile against its code,
+                        // or its run threw) is kept for the evaluator: it may be right, and the answer above is
+                        // not. Without one, the answer above stays. When the examples could not check the answer
+                        // above itself, they say nothing about it: the evaluator decides, as before.
                         let maxSamples = 3
 
-                        let rec sample (n: int) =
+                        // `unchecked`: the first new answer the examples could not check, with no verdict.
+                        let rec sample (n: int) unchecked =
                             task {
                                 if n > maxSamples then
-                                    return None
+                                    return unchecked
                                 else
                                     ctx.Logger $"[Executor] The examples did not pass; answering again ({n} of {maxSamples})."
 
@@ -1548,33 +1551,33 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                             "New answer"
                                             (graphExecutor.RunAgentLoop(agentWithMsg, 20, cancellationToken = cts.Token))
 
-                                    let passing (answer: string) =
+                                    let again = [ $"--- EXAMPLES DID NOT PASS, ANSWERED AGAIN ({n} of {maxSamples}) ---" ]
+
+                                    // Keeps `outcome` when its examples pass; otherwise answers again.
+                                    let decide outcome (answer: string) =
                                         task {
                                             match scriptOfAnswer answer with
                                             | Some script ->
                                                 let! _, verdict = runAnswer script
                                                 logVerdict verdict
-                                                return verdict |> Option.filter (fun v -> v.Passed)
+
+                                                match verdict with
+                                                | Some v when v.Passed -> return Some(outcome, verdict)
+                                                | None when Option.isNone unchecked ->
+                                                    return! sample (n + 1) (Some(outcome, None))
+                                                | _ -> return! sample (n + 1) unchecked
                                             | None ->
                                                 ctx.Logger "[Executor] The answer has no F# code to run."
-                                                return None
+                                                return! sample (n + 1) unchecked
                                         }
 
-                                    let again = [ $"--- EXAMPLES DID NOT PASS, ANSWERED AGAIN ({n} of {maxSamples}) ---" ]
-
                                     match next with
-                                    | Choice1Of2(Success(a, o, t)) ->
-                                        match! passing o with
-                                        | Some verdict -> return Some(Choice1Of2(Success(a, o, again @ t)), Some verdict)
-                                        | None -> return! sample (n + 1)
+                                    | Choice1Of2(Success(a, o, t)) -> return! decide (Choice1Of2(Success(a, o, again @ t))) o
                                     | Choice1Of2(PartialSuccess((a, o, t), w)) ->
-                                        match! passing o with
-                                        | Some verdict ->
-                                            return Some(Choice1Of2(PartialSuccess((a, o, again @ t), w)), Some verdict)
-                                        | None -> return! sample (n + 1)
-                                    | Choice1Of2(Failure _) -> return! sample (n + 1)
-                                    // Out of time: the answer above stays.
-                                    | Choice2Of2 _ -> return None
+                                        return! decide (Choice1Of2(PartialSuccess((a, o, again @ t), w))) o
+                                    | Choice1Of2(Failure _) -> return! sample (n + 1) unchecked
+                                    // Out of time.
+                                    | Choice2Of2 _ -> return unchecked
                             }
 
                         let exampleFailed = examplesVerdict |> Option.exists (fun v -> not v.Passed)
@@ -1593,7 +1596,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 && (exampleFailed || noCode)
                             then
                                 task {
-                                    match! sample 1 with
+                                    match! sample 1 None with
                                     | Some(outcome, verdict) -> return outcome, verdict
                                     | None -> return outcomeResult, examplesVerdict
                                 }

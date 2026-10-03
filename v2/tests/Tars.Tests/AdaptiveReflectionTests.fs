@@ -753,6 +753,34 @@ module AdaptiveReflectionTests =
         }
 
     [<Fact>]
+    let ``A new answer the examples cannot check is left to the evaluator rather than a failing one`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The new answers define `factorial`, which the `fact` examples cannot call: they may be
+            // right, while the first answer is known to be wrong.
+            let seen = ResizeArray()
+
+            let! newState, requests =
+                stepWith
+                    "Write `fact : int -> int` in F#"
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ "```fsharp\nlet fact n = n\n```"
+                      "```fsharp\nlet fact n = n\n```"
+                      "```fsharp\nlet rec factorial n = if n <= 1 then 1 else n * factorial (n - 1)\n```" ]
+
+            // A new answer that passes the examples is still looked for.
+            Assert.Equal(5, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success, completed.Output)
+                Assert.Contains("factorial", completed.Output)
+                Assert.True(seen |> Seq.exactlyOne |> Option.isNone)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
     let ``A new answer's code runs within the task's time`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
