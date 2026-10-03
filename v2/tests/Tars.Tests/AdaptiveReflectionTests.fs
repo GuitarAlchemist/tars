@@ -825,6 +825,25 @@ module AdaptiveReflectionTests =
         }
 
     [<Fact>]
+    let ``No new answer is asked for once the task's time is up`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The answer's code runs until the task's deadline, 3 s away, and is stopped there.
+            let slow = "```fsharp\nlet fact n = n\nSystem.Threading.Thread.Sleep 10000\n```"
+
+            let! newState, requests =
+                stepWithin (TimeSpan.FromSeconds 3.0) "Write `fact : int -> int` in F#" None true [ slow ]
+
+            // Only the answer: once the deadline has passed, the task's token is cancelled, and
+            // neither the fix request nor a new answer reaches the model.
+            Assert.Equal(1, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.False(completed.Success)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
     let ``The code runs once, with its examples`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
