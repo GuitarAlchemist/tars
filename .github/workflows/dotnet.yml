@@ -8,6 +8,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  # The merge queue on main runs the required `build` job on each merge group.
+  merge_group:
 
 jobs:
   # Required gate (branch protection requires this `build` check). GitHub-hosted
