@@ -781,6 +781,31 @@ module AdaptiveReflectionTests =
         }
 
     [<Fact>]
+    let ``Code that does not run on its own is left to the evaluator, with no new answer`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // A script cannot load TARS's projects, so this code is not run, but it is code: the
+            // evaluator judges it, as in step 5.2.
+            let seen = ResizeArray()
+
+            let! newState, requests =
+                stepWith
+                    "Write `fact : int -> int` in F#"
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ "```fsharp\nopen Tars.Core\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+                      "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
+
+            Assert.Equal(1, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success)
+                Assert.True(seen |> Seq.exactlyOne |> Option.isNone)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
     let ``A new answer the examples cannot check is not kept when its code fails to run`` () =
         task {
             if not (TestHelpers.requireTools()) then () else

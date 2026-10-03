@@ -1527,15 +1527,16 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                     }
                             | _ -> Task.FromResult((outcomeResult, None))
 
-                        // 5.3 When an example failed, or the answer has no code to run, the executor answers
-                        // the task again, from the request alone, up to 3 times, until an answer passes the
+                        // 5.3 When an example failed, or the answer shows no code, the executor answers the
+                        // task again, from the request alone, up to 3 times, until an answer passes the
                         // examples; that answer is kept. It samples at temperature 0.7, so each answer is new.
                         // In live runs most of the tasks that still failed got a question or a refusal instead
                         // of code, which a fix in the same conversation does not change. When none passes, the
                         // first new answer the examples could not check (they do not compile against its code),
                         // and whose code ran alone, is kept for the evaluator: it may be right, and the answer
                         // above is not. Without one, the answer above stays. When the examples could not check
-                        // the answer above itself, they say nothing about it: the evaluator decides, as before.
+                        // the answer above itself, they say nothing about it: the evaluator decides, as before,
+                        // and so it does for code that does not run on its own (it uses TARS).
                         let maxSamples = 3
 
                         // `unchecked`: the first new answer the examples could not check, with no verdict.
@@ -1588,7 +1589,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         let noCode =
                             match outcomeResult with
                             | Choice1Of2(Success(_, answer, _))
-                            | Choice1Of2(PartialSuccess((_, answer, _), _)) -> (scriptOfAnswer answer).IsNone
+                            | Choice1Of2(PartialSuccess((_, answer, _), _)) -> not (answerHasCode answer)
                             | _ -> true
 
                         let! outcomeResult, examplesVerdict =
