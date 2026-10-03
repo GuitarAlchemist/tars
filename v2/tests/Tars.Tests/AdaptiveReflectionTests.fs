@@ -514,11 +514,17 @@ module AdaptiveReflectionTests =
             | [] -> Assert.Fail("Task was not completed")
         }
 
-    /// Runs one evolve step on a coding task with `goal` and the criteria "fact 5 = 120", whose
-    /// executor answers with `answers`, in order (the last one repeats), with `evaluator` and
-    /// evolve's --run-code set to `runCode`. Returns the new state and every request the
-    /// executor got.
-    let private stepWith (goal: string) (evaluator: IEvaluationStrategy option) (runCode: bool) (answers: string list) =
+    /// Runs one evolve step on a coding task with `goal`, the criteria "fact 5 = 120" and
+    /// `timeout`, whose executor answers with `answers`, in order (the last one repeats), with
+    /// `evaluator` and evolve's --run-code set to `runCode`. Returns the new state and every
+    /// request the executor got.
+    let private stepWithin
+        (timeout: TimeSpan)
+        (goal: string)
+        (evaluator: IEvaluationStrategy option)
+        (runCode: bool)
+        (answers: string list)
+        =
         task {
             let agent = createTestAgent ()
             let requests = Collections.Generic.List<string>()
@@ -580,7 +586,7 @@ module AdaptiveReflectionTests =
                   Goal = goal
                   Constraints = []
                   ValidationCriteria = "fact 5 = 120"
-                  Timeout = TimeSpan.FromMinutes(2.0)
+                  Timeout = timeout
                   Score = 1.0 }
 
             let state =
@@ -595,6 +601,10 @@ module AdaptiveReflectionTests =
             let! newState = Engine.step ctx state
             return newState, List.ofSeq requests
         }
+
+    /// stepWithin, with 2 minutes for the task.
+    let private stepWith (goal: string) (evaluator: IEvaluationStrategy option) (runCode: bool) (answers: string list) =
+        stepWithin (TimeSpan.FromMinutes 2.0) goal evaluator runCode answers
 
     /// A factorial task that names no function, so its criteria hold no example, and no evaluator.
     let private stepWithAnswers (runCode: bool) (answers: string list) =
@@ -669,6 +679,192 @@ module AdaptiveReflectionTests =
                 Assert.True(completed.Success)
                 // The evaluator then saw the fixed answer's examples pass.
                 Assert.True(seen |> Seq.exactlyOne |> Option.exists (fun e -> e.Passed))
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``When the examples still do not pass, the first new answer that passes them is kept`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // In live runs the executor asked a question or refused instead of writing code, and a
+            // fix in the same conversation does not change that; a new answer to the task can.
+            let goal = "Write `fact : int -> int` in F#"
+            let wrong = "```fsharp\nlet fact n = n\n```"
+            let question = "What should fact return for negative numbers?"
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+            let afterWrong = ResizeArray()
+            let afterQuestion = ResizeArray()
+
+            // The answer, its fix, then a new answer.
+            let! fixedWrong, _ = stepWith goal (Some(fixedEvaluator true afterWrong)) true [ wrong; wrong; right ]
+            // The answer, the request for code, then a new answer.
+            let! answeredQuestion, _ =
+                stepWith goal (Some(fixedEvaluator true afterQuestion)) true [ question; question; right ]
+
+            match fixedWrong.CompletedTasks, answeredQuestion.CompletedTasks with
+            | w :: _, q :: _ ->
+                Assert.True(w.Success, w.Output)
+                Assert.True(q.Success, q.Output)
+
+                for seen in [ afterWrong; afterQuestion ] do
+                    Assert.True(seen |> Seq.exactlyOne |> Option.exists (fun e -> e.Passed))
+            | _ -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``The executor answers again at most 3 times`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let! newState, requests =
+                stepWith "Write `fact : int -> int` in F#" None true [ "```fsharp\nlet fact n = n\n```" ]
+
+            // The answer, its fix, and 3 new answers.
+            Assert.Equal(5, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.False(completed.Success)
+                Assert.Contains("fact 5 = 120, got 5", completed.Output)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Code the examples do not compile against is left to the evaluator, with no new answer`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The examples call `fact`, which this answer does not define: they say nothing about it,
+            // and no new answer is asked for.
+            let seen = ResizeArray()
+
+            let! newState, requests =
+                stepWith
+                    "Write `fact : int -> int` in F#"
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ "```fsharp\nlet rec factorial n = if n <= 1 then 1 else n * factorial (n - 1)\n```" ]
+
+            Assert.Equal(1, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success)
+                Assert.True(seen |> Seq.exactlyOne |> Option.isNone)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``A new answer the examples cannot check is left to the evaluator rather than a failing one`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The new answers define `factorial`, which the `fact` examples cannot call: they may be
+            // right, while the first answer is known to be wrong.
+            let seen = ResizeArray()
+
+            let! newState, requests =
+                stepWith
+                    "Write `fact : int -> int` in F#"
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ "```fsharp\nlet fact n = n\n```"
+                      "```fsharp\nlet fact n = n\n```"
+                      "```fsharp\nlet rec factorial n = if n <= 1 then 1 else n * factorial (n - 1)\n```" ]
+
+            // A new answer that passes the examples is still looked for.
+            Assert.Equal(5, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success, completed.Output)
+                Assert.Contains("factorial", completed.Output)
+                Assert.True(seen |> Seq.exactlyOne |> Option.isNone)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Code that does not run on its own is left to the evaluator, with no new answer`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // A script cannot load TARS's projects, so this code is not run, but it is code: the
+            // evaluator judges it, as in step 5.2.
+            let seen = ResizeArray()
+
+            let! newState, requests =
+                stepWith
+                    "Write `fact : int -> int` in F#"
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ "```fsharp\nopen Tars.Core\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+                      "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
+
+            Assert.Equal(1, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success)
+                Assert.True(seen |> Seq.exactlyOne |> Option.isNone)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``A new answer the examples cannot check is not kept when its code fails to run`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let seen = ResizeArray()
+
+            let! newState, _ =
+                stepWith
+                    "Write `fact : int -> int` in F#"
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ "```fsharp\nlet fact n = n\n```"
+                      "```fsharp\nlet fact n = n\n```"
+                      "```fsharp\nlet rec factorial n = if n <= 1 then 1 else n * factorial (n - 1)\nfailwith \"boom\"\n```" ]
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.False(completed.Success)
+                Assert.Contains("fact 5 = 120, got 5", completed.Output)
+                Assert.Empty(seen)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``A new answer's code runs within the task's time`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let wrong = "```fsharp\nlet fact n = n\n```"
+            // Right, but its examples can only run after 30 s.
+            let slow =
+                "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nSystem.Threading.Thread.Sleep 30000\n```"
+
+            let watch = Diagnostics.Stopwatch.StartNew()
+
+            let! newState, _ =
+                stepWithin (TimeSpan.FromSeconds 10.0) "Write `fact : int -> int` in F#" None true [ wrong; wrong; slow ]
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.False(completed.Success)
+                Assert.True(watch.Elapsed < TimeSpan.FromSeconds 25.0, $"{watch.Elapsed}")
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``No new answer is asked for once the task's time is up`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The answer's code runs until the task's deadline, 3 s away, and is stopped there.
+            let slow = "```fsharp\nlet fact n = n\nSystem.Threading.Thread.Sleep 10000\n```"
+
+            let! newState, requests =
+                stepWithin (TimeSpan.FromSeconds 3.0) "Write `fact : int -> int` in F#" None true [ slow ]
+
+            // Only the answer: once the deadline has passed, the task's token is cancelled, and
+            // neither the fix request nor a new answer reaches the model.
+            Assert.Equal(1, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.False(completed.Success)
             | [] -> Assert.Fail("Task was not completed")
         }
 

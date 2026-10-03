@@ -45,8 +45,9 @@ module Engine =
           ToolRegistry: Tars.Tools.ToolRegistry option
           ResearchEnhanced: bool
           SelfImprovement: bool
-          /// Run the F# code in the executor's answers with dotnet fsi (`evolve --run-code`). It runs
-          /// with the user's rights, outside any sandbox, so it is off unless asked for.
+          /// Run the F# code in the executor's answers with dotnet fsi (`evolve --run-code`), with the
+          /// task's examples, and ask for new answers while they fail. It runs with the user's rights,
+          /// outside any sandbox, so it is off unless asked for.
           RunCode: bool }
 
     /// The context for the evolution engine
@@ -1416,15 +1417,19 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         let runAnswer (script: string) =
                             task {
                                 try
-                                    // The limit includes fsi's startup and compile (about 1 s here).
-                                    let limit = TimeSpan.FromSeconds 60.0
+                                    // The limit includes fsi's startup and compile (about 1 s here), and
+                                    // each run ends no later than the task's deadline.
+                                    let limit () =
+                                        match remaining () with
+                                        | Some r when r < TimeSpan.FromSeconds 60.0 -> max r TimeSpan.Zero
+                                        | _ -> TimeSpan.FromSeconds 60.0
 
                                     let! withExamples =
                                         if examples.IsEmpty then
                                             Task.FromResult None
                                         else
                                             task {
-                                                let! run = runWithExamples limit script examples
+                                                let! run = runWithExamples (limit ()) script examples
                                                 return Some run
                                             }
 
@@ -1435,7 +1440,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                             ctx.Logger
                                                 "[Executor] The examples do not compile against the code; the evaluation decides."
 
-                                        let! alone = runScript limit script
+                                        let! alone = runScript (limit ()) script
 
                                         match alone with
                                         | Result.Ok() -> return None, None
@@ -1521,6 +1526,88 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                             return outcomeResult, verdict
                                     }
                             | _ -> Task.FromResult((outcomeResult, None))
+
+                        // 5.3 When an example failed, or the answer shows no code, the executor answers the
+                        // task again, from the request alone, up to 3 times, until an answer passes the
+                        // examples; that answer is kept. It samples at temperature 0.7, so each answer is new.
+                        // In live runs most of the tasks that still failed got a question or a refusal instead
+                        // of code, which a fix in the same conversation does not change. When none passes, the
+                        // first new answer the examples could not check (they do not compile against its code),
+                        // and whose code did not fail alone, is kept for the evaluator: it may be right, and the
+                        // answer above is not. Code the runner itself could not start counts as not failing, as
+                        // in 5.2, where the evaluator then decides. Without such an answer, the answer above
+                        // stays. When the examples could not check the answer above itself, they say nothing
+                        // about it: the evaluator decides, as before, and so it does for code that does not
+                        // run on its own (it uses TARS).
+                        let maxSamples = 3
+
+                        // `unchecked`: the first new answer the examples could not check, with no verdict.
+                        let rec sample (n: int) unchecked =
+                            task {
+                                if n > maxSamples then
+                                    return unchecked
+                                else
+                                    ctx.Logger $"[Executor] The examples did not pass; answering again ({n} of {maxSamples})."
+
+                                    let! next =
+                                        runWithTimeout
+                                            "New answer"
+                                            (graphExecutor.RunAgentLoop(agentWithMsg, 20, cancellationToken = cts.Token))
+
+                                    let again = [ $"--- EXAMPLES DID NOT PASS, ANSWERED AGAIN ({n} of {maxSamples}) ---" ]
+
+                                    // Keeps `outcome` when its examples pass; otherwise answers again.
+                                    let decide outcome (answer: string) =
+                                        task {
+                                            match scriptOfAnswer answer with
+                                            | Some script ->
+                                                let! errors, verdict = runAnswer script
+                                                logVerdict verdict
+
+                                                match verdict with
+                                                | Some v when v.Passed -> return Some(outcome, verdict)
+                                                | None when errors.IsSome ->
+                                                    ctx.Logger "[Executor] The code failed to run."
+                                                    return! sample (n + 1) unchecked
+                                                | None when Option.isNone unchecked ->
+                                                    return! sample (n + 1) (Some(outcome, None))
+                                                | _ -> return! sample (n + 1) unchecked
+                                            | None ->
+                                                ctx.Logger "[Executor] The answer has no F# code to run."
+                                                return! sample (n + 1) unchecked
+                                        }
+
+                                    match next with
+                                    | Choice1Of2(Success(a, o, t)) -> return! decide (Choice1Of2(Success(a, o, again @ t))) o
+                                    | Choice1Of2(PartialSuccess((a, o, t), w)) ->
+                                        return! decide (Choice1Of2(PartialSuccess((a, o, again @ t), w))) o
+                                    | Choice1Of2(Failure _) -> return! sample (n + 1) unchecked
+                                    // Out of time.
+                                    | Choice2Of2 _ -> return unchecked
+                            }
+
+                        let exampleFailed = examplesVerdict |> Option.exists (fun v -> not v.Passed)
+
+                        let noCode =
+                            match outcomeResult with
+                            | Choice1Of2(Success(_, answer, _))
+                            | Choice1Of2(PartialSuccess((_, answer, _), _)) -> not (answerHasCode answer)
+                            | _ -> true
+
+                        let! outcomeResult, examplesVerdict =
+                            if
+                                ctx.Options.RunCode
+                                && taskAsksForCode taskDef.Goal
+                                && not examples.IsEmpty
+                                && (exampleFailed || noCode)
+                            then
+                                task {
+                                    match! sample 1 None with
+                                    | Some(outcome, verdict) -> return outcome, verdict
+                                    | None -> return outcomeResult, examplesVerdict
+                                }
+                            else
+                                Task.FromResult((outcomeResult, examplesVerdict))
 
                         match outcomeResult with
                         | Choice2Of2 reason ->
