@@ -302,6 +302,14 @@ let ``the examples are the calls in the validation criteria`` () =
 
     Assert.Empty(Engine.examplesOf "Write a recursive factorial function in F#" "fact 5 = 120")
 
+    // Every function the goal names is checked, not only the first.
+    Assert.Equal<string>(
+        [ "encode \"ab\" = \"ba\""; "decode \"ba\" = \"ab\"" ],
+        Engine.examplesOf
+            "Write `encode : string -> string` and `decode : string -> string` in F#."
+            "encode \"ab\" = \"ba\"; decode \"ba\" = \"ab\""
+    )
+
 [<Fact>]
 let ``the examples run after the code and decide`` () =
     task {

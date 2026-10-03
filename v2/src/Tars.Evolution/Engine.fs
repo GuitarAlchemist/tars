@@ -451,13 +451,16 @@ module Engine =
         List.ofSeq found
 
     /// The examples in a task's validation criteria: the parts, split on a `;` or a new line
-    /// outside brackets, strings and chars, that call the function the goal names in backticks
+    /// outside brackets, strings and chars, that call a function the goal names in backticks
     /// (`isEven : int -> bool`). The curriculum writes them as `isEven 4 = true; isEven 5 = false`.
     let examplesOf (goal: string) (criteria: string) : string list =
-        let name =
-            System.Text.RegularExpressions.Regex.Match(goal, @"`\s*([A-Za-z_]\w*)\s*`?\s*:")
+        let names =
+            System.Text.RegularExpressions.Regex.Matches(goal, @"`\s*([A-Za-z_]\w*)\s*`?\s*:")
+            |> Seq.map (fun m -> m.Groups.[1].Value)
+            |> Seq.distinct
+            |> List.ofSeq
 
-        if not name.Success then
+        if names.IsEmpty then
             []
         else
             let cuts =
@@ -468,10 +471,12 @@ module Engine =
             |> List.pairwise
             |> List.map (fun (a, b) -> criteria.Substring(a + 1, b - a - 1).Trim().Trim('`').Trim())
             |> List.filter (fun part ->
-                System.Text.RegularExpressions.Regex.IsMatch(
-                    part,
-                    "^" + System.Text.RegularExpressions.Regex.Escape name.Groups.[1].Value + @"(\s|\(|$)"
-                ))
+                names
+                |> List.exists (fun name ->
+                    System.Text.RegularExpressions.Regex.IsMatch(
+                        part,
+                        "^" + System.Text.RegularExpressions.Regex.Escape name + @"(\s|\(|$)"
+                    )))
 
     /// The F# line that checks one example. For `call = expected` it reports the value it got.
     let private exampleCheck (example: string) =
@@ -493,53 +498,75 @@ module Engine =
             $"match ({call}) with actual when actual <> ({expected}) -> failwithf \"Example failed: %%s, got %%A\" {quoted} actual | _ -> ()"
         | None -> $"if not ({example}) then failwithf \"Example failed: %%s\" {quoted}"
 
+    /// What running an answer's code followed by checks of its examples showed.
+    type ExampleRun =
+        /// Every example gave the expected value.
+        | ExamplesPassed
+        /// The code ran and an example gave another value: "Example failed: <example>, got <value>".
+        | ExampleFailed of failure: string
+        /// The code did not compile, threw or did not finish: dotnet fsi's errors.
+        | CodeFailed of errors: string
+        /// The examples do not compile against the code (a name or a signature it does not have),
+        /// so nothing ran: they say nothing about it.
+        | ExamplesUnusable
+
+    /// Runs `script` followed by one check per example, in one dotnet fsi process.
+    let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
+        task {
+            let checks = examples |> List.map exampleCheck |> String.concat "\n"
+            let! run = runScript timeout (script + "\n#line 1 \"examples.fsx\"\n" + checks)
+
+            match run with
+            | Result.Ok() -> return ExamplesPassed
+            | Result.Error errors ->
+                let compileErrorIn (file: string) =
+                    System.Text.RegularExpressions.Regex.IsMatch(
+                        errors,
+                        System.Text.RegularExpressions.Regex.Escape file + @"\(\d+,\d+\): error"
+                    )
+
+                let failed = System.Text.RegularExpressions.Regex.Match(errors, @"Example failed: [^\r\n]*")
+
+                if compileErrorIn "answer.fsx" then return CodeFailed errors
+                elif compileErrorIn "examples.fsx" then return ExamplesUnusable
+                elif failed.Success then return ExampleFailed failed.Value
+                else return CodeFailed errors
+        }
+
+    /// The evaluation an examples run gives: None when the examples say nothing about the code.
+    let verdictOfExamples (count: int) (run: ExampleRun) : EvaluationResult option =
+        let verdict passed (summary: string) =
+            Some
+                { Passed = passed
+                  Confidence = 1.0
+                  Summary = summary
+                  Issues = (if passed then [] else [ summary ])
+                  SuggestedFixes = []
+                  EvaluatedAt = DateTime.UtcNow }
+
+        match run with
+        | ExamplesPassed -> verdict true $"The code ran and gave the expected value for all {count} examples."
+        | ExampleFailed failure -> verdict false failure
+        | CodeFailed errors ->
+            let firstLine =
+                errors.Split('\n')
+                |> Array.map (fun l -> l.Trim())
+                |> Array.tryFind (fun l -> l <> "")
+                |> Option.defaultValue errors
+
+            verdict false $"The code did not run: {firstLine}"
+        | ExamplesUnusable -> None
+
     /// Runs `script` and then checks `examples`. Some verdict when they ran: passed when each gave
     /// the expected value; failed when one did not, or the code did not compile or run. None when
-    /// there are no examples, or they do not compile against the code (a name or a signature it
-    /// does not have): they then say nothing about it.
+    /// there are no examples, or they do not compile against the code.
     let checkExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<EvaluationResult option> =
         task {
             if examples.IsEmpty then
                 return None
             else
-                let checks = examples |> List.map exampleCheck |> String.concat "\n"
-                let! run = runScript timeout (script + "\n#line 1 \"examples.fsx\"\n" + checks)
-
-                let verdict passed (summary: string) : EvaluationResult option =
-                    Some
-                        { Passed = passed
-                          Confidence = 1.0
-                          Summary = summary
-                          Issues = (if passed then [] else [ summary ])
-                          SuggestedFixes = []
-                          EvaluatedAt = DateTime.UtcNow }
-
-                match run with
-                | Result.Ok() ->
-                    return verdict true $"The code ran and gave the expected value for all {examples.Length} examples."
-                | Result.Error errors ->
-                    let compileErrorIn (file: string) =
-                        System.Text.RegularExpressions.Regex.IsMatch(
-                            errors,
-                            System.Text.RegularExpressions.Regex.Escape file + @"\(\d+,\d+\): error"
-                        )
-
-                    let firstLine =
-                        errors.Split('\n')
-                        |> Array.map (fun l -> l.Trim())
-                        |> Array.tryFind (fun l -> l <> "")
-                        |> Option.defaultValue errors
-
-                    let failed = System.Text.RegularExpressions.Regex.Match(errors, @"Example failed: [^\r\n]*")
-
-                    if compileErrorIn "answer.fsx" then
-                        return verdict false $"The code does not compile: {firstLine}"
-                    elif compileErrorIn "examples.fsx" then
-                        return None
-                    elif failed.Success then
-                        return verdict false failed.Value
-                    else
-                        return verdict false $"The code failed on the examples: {firstLine}"
+                let! run = runWithExamples timeout script examples
+                return verdictOfExamples examples.Length run
         }
 
     let private formatBelief (belief: Belief) =
@@ -1297,10 +1324,64 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 }
                             | _ -> Task.FromResult firstOutcome
 
-                        // 5.2 With --run-code, the code in the answer is run with dotnet fsi. If it does not
-                        // compile, throws or does not finish, the errors go back to the executor, once. The
-                        // evaluation only reads the answer, so nothing else ever ran the executor's code.
-                        let! outcomeResult =
+                        // 5.2 With --run-code, the code in the answer is run with dotnet fsi, followed by the
+                        // examples in the validation criteria (`isEven 4 = true`), in one process. If the code
+                        // does not compile, throws or does not finish, or an example gives another value, the
+                        // errors go back to the executor, once, and the examples check its new answer. Their
+                        // result is the evaluation: in live runs the evaluator rejected code that ran and gave
+                        // the right values, and the verifier answered VERIFIED to every answer, right or wrong.
+                        // Without examples, or when they do not compile against the code, the code runs alone
+                        // and the evaluator decides, as before.
+                        let examples = examplesOf taskDef.Goal taskDef.ValidationCriteria
+
+                        let logVerdict (verdict: EvaluationResult option) =
+                            match verdict with
+                            | Some v when v.Passed -> ctx.Logger "[Executor] The examples passed."
+                            | Some v -> ctx.Logger $"[Executor] The examples failed: {v.Summary}"
+                            | None -> ()
+
+                        // Runs an answer's script: the errors to send back, if any, and the examples' verdict.
+                        let runAnswer (script: string) =
+                            task {
+                                try
+                                    // The limit includes fsi's startup and compile (about 1 s here).
+                                    let limit = TimeSpan.FromSeconds 60.0
+
+                                    let! withExamples =
+                                        if examples.IsEmpty then
+                                            Task.FromResult None
+                                        else
+                                            task {
+                                                let! run = runWithExamples limit script examples
+                                                return Some run
+                                            }
+
+                                    match withExamples with
+                                    | None
+                                    | Some ExamplesUnusable ->
+                                        if withExamples.IsSome then
+                                            ctx.Logger
+                                                "[Executor] The examples do not compile against the code; the evaluation decides."
+
+                                        let! alone = runScript limit script
+
+                                        match alone with
+                                        | Result.Ok() -> return None, None
+                                        | Result.Error errors -> return Some errors, None
+                                    | Some run ->
+                                        let errors =
+                                            match run with
+                                            | ExampleFailed failure -> Some failure
+                                            | CodeFailed errors -> Some errors
+                                            | _ -> None
+
+                                        return errors, verdictOfExamples examples.Length run
+                                with ex ->
+                                    ctx.Logger $"[Executor] Could not run the code: {ex.Message}"
+                                    return None, None
+                            }
+
+                        let! outcomeResult, examplesVerdict =
                             match outcomeResult with
                             | Choice1Of2(Success(agentAfter, answer, trace))
                             | Choice1Of2(PartialSuccess((agentAfter, answer, trace), _)) when
@@ -1311,23 +1392,17 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                     if answerHasCode answer then
                                         ctx.Logger "[Executor] The answer has no F# code that runs on its own; not run."
 
-                                    Task.FromResult outcomeResult
+                                    Task.FromResult((outcomeResult, None))
                                 | Some script ->
                                     task {
-                                        let! run =
-                                            task {
-                                                try
-                                                    // The limit includes fsi's startup and compile (about 1 s here).
-                                                    let! result = runScript (TimeSpan.FromSeconds 60.0) script
-                                                    return Some result
-                                                with ex ->
-                                                    ctx.Logger $"[Executor] Could not run the code: {ex.Message}"
-                                                    return None
-                                            }
+                                        let! errors, verdict = runAnswer script
 
-                                        match run with
-                                        | Some(Result.Error errors) ->
-                                            ctx.Logger "[Executor] The code failed to run; asking for a fix."
+                                        match errors with
+                                        | Some errors ->
+                                            if errors.StartsWith "Example failed" then
+                                                ctx.Logger $"[Executor] {errors}; asking for a fix."
+                                            else
+                                                ctx.Logger "[Executor] The code failed to run; asking for a fix."
 
                                             let request =
                                                 { msg with
@@ -1346,51 +1421,34 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                                             let asked = trace @ [ "--- CODE FAILED TO RUN, ASKED TO FIX ---"; errors ]
 
+                                            // The verdict is about the answer the executor gives now.
+                                            let recheck (fixedAnswer: string) =
+                                                task {
+                                                    match scriptOfAnswer fixedAnswer with
+                                                    | Some fixedScript when not examples.IsEmpty ->
+                                                        let! _, fixedVerdict = runAnswer fixedScript
+                                                        logVerdict fixedVerdict
+                                                        return fixedVerdict
+                                                    | _ -> return None
+                                                }
+
                                             match next with
-                                            | Choice1Of2(Success(a, o, t)) -> return Choice1Of2(Success(a, o, asked @ t))
+                                            | Choice1Of2(Success(a, o, t)) ->
+                                                let! fixedVerdict = recheck o
+                                                return Choice1Of2(Success(a, o, asked @ t)), fixedVerdict
                                             | Choice1Of2(PartialSuccess((a, o, t), w)) ->
-                                                return Choice1Of2(PartialSuccess((a, o, asked @ t), w))
+                                                let! fixedVerdict = recheck o
+                                                return Choice1Of2(PartialSuccess((a, o, asked @ t), w)), fixedVerdict
                                             | _ ->
                                                 // The request failed or timed out: keep the answer the executor gave.
                                                 ctx.Logger "[Executor] Asking for a fix failed; keeping the answer."
-                                                return outcomeResult
-                                        | Some(Result.Ok()) ->
+                                                return outcomeResult, verdict
+                                        | None ->
                                             ctx.Logger "[Executor] The code ran."
-                                            return outcomeResult
-                                        | None -> return outcomeResult
+                                            logVerdict verdict
+                                            return outcomeResult, verdict
                                     }
-                            | _ -> Task.FromResult outcomeResult
-
-                        // 5.3 With --run-code, the examples in the validation criteria run after the code
-                        // of the final answer, and their result is the evaluation. In live runs the
-                        // evaluator rejected code that ran and gave the right values, and the verifier
-                        // answered VERIFIED to every answer, right or wrong.
-                        let! examplesVerdict =
-                            match outcomeResult with
-                            | Choice1Of2(Success(_, answer, _))
-                            | Choice1Of2(PartialSuccess((_, answer, _), _)) when
-                                ctx.Options.RunCode && taskAsksForCode taskDef.Goal
-                                ->
-                                match scriptOfAnswer answer, examplesOf taskDef.Goal taskDef.ValidationCriteria with
-                                | Some script, (_ :: _ as examples) ->
-                                    task {
-                                        try
-                                            let! verdict = checkExamples (TimeSpan.FromSeconds 60.0) script examples
-
-                                            match verdict with
-                                            | Some v when v.Passed -> ctx.Logger "[Executor] The examples passed."
-                                            | Some v -> ctx.Logger $"[Executor] The examples failed: {v.Summary}"
-                                            | None ->
-                                                ctx.Logger
-                                                    "[Executor] The examples do not compile against the code; the evaluation decides."
-
-                                            return verdict
-                                        with ex ->
-                                            ctx.Logger $"[Executor] Could not run the examples: {ex.Message}"
-                                            return None
-                                    }
-                                | _ -> Task.FromResult None
-                            | _ -> Task.FromResult None
+                            | _ -> Task.FromResult((outcomeResult, None))
 
                         match outcomeResult with
                         | Choice2Of2 reason ->
@@ -1514,12 +1572,9 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                                     let mutable currentTrace = trace
                                     let mutable reflectionCount = 0
-                                    // Once the examples decided (5.3), there is no verification or reflection,
-                                    // whether they passed or failed: a reflected answer would no longer be the
-                                    // one they checked, and this loop would not pass on a failing example
-                                    // anyway (its prompt does not carry it, and the verifier answered VERIFIED
-                                    // to every answer in live runs). Sending a failing example back to the
-                                    // executor is a separate step.
+                                    // Once the examples decided (5.2), there is no verification or reflection:
+                                    // a failing example already went back to the executor once, and a reflected
+                                    // answer would no longer be the one they checked.
                                     let mutable isOptimal = examplesVerdict.IsSome
                                     let mutable currentAgent = agentAfterExec
                                     let mutable timeoutOccurred = false

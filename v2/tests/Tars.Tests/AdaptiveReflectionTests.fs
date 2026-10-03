@@ -645,6 +645,53 @@ module AdaptiveReflectionTests =
         }
 
     [<Fact>]
+    let ``A failing example goes back to the executor, and its fixed answer is what is checked`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let calls = ref 0
+
+            let! newState, requests =
+                stepWith
+                    "Write `fact : int -> int` in F#"
+                    (Some(fixedEvaluator false calls))
+                    true
+                    [ "```fsharp\nlet fact n = n\n```"
+                      "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
+
+            Assert.Contains(requests, fun r -> r.Contains "Example failed: fact 5 = 120, got 5")
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success)
+                Assert.Equal(0, calls.Value)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``The code runs once, with its examples`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Running it a second time to check the examples repeated its side effects.
+            let marks = IO.Path.GetTempFileName()
+
+            try
+                let answer =
+                    "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nSystem.IO.File.AppendAllText(@\""
+                    + marks
+                    + "\", \"x\")\n```"
+
+                let! newState, _ = stepWith "Write `fact : int -> int` in F#" None true [ answer ]
+
+                Assert.Equal("x", IO.File.ReadAllText marks)
+
+                match newState.CompletedTasks with
+                | completed :: _ -> Assert.True(completed.Success)
+                | [] -> Assert.Fail("Task was not completed")
+            finally
+                IO.File.Delete marks
+        }
+
+    [<Fact>]
     let ``Code that fails to run is sent back to the executor with its errors`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
