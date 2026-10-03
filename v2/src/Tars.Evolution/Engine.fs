@@ -1514,8 +1514,12 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                                     let mutable currentTrace = trace
                                     let mutable reflectionCount = 0
-                                    // Once the examples decided (5.3), reflecting could only change the
-                                    // answer they checked.
+                                    // Once the examples decided (5.3), there is no verification or reflection,
+                                    // whether they passed or failed: a reflected answer would no longer be the
+                                    // one they checked, and this loop would not pass on a failing example
+                                    // anyway (its prompt does not carry it, and the verifier answered VERIFIED
+                                    // to every answer in live runs). Sending a failing example back to the
+                                    // executor is a separate step.
                                     let mutable isOptimal = examplesVerdict.IsSome
                                     let mutable currentAgent = agentAfterExec
                                     let mutable timeoutOccurred = false
