@@ -514,11 +514,17 @@ module AdaptiveReflectionTests =
             | [] -> Assert.Fail("Task was not completed")
         }
 
-    /// Runs one evolve step on a coding task with `goal` and the criteria "fact 5 = 120", whose
-    /// executor answers with `answers`, in order (the last one repeats), with `evaluator` and
-    /// evolve's --run-code set to `runCode`. Returns the new state and every request the
-    /// executor got.
-    let private stepWith (goal: string) (evaluator: IEvaluationStrategy option) (runCode: bool) (answers: string list) =
+    /// Runs one evolve step on a coding task with `goal`, the criteria "fact 5 = 120" and
+    /// `timeout`, whose executor answers with `answers`, in order (the last one repeats), with
+    /// `evaluator` and evolve's --run-code set to `runCode`. Returns the new state and every
+    /// request the executor got.
+    let private stepWithin
+        (timeout: TimeSpan)
+        (goal: string)
+        (evaluator: IEvaluationStrategy option)
+        (runCode: bool)
+        (answers: string list)
+        =
         task {
             let agent = createTestAgent ()
             let requests = Collections.Generic.List<string>()
@@ -580,7 +586,7 @@ module AdaptiveReflectionTests =
                   Goal = goal
                   Constraints = []
                   ValidationCriteria = "fact 5 = 120"
-                  Timeout = TimeSpan.FromMinutes(2.0)
+                  Timeout = timeout
                   Score = 1.0 }
 
             let state =
@@ -595,6 +601,10 @@ module AdaptiveReflectionTests =
             let! newState = Engine.step ctx state
             return newState, List.ofSeq requests
         }
+
+    /// stepWithin, with 2 minutes for the task.
+    let private stepWith (goal: string) (evaluator: IEvaluationStrategy option) (runCode: bool) (answers: string list) =
+        stepWithin (TimeSpan.FromMinutes 2.0) goal evaluator runCode answers
 
     /// A factorial task that names no function, so its criteria hold no example, and no evaluator.
     let private stepWithAnswers (runCode: bool) (answers: string list) =
@@ -715,6 +725,51 @@ module AdaptiveReflectionTests =
             | completed :: _ ->
                 Assert.False(completed.Success)
                 Assert.Contains("fact 5 = 120, got 5", completed.Output)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Code the examples do not compile against is left to the evaluator, with no new answer`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The examples call `fact`, which this answer does not define: they say nothing about it,
+            // and no new answer is asked for.
+            let seen = ResizeArray()
+
+            let! newState, requests =
+                stepWith
+                    "Write `fact : int -> int` in F#"
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ "```fsharp\nlet rec factorial n = if n <= 1 then 1 else n * factorial (n - 1)\n```" ]
+
+            Assert.Equal(1, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success)
+                Assert.True(seen |> Seq.exactlyOne |> Option.isNone)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``A new answer's code runs within the task's time`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let wrong = "```fsharp\nlet fact n = n\n```"
+            // Right, but its examples can only run after 30 s.
+            let slow =
+                "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nSystem.Threading.Thread.Sleep 30000\n```"
+
+            let watch = Diagnostics.Stopwatch.StartNew()
+
+            let! newState, _ =
+                stepWithin (TimeSpan.FromSeconds 10.0) "Write `fact : int -> int` in F#" None true [ wrong; wrong; slow ]
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.False(completed.Success)
+                Assert.True(watch.Elapsed < TimeSpan.FromSeconds 25.0, $"{watch.Elapsed}")
             | [] -> Assert.Fail("Task was not completed")
         }
 

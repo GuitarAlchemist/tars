@@ -1417,8 +1417,12 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         let runAnswer (script: string) =
                             task {
                                 try
-                                    // The limit includes fsi's startup and compile (about 1 s here).
-                                    let limit = TimeSpan.FromSeconds 60.0
+                                    // The limit includes fsi's startup and compile (about 1 s here), and
+                                    // the code runs no later than the task's deadline.
+                                    let limit =
+                                        match remaining () with
+                                        | Some r when r < TimeSpan.FromSeconds 60.0 -> max r TimeSpan.Zero
+                                        | _ -> TimeSpan.FromSeconds 60.0
 
                                     let! withExamples =
                                         if examples.IsEmpty then
@@ -1523,11 +1527,13 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                     }
                             | _ -> Task.FromResult((outcomeResult, None))
 
-                        // 5.3 When the examples did not pass, the executor answers the task again, from the
-                        // request alone, up to 3 times, until an answer passes them; that answer is kept, and
-                        // when none does, the one above stays. It samples at temperature 0.7, so each answer
-                        // is new. In live runs most of the tasks that still failed got a question or a refusal
-                        // instead of code, which a fix in the same conversation does not change.
+                        // 5.3 When an example failed, or the answer has no code to run, the executor answers
+                        // the task again, from the request alone, up to 3 times, until an answer passes the
+                        // examples; that answer is kept, and when none does, the one above stays. It samples
+                        // at temperature 0.7, so each answer is new. In live runs most of the tasks that still
+                        // failed got a question or a refusal instead of code, which a fix in the same
+                        // conversation does not change. Examples that do not compile against the code, or a
+                        // run that threw, say nothing about the answer: the evaluator decides, as before.
                         let maxSamples = 3
 
                         let rec sample (n: int) =
@@ -1571,12 +1577,20 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                     | Choice2Of2 _ -> return None
                             }
 
+                        let exampleFailed = examplesVerdict |> Option.exists (fun v -> not v.Passed)
+
+                        let noCode =
+                            match outcomeResult with
+                            | Choice1Of2(Success(_, answer, _))
+                            | Choice1Of2(PartialSuccess((_, answer, _), _)) -> (scriptOfAnswer answer).IsNone
+                            | _ -> true
+
                         let! outcomeResult, examplesVerdict =
                             if
                                 ctx.Options.RunCode
                                 && taskAsksForCode taskDef.Goal
                                 && not examples.IsEmpty
-                                && not (examplesVerdict |> Option.exists (fun v -> v.Passed))
+                                && (exampleFailed || noCode)
                             then
                                 task {
                                     match! sample 1 with
