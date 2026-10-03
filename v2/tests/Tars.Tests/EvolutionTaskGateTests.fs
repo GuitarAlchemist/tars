@@ -362,6 +362,42 @@ let ``a function in the answer's module is seen by the next block and by the exa
         Assert.True(examples |> Option.exists (fun v -> v.Passed), $"%A{examples}")
     }
 
+[<Fact>]
+let ``a multi-line string in the answer's module keeps its text`` () =
+    task {
+        // The module's lines are indented under `module Banner =`, but not those that continue
+        // a string: the examples compare its text.
+        let answer =
+            "```fsharp\nmodule Banner\n\nlet banner () = \"\"\"a\nb\"\"\"\nlet path = @\"c:\\x\ny\"\n```"
+
+        let script = (Engine.scriptOfAnswer answer).Value
+
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                script
+                [ "banner () = \"a\\nb\""; "path = \"c:\\\\x\\ny\"" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``the refactor tasks' examples check the function their goal gives`` () =
+    task {
+        // Their goals give the function as backticked code (`let sign x = ...`), not as
+        // `name : signature`.
+        let answers =
+            [ "let sign x =\n    match x with\n    | x when x > 0 -> 1\n    | x when x < 0 -> -1\n    | _ -> 0"
+              "let sumTo (n: int64) =\n    let rec go acc n = if n <= 0L then acc else go (acc + n) (n - 1L)\n    go 0L n" ]
+
+        let refactors = Engine.concreteTasks |> List.filter (fun (goal, _) -> goal.StartsWith "Refactor")
+
+        for (goal, criteria), answer in List.zip refactors answers do
+            let examples = Engine.examplesOf goal criteria
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer examples
+            Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"{goal}: %A{examples} %A{verdict}")
+    }
+
 let private taskWith goal constraints =
     { Id = Guid.NewGuid()
       DifficultyLevel = 1
@@ -413,6 +449,7 @@ let ``the concrete tasks are specified coding tasks with examples`` () =
         Assert.True(Engine.taskAsksForCode goal, goal)
         Assert.Contains("in F#", goal)
         Assert.Contains(" = ", criteria)
+        Assert.NotEmpty(Engine.examplesOf goal criteria)
 
 [<Fact>]
 let ``the next concrete task is the first one not done yet`` () =

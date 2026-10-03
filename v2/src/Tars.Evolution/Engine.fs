@@ -296,7 +296,7 @@ module Engine =
           ("Refactor this function in F# to use pattern matching instead of if/elif, keeping its name and results: `let sign x = if x > 0 then 1 elif x < 0 then -1 else 0`",
            "sign 5 = 1; sign -3 = -1; sign 0 = 0; the body uses match")
           ("Refactor this function in F# to be tail-recursive, keeping its name and results: `let rec sumTo (n: int64) = if n <= 0L then 0L else n + sumTo (n - 1L)`",
-           "sumTo 0L = 0L; sumTo 10L = 55L; sumTo 1000000L = 500000500000L, with no stack overflow") ]
+           "sumTo 0L = 0L; sumTo 10L = 55L; sumTo 1000000L = 500000500000L; no stack overflow") ]
 
     /// The first concrete task whose goal is not among `completedGoals`. When every one is done,
     /// they come round again.
@@ -308,12 +308,61 @@ module Engine =
         |> List.tryFind (fun (goal, _) -> not (finished.Contains(goal.ToLowerInvariant())))
         |> Option.defaultWith (fun () -> concreteTasks.[completedGoals.Length % concreteTasks.Length])
 
+    /// What a line of code is in, where it starts.
+    type private Literal =
+        | Code
+        | TripleQuoted
+        | Verbatim
+        | Ordinary
+
+    /// For each line, whether it starts inside a string an earlier line opened: triple-quoted,
+    /// verbatim or ordinary. What follows `//` is a comment.
+    let private continuesString (lines: string array) : bool array =
+        let starts = Array.zeroCreate lines.Length
+        let mutable literal = Code
+
+        for n in 0 .. lines.Length - 1 do
+            let line = lines.[n]
+            starts.[n] <- literal <> Code
+            let mutable i = 0
+
+            while i < line.Length do
+                let rest = line.Substring i
+                let at (s: string) = rest.StartsWith(s, StringComparison.Ordinal)
+
+                match literal with
+                | TripleQuoted when at "\"\"\"" ->
+                    literal <- Code
+                    i <- i + 3
+                | Verbatim when at "\"\"" -> i <- i + 2
+                | Verbatim when at "\"" ->
+                    literal <- Code
+                    i <- i + 1
+                | Ordinary when at "\\" -> i <- i + 2
+                | Ordinary when at "\"" ->
+                    literal <- Code
+                    i <- i + 1
+                | Code when at "//" -> i <- line.Length
+                | Code when at "\"\"\"" ->
+                    literal <- TripleQuoted
+                    i <- i + 3
+                | Code when at "@\"" ->
+                    literal <- Verbatim
+                    i <- i + 2
+                | Code when at "\"" ->
+                    literal <- Ordinary
+                    i <- i + 1
+                | Code when at "'" && rest.Length > 2 && rest.[2] = '\'' -> i <- i + 3
+                | Code when at "'\\" && rest.Length > 3 && rest.[3] = '\'' -> i <- i + 4
+                | _ -> i <- i + 1
+
+        starts
+
     /// One fenced block as dotnet fsi accepts it. A .fs file may start with a namespace line
     /// or a top-level `module X`, and fsi rejects both: the namespace line is dropped, and the
     /// module becomes `module X =` with the rest of the block indented under it, then opened, so
-    /// the next blocks and the examples see its functions as the answer wrote them. A multi-line
-    /// string under that module is indented too, which changes its text but not whether the
-    /// code compiles, throws or finishes, the only things checked.
+    /// the next blocks and the examples see its functions as the answer wrote them. A line that
+    /// continues a multi-line string is not indented: the examples compare its text.
     let private asScript (block: string) =
         let lines =
             block.Replace("\r\n", "\n").TrimEnd().Split('\n')
@@ -326,7 +375,12 @@ module Engine =
         match topModule with
         | Some i ->
             let name = lines.[i].Trim().Split(' ') |> Array.last |> fun n -> n.Split('.') |> Array.last
-            let body = lines.[i + 1 ..] |> Array.map (fun l -> if l.Trim() = "" then l else "    " + l)
+            let body = lines.[i + 1 ..]
+            let inString = continuesString body
+
+            let body =
+                body |> Array.mapi (fun j l -> if l.Trim() = "" || inString.[j] then l else "    " + l)
+
             Array.concat [ lines.[.. i - 1]; [| $"module {name} =" |]; body; [| $"open {name}" |] ]
             |> String.concat "\n"
         | None -> String.concat "\n" lines
@@ -458,12 +512,16 @@ module Engine =
         List.ofSeq found
 
     /// The examples in a task's validation criteria: the parts, split on a `;` or a new line
-    /// outside brackets, strings and chars, that call a function the goal names in backticks
-    /// (`isEven : int -> bool`). The curriculum writes them as `isEven 4 = true; isEven 5 = false`.
+    /// outside brackets, strings and chars, that call a function the goal names in backticks:
+    /// `isEven : int -> bool`, or, in a refactor, the code it gives (`let sign x = ...`). The
+    /// curriculum writes them as `isEven 4 = true; isEven 5 = false`.
     let examplesOf (goal: string) (criteria: string) : string list =
         let names =
-            System.Text.RegularExpressions.Regex.Matches(goal, @"`\s*([A-Za-z_]\w*)\s*`?\s*:")
-            |> Seq.map (fun m -> m.Groups.[1].Value)
+            System.Text.RegularExpressions.Regex.Matches(
+                goal,
+                @"`\s*([A-Za-z_]\w*)\s*`?\s*:|`let\s+(?:rec\s+)?([A-Za-z_]\w*)"
+            )
+            |> Seq.map (fun m -> if m.Groups.[1].Success then m.Groups.[1].Value else m.Groups.[2].Value)
             |> Seq.distinct
             |> List.ofSeq
 
