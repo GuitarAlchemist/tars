@@ -1533,10 +1533,12 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         // In live runs most of the tasks that still failed got a question or a refusal instead
                         // of code, which a fix in the same conversation does not change. When none passes, the
                         // first new answer the examples could not check (they do not compile against its code),
-                        // and whose code ran alone, is kept for the evaluator: it may be right, and the answer
-                        // above is not. Without one, the answer above stays. When the examples could not check
-                        // the answer above itself, they say nothing about it: the evaluator decides, as before,
-                        // and so it does for code that does not run on its own (it uses TARS).
+                        // and whose code did not fail alone, is kept for the evaluator: it may be right, and the
+                        // answer above is not. Code the runner itself could not start counts as not failing, as
+                        // in 5.2, where the evaluator then decides. Without such an answer, the answer above
+                        // stays. When the examples could not check the answer above itself, they say nothing
+                        // about it: the evaluator decides, as before, and so it does for code that does not
+                        // run on its own (it uses TARS).
                         let maxSamples = 3
 
                         // `unchecked`: the first new answer the examples could not check, with no verdict.
