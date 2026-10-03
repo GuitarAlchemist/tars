@@ -331,6 +331,16 @@ let ``the examples run after the code and decide`` () =
     }
 
 [<Fact>]
+let ``an answer that ends the script before its examples does not pass them`` () =
+    task {
+        // dotnet fsi exits with 0 on `exit 0`, so the examples after the code never ran.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let isEven n = n % 2 = 1\nexit 0" [ "isEven 4 = true" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
 let ``a function in the answer's module is seen by the next block and by the examples`` () =
     task {
         // A live answer put composeFunctions in `module ComposeFunctions`, then called it from a

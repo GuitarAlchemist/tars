@@ -81,6 +81,16 @@ type SemanticEvaluation(llm: ILlmService, ?minConfidence: float, ?logger: string
                 let jsonTemplate =
                     "{\"passed\":true,\"confidence\":0.0,\"summary\":\"...\",\"issues\":[\"...\"],\"suggested_fixes\":[\"...\"]}"
 
+                // With --run-code the examples in the validation criteria may have run with the code and
+                // passed (result.Evaluation). They check its values, not what else the goal asks.
+                let examplesPassed =
+                    match result.Evaluation with
+                    | Some examples when examples.Passed ->
+                        [ ""
+                          $"The code in the output was run with the examples in the validation criteria: {examples.Summary}"
+                          "Do not judge its results again. Judge only what the examples do not check, such as how the goal or the constraints say the code must be written. If they ask nothing more, it passes." ]
+                    | _ -> []
+
                 let prompt =
                     String.concat
                         "\n"
@@ -88,6 +98,7 @@ type SemanticEvaluation(llm: ILlmService, ?minConfidence: float, ?logger: string
                           $"Goal: {taskDef.Goal}"
                           $"Constraints: {constraints}"
                           $"Validation Criteria: {taskDef.ValidationCriteria}"
+                          yield! examplesPassed
                           ""
                           "Output:"
                           "```"

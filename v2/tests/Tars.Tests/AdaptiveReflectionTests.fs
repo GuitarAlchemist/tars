@@ -600,12 +600,13 @@ module AdaptiveReflectionTests =
     let private stepWithAnswers (runCode: bool) (answers: string list) =
         stepWith "Write a recursive factorial function in F#" None runCode answers
 
-    /// An evaluator that always gives `passed`, and counts its calls in `calls`.
-    let private fixedEvaluator (passed: bool) (calls: int ref) =
+    /// An evaluator that always gives `passed`, and records in `seen` the evaluation each task it
+    /// judges already had: the examples' verdict, when they ran.
+    let private fixedEvaluator (passed: bool) (seen: ResizeArray<EvaluationResult option>) =
         { new IEvaluationStrategy with
-            member _.Evaluate(_, _) =
+            member _.Evaluate(_, result) =
                 task {
-                    calls.Value <- calls.Value + 1
+                    seen.Add result.Evaluation
 
                     return
                         { Passed = passed
@@ -617,30 +618,33 @@ module AdaptiveReflectionTests =
                 } }
 
     [<Fact>]
-    let ``The examples decide when they run, not the evaluator`` () =
+    let ``A failing example decides, and passing examples leave the rest to the evaluator`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
-            // In live runs the evaluator rejected code that ran and gave the right values,
-            // calling it "a description". The criteria's examples are F#, so they can run.
+            // The criteria's examples are F#, so they can run, and a wrong value fails the task.
+            // They do not check what else the goal asks, like a `flatten` written without
+            // List.concat: when they pass, the evaluator judges that, told they passed.
             let goal = "Write `fact : int -> int` in F#"
-            let rejecting = ref 0
-            let accepting = ref 0
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+            let rejecting = ResizeArray()
+            let accepting = ResizeArray()
+            let afterWrong = ResizeArray()
 
-            let! right, _ =
-                stepWith
-                    goal
-                    (Some(fixedEvaluator false rejecting))
-                    true
-                    [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
+            let! rejected, _ = stepWith goal (Some(fixedEvaluator false rejecting)) true [ right ]
+            let! accepted, _ = stepWith goal (Some(fixedEvaluator true accepting)) true [ right ]
+            let! wrong, _ = stepWith goal (Some(fixedEvaluator true afterWrong)) true [ "```fsharp\nlet fact n = n\n```" ]
 
-            let! wrong, _ = stepWith goal (Some(fixedEvaluator true accepting)) true [ "```fsharp\nlet fact n = n\n```" ]
+            match rejected.CompletedTasks, accepted.CompletedTasks, wrong.CompletedTasks with
+            | r :: _, a :: _, w :: _ ->
+                Assert.False(r.Success)
+                Assert.True(a.Success)
+                Assert.False(w.Success)
+                Assert.Contains("fact 5 = 120, got 5", w.Output)
 
-            match right.CompletedTasks, wrong.CompletedTasks with
-            | passed :: _, failed :: _ ->
-                Assert.True(passed.Success)
-                Assert.False(failed.Success)
-                Assert.Contains("fact 5 = 120, got 5", failed.Output)
-                Assert.Equal(0, rejecting.Value + accepting.Value)
+                for seen in [ rejecting; accepting ] do
+                    Assert.True(seen |> Seq.exactlyOne |> Option.exists (fun e -> e.Passed))
+
+                Assert.Empty(afterWrong)
             | _ -> Assert.Fail("Task was not completed")
         }
 
@@ -648,12 +652,12 @@ module AdaptiveReflectionTests =
     let ``A failing example goes back to the executor, and its fixed answer is what is checked`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
-            let calls = ref 0
+            let seen = ResizeArray()
 
             let! newState, requests =
                 stepWith
                     "Write `fact : int -> int` in F#"
-                    (Some(fixedEvaluator false calls))
+                    (Some(fixedEvaluator true seen))
                     true
                     [ "```fsharp\nlet fact n = n\n```"
                       "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
@@ -663,7 +667,8 @@ module AdaptiveReflectionTests =
             match newState.CompletedTasks with
             | completed :: _ ->
                 Assert.True(completed.Success)
-                Assert.Equal(0, calls.Value)
+                // The evaluator then saw the fixed answer's examples pass.
+                Assert.True(seen |> Seq.exactlyOne |> Option.exists (fun e -> e.Passed))
             | [] -> Assert.Fail("Task was not completed")
         }
 

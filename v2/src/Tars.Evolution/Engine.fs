@@ -363,13 +363,13 @@ module Engine =
             Some script
 
     /// Runs an F# script with dotnet fsi, in a temporary directory, with no input, for at most
-    /// `timeout`. Ok when it exits with 0; otherwise Error with what went wrong.
+    /// `timeout`. Ok with what it printed when it exits with 0; otherwise Error with what went wrong.
     /// System is opened first: the model writes Char or String.IsNullOrEmpty without opening it.
     /// A leading namespace or top-level module cannot follow that open, but fsi rejects both
     /// anyway, and scriptOfAnswer has already dropped the first and turned the second into
     /// `module X =`, which can. The #line directive keeps error positions on the lines of the
     /// script itself.
-    let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
+    let private runFsi (timeout: TimeSpan) (script: string) : Task<Result<string, string>> =
         task {
             let dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "tars-evolve-run", Guid.NewGuid().ToString("N"))
             System.IO.Directory.CreateDirectory dir |> ignore
@@ -394,11 +394,11 @@ module Engine =
 
                 try
                     do! proc.WaitForExitAsync(cts.Token)
-                    let! _ = stdout
+                    let! output = stdout
                     let! errors = stderr
 
                     if proc.ExitCode = 0 then
-                        return Result.Ok()
+                        return Result.Ok output
                     else
                         let errors = errors.Replace(dir + string System.IO.Path.DirectorySeparatorChar, "").Trim()
 
@@ -421,6 +421,13 @@ module Engine =
                     System.IO.Directory.Delete(dir, true)
                 with _ ->
                     ()
+        }
+
+    /// Runs an F# script as runFsi does: Ok when it exits with 0; otherwise Error with what went wrong.
+    let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
+        task {
+            let! run = runFsi timeout script
+            return run |> Result.map ignore
         }
 
     /// Indices of the characters of `text` outside brackets, strings and chars.
@@ -504,20 +511,26 @@ module Engine =
         | ExamplesPassed
         /// The code ran and an example gave another value: "Example failed: <example>, got <value>".
         | ExampleFailed of failure: string
-        /// The code did not compile, threw or did not finish: dotnet fsi's errors.
+        /// The code did not compile, threw, did not finish or ended the script: what went wrong.
         | CodeFailed of errors: string
         /// The examples do not compile against the code (a name or a signature it does not have),
         /// so nothing ran: they say nothing about it.
         | ExamplesUnusable
 
-    /// Runs `script` followed by one check per example, in one dotnet fsi process.
+    /// Runs `script` followed by one check per example, in one dotnet fsi process. The checks end
+    /// by printing a mark the code cannot know: fsi also exits with 0 when the code calls `exit 0`,
+    /// and then no example ran.
     let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
         task {
+            let mark = Guid.NewGuid().ToString("N")
             let checks = examples |> List.map exampleCheck |> String.concat "\n"
-            let! run = runScript timeout (script + "\n#line 1 \"examples.fsx\"\n" + checks)
+            let! run = runFsi timeout (script + "\n#line 1 \"examples.fsx\"\n" + checks + $"\nprintfn \"{mark}\"")
 
             match run with
-            | Result.Ok() -> return ExamplesPassed
+            | Result.Ok output when output.Contains mark -> return ExamplesPassed
+            | Result.Ok _ ->
+                return
+                    CodeFailed "The script ended inside the code, so the examples after it never ran (does the code call exit?)."
             | Result.Error errors ->
                 let compileErrorIn (file: string) =
                     System.Text.RegularExpressions.Regex.IsMatch(
@@ -1327,9 +1340,10 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         // 5.2 With --run-code, the code in the answer is run with dotnet fsi, followed by the
                         // examples in the validation criteria (`isEven 4 = true`), in one process. If the code
                         // does not compile, throws or does not finish, or an example gives another value, the
-                        // errors go back to the executor, once, and the examples check its new answer. Their
-                        // result is the evaluation: in live runs the evaluator rejected code that ran and gave
-                        // the right values, and the verifier answered VERIFIED to every answer, right or wrong.
+                        // errors go back to the executor, once, and the examples check its new answer. A
+                        // failing example fails the task: in live runs the evaluator rejected code that ran and
+                        // gave the right values, and the verifier answered VERIFIED to every answer, right or
+                        // wrong. When they pass, the evaluator judges only what they do not check (see step).
                         // Without examples, or when they do not compile against the code, the code runs alone
                         // and the evaluator decides, as before.
                         let examples = examplesOf taskDef.Goal taskDef.ValidationCriteria
@@ -1572,7 +1586,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                                     let mutable currentTrace = trace
                                     let mutable reflectionCount = 0
-                                    // Once the examples decided (5.2), there is no verification or reflection:
+                                    // Once the examples ran (5.2), there is no verification or reflection:
                                     // a failing example already went back to the executor once, and a reflected
                                     // answer would no longer be the one they checked.
                                     let mutable isOptimal = examplesVerdict.IsSome
@@ -1826,9 +1840,12 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                 let! evaluation =
                     match result.Evaluation, ctx.Governance.Evaluator with
-                    // The examples ran with the code (--run-code): their result is the evaluation.
-                    | Some decided, _ -> Task.FromResult(Some decided)
-                    | None, Some evaluator ->
+                    // The examples ran with the code (--run-code) and one failed: the task failed.
+                    | Some examples, _ when not examples.Passed -> Task.FromResult(Some examples)
+                    // They passed, or did not run: the evaluator judges. After passing examples it sees
+                    // them in result.Evaluation and judges only what they do not check, such as a
+                    // `flatten` the goal asks for without List.concat.
+                    | _, Some evaluator ->
                         task {
                             try
                                 let! evaluated = evaluator.Evaluate(taskDef, result)
@@ -1837,7 +1854,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 ctx.Logger($"[Evaluation] Failed: {ex.Message}")
                                 return None
                         }
-                    | None, None -> Task.FromResult None
+                    | examples, None -> Task.FromResult examples
 
                 let resultWithEvaluation = { result with Evaluation = evaluation }
 
