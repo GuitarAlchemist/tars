@@ -144,15 +144,41 @@ module EvolutionSemanticTests =
 
         Assert.Equal(Tars.Llm.LlmBackend.Ollama "qwen3:14b", routed.Backend)
 
+        // A configured GGUF model would otherwise take every local route.
+        let routedPastGguf =
+            Tars.Llm.Routing.chooseBackend
+                (global.Tars.Interface.Cli.LlmFactory.pinnedTo "qwen3:14b" { cfg with LlamaSharpModelPath = Some "model.gguf" })
+                { Tars.Llm.LlmRequest.Default with ModelHint = Some "reasoning" }
+
+        Assert.Equal(Tars.Llm.LlmBackend.Ollama "qwen3:14b", routedPastGguf.Backend)
+
     [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =
         let llm = SuccessLlm("ok") :> Tars.Llm.ILlmService
+        let recorder = TraceRecorder()
 
         let executor, teacher =
-            global.Tars.Interface.Cli.Commands.Evolve.tracedServices true (TraceRecorder()) llm (Some llm)
+            global.Tars.Interface.Cli.Commands.Evolve.tracedServices true recorder llm (Some llm)
 
         Assert.IsType<Tars.Llm.TracingLlmService>(executor) |> ignore
         Assert.IsType<Tars.Llm.TracingLlmService>(teacher.Value) |> ignore
+
+        // Each call says which of the two answered it.
+        executor.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
+        teacher.Value.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
+
+        let roles () =
+            ((recorder :> ITraceRecorder).GetTraceAsync() |> Async.RunSynchronously).Value.Events
+            |> List.choose (fun e -> e.Metadata.TryFind "role")
+            |> List.sort
+
+        // The recording is fire-and-forget.
+        let watch = Diagnostics.Stopwatch.StartNew()
+
+        while roles().Length < 2 && watch.Elapsed < TimeSpan.FromSeconds 5.0 do
+            Threading.Thread.Sleep 20
+
+        Assert.Equal<string>([ "executor"; "teacher" ], roles ())
 
     [<Fact>]
     let ``Evolution loop validates speech acts in response`` () =

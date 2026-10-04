@@ -48,17 +48,20 @@ type EvolveOptions =
       RunCode: bool }
 
 /// The executor's service and the teacher's, each traced into `recorder` when `--trace` is on,
-/// so the trace also holds the curriculum's and the judge's calls.
+/// so the trace also holds the curriculum's and the judge's calls. With a teacher, each call's
+/// metadata says which of the two answered it.
 let tracedServices
     (trace: bool)
     (recorder: TraceRecorder)
     (executor: ILlmService)
     (teacher: ILlmService option)
     : ILlmService * ILlmService option =
-    let traced (llm: ILlmService) =
-        if trace then TracingLlmService(llm, recorder) :> ILlmService else llm
+    let traced (role: string option) (llm: ILlmService) =
+        if trace then TracingLlmService(llm, recorder, ?role = role) :> ILlmService else llm
 
-    traced executor, Option.map traced teacher
+    match teacher with
+    | Some teacher -> traced (Some "executor") executor, Some(traced (Some "teacher") teacher)
+    | None -> traced None executor, None
 
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
@@ -477,8 +480,13 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 if options.DemoMode then
                     None
                 else
+                    // It suggests the curriculum's focus and verifies the answers: the teacher's job.
                     Some(
-                        Tars.Cortex.EpistemicGovernor(llmService, Some knowledgeGraph, Some budget)
+                        Tars.Cortex.EpistemicGovernor(
+                            teacherLlm |> Option.defaultValue llmService,
+                            Some knowledgeGraph,
+                            Some budget
+                        )
                         :> IEpistemicGovernor
                     )
 

@@ -57,13 +57,15 @@ module LlmFactory =
         DefaultLlmService(sharedClient, serviceConfig) :> ILlmService
 
     /// Routing that sends every request to `model`, whatever its hint (reasoning, coding, fast).
+    /// A configured LlamaSharp model would take every local route first, so it is dropped.
     let pinnedTo (model: string) (cfg: RoutingConfig) : RoutingConfig =
         { cfg with
             DefaultOllamaModel = model
             DefaultVllmModel = model
             ReasoningModel = Some model
             CodingModel = Some model
-            FastModel = Some model }
+            FastModel = Some model
+            LlamaSharpModelPath = None }
 
     /// Create an LLM service that answers every request with `model`, whatever its hint.
     let createPinnedTo (_logger: ILogger) (model: string) : ILlmService =

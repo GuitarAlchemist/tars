@@ -2,8 +2,14 @@ namespace Tars.Llm
 
 open Tars.Core
 
-/// Decorator for ILlmService that records all calls to a trace recorder
-type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder) =
+/// Decorator for ILlmService that records all calls to a trace recorder. A `role` (such as
+/// evolve's "executor" or "teacher") is added to each call's metadata.
+type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder, ?role: string) =
+    let withRole (metadata: Map<string, string>) =
+        match role with
+        | Some role -> metadata.Add("role", role)
+        | None -> metadata
+
     interface ILlmService with
         member _.CompleteAsync(request: LlmRequest) =
             task {
@@ -31,7 +37,7 @@ type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder) =
                     // Fire and forget with error handling
                     let recordOp = async {
                         try
-                            do! recorder.RecordEventAsync TraceEventType.LlmCall input output metadata
+                            do! recorder.RecordEventAsync TraceEventType.LlmCall input output (withRole metadata)
                         with ex ->
                             printfn $"DEBUG: Async trace recording failed: %s{ex.Message}"
                     }
@@ -69,7 +75,7 @@ type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder) =
                     // Fire and forget with error handling
                     let recordOp = async {
                         try
-                            do! recorder.RecordEventAsync TraceEventType.LlmCall input output metadata
+                            do! recorder.RecordEventAsync TraceEventType.LlmCall input output (withRole metadata)
                         with ex ->
                             printfn $"DEBUG: Async trace recording failed: %s{ex.Message}"
                     }
@@ -120,7 +126,7 @@ type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder) =
                 try
                     let recordOp = async {
                         try
-                            do! recorder.RecordEventAsync TraceEventType.LlmCall input output metadata
+                            do! recorder.RecordEventAsync TraceEventType.LlmCall input output (withRole metadata)
                         with ex ->
                             printfn $"DEBUG: Async trace recording failed: %s{ex.Message}"
                     }
@@ -161,7 +167,7 @@ type TracingLlmService(inner: ILlmService, recorder: ITraceRecorder) =
                 try
                     let recordOp = async {
                         try
-                            do! recorder.RecordEventAsync TraceEventType.LlmCall input output metadata
+                            do! recorder.RecordEventAsync TraceEventType.LlmCall input output (withRole metadata)
                         with ex ->
                             printfn $"DEBUG: Async trace recording failed: %s{ex.Message}"
                     }
