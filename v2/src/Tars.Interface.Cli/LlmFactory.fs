@@ -57,7 +57,8 @@ module LlmFactory =
         DefaultLlmService(sharedClient, serviceConfig) :> ILlmService
 
     /// Routing that sends every request to `model`, whatever its hint (reasoning, coding, fast).
-    /// A configured LlamaSharp model would take every local route first, so it is dropped.
+    /// A configured LlamaSharp model would take every local route first, and Docker Model Runner
+    /// and llama.cpp would take the "docker", "llamacpp", "perf" and "gguf" hints, so they are dropped.
     let pinnedTo (model: string) (cfg: RoutingConfig) : RoutingConfig =
         { cfg with
             DefaultOllamaModel = model
@@ -65,7 +66,11 @@ module LlmFactory =
             ReasoningModel = Some model
             CodingModel = Some model
             FastModel = Some model
-            LlamaSharpModelPath = None }
+            LlamaSharpModelPath = None
+            DockerModelRunnerBaseUri = None
+            DefaultDockerModelRunnerModel = None
+            LlamaCppBaseUri = None
+            DefaultLlamaCppModel = None }
 
     /// Create an LLM service that answers every request with `model`, whatever its hint.
     let createPinnedTo (_logger: ILogger) (model: string) : ILlmService =

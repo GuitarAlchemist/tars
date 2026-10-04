@@ -132,25 +132,25 @@ module EvolutionSemanticTests =
 
     [<Fact>]
     let ``A local teacher answers the reasoning requests of the curriculum and the judge`` () =
+        // Every other route configured: a reasoning model, a GGUF model (which takes every local
+        // route first), Docker Model Runner and llama.cpp (which take their own hints).
         let cfg =
             { Tars.Llm.Routing.RoutingConfig.Default with
                 ReasoningModel = Some "deepseek-r1:8b"
+                LlamaSharpModelPath = Some "model.gguf"
+                DockerModelRunnerBaseUri = Some(Uri "http://localhost:12434")
+                DefaultDockerModelRunnerModel = Some "ai/smollm2"
+                LlamaCppBaseUri = Some(Uri "http://localhost:8080")
+                DefaultLlamaCppModel = Some "llama.gguf"
                 PreferredProvider = "Ollama" }
 
-        let routed =
-            Tars.Llm.Routing.chooseBackend
-                (global.Tars.Interface.Cli.LlmFactory.pinnedTo "qwen3:14b" cfg)
-                { Tars.Llm.LlmRequest.Default with ModelHint = Some "reasoning" }
+        let pinned = global.Tars.Interface.Cli.LlmFactory.pinnedTo "qwen3:14b" cfg
 
-        Assert.Equal(Tars.Llm.LlmBackend.Ollama "qwen3:14b", routed.Backend)
+        for hint in [ "reasoning"; "coding"; "fast"; "cheap"; "docker"; "llamacpp"; "" ] do
+            let routed =
+                Tars.Llm.Routing.chooseBackend pinned { Tars.Llm.LlmRequest.Default with ModelHint = Some hint }
 
-        // A configured GGUF model would otherwise take every local route.
-        let routedPastGguf =
-            Tars.Llm.Routing.chooseBackend
-                (global.Tars.Interface.Cli.LlmFactory.pinnedTo "qwen3:14b" { cfg with LlamaSharpModelPath = Some "model.gguf" })
-                { Tars.Llm.LlmRequest.Default with ModelHint = Some "reasoning" }
-
-        Assert.Equal(Tars.Llm.LlmBackend.Ollama "qwen3:14b", routedPastGguf.Backend)
+            Assert.True((routed.Backend = Tars.Llm.LlmBackend.Ollama "qwen3:14b"), $"hint '{hint}' went to {routed.Backend}")
 
     [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =
