@@ -46,6 +46,140 @@ module EvolutionSemanticTests =
             member _.FindAgents(_) = async { return [] }
             member _.GetAllAgents() = async { return agents }
 
+    /// Answers like SuccessLlm and counts the requests it answers.
+    type CountingLlm(responseText: string) =
+        let answers = SuccessLlm(responseText) :> Tars.Llm.ILlmService
+        let mutable requests = 0
+        member _.Requests = requests
+
+        interface Tars.Llm.ILlmService with
+            member _.CompleteAsync(req) =
+                requests <- requests + 1
+                answers.CompleteAsync(req)
+
+            member _.CompleteStreamAsync(req, onToken) =
+                requests <- requests + 1
+                answers.CompleteStreamAsync(req, onToken)
+
+            member _.EmbedAsync(text) = answers.EmbedAsync(text)
+            member _.RouteAsync(req) = answers.RouteAsync(req)
+
+    [<Fact>]
+    let ``The teacher's model writes the tasks and the executor's model answers them`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let curriculumAgentId = AgentId(Guid.NewGuid())
+            let executorAgentId = AgentId(Guid.NewGuid())
+
+            let agent (AgentId id) name =
+                Tars.Kernel.AgentFactory.create id name "1.0.0" "test" "System" [] []
+
+            let teacher =
+                CountingLlm(
+                    "{\"tasks\":[{\"goal\":\"Write `isEven : int -> bool` in F#\",\"constraints\":[],\"validation_criteria\":\"isEven 4 = true; isEven 5 = false\"}]}"
+                )
+
+            let executor =
+                CountingLlm("ACT: INFORM: Done.\n```fsharp\nlet isEven (n: int) = n % 2 = 0\n```")
+
+            let ctx: Engine.EvolutionContext =
+                { Registry = MockRegistry([ agent curriculumAgentId "Curriculum"; agent executorAgentId "Executor" ])
+                  Llm = executor
+                  CurriculumLlm = Some(teacher :> Tars.Llm.ILlmService)
+                  VectorStore =
+                    { new IVectorStore with
+                        member _.SaveAsync(_, _, _, _) = Task.CompletedTask
+                        member _.SearchAsync(_, _, _) = Task.FromResult([]) }
+                  Logger = fun msg -> printfn $"LOG: %s{msg}"
+                  Memory =
+                    { SemanticMemory = None
+                      KnowledgeBase = None
+                      KnowledgeGraph = None
+                      MemoryBuffer = None
+                      EpisodeService = None
+                      Ledger = None
+                      EvidenceStore = None }
+                  Governance =
+                    { Epistemic = None
+                      PreLlm = None
+                      Budget = None
+                      OutputGuard = None
+                      Evaluator = None }
+                  Options =
+                    { RunId = None
+                      Verbose = false
+                      ShowSemanticMessage = fun _ _ -> ()
+                      Focus = None
+                      ToolRegistry = None
+                      ResearchEnhanced = false
+                      RunCode = false
+                      SelfImprovement = false } }
+
+            let state: EvolutionState =
+                { Generation = 0
+                  CurriculumAgentId = curriculumAgentId
+                  ExecutorAgentId = executorAgentId
+                  CompletedTasks = []
+                  CurrentTask = None
+                  TaskQueue = []
+                  ActiveBeliefs = [] }
+
+            let! nextState = Engine.step ctx state
+
+            Assert.Equal("Write `isEven : int -> bool` in F#", nextState.CompletedTasks.Head.TaskGoal)
+            Assert.True(executor.Requests > 0, "the executor's model answered nothing")
+        }
+
+    [<Fact>]
+    let ``A local teacher answers the reasoning requests of the curriculum and the judge`` () =
+        // Every other route configured: a reasoning model, a GGUF model (which takes every local
+        // route first), Docker Model Runner and llama.cpp (which take their own hints).
+        let cfg =
+            { Tars.Llm.Routing.RoutingConfig.Default with
+                ReasoningModel = Some "deepseek-r1:8b"
+                LlamaSharpModelPath = Some "model.gguf"
+                DockerModelRunnerBaseUri = Some(Uri "http://localhost:12434")
+                DefaultDockerModelRunnerModel = Some "ai/smollm2"
+                LlamaCppBaseUri = Some(Uri "http://localhost:8080")
+                DefaultLlamaCppModel = Some "llama.gguf"
+                PreferredProvider = "Ollama" }
+
+        let pinned = global.Tars.Interface.Cli.LlmFactory.pinnedTo "qwen3:14b" cfg
+
+        for hint in [ "reasoning"; "coding"; "fast"; "cheap"; "docker"; "llamacpp"; "" ] do
+            let routed =
+                Tars.Llm.Routing.chooseBackend pinned { Tars.Llm.LlmRequest.Default with ModelHint = Some hint }
+
+            Assert.True((routed.Backend = Tars.Llm.LlmBackend.Ollama "qwen3:14b"), $"hint '{hint}' went to {routed.Backend}")
+
+    [<Fact>]
+    let ``With --trace, the teacher's calls are traced like the executor's`` () =
+        let llm = SuccessLlm("ok") :> Tars.Llm.ILlmService
+        let recorder = TraceRecorder()
+
+        let executor, teacher =
+            global.Tars.Interface.Cli.Commands.Evolve.tracedServices true recorder llm (Some llm)
+
+        Assert.IsType<Tars.Llm.TracingLlmService>(executor) |> ignore
+        Assert.IsType<Tars.Llm.TracingLlmService>(teacher.Value) |> ignore
+
+        // Each call says which of the two answered it.
+        executor.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
+        teacher.Value.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
+
+        let roles () =
+            ((recorder :> ITraceRecorder).GetTraceAsync() |> Async.RunSynchronously).Value.Events
+            |> List.choose (fun e -> e.Metadata.TryFind "role")
+            |> List.sort
+
+        // The recording is fire-and-forget.
+        let watch = Diagnostics.Stopwatch.StartNew()
+
+        while roles().Length < 2 && watch.Elapsed < TimeSpan.FromSeconds 5.0 do
+            Threading.Thread.Sleep 20
+
+        Assert.Equal<string>([ "executor"; "teacher" ], roles ())
+
     [<Fact>]
     let ``Evolution loop validates speech acts in response`` () =
         task {
@@ -87,6 +221,7 @@ module EvolutionSemanticTests =
             let ctx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = curriculumLlm
+                  CurriculumLlm = None
                   VectorStore =
                     { new IVectorStore with
                         member _.SaveAsync(_, _, _, _) = Task.CompletedTask

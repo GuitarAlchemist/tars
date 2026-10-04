@@ -56,6 +56,28 @@ module LlmFactory =
         let serviceConfig = { LlmServiceConfig.Routing = routingCfg }
         DefaultLlmService(sharedClient, serviceConfig) :> ILlmService
 
+    /// Routing that sends every request to `model`, whatever its hint (reasoning, coding, fast).
+    /// A configured LlamaSharp model would take every local route first, and Docker Model Runner
+    /// and llama.cpp would take the "docker", "llamacpp", "perf" and "gguf" hints, so they are dropped.
+    let pinnedTo (model: string) (cfg: RoutingConfig) : RoutingConfig =
+        { cfg with
+            DefaultOllamaModel = model
+            DefaultVllmModel = model
+            ReasoningModel = Some model
+            CodingModel = Some model
+            FastModel = Some model
+            LlamaSharpModelPath = None
+            DockerModelRunnerBaseUri = None
+            DefaultDockerModelRunnerModel = None
+            LlamaCppBaseUri = None
+            DefaultLlamaCppModel = None }
+
+    /// Create an LLM service that answers every request with `model`, whatever its hint.
+    let createPinnedTo (_logger: ILogger) (model: string) : ILlmService =
+        let _, routingCfg = loadConfig ()
+        let serviceConfig = { LlmServiceConfig.Routing = pinnedTo model routingCfg }
+        DefaultLlmService(sharedClient, serviceConfig) :> ILlmService
+
     /// The model `--model claude:<model>` asks Claude Code for (`claude:sonnet` -> `sonnet`).
     let claudeCodeModel (model: string) : string option =
         let prefix = "claude:"

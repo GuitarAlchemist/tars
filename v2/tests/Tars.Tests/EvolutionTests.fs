@@ -177,6 +177,7 @@ module EvolutionTests =
         let evoCtx: Engine.EvolutionContext =
             { Registry = registry
               Llm = llm :> Tars.Llm.ILlmService
+              CurriculumLlm = None
               VectorStore = StubVectorStore() :> IVectorStore
               Logger = (fun _ -> ())
               Memory =

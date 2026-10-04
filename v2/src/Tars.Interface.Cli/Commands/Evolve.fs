@@ -26,6 +26,10 @@ type EvolveOptions =
       DemoMode: bool
       Verbose: bool
       Model: string option
+      /// The model that writes the curriculum and judges the answers (`--teacher claude:sonnet`),
+      /// while `Model` answers them. None: `Model` does all three. It takes the names `Model`
+      /// takes: a local model, or `claude:<model>` for Claude Code.
+      Teacher: string option
       Trace: bool
       Budget: decimal option
       DisableGraphiti: bool
@@ -43,6 +47,22 @@ type EvolveOptions =
       /// Run the F# code in the executor's answers with dotnet fsi, and send failures back to
       /// it once. The code runs with the user's rights, outside any sandbox. Off by default.
       RunCode: bool }
+
+/// The executor's service and the teacher's, each traced into `recorder` when `--trace` is on,
+/// so the trace also holds the curriculum's and the judge's calls. With a teacher, each call's
+/// metadata says which of the two answered it.
+let tracedServices
+    (trace: bool)
+    (recorder: TraceRecorder)
+    (executor: ILlmService)
+    (teacher: ILlmService option)
+    : ILlmService * ILlmService option =
+    let traced (role: string option) (llm: ILlmService) =
+        if trace then TracingLlmService(llm, recorder, ?role = role) :> ILlmService else llm
+
+    match teacher with
+    | Some teacher -> traced (Some "executor") executor, Some(traced (Some "teacher") teacher)
+    | None -> traced None executor, None
 
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
@@ -258,29 +278,41 @@ let run (logger: ILogger) (options: EvolveOptions) =
         registry.Register(reviewerAgent)
 
         // Initialize LLM Service
-        // `--model claude:sonnet` sends every role's requests to Claude Code (`claude -p`),
-        // on the user's own Claude login. Embeddings still come from the configured backend.
+        // A `claude:<model>` sends its requests to Claude Code (`claude -p`), on the user's own
+        // Claude login. Embeddings still come from the configured backend.
+        let createLlm (m: string) =
+            match LlmFactory.claudeCodeModel m with
+            | Some claudeModel ->
+                LlmFactory.createClaudeCode (Some claudeModel)
+                |> LlmFactory.withEmbeddings (LlmFactory.create logger)
+            | None -> LlmFactory.createWithModel logger m
+
         let baseLlmService =
             match options.Model with
-            | Some m ->
-                match LlmFactory.claudeCodeModel m with
-                | Some claudeModel ->
-                    LlmFactory.createClaudeCode (Some claudeModel)
-                    |> LlmFactory.withEmbeddings (LlmFactory.create logger)
-                | None -> LlmFactory.createWithModel logger m
+            | Some m -> createLlm m
             | None -> LlmFactory.create logger
+
+        // `--teacher` writes the curriculum and judges the answers; `--model` answers them.
+        // A local teacher answers every request: the curriculum and the judge ask for
+        // "reasoning", which would otherwise go to the configured ReasoningModel.
+        let teacherLlm =
+            options.Teacher
+            |> Option.map (fun m ->
+                match LlmFactory.claudeCodeModel m with
+                | Some _ -> createLlm m
+                | None -> LlmFactory.createPinnedTo logger m)
+
+        if not options.Quiet then
+            options.Teacher |> Option.iter (fun t -> RichOutput.info $"Teacher (curriculum and judge): {t}")
 
         // Setup Tracing if enabled
         let traceRecorder = TraceRecorder()
 
-        let llmService =
-            if options.Trace then
-                if not options.Quiet then
-                    RichOutput.info "🔍 Tracing enabled"
+        if options.Trace && not options.Quiet then
+            RichOutput.info "🔍 Tracing enabled"
 
-                TracingLlmService(baseLlmService, traceRecorder) :> ILlmService
-            else
-                baseLlmService
+        let llmService, teacherLlm =
+            tracedServices options.Trace traceRecorder baseLlmService teacherLlm
 
         if options.Trace then
             let! traceId = (traceRecorder :> ITraceRecorder).StartTraceAsync() |> Async.StartAsTask
@@ -449,8 +481,13 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 if options.DemoMode then
                     None
                 else
+                    // It suggests the curriculum's focus and verifies the answers: the teacher's job.
                     Some(
-                        Tars.Cortex.EpistemicGovernor(llmService, Some knowledgeGraph, Some budget)
+                        Tars.Cortex.EpistemicGovernor(
+                            teacherLlm |> Option.defaultValue llmService,
+                            Some knowledgeGraph,
+                            Some budget
+                        )
                         :> IEpistemicGovernor
                     )
 
@@ -459,7 +496,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             let evaluator =
                 SemanticEvaluation(
-                    llmService,
+                    teacherLlm |> Option.defaultValue llmService,
                     minConfidence = 0.6,
                     logger = fun msg -> logger.Information("{Evaluation}", msg)
                 )
@@ -556,6 +593,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
             let evoCtx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = llmService
+                  CurriculumLlm = teacherLlm
                   VectorStore = vectorStore
                   Logger =
                     fun s ->

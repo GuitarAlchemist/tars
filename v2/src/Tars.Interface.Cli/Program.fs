@@ -324,6 +324,7 @@ let main argv =
                   DemoMode = false
                   Verbose = false
                   Model = None
+                  Teacher = None
                   Trace = false
                   Budget = None
                   DisableGraphiti = false
@@ -381,6 +382,9 @@ let main argv =
                 | "--benchmark" -> options <- { options with Benchmark = true }
                 | "--grammar-mesh" -> options <- { options with GrammarMesh = true }
                 | "--run-code" -> options <- { options with RunCode = true }
+                | "--teacher" when i + 1 < args.Length ->
+                    i <- i + 1
+                    options <- { options with Teacher = Some args.[i] }
                 | "--benchmark-domain" when i + 1 < args.Length ->
                     i <- i + 1
                     options <- { options with BenchmarkDomain = args.[i] }
@@ -629,6 +633,8 @@ let main argv =
             printfn "  tars evolve [options]            Run the evolution engine"
             printfn "       --max-iterations N          Set max generations (default 5)"
             printfn "       --loop N                    Run N full evolution cycles back-to-back (default 1)"
+            printfn "       --teacher M                 Model that writes the tasks and judges the answers:"
+            printfn "                                   an Ollama model or claude:<model> (Claude Code)"
             printfn "       --budget USD                Maximum monetary budget in USD"
             printfn "       --quiet                     Suppress splash screen"
             printfn "  tars knowledge <command>         Manage TARS knowledge base"

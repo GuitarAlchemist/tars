@@ -98,6 +98,7 @@ module EvolveIntegrationTests =
             let context: Engine.EvolutionContext =
                 { Registry = registry :> IAgentRegistry
                   Llm = ContradictionLlm() :> ILlmService
+                  CurriculumLlm = None
                   VectorStore = NoOpVectorStore() :> IVectorStore
                   Logger = fun _ -> ()
                   Memory =

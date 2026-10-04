@@ -84,6 +84,7 @@ module EvolutionBenchmarkTests =
             let ctx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = llm
+                  CurriculumLlm = None
                   VectorStore =
                     { new IVectorStore with
                         member _.SaveAsync(_, _, _, _) = Task.CompletedTask
