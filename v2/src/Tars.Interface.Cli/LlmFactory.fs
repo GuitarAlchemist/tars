@@ -78,6 +78,57 @@ module LlmFactory =
         let serviceConfig = { LlmServiceConfig.Routing = pinnedTo model routingCfg }
         DefaultLlmService(sharedClient, serviceConfig) :> ILlmService
 
+    /// The API model `openai:<model>`, `gemini:<model>` or `anthropic:<model>` names, routed to its
+    /// provider with that provider's key. `anthropic:` is the paid API; `claude:` is Claude Code.
+    /// The provider is named, not guessed: Ollama's `gpt-oss:20b` stays local.
+    let apiRoute (cfg: RoutingConfig) (model: string) : RoutedBackend option =
+        match model.Split(':', 2, StringSplitOptions.None) with
+        | [| "openai"; name |] when name <> "" ->
+            Some
+                { Backend = OpenAI name
+                  Endpoint = cfg.OpenAIBaseUri
+                  ApiKey = cfg.OpenAIKey }
+        | [| "gemini"; name |] when name <> "" ->
+            Some
+                { Backend = GoogleGemini name
+                  Endpoint = cfg.GoogleGeminiBaseUri
+                  ApiKey = cfg.GoogleGeminiKey }
+        | [| "anthropic"; name |] when name <> "" ->
+            Some
+                { Backend = Anthropic name
+                  Endpoint = cfg.AnthropicBaseUri
+                  ApiKey = cfg.AnthropicKey }
+        | _ -> None
+
+    /// An LLM service that sends every completion to `route`, whatever the request's model or hint.
+    /// Embeddings come from the configured backend, as with `create`.
+    let onRoute (cfg: RoutingConfig) (route: RoutedBackend) : ILlmService =
+        let backend = Backends.resolve { LlmServiceConfig.Routing = cfg } sharedClient route
+
+        { new ILlmService with
+            member _.CompleteAsync req = backend.Complete(enrichRequest cfg req)
+            member _.CompleteStreamAsync(req, onToken) = backend.Stream(enrichRequest cfg req, onToken)
+            member _.EmbedAsync text = Embedder.embed sharedClient cfg text
+            member _.RouteAsync _ = Threading.Tasks.Task.FromResult route }
+
+    /// The service for `openai:<model>`, `gemini:<model>` or `anthropic:<model>`, billed to that
+    /// provider's API key (CredentialVault, the environment or the config). None for other names.
+    let createOnApi (_logger: ILogger) (model: string) : ILlmService option =
+        let _, routingCfg = loadConfig ()
+
+        apiRoute routingCfg model
+        |> Option.map (fun route ->
+            if route.ApiKey |> Option.forall String.IsNullOrWhiteSpace then
+                let secret =
+                    match route.Backend with
+                    | OpenAI _ -> "OPENAI_API_KEY"
+                    | GoogleGemini _ -> "GOOGLE_API_KEY"
+                    | _ -> "ANTHROPIC_API_KEY"
+
+                failwith $"{model} needs an API key: set {secret}."
+
+            onRoute routingCfg route)
+
     /// The model `--model claude:<model>` asks Claude Code for (`claude:sonnet` -> `sonnet`).
     let claudeCodeModel (model: string) : string option =
         let prefix = "claude:"

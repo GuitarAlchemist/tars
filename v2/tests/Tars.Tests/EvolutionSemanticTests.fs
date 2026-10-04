@@ -153,6 +153,82 @@ module EvolutionSemanticTests =
             Assert.True((routed.Backend = Tars.Llm.LlmBackend.Ollama "qwen3:14b"), $"hint '{hint}' went to {routed.Backend}")
 
     [<Fact>]
+    let ``An API teacher is named with its provider`` () =
+        let route = global.Tars.Interface.Cli.LlmFactory.apiRoute Tars.Llm.Routing.RoutingConfig.Default
+        let backendOf name = route name |> Option.map (fun r -> r.Backend)
+
+        Assert.True((backendOf "openai:o3" = Some(Tars.Llm.LlmBackend.OpenAI "o3")))
+        Assert.True((backendOf "gemini:gemini-2.5-pro" = Some(Tars.Llm.LlmBackend.GoogleGemini "gemini-2.5-pro")))
+        Assert.True((backendOf "anthropic:claude-sonnet-5-5" = Some(Tars.Llm.LlmBackend.Anthropic "claude-sonnet-5-5")))
+
+        // Other names stay local, even an Ollama model named like an API one; `claude:` is Claude Code.
+        for name in [ "gpt-oss:20b"; "qwen3:14b"; "claude:sonnet"; "openai:" ] do
+            Assert.True((route name).IsNone, $"{name} went to an API")
+
+    [<Fact>]
+    let ``An API teacher answers every request on its provider, with its key`` () =
+        let port =
+            let probe = new Net.Sockets.TcpListener(Net.IPAddress.Loopback, 0)
+            probe.Start()
+            let port = (probe.LocalEndpoint :?> Net.IPEndPoint).Port
+            probe.Stop()
+            port
+
+        let baseUri = Uri($"http://localhost:{port}/")
+        use listener = new Net.HttpListener()
+        listener.Prefixes.Add(string baseUri)
+        listener.Start()
+        let received = Collections.Concurrent.ConcurrentQueue<string>()
+
+        let _server =
+            task {
+                while listener.IsListening do
+                    try
+                        let! context = listener.GetContextAsync()
+                        use reader = new IO.StreamReader(context.Request.InputStream)
+                        let! body = reader.ReadToEndAsync()
+                        let authorization = context.Request.Headers.["Authorization"]
+                        received.Enqueue($"{context.Request.Url.AbsolutePath} {authorization} {body}")
+
+                        let bytes =
+                            Text.Encoding.UTF8.GetBytes
+                                """{"id":"1","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}"""
+
+                        context.Response.ContentType <- "application/json"
+                        context.Response.OutputStream.Write(bytes, 0, bytes.Length)
+                        context.Response.Close()
+                    with _ ->
+                        ()
+            }
+
+        try
+            // A reasoning model is configured too: the teacher's hints must not reach it.
+            let cfg =
+                { Tars.Llm.Routing.RoutingConfig.Default with
+                    OpenAIBaseUri = baseUri
+                    OpenAIKey = Some "test-key"
+                    ReasoningModel = Some "deepseek-r1:8b" }
+
+            let route = (global.Tars.Interface.Cli.LlmFactory.apiRoute cfg "openai:o3").Value
+            let teacher = global.Tars.Interface.Cli.LlmFactory.onRoute cfg route
+
+            for hint in [ "reasoning"; "coding"; "" ] do
+                let request =
+                    { Tars.Llm.LlmRequest.Default with
+                        ModelHint = Some hint
+                        Messages = [ { Tars.Llm.LlmMessage.Role = Tars.Llm.Role.User; Content = "hi" } ] }
+
+                Assert.Equal("ok", teacher.CompleteAsync(request).Result.Text)
+
+            Assert.Equal(3, received.Count)
+
+            for request in received do
+                Assert.StartsWith("/v1/chat/completions Bearer test-key ", request)
+                Assert.Contains("\"o3\"", request)
+        finally
+            listener.Stop()
+
+    [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =
         let llm = SuccessLlm("ok") :> Tars.Llm.ILlmService
         let recorder = TraceRecorder()

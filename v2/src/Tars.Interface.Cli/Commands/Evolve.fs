@@ -28,7 +28,8 @@ type EvolveOptions =
       Model: string option
       /// The model that writes the curriculum and judges the answers (`--teacher claude:sonnet`),
       /// while `Model` answers them. None: `Model` does all three. It takes the names `Model`
-      /// takes: a local model, or `claude:<model>` for Claude Code.
+      /// takes: a local model, `claude:<model>` for Claude Code, or `openai:<model>`,
+      /// `gemini:<model>` or `anthropic:<model>` for that provider's paid API.
       Teacher: string option
       Trace: bool
       Budget: decimal option
@@ -279,13 +280,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
         // Initialize LLM Service
         // A `claude:<model>` sends its requests to Claude Code (`claude -p`), on the user's own
-        // Claude login. Embeddings still come from the configured backend.
+        // Claude login. Embeddings still come from the configured backend. `openai:<model>`,
+        // `gemini:<model>` and `anthropic:<model>` send them to that provider's API.
         let createLlm (m: string) =
             match LlmFactory.claudeCodeModel m with
             | Some claudeModel ->
                 LlmFactory.createClaudeCode (Some claudeModel)
                 |> LlmFactory.withEmbeddings (LlmFactory.create logger)
-            | None -> LlmFactory.createWithModel logger m
+            | None ->
+                LlmFactory.createOnApi logger m
+                |> Option.defaultWith (fun () -> LlmFactory.createWithModel logger m)
 
         let baseLlmService =
             match options.Model with
@@ -300,7 +304,9 @@ let run (logger: ILogger) (options: EvolveOptions) =
             |> Option.map (fun m ->
                 match LlmFactory.claudeCodeModel m with
                 | Some _ -> createLlm m
-                | None -> LlmFactory.createPinnedTo logger m)
+                | None ->
+                    LlmFactory.createOnApi logger m
+                    |> Option.defaultWith (fun () -> LlmFactory.createPinnedTo logger m))
 
         if not options.Quiet then
             options.Teacher |> Option.iter (fun t -> RichOutput.info $"Teacher (curriculum and judge): {t}")
