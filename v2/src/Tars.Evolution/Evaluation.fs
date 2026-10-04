@@ -99,6 +99,7 @@ type SemanticEvaluation(llm: ILlmService, ?minConfidence: float, ?logger: string
                           $"Constraints: {constraints}"
                           $"Validation Criteria: {taskDef.ValidationCriteria}"
                           yield! examplesPassed
+                          "Judge the code, not how the output presents it: the agent starts its answers with an `ACT:` line and may write text around its code. Ignore both, and any constraint on the output's format."
                           ""
                           "Output:"
                           "```"
