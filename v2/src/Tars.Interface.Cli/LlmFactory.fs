@@ -176,7 +176,8 @@ module LlmFactory =
     /// input at one token per UTF-8 byte of everything billed (system prompt, messages, schema or
     /// grammar, tool definitions; plus 8 per part and 64 per call) and its `MaxTokens` of output
     /// (4096 when it sets none). That worst case is reserved before the call, then settled at the
-    /// response's usage, or kept whole when the response has none.
+    /// response's usage, or kept whole when the response has none. A failed call keeps it too,
+    /// unless the provider refused it (4xx): a timeout or a dropped connection may have been billed.
     let charged (budget: BudgetGovernor) (inputPrice: decimal, outputPrice: decimal) (llm: ILlmService) : ILlmService =
         let usd (input: int) (output: int) =
             (decimal input * inputPrice + decimal output * outputPrice) / 1_000_000m * 1m<usd>
@@ -220,7 +221,15 @@ module LlmFactory =
                             try
                                 return! call req
                             with ex ->
-                                budget.Consume(money -reserved) |> ignore
+                                match ex with
+                                | :? HttpRequestException as http when
+                                    http.StatusCode.HasValue
+                                    && int http.StatusCode.Value >= 400
+                                    && int http.StatusCode.Value < 500
+                                    ->
+                                    budget.Consume(money -reserved) |> ignore
+                                | _ -> ()
+
                                 return raise ex
                         }
 

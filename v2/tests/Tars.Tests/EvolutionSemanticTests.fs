@@ -458,23 +458,34 @@ module EvolutionSemanticTests =
 
         Assert.Equal(Some 4096, (Seq.last sent).MaxTokens)
 
-        // A call that fails gives its reservation back.
-        let failing =
-            { new Tars.Llm.ILlmService with
-                member _.CompleteAsync _ =
-                    Task.FromException<Tars.Llm.LlmResponse>(exn "provider down")
+        // A call the provider refused (4xx) gives its reservation back. One that failed on the
+        // way back (a timeout, a dropped connection) keeps it: the provider may have billed it.
+        let chargedAfter (error: exn) =
+            let failing =
+                { new Tars.Llm.ILlmService with
+                    member _.CompleteAsync _ =
+                        Task.FromException<Tars.Llm.LlmResponse> error
 
-                member _.CompleteStreamAsync(_, _) = failwith "not used"
-                member _.EmbedAsync _ = Task.FromResult [||]
-                member _.RouteAsync _ = failwith "not used" }
+                    member _.CompleteStreamAsync(_, _) = failwith "not used"
+                    member _.EmbedAsync _ = Task.FromResult [||]
+                    member _.RouteAsync _ = failwith "not used" }
 
-        let untouched = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 100m<usd> })
-        let failingPaid = global.Tars.Interface.Cli.LlmFactory.charged untouched (2m, 8m) failing
+            let failed = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 100m<usd> })
+            let failingPaid = global.Tars.Interface.Cli.LlmFactory.charged failed (2m, 8m) failing
 
-        Assert.ThrowsAny<exn>(Action(fun () -> failingPaid.CompleteAsync(request).Result |> ignore))
-        |> ignore
+            Assert.ThrowsAny<exn>(Action(fun () -> failingPaid.CompleteAsync(request).Result |> ignore))
+            |> ignore
 
-        Assert.True((untouched.Consumed.Money = 0m<usd>), $"kept {untouched.Consumed.Money}")
+            failed.Consumed.Money
+
+        let refused =
+            chargedAfter (Net.Http.HttpRequestException("Bad Request", null, Nullable Net.HttpStatusCode.BadRequest))
+
+        Assert.True((refused = 0m<usd>), $"kept {refused}")
+
+        // The reservation: 64 + 2 + 8 input tokens at 2 USD per million, 1M output tokens at 8.
+        let timedOut = chargedAfter (TaskCanceledException "timed out")
+        Assert.True((timedOut = 8.000148m<usd>), $"kept {timedOut}")
 
         // A response without usage keeps its whole reservation: nothing else bounds what it cost.
         let withoutUsage =

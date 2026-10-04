@@ -647,7 +647,7 @@ let main argv =
             printfn "       --model-price IN/OUT        Price of a paid API --model: USD per million"
             printfn "                                   input/output tokens (e.g. 2.5/10), charged to --budget"
             printfn "       --teacher-price IN/OUT      The same for a paid API --teacher"
-            printfn "       --budget USD                Maximum monetary budget in USD"
+            printfn "       --budget USD                Maximum spend in USD on paid API models (default 10)"
             printfn "       --quiet                     Suppress splash screen"
             printfn "  tars knowledge <command>         Manage TARS knowledge base"
             printfn "       list [--category <cat>]     List all entries"
