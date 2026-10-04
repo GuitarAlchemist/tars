@@ -336,22 +336,23 @@ let private backendName (backend: LlmBackend) =
     | LlamaCpp _ -> "LlamaCpp"
     | LlamaSharp _ -> "LlamaSharp"
 
+/// The constraint `backend` has to give up to serve `req`, if any.
+let downgradeOf (backend: LlmBackend) (req: LlmRequest) : ConstraintDowngrade option =
+    if ConstraintNeed.supports backend (ConstraintNeed.ofRequest req) then
+        None
+    else
+        Some
+            { RequestedGrammar = requestedGrammarName req
+              Backend = backendName backend }
+
 /// Route, and report whether the chosen backend can enforce the requested
 /// constraint. Still pure — callers that do not care about constraints keep using
 /// `chooseBackend` unchanged.
 let chooseBackendWithConstraints (cfg: RoutingConfig) (req: LlmRequest) : ChosenBackend =
     let routed = chooseBackend cfg req
-    let need = ConstraintNeed.ofRequest req
 
-    let downgrade =
-        if ConstraintNeed.supports routed.Backend need then
-            None
-        else
-            Some
-                { RequestedGrammar = requestedGrammarName req
-                  Backend = backendName routed.Backend }
-
-    { Routed = routed; Downgrade = downgrade }
+    { Routed = routed
+      Downgrade = downgradeOf routed.Backend req }
 
 /// Where constraint downgrades get reported. Routing stays pure, so the warning
 /// is emitted here at the service boundary instead.

@@ -258,7 +258,7 @@ module EvolutionSemanticTests =
             Assert.Contains("\"o3\"", body)
 
     [<Fact>]
-    let ``A Gemini teacher gets the judge's instructions, and JSON mode for its schema`` () =
+    let ``A Gemini teacher gets the judge's instructions, and JSON mode for its schema, with a warning`` () =
         let baseUri, received, listener =
             fakeProvider """{"candidates":[{"content":{"role":"model","parts":[{"text":"ok"}]},"finishReason":"STOP","index":0}]}"""
 
@@ -278,19 +278,93 @@ module EvolutionSemanticTests =
                 ModelHint = Some "reasoning"
                 SystemPrompt = Some "Evaluate task output for semantic correctness."
                 Messages = userSays "hi"
+                Temperature = Some 0.0
                 ResponseFormat =
                     Some(Tars.Llm.ResponseFormat.Constrained(Tars.Llm.Grammar.JsonSchema EvolutionSchemas.evaluationSchema))
                 JsonMode = true }
 
-        Assert.Equal("ok", teacher.CompleteAsync(request).Result.Text)
+        let warnings = Collections.Generic.List<string>()
+        Tars.Llm.Routing.ConstraintDowngradeLog.setSink warnings.Add
+
+        try
+            Assert.Equal("ok", teacher.CompleteAsync(request).Result.Text)
+        finally
+            Tars.Llm.Routing.ConstraintDowngradeLog.resetSink ()
+
+        // The schema is given up, so it is reported, as on every other route.
+        Assert.Contains(warnings, fun w -> w.Contains "json_schema grammar discarded — backend GoogleGemini")
 
         let path, _, key, body = Seq.exactlyOne received
         Assert.Equal("/v1beta/models/gemini-2.5-pro:generateContent", path)
         Assert.Equal("test-key", key)
-        Assert.Contains("Evaluate task output for semantic correctness.", body)
-        Assert.Contains("application/json", body)
+
+        // The body as Gemini reads it: F# options must be plain values, not {"value": ...}.
+        use json = Text.Json.JsonDocument.Parse body
+        let root = json.RootElement
+
+        Assert.Equal(
+            "Evaluate task output for semantic correctness.",
+            root.GetProperty("systemInstruction").GetProperty("parts").[0].GetProperty("text").GetString()
+        )
+
+        let generationConfig = root.GetProperty "generationConfig"
+        Assert.Equal("application/json", generationConfig.GetProperty("responseMimeType").GetString())
+        Assert.Equal(0.0, generationConfig.GetProperty("temperature").GetDouble())
         // Gemini's response schema has no additionalProperties, which every TARS schema carries.
+        Assert.False(fst (generationConfig.TryGetProperty "responseSchema"))
         Assert.DoesNotContain("additionalProperties", body)
+
+    [<Fact>]
+    let ``A price is USD per million input and output tokens`` () =
+        let parse = global.Tars.Interface.Cli.LlmFactory.parsePrice
+
+        Assert.True((parse "2.5/10" = Some(2.5m, 10m)))
+
+        for text in [ "2,5/10"; "2.5"; "1/2/3"; "-1/2"; "a/b" ] do
+            Assert.True((parse text).IsNone, text)
+
+    [<Fact>]
+    let ``A paid model's calls are charged to the budget, and stop once it is spent`` () =
+        let calls = ref 0
+
+        let llm =
+            { new Tars.Llm.ILlmService with
+                member _.CompleteAsync _ =
+                    calls.Value <- calls.Value + 1
+
+                    let usage: Tars.Llm.TokenUsage =
+                        { PromptTokens = 1_000_000
+                          CompletionTokens = 1_000_000
+                          TotalTokens = 2_000_000 }
+
+                    let response: Tars.Llm.LlmResponse =
+                        { Text = "ok"
+                          FinishReason = None
+                          Usage = Some usage
+                          Raw = None }
+
+                    Task.FromResult response
+
+                member _.CompleteStreamAsync(_, _) = failwith "not used"
+                member _.EmbedAsync _ = Task.FromResult [||]
+                member _.RouteAsync _ = failwith "not used" }
+
+        // Each call: 1M input tokens at 2 USD and 1M output tokens at 8 USD per million, 10 USD.
+        let budget = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 15m<usd> })
+        let paid = global.Tars.Interface.Cli.LlmFactory.charged budget (2m, 8m) llm
+
+        paid.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
+        paid.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
+
+        Assert.True((budget.Consumed.Money = 20m<usd>), $"charged {budget.Consumed.Money}")
+
+        // Spent: the next call is refused before it is sent, and the graph's steps stop too.
+        let refused =
+            Assert.ThrowsAny<exn>(Action(fun () -> paid.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore))
+
+        Assert.Contains("budget is spent", refused.ToString())
+        Assert.Equal(2, calls.Value)
+        Assert.False(budget.CanAfford Cost.Zero)
 
     [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =

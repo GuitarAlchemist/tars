@@ -325,6 +325,8 @@ let main argv =
                   Verbose = false
                   Model = None
                   Teacher = None
+                  ModelPrice = None
+                  TeacherPrice = None
                   Trace = false
                   Budget = None
                   DisableGraphiti = false
@@ -385,6 +387,12 @@ let main argv =
                 | "--teacher" when i + 1 < args.Length ->
                     i <- i + 1
                     options <- { options with Teacher = Some args.[i] }
+                | "--model-price" when i + 1 < args.Length ->
+                    i <- i + 1
+                    options <- { options with ModelPrice = Some args.[i] }
+                | "--teacher-price" when i + 1 < args.Length ->
+                    i <- i + 1
+                    options <- { options with TeacherPrice = Some args.[i] }
                 | "--benchmark-domain" when i + 1 < args.Length ->
                     i <- i + 1
                     options <- { options with BenchmarkDomain = args.[i] }
@@ -636,6 +644,9 @@ let main argv =
             printfn "       --teacher M                 Model that writes the tasks and judges the answers:"
             printfn "                                   an Ollama model, claude:<model> (Claude Code), or"
             printfn "                                   openai:, gemini: or anthropic:<model> (paid API)"
+            printfn "       --model-price IN/OUT        Price of a paid API --model: USD per million"
+            printfn "                                   input/output tokens (e.g. 2.5/10), charged to --budget"
+            printfn "       --teacher-price IN/OUT      The same for a paid API --teacher"
             printfn "       --budget USD                Maximum monetary budget in USD"
             printfn "       --quiet                     Suppress splash screen"
             printfn "  tars knowledge <command>         Manage TARS knowledge base"
