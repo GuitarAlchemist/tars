@@ -79,25 +79,21 @@ module LlmFactory =
         DefaultLlmService(sharedClient, serviceConfig) :> ILlmService
 
     /// The API model `openai:<model>`, `gemini:<model>` or `anthropic:<model>` names, routed to its
-    /// provider with that provider's key. `anthropic:` is the paid API; `claude:` is Claude Code.
-    /// The provider is named, not guessed: Ollama's `gpt-oss:20b` stays local.
-    let apiRoute (cfg: RoutingConfig) (model: string) : RoutedBackend option =
+    /// provider. `anthropic:` is the paid API; `claude:` is Claude Code. The provider is named, not
+    /// guessed: Ollama's `gpt-oss:20b` stays local. The key is that provider's own `secret`
+    /// (OPENAI_API_KEY, GOOGLE_API_KEY, ANTHROPIC_API_KEY), never `cfg`'s: `RoutingConfig.fromTarsConfig`
+    /// copies `Llm:ApiKey`, which is OPENAI_API_KEY, into every provider's slot.
+    let apiRoute (secret: string -> string option) (cfg: RoutingConfig) (model: string) : RoutedBackend option =
+        let route backend endpoint secretName =
+            Some
+                { Backend = backend
+                  Endpoint = endpoint
+                  ApiKey = secret secretName }
+
         match model.Split(':', 2, StringSplitOptions.None) with
-        | [| "openai"; name |] when name <> "" ->
-            Some
-                { Backend = OpenAI name
-                  Endpoint = cfg.OpenAIBaseUri
-                  ApiKey = cfg.OpenAIKey }
-        | [| "gemini"; name |] when name <> "" ->
-            Some
-                { Backend = GoogleGemini name
-                  Endpoint = cfg.GoogleGeminiBaseUri
-                  ApiKey = cfg.GoogleGeminiKey }
-        | [| "anthropic"; name |] when name <> "" ->
-            Some
-                { Backend = Anthropic name
-                  Endpoint = cfg.AnthropicBaseUri
-                  ApiKey = cfg.AnthropicKey }
+        | [| "openai"; name |] when name <> "" -> route (OpenAI name) cfg.OpenAIBaseUri "OPENAI_API_KEY"
+        | [| "gemini"; name |] when name <> "" -> route (GoogleGemini name) cfg.GoogleGeminiBaseUri "GOOGLE_API_KEY"
+        | [| "anthropic"; name |] when name <> "" -> route (Anthropic name) cfg.AnthropicBaseUri "ANTHROPIC_API_KEY"
         | _ -> None
 
     /// An LLM service that sends every completion to `route`, whatever the request's model or hint.
@@ -112,11 +108,17 @@ module LlmFactory =
             member _.RouteAsync _ = Threading.Tasks.Task.FromResult route }
 
     /// The service for `openai:<model>`, `gemini:<model>` or `anthropic:<model>`, billed to that
-    /// provider's API key (CredentialVault, the environment or the config). None for other names.
+    /// provider's API key (the environment or secrets.json, through CredentialVault). None for
+    /// other names.
     let createOnApi (_logger: ILogger) (model: string) : ILlmService option =
         let _, routingCfg = loadConfig ()
 
-        apiRoute routingCfg model
+        let secret name =
+            match CredentialVault.getSecret name with
+            | Ok key -> Some key
+            | _ -> None
+
+        apiRoute secret routingCfg model
         |> Option.map (fun route ->
             if route.ApiKey |> Option.forall String.IsNullOrWhiteSpace then
                 let secret =

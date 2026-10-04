@@ -154,7 +154,8 @@ module EvolutionSemanticTests =
 
     [<Fact>]
     let ``An API teacher is named with its provider`` () =
-        let route = global.Tars.Interface.Cli.LlmFactory.apiRoute Tars.Llm.Routing.RoutingConfig.Default
+        let route =
+            global.Tars.Interface.Cli.LlmFactory.apiRoute (fun _ -> None) Tars.Llm.Routing.RoutingConfig.Default
         let backendOf name = route name |> Option.map (fun r -> r.Backend)
 
         Assert.True((backendOf "openai:o3" = Some(Tars.Llm.LlmBackend.OpenAI "o3")))
@@ -166,7 +167,29 @@ module EvolutionSemanticTests =
             Assert.True((route name).IsNone, $"{name} went to an API")
 
     [<Fact>]
-    let ``An API teacher answers every request on its provider, with its key`` () =
+    let ``An API teacher only gets its own provider's key`` () =
+        // RoutingConfig.fromTarsConfig copies Llm:ApiKey, which is OPENAI_API_KEY, into every slot.
+        let cfg =
+            { Tars.Llm.Routing.RoutingConfig.Default with
+                OpenAIKey = Some "openai-key"
+                GoogleGeminiKey = Some "openai-key"
+                AnthropicKey = Some "openai-key" }
+
+        let secret =
+            function
+            | "OPENAI_API_KEY" -> Some "openai-key"
+            | _ -> None
+
+        let keyOf name =
+            (global.Tars.Interface.Cli.LlmFactory.apiRoute secret cfg name).Value.ApiKey
+
+        Assert.True((keyOf "openai:gpt-4o" = Some "openai-key"))
+        Assert.True((keyOf "anthropic:claude-sonnet-5-5" = None), "the OpenAI key went to Anthropic")
+        Assert.True((keyOf "gemini:gemini-2.5-pro" = None), "the OpenAI key went to Gemini")
+
+    /// A local HTTP server standing in for a provider's API. It answers `response` and records
+    /// each request as (path, Authorization header, x-goog-api-key header, body).
+    let fakeProvider (response: string) =
         let port =
             let probe = new Net.Sockets.TcpListener(Net.IPAddress.Loopback, 0)
             probe.Start()
@@ -175,58 +198,99 @@ module EvolutionSemanticTests =
             port
 
         let baseUri = Uri($"http://localhost:{port}/")
-        use listener = new Net.HttpListener()
+        let listener = new Net.HttpListener()
         listener.Prefixes.Add(string baseUri)
         listener.Start()
-        let received = Collections.Concurrent.ConcurrentQueue<string>()
+        let received = Collections.Concurrent.ConcurrentQueue<string * string * string * string>()
 
-        let _server =
-            task {
-                while listener.IsListening do
-                    try
-                        let! context = listener.GetContextAsync()
-                        use reader = new IO.StreamReader(context.Request.InputStream)
-                        let! body = reader.ReadToEndAsync()
-                        let authorization = context.Request.Headers.["Authorization"]
-                        received.Enqueue($"{context.Request.Url.AbsolutePath} {authorization} {body}")
+        task {
+            while listener.IsListening do
+                try
+                    let! context = listener.GetContextAsync()
+                    use reader = new IO.StreamReader(context.Request.InputStream)
+                    let! body = reader.ReadToEndAsync()
+                    let header (name: string) = context.Request.Headers.[name]
+                    received.Enqueue((context.Request.Url.AbsolutePath, header "Authorization", header "x-goog-api-key", body))
+                    let bytes = Text.Encoding.UTF8.GetBytes response
+                    context.Response.ContentType <- "application/json"
+                    context.Response.OutputStream.Write(bytes, 0, bytes.Length)
+                    context.Response.Close()
+                with _ ->
+                    ()
+        }
+        |> ignore
 
-                        let bytes =
-                            Text.Encoding.UTF8.GetBytes
-                                """{"id":"1","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}"""
+        baseUri, received, listener
 
-                        context.Response.ContentType <- "application/json"
-                        context.Response.OutputStream.Write(bytes, 0, bytes.Length)
-                        context.Response.Close()
-                    with _ ->
-                        ()
-            }
+    let private userSays (text: string) : Tars.Llm.LlmMessage list =
+        [ { Role = Tars.Llm.Role.User; Content = text } ]
 
-        try
-            // A reasoning model is configured too: the teacher's hints must not reach it.
-            let cfg =
-                { Tars.Llm.Routing.RoutingConfig.Default with
-                    OpenAIBaseUri = baseUri
-                    OpenAIKey = Some "test-key"
-                    ReasoningModel = Some "deepseek-r1:8b" }
+    [<Fact>]
+    let ``An API teacher answers every request on its provider, with its key`` () =
+        let baseUri, received, listener =
+            fakeProvider """{"id":"1","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}"""
 
-            let route = (global.Tars.Interface.Cli.LlmFactory.apiRoute cfg "openai:o3").Value
-            let teacher = global.Tars.Interface.Cli.LlmFactory.onRoute cfg route
+        use listener = listener
 
-            for hint in [ "reasoning"; "coding"; "" ] do
-                let request =
-                    { Tars.Llm.LlmRequest.Default with
-                        ModelHint = Some hint
-                        Messages = [ { Tars.Llm.LlmMessage.Role = Tars.Llm.Role.User; Content = "hi" } ] }
+        // A reasoning model is configured too: the teacher's hints must not reach it.
+        let cfg =
+            { Tars.Llm.Routing.RoutingConfig.Default with
+                OpenAIBaseUri = baseUri
+                ReasoningModel = Some "deepseek-r1:8b" }
 
-                Assert.Equal("ok", teacher.CompleteAsync(request).Result.Text)
+        let route =
+            (global.Tars.Interface.Cli.LlmFactory.apiRoute (fun _ -> Some "test-key") cfg "openai:o3").Value
+        let teacher = global.Tars.Interface.Cli.LlmFactory.onRoute cfg route
 
-            Assert.Equal(3, received.Count)
+        for hint in [ "reasoning"; "coding"; "" ] do
+            let request =
+                { Tars.Llm.LlmRequest.Default with
+                    ModelHint = Some hint
+                    Messages = userSays "hi" }
 
-            for request in received do
-                Assert.StartsWith("/v1/chat/completions Bearer test-key ", request)
-                Assert.Contains("\"o3\"", request)
-        finally
-            listener.Stop()
+            Assert.Equal("ok", teacher.CompleteAsync(request).Result.Text)
+
+        Assert.Equal(3, received.Count)
+
+        for path, authorization, _, body in received do
+            Assert.Equal("/v1/chat/completions", path)
+            Assert.Equal("Bearer test-key", authorization)
+            Assert.Contains("\"o3\"", body)
+
+    [<Fact>]
+    let ``A Gemini teacher gets the judge's instructions, and JSON mode for its schema`` () =
+        let baseUri, received, listener =
+            fakeProvider """{"candidates":[{"content":{"role":"model","parts":[{"text":"ok"}]},"finishReason":"STOP","index":0}]}"""
+
+        use listener = listener
+
+        let cfg =
+            { Tars.Llm.Routing.RoutingConfig.Default with
+                GoogleGeminiBaseUri = baseUri }
+
+        let route =
+            (global.Tars.Interface.Cli.LlmFactory.apiRoute (fun _ -> Some "test-key") cfg "gemini:gemini-2.5-pro").Value
+        let teacher = global.Tars.Interface.Cli.LlmFactory.onRoute cfg route
+
+        // The judge's request (Evaluation.fs): a system prompt and a strict JSON schema.
+        let request =
+            { Tars.Llm.LlmRequest.Default with
+                ModelHint = Some "reasoning"
+                SystemPrompt = Some "Evaluate task output for semantic correctness."
+                Messages = userSays "hi"
+                ResponseFormat =
+                    Some(Tars.Llm.ResponseFormat.Constrained(Tars.Llm.Grammar.JsonSchema EvolutionSchemas.evaluationSchema))
+                JsonMode = true }
+
+        Assert.Equal("ok", teacher.CompleteAsync(request).Result.Text)
+
+        let path, _, key, body = Seq.exactlyOne received
+        Assert.Equal("/v1beta/models/gemini-2.5-pro:generateContent", path)
+        Assert.Equal("test-key", key)
+        Assert.Contains("Evaluate task output for semantic correctness.", body)
+        Assert.Contains("application/json", body)
+        // Gemini's response schema has no additionalProperties, which every TARS schema carries.
+        Assert.DoesNotContain("additionalProperties", body)
 
     [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =

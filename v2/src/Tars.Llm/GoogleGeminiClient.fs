@@ -24,15 +24,21 @@ module GoogleGeminiClient =
         { role: string; parts: GeminiPartDto[] }
 
     [<CLIMutable>]
+    type GeminiInstructionDto = { parts: GeminiPartDto[] }
+
+    [<CLIMutable>]
     type GeminiRequestDto =
-        { contents: GeminiContentDto[]
+        { systemInstruction: GeminiInstructionDto option
+          contents: GeminiContentDto[]
           generationConfig: GeminiGenerationConfigDto option }
 
+    /// No `responseSchema`: Gemini's is an OpenAPI subset without `additionalProperties`, which
+    /// every schema TARS authors carries, so sending one fails the request. A schema request
+    /// gets JSON mode instead, as `Routing.ConstraintNeed.supports` reports.
     and [<CLIMutable>] GeminiGenerationConfigDto =
         { temperature: float option
           maxOutputTokens: int option
-          responseMimeType: string option
-          responseSchema: obj option }
+          responseMimeType: string option }
 
     [<CLIMutable>]
     type GeminiCandidateDto =
@@ -103,18 +109,11 @@ module GoogleGeminiClient =
                     | Some ResponseFormat.Json -> Some "application/json"
                     | Some(ResponseFormat.Constrained _) -> Some "application/json"
                     | Some ResponseFormat.Text -> None
-                    | None -> if req.JsonMode then Some "application/json" else None
-                  responseSchema =
-                    match req.ResponseFormat with
-                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema schema)) ->
-                        try
-                            Some(JsonSerializer.Deserialize<obj>(schema))
-                        with _ ->
-                            None
-                    | _ -> None }
+                    | None -> if req.JsonMode then Some "application/json" else None }
 
             let dto: GeminiRequestDto =
-                { contents = toGeminiContent req.Messages
+                { systemInstruction = req.SystemPrompt |> Option.map (fun text -> { parts = [| { text = text } |] })
+                  contents = toGeminiContent req.Messages
                   generationConfig = Some genConfig }
 
             let content = JsonContent.Create(dto, options = jsonOptions)
