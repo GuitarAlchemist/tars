@@ -131,6 +131,30 @@ module EvolutionSemanticTests =
         }
 
     [<Fact>]
+    let ``A local teacher answers the reasoning requests of the curriculum and the judge`` () =
+        let cfg =
+            { Tars.Llm.Routing.RoutingConfig.Default with
+                ReasoningModel = Some "deepseek-r1:8b"
+                PreferredProvider = "Ollama" }
+
+        let routed =
+            Tars.Llm.Routing.chooseBackend
+                (global.Tars.Interface.Cli.LlmFactory.pinnedTo "qwen3:14b" cfg)
+                { Tars.Llm.LlmRequest.Default with ModelHint = Some "reasoning" }
+
+        Assert.Equal(Tars.Llm.LlmBackend.Ollama "qwen3:14b", routed.Backend)
+
+    [<Fact>]
+    let ``With --trace, the teacher's calls are traced like the executor's`` () =
+        let llm = SuccessLlm("ok") :> Tars.Llm.ILlmService
+
+        let executor, teacher =
+            global.Tars.Interface.Cli.Commands.Evolve.tracedServices true (TraceRecorder()) llm (Some llm)
+
+        Assert.IsType<Tars.Llm.TracingLlmService>(executor) |> ignore
+        Assert.IsType<Tars.Llm.TracingLlmService>(teacher.Value) |> ignore
+
+    [<Fact>]
     let ``Evolution loop validates speech acts in response`` () =
         task {
             if not (TestHelpers.requireTools()) then () else

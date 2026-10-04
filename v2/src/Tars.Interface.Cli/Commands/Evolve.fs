@@ -47,6 +47,19 @@ type EvolveOptions =
       /// it once. The code runs with the user's rights, outside any sandbox. Off by default.
       RunCode: bool }
 
+/// The executor's service and the teacher's, each traced into `recorder` when `--trace` is on,
+/// so the trace also holds the curriculum's and the judge's calls.
+let tracedServices
+    (trace: bool)
+    (recorder: TraceRecorder)
+    (executor: ILlmService)
+    (teacher: ILlmService option)
+    : ILlmService * ILlmService option =
+    let traced (llm: ILlmService) =
+        if trace then TracingLlmService(llm, recorder) :> ILlmService else llm
+
+    traced executor, Option.map traced teacher
+
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
         // Load configuration
@@ -276,7 +289,14 @@ let run (logger: ILogger) (options: EvolveOptions) =
             | None -> LlmFactory.create logger
 
         // `--teacher` writes the curriculum and judges the answers; `--model` answers them.
-        let teacherLlm = options.Teacher |> Option.map createLlm
+        // A local teacher answers every request: the curriculum and the judge ask for
+        // "reasoning", which would otherwise go to the configured ReasoningModel.
+        let teacherLlm =
+            options.Teacher
+            |> Option.map (fun m ->
+                match LlmFactory.claudeCodeModel m with
+                | Some _ -> createLlm m
+                | None -> LlmFactory.createPinnedTo logger m)
 
         if not options.Quiet then
             options.Teacher |> Option.iter (fun t -> RichOutput.info $"Teacher (curriculum and judge): {t}")
@@ -284,14 +304,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
         // Setup Tracing if enabled
         let traceRecorder = TraceRecorder()
 
-        let llmService =
-            if options.Trace then
-                if not options.Quiet then
-                    RichOutput.info "🔍 Tracing enabled"
+        if options.Trace && not options.Quiet then
+            RichOutput.info "🔍 Tracing enabled"
 
-                TracingLlmService(baseLlmService, traceRecorder) :> ILlmService
-            else
-                baseLlmService
+        let llmService, teacherLlm =
+            tracedServices options.Trace traceRecorder baseLlmService teacherLlm
 
         if options.Trace then
             let! traceId = (traceRecorder :> ITraceRecorder).StartTraceAsync() |> Async.StartAsTask
