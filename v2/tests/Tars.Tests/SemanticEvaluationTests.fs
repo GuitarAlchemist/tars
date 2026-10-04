@@ -158,5 +158,7 @@ module SemanticEvaluationTests =
             Assert.Equal(2, prompts.Count)
 
             for prompt in prompts do
-                Assert.Contains("not how the output presents it", prompt)
+                Assert.Contains("not how the answer presents it", prompt)
+                // What the code returns or prints (JSON, a delimited string) is not presentation.
+                Assert.Contains("Constraints on what the code returns or prints still apply", prompt)
         }
