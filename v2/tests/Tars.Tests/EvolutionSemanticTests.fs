@@ -324,18 +324,18 @@ module EvolutionSemanticTests =
             Assert.True((parse text).IsNone, text)
 
     [<Fact>]
-    let ``A paid model's calls are charged to the budget, and stop once it is spent`` () =
-        let calls = ref 0
+    let ``A paid model's calls are charged to the budget, which they never exceed`` () =
+        let sent = Collections.Concurrent.ConcurrentQueue<Tars.Llm.LlmRequest>()
 
         let llm =
             { new Tars.Llm.ILlmService with
-                member _.CompleteAsync _ =
-                    calls.Value <- calls.Value + 1
+                member _.CompleteAsync request =
+                    sent.Enqueue request
 
                     let usage: Tars.Llm.TokenUsage =
-                        { PromptTokens = 1_000_000
+                        { PromptTokens = 10
                           CompletionTokens = 1_000_000
-                          TotalTokens = 2_000_000 }
+                          TotalTokens = 1_000_010 }
 
                     let response: Tars.Llm.LlmResponse =
                         { Text = "ok"
@@ -349,22 +349,56 @@ module EvolutionSemanticTests =
                 member _.EmbedAsync _ = Task.FromResult [||]
                 member _.RouteAsync _ = failwith "not used" }
 
-        // Each call: 1M input tokens at 2 USD and 1M output tokens at 8 USD per million, 10 USD.
-        let budget = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 15m<usd> })
+        // At 2 USD per million input tokens and 8 per million output tokens, a call that may write
+        // 1M tokens may cost about 8 USD, and this one does (10 input tokens, 1M output tokens).
+        let budget = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 20m<usd> })
         let paid = global.Tars.Interface.Cli.LlmFactory.charged budget (2m, 8m) llm
 
-        paid.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
-        paid.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
+        let request =
+            { Tars.Llm.LlmRequest.Default with
+                MaxTokens = Some 1_000_000
+                Messages = userSays "hi" }
 
-        Assert.True((budget.Consumed.Money = 20m<usd>), $"charged {budget.Consumed.Money}")
+        paid.CompleteAsync(request).Result |> ignore
+        paid.CompleteAsync(request).Result |> ignore
 
-        // Spent: the next call is refused before it is sent, and the graph's steps stop too.
+        Assert.True((budget.Consumed.Money = 16.00004m<usd>), $"charged {budget.Consumed.Money}")
+
+        // The 4 USD left cannot pay for a call that may cost 8: it is refused before it is sent.
         let refused =
-            Assert.ThrowsAny<exn>(Action(fun () -> paid.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore))
+            Assert.ThrowsAny<exn>(Action(fun () -> paid.CompleteAsync(request).Result |> ignore))
 
         Assert.Contains("budget is spent", refused.ToString())
-        Assert.Equal(2, calls.Value)
-        Assert.False(budget.CanAfford Cost.Zero)
+        Assert.Equal(2, sent.Count)
+        Assert.True((budget.Consumed.Money = 16.00004m<usd>), $"charged {budget.Consumed.Money}")
+
+        // A request without an output limit gets one, so its cost has a worst case.
+        let roomy = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 100m<usd> })
+
+        (global.Tars.Interface.Cli.LlmFactory.charged roomy (2m, 8m) llm)
+            .CompleteAsync(Tars.Llm.LlmRequest.Default)
+            .Result
+        |> ignore
+
+        Assert.Equal(Some 4096, (Seq.last sent).MaxTokens)
+
+        // A call that fails gives its reservation back.
+        let failing =
+            { new Tars.Llm.ILlmService with
+                member _.CompleteAsync _ =
+                    Task.FromException<Tars.Llm.LlmResponse>(exn "provider down")
+
+                member _.CompleteStreamAsync(_, _) = failwith "not used"
+                member _.EmbedAsync _ = Task.FromResult [||]
+                member _.RouteAsync _ = failwith "not used" }
+
+        let untouched = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 100m<usd> })
+        let failingPaid = global.Tars.Interface.Cli.LlmFactory.charged untouched (2m, 8m) failing
+
+        Assert.ThrowsAny<exn>(Action(fun () -> failingPaid.CompleteAsync(request).Result |> ignore))
+        |> ignore
+
+        Assert.True((untouched.Consumed.Money = 0m<usd>), $"kept {untouched.Consumed.Money}")
 
     [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =

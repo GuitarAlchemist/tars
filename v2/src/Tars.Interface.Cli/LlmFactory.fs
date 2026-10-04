@@ -153,39 +153,62 @@ module LlmFactory =
         | [| input; output |] -> Option.map2 (fun i o -> i, o) (parse input) (parse output)
         | _ -> None
 
-    /// `llm`, billed at `price` (USD per million input and output tokens): each call's cost is
-    /// charged to `budget`'s money, from the response's usage (about 4 characters a token when
-    /// there is none). Once the money is spent, calls fail before they are sent, and the graph's
-    /// steps stop on `budget.CanAfford`.
+    /// `llm`, billed at `price` (USD per million input and output tokens), within `budget`'s money,
+    /// which it never exceeds. A call is sent only when its worst case fits in the money left: its
+    /// input at one token per UTF-8 byte (plus 8 per message) and its `MaxTokens` of output (4096
+    /// when it sets none). That worst case is reserved before the call, then settled at the
+    /// response's usage (about 4 characters a token when there is none).
     let charged (budget: BudgetGovernor) (inputPrice: decimal, outputPrice: decimal) (llm: ILlmService) : ILlmService =
-        let estimate (text: string) = (text.Length + 3) / 4
-
-        let costOf (req: LlmRequest) (response: LlmResponse) =
-            let input, output =
-                match response.Usage with
-                | Some usage -> usage.PromptTokens, usage.CompletionTokens
-                | None ->
-                    let prompt =
-                        Option.toList req.SystemPrompt @ (req.Messages |> List.map (fun m -> m.Content))
-
-                    List.sumBy estimate prompt, estimate response.Text
-
+        let usd (input: int) (output: int) =
             (decimal input * inputPrice + decimal output * outputPrice) / 1_000_000m * 1m<usd>
 
-        let send (req: LlmRequest) (call: unit -> Threading.Tasks.Task<LlmResponse>) =
+        let money amount = { Cost.Zero with Money = amount }
+
+        let send (req: LlmRequest) (call: LlmRequest -> Threading.Tasks.Task<LlmResponse>) =
             task {
-                match budget.Remaining.MaxMoney with
-                | Some left when left <= 0m<usd> ->
-                    return failwith $"The USD budget is spent: {budget.Consumed.Money} USD."
-                | _ ->
-                    let! response = call ()
-                    budget.Consume { Cost.Zero with Money = costOf req response } |> ignore
+                let req =
+                    { req with
+                        MaxTokens = Some(req.MaxTokens |> Option.defaultValue 4096) }
+
+                let prompt =
+                    Option.toList req.SystemPrompt @ (req.Messages |> List.map (fun m -> m.Content))
+
+                let worstInput =
+                    prompt |> List.sumBy (fun text -> System.Text.Encoding.UTF8.GetByteCount text + 8)
+
+                let reserved = usd worstInput req.MaxTokens.Value
+
+                match budget.TryConsume(money reserved) with
+                | Ok() ->
+                    let! response =
+                        task {
+                            try
+                                return! call req
+                            with ex ->
+                                budget.Consume(money -reserved) |> ignore
+                                return raise ex
+                        }
+
+                    let estimate (text: string) = (text.Length + 3) / 4
+
+                    let cost =
+                        match response.Usage with
+                        | Some usage -> usd usage.PromptTokens usage.CompletionTokens
+                        | None -> usd (List.sumBy estimate prompt) (estimate response.Text)
+
+                    budget.Consume(money (cost - reserved)) |> ignore
                     return response
+                | _ ->
+                    let left = budget.Remaining.MaxMoney |> Option.defaultValue 0m<usd>
+
+                    return
+                        failwith
+                            $"The USD budget is spent: this call may cost up to {reserved} USD, and {left} USD is left."
             }
 
         { new ILlmService with
-            member _.CompleteAsync req = send req (fun () -> llm.CompleteAsync req)
-            member _.CompleteStreamAsync(req, onToken) = send req (fun () -> llm.CompleteStreamAsync(req, onToken))
+            member _.CompleteAsync req = send req llm.CompleteAsync
+            member _.CompleteStreamAsync(req, onToken) = send req (fun req -> llm.CompleteStreamAsync(req, onToken))
             member _.EmbedAsync text = llm.EmbedAsync text
             member _.RouteAsync req = llm.RouteAsync req }
 
