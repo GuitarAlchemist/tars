@@ -1,9 +1,12 @@
 namespace Tars.Tests
 
 open System
+open System.IO
+open System.Threading.Tasks
 open Xunit
 open Tars.Llm
 open Tars.Llm.ClaudeCodeService
+open Tars.Interface.Cli
 
 /// Tests for ClaudeCodeService (pure logic tests + guarded integration tests).
 module ClaudeCodeServiceTests =
@@ -13,15 +16,159 @@ module ClaudeCodeServiceTests =
     // =========================================================================
 
     [<Fact>]
-    let ``buildPrompt includes system prompt`` () =
+    let ``buildPrompt leaves the system prompt to its own file`` () =
         let req =
             { LlmRequest.Default with
                 SystemPrompt = Some "You are a helpful assistant."
+                Messages =
+                    [ { Role = Role.System; Content = "Answer in English." }
+                      { Role = Role.User; Content = "Hello" } ] }
+
+        Assert.Equal("Hello", ClaudeCodeService.buildPrompt req)
+        Assert.Equal("You are a helpful assistant.\n\nAnswer in English.", ClaudeCodeService.systemPromptOf req)
+
+    [<Fact>]
+    let ``the claude process gets the prompt on stdin and answers as text only`` () =
+        let psi =
+            ClaudeCodeService.startInfo { defaultConfig with Model = Some "sonnet" } "system.txt"
+
+        // Not on the command line: one holds at most 32,767 characters on Windows.
+        Assert.True(psi.RedirectStandardInput)
+
+        // No tools, settings, CLAUDE.md, hooks, MCP servers or saved session: the answer
+        // depends on the request alone.
+        Assert.Equal<string>(
+            [ "-p"
+              "--output-format"
+              "json"
+              "--safe-mode"
+              "--setting-sources"
+              ""
+              "--tools"
+              ""
+              "--strict-mcp-config"
+              "--no-session-persistence"
+              "--system-prompt-file"
+              "system.txt"
+              "--model"
+              "sonnet" ],
+            List.ofSeq psi.ArgumentList
+        )
+
+    [<Fact>]
+    let ``--model claude:<model> names the model Claude Code is asked for`` () =
+        Assert.Equal(Some "sonnet", LlmFactory.claudeCodeModel "claude:sonnet")
+        Assert.Equal(None, LlmFactory.claudeCodeModel "qwen2.5-coder:7b")
+        Assert.Equal(None, LlmFactory.claudeCodeModel "claude:")
+
+    [<Fact>]
+    let ``Claude Code's completions keep the configured backend's embeddings`` () =
+        let embedder =
+            { new ILlmService with
+                member _.CompleteAsync _ = failwith "completions do not go to the embedder"
+                member _.EmbedAsync _ = Task.FromResult [| 1.0f; 2.0f |]
+                member _.CompleteStreamAsync(_, _) = failwith "completions do not go to the embedder"
+                member _.RouteAsync _ = failwith "routes do not go to the embedder" }
+
+        let llm =
+            ClaudeCodeService.create (Some "sonnet") |> LlmFactory.withEmbeddings embedder
+
+        Assert.Equal<float32>([| 1.0f; 2.0f |], llm.EmbedAsync("text").Result)
+
+        match llm.RouteAsync(LlmRequest.Default).Result.Backend with
+        | Anthropic model -> Assert.Equal("sonnet", model)
+        | other -> Assert.Fail(sprintf "Expected Anthropic, got %A" other)
+
+    /// A stand-in for `claude` that runs `windows` (cmd) or `unix` (sh), whatever its arguments.
+    let private fakeClaude (windows: string) (unix: string) : string =
+        let dir = Directory.CreateTempSubdirectory("fake-claude").FullName
+
+        if OperatingSystem.IsWindows() then
+            let path = Path.Combine(dir, "claude.cmd")
+            File.WriteAllText(path, "@echo off\r\n" + windows + "\r\n")
+            path
+        else
+            let path = Path.Combine(dir, "claude")
+            File.WriteAllText(path, "#!/bin/sh\n" + unix + "\n")
+            File.SetUnixFileMode(path, UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute)
+            path
+
+    /// More than any pipe buffer, so writing it waits for the reader.
+    let private longRequest =
+        { LlmRequest.Default with
+            Messages = [ { Role = Role.User; Content = String.replicate 1_000_000 "x" } ] }
+
+    [<Fact>]
+    let ``a claude that exits before reading the prompt reports its exit code`` () =
+        let config = { defaultConfig with ClaudePath = fakeClaude "exit /b 3" "exit 3" }
+        let response = (ClaudeCodeLlmService(config) :> ILlmService).CompleteAsync(longRequest).Result
+
+        Assert.Equal(Some "error", response.FinishReason)
+        Assert.Contains("exited with code 3", response.Text)
+
+    [<Fact>]
+    let ``a claude that never reads the prompt is stopped at the timeout`` () =
+        let config =
+            { defaultConfig with
+                ClaudePath = fakeClaude "ping -n 60 127.0.0.1 > nul" "sleep 60"
+                Timeout = TimeSpan.FromSeconds 2.0 }
+
+        let watch = Diagnostics.Stopwatch.StartNew()
+        let response = (ClaudeCodeLlmService(config) :> ILlmService).CompleteAsync(longRequest).Result
+
+        Assert.Contains("timed out", response.Text)
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds 30.0, $"took {watch.Elapsed}")
+
+    [<Fact>]
+    let ``cancelling the call stops claude`` () =
+        let config =
+            { defaultConfig with
+                ClaudePath = fakeClaude "ping -n 60 127.0.0.1 > nul" "sleep 60" }
+
+        use cts = new Threading.CancellationTokenSource(TimeSpan.FromSeconds 1.0)
+        let watch = Diagnostics.Stopwatch.StartNew()
+
+        let request =
+            { LlmRequest.Default with
                 Messages = [ { Role = Role.User; Content = "Hello" } ] }
 
-        let prompt = ClaudeCodeService.buildPrompt req
-        Assert.Contains("You are a helpful assistant", prompt)
-        Assert.Contains("Hello", prompt)
+        let response =
+            (ClaudeCodeLlmService(config) :> ICancellableLlmService).CompleteAsync(request, cts.Token).Result
+
+        Assert.Equal(Some "error", response.FinishReason)
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds 30.0, $"took {watch.Elapsed}")
+
+    [<Fact>]
+    let ``withEmbeddings passes the call's cancellation on`` () =
+        let seen = ResizeArray<Threading.CancellationToken>()
+
+        let llm =
+            { new ILlmService with
+                member _.CompleteAsync _ = failwith "the call has a cancellation token"
+                member _.EmbedAsync _ = failwith "unused"
+                member _.CompleteStreamAsync(_, _) = failwith "unused"
+                member _.RouteAsync _ = failwith "unused"
+              interface ICancellableLlmService with
+                member _.CompleteAsync(_, token) =
+                    seen.Add token
+
+                    Task.FromResult
+                        { Text = "ok"
+                          FinishReason = Some "stop"
+                          Usage = None
+                          Raw = None }
+
+                member _.EmbedAsync(_, _) = failwith "unused"
+                member _.CompleteStreamAsync(_, _, _) = failwith "unused"
+                member _.RouteAsync(_, _) = failwith "unused" }
+
+        use cts = new Threading.CancellationTokenSource()
+
+        match LlmFactory.withEmbeddings llm llm with
+        | :? ICancellableLlmService as cancellable ->
+            cancellable.CompleteAsync(LlmRequest.Default, cts.Token).Result |> ignore
+            Assert.Equal<Threading.CancellationToken>([ cts.Token ], List.ofSeq seen)
+        | _ -> Assert.Fail "withEmbeddings hides the cancellable service"
 
     [<Fact>]
     let ``buildPrompt handles multiple messages`` () =
@@ -49,8 +196,24 @@ module ClaudeCodeServiceTests =
         let response = ClaudeCodeService.parseResponse json
         Assert.Equal("Hello, world!", response.Text)
         Assert.Equal(Some "stop", response.FinishReason)
-        Assert.True(response.Usage.IsSome)
+        // No `usage` object: no usage, so callers fall back to their own estimate.
+        Assert.True(response.Usage.IsNone)
         Assert.True(response.Raw.IsSome)
+
+    [<Fact>]
+    let ``parseResponse reads the tokens of Claude Code's usage`` () =
+        let json =
+            """{"type":"result","subtype":"success","result":"OK","total_cost_usd":0.0048,"usage":{"input_tokens":533,"cache_creation_input_tokens":10,"cache_read_input_tokens":100,"output_tokens":859}}"""
+
+        let response = ClaudeCodeService.parseResponse json
+
+        Assert.Equal(
+            Some
+                { PromptTokens = 643
+                  CompletionTokens = 859
+                  TotalTokens = 1502 },
+            response.Usage
+        )
 
     [<Fact>]
     let ``parseResponse handles missing result field`` () =

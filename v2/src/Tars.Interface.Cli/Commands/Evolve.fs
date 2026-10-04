@@ -258,9 +258,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
         registry.Register(reviewerAgent)
 
         // Initialize LLM Service
+        // `--model claude:sonnet` sends every role's requests to Claude Code (`claude -p`),
+        // on the user's own Claude login. Embeddings still come from the configured backend.
         let baseLlmService =
             match options.Model with
-            | Some m -> LlmFactory.createWithModel logger m
+            | Some m ->
+                match LlmFactory.claudeCodeModel m with
+                | Some claudeModel ->
+                    LlmFactory.createClaudeCode (Some claudeModel)
+                    |> LlmFactory.withEmbeddings (LlmFactory.create logger)
+                | None -> LlmFactory.createWithModel logger m
             | None -> LlmFactory.create logger
 
         // Setup Tracing if enabled
