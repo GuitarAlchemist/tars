@@ -27,7 +27,8 @@ type EvolveOptions =
       Verbose: bool
       Model: string option
       /// The model that writes the curriculum and judges the answers (`--teacher claude:sonnet`),
-      /// while `Model` answers them. None: `Model` does all three.
+      /// while `Model` answers them. None: `Model` does all three. It takes the names `Model`
+      /// takes: a local model, or `claude:<model>` for Claude Code.
       Teacher: string option
       Trace: bool
       Budget: decimal option

@@ -633,6 +633,8 @@ let main argv =
             printfn "  tars evolve [options]            Run the evolution engine"
             printfn "       --max-iterations N          Set max generations (default 5)"
             printfn "       --loop N                    Run N full evolution cycles back-to-back (default 1)"
+            printfn "       --teacher M                 Model that writes the tasks and judges the answers:"
+            printfn "                                   an Ollama model or claude:<model> (Claude Code)"
             printfn "       --budget USD                Maximum monetary budget in USD"
             printfn "       --quiet                     Suppress splash screen"
             printfn "  tars knowledge <command>         Manage TARS knowledge base"
