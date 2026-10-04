@@ -46,6 +46,90 @@ module EvolutionSemanticTests =
             member _.FindAgents(_) = async { return [] }
             member _.GetAllAgents() = async { return agents }
 
+    /// Answers like SuccessLlm and counts the requests it answers.
+    type CountingLlm(responseText: string) =
+        let answers = SuccessLlm(responseText) :> Tars.Llm.ILlmService
+        let mutable requests = 0
+        member _.Requests = requests
+
+        interface Tars.Llm.ILlmService with
+            member _.CompleteAsync(req) =
+                requests <- requests + 1
+                answers.CompleteAsync(req)
+
+            member _.CompleteStreamAsync(req, onToken) =
+                requests <- requests + 1
+                answers.CompleteStreamAsync(req, onToken)
+
+            member _.EmbedAsync(text) = answers.EmbedAsync(text)
+            member _.RouteAsync(req) = answers.RouteAsync(req)
+
+    [<Fact>]
+    let ``The teacher's model writes the tasks and the executor's model answers them`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            let curriculumAgentId = AgentId(Guid.NewGuid())
+            let executorAgentId = AgentId(Guid.NewGuid())
+
+            let agent (AgentId id) name =
+                Tars.Kernel.AgentFactory.create id name "1.0.0" "test" "System" [] []
+
+            let teacher =
+                CountingLlm(
+                    "{\"tasks\":[{\"goal\":\"Write `isEven : int -> bool` in F#\",\"constraints\":[],\"validation_criteria\":\"isEven 4 = true; isEven 5 = false\"}]}"
+                )
+
+            let executor =
+                CountingLlm("ACT: INFORM: Done.\n```fsharp\nlet isEven (n: int) = n % 2 = 0\n```")
+
+            let ctx: Engine.EvolutionContext =
+                { Registry = MockRegistry([ agent curriculumAgentId "Curriculum"; agent executorAgentId "Executor" ])
+                  Llm = executor
+                  CurriculumLlm = Some(teacher :> Tars.Llm.ILlmService)
+                  VectorStore =
+                    { new IVectorStore with
+                        member _.SaveAsync(_, _, _, _) = Task.CompletedTask
+                        member _.SearchAsync(_, _, _) = Task.FromResult([]) }
+                  Logger = fun msg -> printfn $"LOG: %s{msg}"
+                  Memory =
+                    { SemanticMemory = None
+                      KnowledgeBase = None
+                      KnowledgeGraph = None
+                      MemoryBuffer = None
+                      EpisodeService = None
+                      Ledger = None
+                      EvidenceStore = None }
+                  Governance =
+                    { Epistemic = None
+                      PreLlm = None
+                      Budget = None
+                      OutputGuard = None
+                      Evaluator = None }
+                  Options =
+                    { RunId = None
+                      Verbose = false
+                      ShowSemanticMessage = fun _ _ -> ()
+                      Focus = None
+                      ToolRegistry = None
+                      ResearchEnhanced = false
+                      RunCode = false
+                      SelfImprovement = false } }
+
+            let state: EvolutionState =
+                { Generation = 0
+                  CurriculumAgentId = curriculumAgentId
+                  ExecutorAgentId = executorAgentId
+                  CompletedTasks = []
+                  CurrentTask = None
+                  TaskQueue = []
+                  ActiveBeliefs = [] }
+
+            let! nextState = Engine.step ctx state
+
+            Assert.Equal("Write `isEven : int -> bool` in F#", nextState.CompletedTasks.Head.TaskGoal)
+            Assert.True(executor.Requests > 0, "the executor's model answered nothing")
+        }
+
     [<Fact>]
     let ``Evolution loop validates speech acts in response`` () =
         task {
@@ -87,6 +171,7 @@ module EvolutionSemanticTests =
             let ctx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = curriculumLlm
+                  CurriculumLlm = None
                   VectorStore =
                     { new IVectorStore with
                         member _.SaveAsync(_, _, _, _) = Task.CompletedTask

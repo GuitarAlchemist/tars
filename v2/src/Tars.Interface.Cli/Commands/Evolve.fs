@@ -26,6 +26,9 @@ type EvolveOptions =
       DemoMode: bool
       Verbose: bool
       Model: string option
+      /// The model that writes the curriculum and judges the answers (`--teacher claude:sonnet`),
+      /// while `Model` answers them. None: `Model` does all three.
+      Teacher: string option
       Trace: bool
       Budget: decimal option
       DisableGraphiti: bool
@@ -258,17 +261,25 @@ let run (logger: ILogger) (options: EvolveOptions) =
         registry.Register(reviewerAgent)
 
         // Initialize LLM Service
-        // `--model claude:sonnet` sends every role's requests to Claude Code (`claude -p`),
-        // on the user's own Claude login. Embeddings still come from the configured backend.
+        // A `claude:<model>` sends its requests to Claude Code (`claude -p`), on the user's own
+        // Claude login. Embeddings still come from the configured backend.
+        let createLlm (m: string) =
+            match LlmFactory.claudeCodeModel m with
+            | Some claudeModel ->
+                LlmFactory.createClaudeCode (Some claudeModel)
+                |> LlmFactory.withEmbeddings (LlmFactory.create logger)
+            | None -> LlmFactory.createWithModel logger m
+
         let baseLlmService =
             match options.Model with
-            | Some m ->
-                match LlmFactory.claudeCodeModel m with
-                | Some claudeModel ->
-                    LlmFactory.createClaudeCode (Some claudeModel)
-                    |> LlmFactory.withEmbeddings (LlmFactory.create logger)
-                | None -> LlmFactory.createWithModel logger m
+            | Some m -> createLlm m
             | None -> LlmFactory.create logger
+
+        // `--teacher` writes the curriculum and judges the answers; `--model` answers them.
+        let teacherLlm = options.Teacher |> Option.map createLlm
+
+        if not options.Quiet then
+            options.Teacher |> Option.iter (fun t -> RichOutput.info $"Teacher (curriculum and judge): {t}")
 
         // Setup Tracing if enabled
         let traceRecorder = TraceRecorder()
@@ -459,7 +470,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             let evaluator =
                 SemanticEvaluation(
-                    llmService,
+                    teacherLlm |> Option.defaultValue llmService,
                     minConfidence = 0.6,
                     logger = fun msg -> logger.Information("{Evaluation}", msg)
                 )
@@ -556,6 +567,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
             let evoCtx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = llmService
+                  CurriculumLlm = teacherLlm
                   VectorStore = vectorStore
                   Logger =
                     fun s ->

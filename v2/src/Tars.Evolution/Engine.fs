@@ -54,6 +54,8 @@ module Engine =
     type EvolutionContext =
         { Registry: IAgentRegistry
           Llm: ILlmService
+          /// The model that writes the tasks (`evolve --teacher`). None: Llm writes them too.
+          CurriculumLlm: ILlmService option
           VectorStore: IVectorStore
           Logger: string -> unit
           Memory: MemoryServices
@@ -939,9 +941,11 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
             match agentOpt with
             | None -> return []
             | Some agent ->
+                let curriculumLlm = ctx.CurriculumLlm |> Option.defaultValue ctx.Llm
+
                 // 2. Initialize Graph Executor
                 let graphExecutor =
-                    GraphExecutor(ctx.Registry, ctx.Llm, ctx.Governance.Budget, ctx.Governance.OutputGuard, ctx.Logger)
+                    GraphExecutor(ctx.Registry, curriculumLlm, ctx.Governance.Budget, ctx.Governance.OutputGuard, ctx.Logger)
 
                 // 3. Create Request Message with JSON requirement
                 let msg =
@@ -1033,7 +1037,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                             try
                                 let! directResponse =
-                                    ctx.Llm.CompleteAsync(
+                                    curriculumLlm.CompleteAsync(
                                         { ModelHint = Some "reasoning"
                                           Model = None
                                           SystemPrompt = Some "You generate F# coding tasks. Output ONLY valid JSON."
