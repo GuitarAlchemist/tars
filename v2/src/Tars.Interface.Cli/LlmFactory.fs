@@ -56,6 +56,15 @@ module LlmFactory =
         let serviceConfig = { LlmServiceConfig.Routing = routingCfg }
         DefaultLlmService(sharedClient, serviceConfig) :> ILlmService
 
+    /// The model `--model claude:<model>` asks Claude Code for (`claude:sonnet` -> `sonnet`).
+    let claudeCodeModel (model: string) : string option =
+        let prefix = "claude:"
+
+        if model.StartsWith(prefix, StringComparison.Ordinal) && model.Length > prefix.Length then
+            Some(model.Substring prefix.Length)
+        else
+            None
+
     /// Create a Claude Code subprocess LLM service.
     /// Uses the user's authenticated Claude Code session — no API key needed.
     let createClaudeCode (model: string option) =

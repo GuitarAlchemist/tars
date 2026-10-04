@@ -4,6 +4,7 @@ open System
 open Xunit
 open Tars.Llm
 open Tars.Llm.ClaudeCodeService
+open Tars.Interface.Cli
 
 /// Tests for ClaudeCodeService (pure logic tests + guarded integration tests).
 module ClaudeCodeServiceTests =
@@ -13,15 +14,50 @@ module ClaudeCodeServiceTests =
     // =========================================================================
 
     [<Fact>]
-    let ``buildPrompt includes system prompt`` () =
+    let ``buildPrompt leaves the system prompt to its own file`` () =
         let req =
             { LlmRequest.Default with
                 SystemPrompt = Some "You are a helpful assistant."
-                Messages = [ { Role = Role.User; Content = "Hello" } ] }
+                Messages =
+                    [ { Role = Role.System; Content = "Answer in English." }
+                      { Role = Role.User; Content = "Hello" } ] }
 
-        let prompt = ClaudeCodeService.buildPrompt req
-        Assert.Contains("You are a helpful assistant", prompt)
-        Assert.Contains("Hello", prompt)
+        Assert.Equal("Hello", ClaudeCodeService.buildPrompt req)
+        Assert.Equal("You are a helpful assistant.\n\nAnswer in English.", ClaudeCodeService.systemPromptOf req)
+
+    [<Fact>]
+    let ``the claude process gets the prompt on stdin and answers as text only`` () =
+        let psi =
+            ClaudeCodeService.startInfo { defaultConfig with Model = Some "sonnet" } "system.txt"
+
+        // Not on the command line: one holds at most 32,767 characters on Windows.
+        Assert.True(psi.RedirectStandardInput)
+
+        // No tools, settings, CLAUDE.md, hooks, MCP servers or saved session: the answer
+        // depends on the request alone.
+        Assert.Equal<string>(
+            [ "-p"
+              "--output-format"
+              "json"
+              "--safe-mode"
+              "--setting-sources"
+              ""
+              "--tools"
+              ""
+              "--strict-mcp-config"
+              "--no-session-persistence"
+              "--system-prompt-file"
+              "system.txt"
+              "--model"
+              "sonnet" ],
+            List.ofSeq psi.ArgumentList
+        )
+
+    [<Fact>]
+    let ``--model claude:<model> names the model Claude Code is asked for`` () =
+        Assert.Equal(Some "sonnet", LlmFactory.claudeCodeModel "claude:sonnet")
+        Assert.Equal(None, LlmFactory.claudeCodeModel "qwen2.5-coder:7b")
+        Assert.Equal(None, LlmFactory.claudeCodeModel "claude:")
 
     [<Fact>]
     let ``buildPrompt handles multiple messages`` () =

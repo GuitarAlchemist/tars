@@ -2,13 +2,14 @@ namespace Tars.Llm
 
 open System
 open System.Diagnostics
+open System.IO
 open System.Text
 open System.Text.Json
 open System.Threading.Tasks
 open Tars.Llm.Routing
 
 /// ILlmService implementation that delegates to Claude Code CLI as a subprocess.
-/// Spawns `claude -p <prompt> --output-format json` and parses the response.
+/// Spawns `claude -p --output-format json`, writes the prompt to its stdin and parses the response.
 /// This lets any TARS component tap into Claude's reasoning without API keys —
 /// it piggybacks on the user's authenticated Claude Code session.
 module ClaudeCodeService =
@@ -30,21 +31,23 @@ module ClaudeCodeService =
           Verbose = false
           Model = None }
 
-    /// Build the prompt string from an LlmRequest.
+    /// The request's system prompt: its SystemPrompt, then its system messages.
+    let systemPromptOf (req: LlmRequest) : string =
+        [ yield! Option.toList req.SystemPrompt
+          for msg in req.Messages do
+              match msg.Role with
+              | Role.System -> yield msg.Content
+              | _ -> () ]
+        |> String.concat "\n\n"
+
+    /// Build the prompt string from an LlmRequest: the conversation, without the system
+    /// prompt, which goes to its own file (`systemPromptOf`).
     let buildPrompt (req: LlmRequest) : string =
         let sb = StringBuilder()
 
-        // Add system prompt if present
-        match req.SystemPrompt with
-        | Some sys ->
-            sb.AppendLine(sprintf "<system>%s</system>" sys) |> ignore
-            sb.AppendLine() |> ignore
-        | None -> ()
-
-        // Add conversation messages
         for msg in req.Messages do
             match msg.Role with
-            | Role.System -> sb.AppendLine(sprintf "<system>%s</system>" msg.Content) |> ignore
+            | Role.System -> ()
             | Role.User -> sb.AppendLine(msg.Content) |> ignore
             | Role.Assistant -> sb.AppendLine(sprintf "<assistant>%s</assistant>" msg.Content) |> ignore
             | Role.Tool _ -> sb.AppendLine(sprintf "<tool_result>%s</tool_result>" msg.Content) |> ignore
@@ -52,72 +55,100 @@ module ClaudeCodeService =
 
         sb.ToString().Trim()
 
+    /// The `claude` process for one completion. The prompt goes to its stdin (a command
+    /// line holds at most 32,767 characters on Windows) and the system prompt to a file.
+    /// The call is text only: no tools, settings, CLAUDE.md, hooks, MCP servers or saved
+    /// session, so the answer depends on the request alone (a `language` in the user's
+    /// settings would otherwise change it). Auth still comes from the user's login.
+    let startInfo (config: ClaudeCodeConfig) (systemPromptFile: string) : ProcessStartInfo =
+        let psi = ProcessStartInfo(config.ClaudePath)
+
+        [ "-p"
+          "--output-format"
+          "json"
+          "--safe-mode"
+          "--setting-sources"
+          ""
+          "--tools"
+          ""
+          "--strict-mcp-config"
+          "--no-session-persistence"
+          "--system-prompt-file"
+          systemPromptFile ]
+        @ (config.Model |> Option.map (fun model -> [ "--model"; model ]) |> Option.defaultValue [])
+        @ (if config.Verbose then [ "--verbose" ] else [])
+        |> List.iter psi.ArgumentList.Add
+
+        psi.UseShellExecute <- false
+        psi.RedirectStandardInput <- true
+        psi.RedirectStandardOutput <- true
+        psi.RedirectStandardError <- true
+        psi.StandardInputEncoding <- UTF8Encoding(false)
+        psi.StandardOutputEncoding <- Encoding.UTF8
+        psi.StandardErrorEncoding <- Encoding.UTF8
+        psi.CreateNoWindow <- true
+
+        // Inherit env (picks up ANTHROPIC_API_KEY, session tokens, etc.)
+        psi.EnvironmentVariables.["CLAUDE_CODE_ENTRYPOINT"] <- "tars-llm-service"
+        psi
+
     /// Execute claude CLI and capture output.
     let private executeClaudeProcess
         (config: ClaudeCodeConfig)
+        (systemPrompt: string)
         (prompt: string)
         : Task<Result<string, string>> =
         task {
-            let args = StringBuilder()
-            args.Append("-p ") |> ignore
-
-            // Escape the prompt for shell argument
-            let escapedPrompt = prompt.Replace("\"", "\\\"")
-            args.Append(sprintf "\"%s\"" escapedPrompt) |> ignore
-
-            args.Append(" --output-format json") |> ignore
-
-            match config.Model with
-            | Some model -> args.Append(sprintf " --model %s" model) |> ignore
-            | None -> ()
-
-            if config.Verbose then
-                args.Append(" --verbose") |> ignore
-
-            let psi = ProcessStartInfo()
-            psi.FileName <- config.ClaudePath
-            psi.Arguments <- args.ToString()
-            psi.UseShellExecute <- false
-            psi.RedirectStandardOutput <- true
-            psi.RedirectStandardError <- true
-            psi.CreateNoWindow <- true
-
-            // Inherit env (picks up ANTHROPIC_API_KEY, session tokens, etc.)
-            psi.EnvironmentVariables.["CLAUDE_CODE_ENTRYPOINT"] <- "tars-llm-service"
+            let systemPromptFile = Path.GetTempFileName()
 
             try
-                use proc = new Process()
-                proc.StartInfo <- psi
+                try
+                    // Without its own system prompt, Claude Code would use its coding-agent one.
+                    let systemPrompt =
+                        if String.IsNullOrWhiteSpace systemPrompt then "Answer the message." else systemPrompt
 
-                let stdout = StringBuilder()
-                let stderr = StringBuilder()
+                    File.WriteAllText(systemPromptFile, systemPrompt)
 
-                proc.OutputDataReceived.Add(fun e ->
-                    if not (isNull e.Data) then
-                        stdout.AppendLine(e.Data) |> ignore)
+                    use proc = new Process()
+                    proc.StartInfo <- startInfo config systemPromptFile
 
-                proc.ErrorDataReceived.Add(fun e ->
-                    if not (isNull e.Data) then
-                        stderr.AppendLine(e.Data) |> ignore)
+                    let stdout = StringBuilder()
+                    let stderr = StringBuilder()
 
-                proc.Start() |> ignore
-                proc.BeginOutputReadLine()
-                proc.BeginErrorReadLine()
+                    proc.OutputDataReceived.Add(fun e ->
+                        if not (isNull e.Data) then
+                            stdout.AppendLine(e.Data) |> ignore)
 
-                let! completed =
-                    Task.Run(fun () ->
-                        proc.WaitForExit(int config.Timeout.TotalMilliseconds))
+                    proc.ErrorDataReceived.Add(fun e ->
+                        if not (isNull e.Data) then
+                            stderr.AppendLine(e.Data) |> ignore)
 
-                if not completed then
-                    try proc.Kill() with _ -> ()
-                    return Error (sprintf "Claude Code process timed out after %.0fs" config.Timeout.TotalSeconds)
-                elif proc.ExitCode <> 0 then
-                    let errText = stderr.ToString().Trim()
-                    return Error (sprintf "Claude Code exited with code %d: %s" proc.ExitCode errText)
-                else
-                    return Ok (stdout.ToString().Trim())
-            with ex ->
-                return Error (sprintf "Failed to launch Claude Code: %s" ex.Message)
+                    proc.Start() |> ignore
+                    proc.BeginOutputReadLine()
+                    proc.BeginErrorReadLine()
+                    proc.StandardInput.Write(prompt)
+                    proc.StandardInput.Close()
+
+                    let! completed =
+                        Task.Run(fun () ->
+                            proc.WaitForExit(int config.Timeout.TotalMilliseconds))
+
+                    if not completed then
+                        try proc.Kill() with _ -> ()
+                        return Error (sprintf "Claude Code process timed out after %.0fs" config.Timeout.TotalSeconds)
+                    else
+                        // The timed wait can return before the output handlers have run.
+                        proc.WaitForExit()
+
+                        if proc.ExitCode <> 0 then
+                            let errText = stderr.ToString().Trim()
+                            return Error (sprintf "Claude Code exited with code %d: %s" proc.ExitCode errText)
+                        else
+                            return Ok (stdout.ToString().Trim())
+                with ex ->
+                    return Error (sprintf "Failed to launch Claude Code: %s" ex.Message)
+            finally
+                try File.Delete systemPromptFile with _ -> ()
         }
 
     /// Parse Claude Code JSON output into an LlmResponse.
@@ -172,8 +203,7 @@ module ClaudeCodeService =
 
             member _.CompleteAsync(req: LlmRequest) : Task<LlmResponse> =
                 task {
-                    let prompt = buildPrompt req
-                    let! result = executeClaudeProcess config prompt
+                    let! result = executeClaudeProcess config (systemPromptOf req) (buildPrompt req)
 
                     match result with
                     | Ok output -> return parseResponse output
