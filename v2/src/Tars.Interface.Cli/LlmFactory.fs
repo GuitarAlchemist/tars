@@ -96,6 +96,22 @@ module LlmFactory =
         | [| "anthropic"; name |] when name <> "" -> route (Anthropic name) cfg.AnthropicBaseUri "ANTHROPIC_API_KEY"
         | _ -> None
 
+    /// Why TARS cannot use the API model `model` names, if it cannot. OpenAI's reasoning models
+    /// (o1, o3, o4, gpt-5) reject the `temperature` and `max_tokens` its client sends, and would
+    /// spend the judge's 400-token limit on hidden reasoning.
+    let unsupportedApiModel (model: string) : string option =
+        match model.Split(':', 2, StringSplitOptions.None) with
+        | [| "openai"; name |] when
+            System.Text.RegularExpressions.Regex.IsMatch(
+                name,
+                @"^(o\d|gpt-5)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            )
+            ->
+            Some
+                $"{model} is an OpenAI reasoning model, which rejects the temperature and max_tokens TARS sends: use a chat model such as openai:gpt-4.1."
+        | _ -> None
+
     /// An LLM service that sends every completion to `route`, whatever the request's model or hint.
     /// A constraint the route cannot enforce is reported, as `DefaultLlmService` does. Embeddings
     /// come from the configured backend, as with `create`.
@@ -125,6 +141,8 @@ module LlmFactory =
 
         apiRoute secret routingCfg model
         |> Option.map (fun route ->
+            unsupportedApiModel model |> Option.iter failwith
+
             if route.ApiKey |> Option.forall String.IsNullOrWhiteSpace then
                 let secret =
                     match route.Backend with
@@ -155,8 +173,9 @@ module LlmFactory =
 
     /// `llm`, billed at `price` (USD per million input and output tokens), within `budget`'s money,
     /// which it never exceeds. A call is sent only when its worst case fits in the money left: its
-    /// input at one token per UTF-8 byte (plus 8 per message) and its `MaxTokens` of output (4096
-    /// when it sets none). That worst case is reserved before the call, then settled at the
+    /// input at one token per UTF-8 byte of everything billed (system prompt, messages, schema or
+    /// grammar, tool definitions; plus 8 per part and 64 per call) and its `MaxTokens` of output
+    /// (4096 when it sets none). That worst case is reserved before the call, then settled at the
     /// response's usage (about 4 characters a token when there is none).
     let charged (budget: BudgetGovernor) (inputPrice: decimal, outputPrice: decimal) (llm: ILlmService) : ILlmService =
         let usd (input: int) (output: int) =
@@ -173,8 +192,24 @@ module LlmFactory =
                 let prompt =
                     Option.toList req.SystemPrompt @ (req.Messages |> List.map (fun m -> m.Content))
 
+                let grammar =
+                    match req.ResponseFormat with
+                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema text | Grammar.Ebnf text | Grammar.Regex text)) ->
+                        [ text ]
+                    | _ -> []
+
+                let tools =
+                    req.Tools
+                    |> List.map (fun tool ->
+                        try
+                            System.Text.Json.JsonSerializer.Serialize tool
+                        with _ ->
+                            string tool)
+
                 let worstInput =
-                    prompt |> List.sumBy (fun text -> System.Text.Encoding.UTF8.GetByteCount text + 8)
+                    64
+                    + (prompt @ grammar @ tools
+                       |> List.sumBy (fun text -> System.Text.Encoding.UTF8.GetByteCount text + 8))
 
                 let reserved = usd worstInput req.MaxTokens.Value
 

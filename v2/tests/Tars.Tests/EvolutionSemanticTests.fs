@@ -239,7 +239,7 @@ module EvolutionSemanticTests =
                 ReasoningModel = Some "deepseek-r1:8b" }
 
         let route =
-            (global.Tars.Interface.Cli.LlmFactory.apiRoute (fun _ -> Some "test-key") cfg "openai:o3").Value
+            (global.Tars.Interface.Cli.LlmFactory.apiRoute (fun _ -> Some "test-key") cfg "openai:gpt-4.1").Value
         let teacher = global.Tars.Interface.Cli.LlmFactory.onRoute cfg route
 
         for hint in [ "reasoning"; "coding"; "" ] do
@@ -255,7 +255,7 @@ module EvolutionSemanticTests =
         for path, authorization, _, body in received do
             Assert.Equal("/v1/chat/completions", path)
             Assert.Equal("Bearer test-key", authorization)
-            Assert.Contains("\"o3\"", body)
+            Assert.Contains("\"gpt-4.1\"", body)
 
     [<Fact>]
     let ``A Gemini teacher gets the judge's instructions, and JSON mode for its schema, with a warning`` () =
@@ -313,6 +313,73 @@ module EvolutionSemanticTests =
         // Gemini's response schema has no additionalProperties, which every TARS schema carries.
         Assert.False(fst (generationConfig.TryGetProperty "responseSchema"))
         Assert.DoesNotContain("additionalProperties", body)
+
+    [<Fact>]
+    let ``OpenAI's reasoning models are refused, its chat models are not`` () =
+        let unsupported = global.Tars.Interface.Cli.LlmFactory.unsupportedApiModel
+
+        for name in [ "openai:o3"; "openai:o4-mini"; "openai:o1"; "openai:gpt-5"; "openai:gpt-5-mini" ] do
+            Assert.True((unsupported name).IsSome, name)
+
+        for name in
+            [ "openai:gpt-4.1"
+              "openai:gpt-4o"
+              "anthropic:claude-sonnet-5-5"
+              "gemini:gemini-2.5-pro"
+              "gpt-oss:20b"
+              "o3" ] do
+            Assert.True((unsupported name).IsNone, name)
+
+    [<Fact>]
+    let ``A paid call reserves the schema and the tools it sends too`` () =
+        let sent = ref 0
+
+        let llm =
+            { new Tars.Llm.ILlmService with
+                member _.CompleteAsync _ =
+                    sent.Value <- sent.Value + 1
+
+                    let usage: Tars.Llm.TokenUsage =
+                        { PromptTokens = 500
+                          CompletionTokens = 0
+                          TotalTokens = 500 }
+
+                    let response: Tars.Llm.LlmResponse =
+                        { Text = "{}"
+                          FinishReason = None
+                          Usage = Some usage
+                          Raw = None }
+
+                    Task.FromResult response
+
+                member _.CompleteStreamAsync(_, _) = failwith "not used"
+                member _.EmbedAsync _ = Task.FromResult [||]
+                member _.RouteAsync _ = failwith "not used" }
+
+        // 1 USD per input token, output free: 200 USD pays for 200 input tokens. The messages are
+        // 2 bytes, but the provider also bills the schema (about 400 bytes) or the tool (over 300).
+        let budget = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 200m<usd> })
+        let paid = global.Tars.Interface.Cli.LlmFactory.charged budget (1_000_000m, 0m) llm
+
+        let withSchema =
+            { Tars.Llm.LlmRequest.Default with
+                MaxTokens = Some 100
+                Messages = userSays "hi"
+                ResponseFormat =
+                    Some(Tars.Llm.ResponseFormat.Constrained(Tars.Llm.Grammar.JsonSchema EvolutionSchemas.evaluationSchema)) }
+
+        let withTool =
+            { Tars.Llm.LlmRequest.Default with
+                MaxTokens = Some 100
+                Messages = userSays "hi"
+                Tools = [ box {| name = "read_code"; description = String.replicate 300 "x" |} ] }
+
+        for request in [ withSchema; withTool ] do
+            Assert.ThrowsAny<exn>(Action(fun () -> paid.CompleteAsync(request).Result |> ignore))
+            |> ignore
+
+        Assert.Equal(0, sent.Value)
+        Assert.True((budget.Consumed.Money = 0m<usd>), $"charged {budget.Consumed.Money}")
 
     [<Fact>]
     let ``A price is USD per million input and output tokens`` () =
