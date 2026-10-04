@@ -120,6 +120,57 @@ module ClaudeCodeServiceTests =
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds 30.0, $"took {watch.Elapsed}")
 
     [<Fact>]
+    let ``cancelling the call stops claude`` () =
+        let config =
+            { defaultConfig with
+                ClaudePath = fakeClaude "ping -n 60 127.0.0.1 > nul" "sleep 60" }
+
+        use cts = new Threading.CancellationTokenSource(TimeSpan.FromSeconds 1.0)
+        let watch = Diagnostics.Stopwatch.StartNew()
+
+        let request =
+            { LlmRequest.Default with
+                Messages = [ { Role = Role.User; Content = "Hello" } ] }
+
+        let response =
+            (ClaudeCodeLlmService(config) :> ICancellableLlmService).CompleteAsync(request, cts.Token).Result
+
+        Assert.Equal(Some "error", response.FinishReason)
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds 30.0, $"took {watch.Elapsed}")
+
+    [<Fact>]
+    let ``withEmbeddings passes the call's cancellation on`` () =
+        let seen = ResizeArray<Threading.CancellationToken>()
+
+        let llm =
+            { new ILlmService with
+                member _.CompleteAsync _ = failwith "the call has a cancellation token"
+                member _.EmbedAsync _ = failwith "unused"
+                member _.CompleteStreamAsync(_, _) = failwith "unused"
+                member _.RouteAsync _ = failwith "unused"
+              interface ICancellableLlmService with
+                member _.CompleteAsync(_, token) =
+                    seen.Add token
+
+                    Task.FromResult
+                        { Text = "ok"
+                          FinishReason = Some "stop"
+                          Usage = None
+                          Raw = None }
+
+                member _.EmbedAsync(_, _) = failwith "unused"
+                member _.CompleteStreamAsync(_, _, _) = failwith "unused"
+                member _.RouteAsync(_, _) = failwith "unused" }
+
+        use cts = new Threading.CancellationTokenSource()
+
+        match LlmFactory.withEmbeddings llm llm with
+        | :? ICancellableLlmService as cancellable ->
+            cancellable.CompleteAsync(LlmRequest.Default, cts.Token).Result |> ignore
+            Assert.Equal<Threading.CancellationToken>([ cts.Token ], List.ofSeq seen)
+        | _ -> Assert.Fail "withEmbeddings hides the cancellable service"
+
+    [<Fact>]
     let ``buildPrompt handles multiple messages`` () =
         let req =
             { LlmRequest.Default with
@@ -145,8 +196,24 @@ module ClaudeCodeServiceTests =
         let response = ClaudeCodeService.parseResponse json
         Assert.Equal("Hello, world!", response.Text)
         Assert.Equal(Some "stop", response.FinishReason)
-        Assert.True(response.Usage.IsSome)
+        // No `usage` object: no usage, so callers fall back to their own estimate.
+        Assert.True(response.Usage.IsNone)
         Assert.True(response.Raw.IsSome)
+
+    [<Fact>]
+    let ``parseResponse reads the tokens of Claude Code's usage`` () =
+        let json =
+            """{"type":"result","subtype":"success","result":"OK","total_cost_usd":0.0048,"usage":{"input_tokens":533,"cache_creation_input_tokens":10,"cache_read_input_tokens":100,"output_tokens":859}}"""
+
+        let response = ClaudeCodeService.parseResponse json
+
+        Assert.Equal(
+            Some
+                { PromptTokens = 643
+                  CompletionTokens = 859
+                  TotalTokens = 1502 },
+            response.Usage
+        )
 
     [<Fact>]
     let ``parseResponse handles missing result field`` () =

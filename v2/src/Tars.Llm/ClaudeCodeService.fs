@@ -5,6 +5,7 @@ open System.Diagnostics
 open System.IO
 open System.Text
 open System.Text.Json
+open System.Threading
 open System.Threading.Tasks
 open Tars.Llm.Routing
 
@@ -95,6 +96,7 @@ module ClaudeCodeService =
     /// Execute claude CLI and capture output.
     let private executeClaudeProcess
         (config: ClaudeCodeConfig)
+        (cancellationToken: CancellationToken)
         (systemPrompt: string)
         (prompt: string)
         : Task<Result<string, string>> =
@@ -142,16 +144,29 @@ module ClaudeCodeService =
                                 return Some ex.Message
                         }
 
+                    // Ends at the timeout, or when the caller cancels (an evolve task's deadline).
+                    use deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+                    deadline.CancelAfter(config.Timeout)
+
                     let! completed =
-                        Task.Run(fun () ->
-                            proc.WaitForExit(int config.Timeout.TotalMilliseconds))
+                        task {
+                            try
+                                do! proc.WaitForExitAsync(deadline.Token)
+                                return true
+                            with :? OperationCanceledException ->
+                                return false
+                        }
 
                     if not completed then
                         // The whole tree: a child still holding the pipe would keep the write pending.
                         try proc.Kill(true) with _ -> ()
-                        return Error (sprintf "Claude Code process timed out after %.0fs" config.Timeout.TotalSeconds)
+
+                        if cancellationToken.IsCancellationRequested then
+                            return Error "Claude Code call cancelled"
+                        else
+                            return Error (sprintf "Claude Code process timed out after %.0fs" config.Timeout.TotalSeconds)
                     else
-                        // The timed wait can return before the output handlers have run.
+                        // Make sure the output handlers have run.
                         proc.WaitForExit()
                         let! inputError = input
 
@@ -171,7 +186,7 @@ module ClaudeCodeService =
     /// Parse Claude Code JSON output into an LlmResponse.
     let parseResponse (json: string) : LlmResponse =
         try
-            // Claude Code --output-format json returns: {"type":"result","result":"...","cost_usd":...}
+            // Claude Code --output-format json returns: {"type":"result","result":"...","usage":{...},...}
             let doc = JsonDocument.Parse(json)
             let root = doc.RootElement
 
@@ -183,26 +198,39 @@ module ClaudeCodeService =
                     // Fallback: try to find the text content
                     json
 
-            let costUsd =
-                let mutable p = JsonElement()
-                if root.TryGetProperty("cost_usd", &p) then
-                    Some (p.GetDouble())
+            // The tokens the call used: the prompt (cache reads and writes included) and the
+            // answer. Without a `usage` object, none, so callers fall back to their own estimate.
+            let usage =
+                let mutable found = JsonElement()
+
+                if root.TryGetProperty("usage", &found) && found.ValueKind = JsonValueKind.Object then
+                    let usage = found
+
+                    let tokens (name: string) =
+                        let mutable p = JsonElement()
+
+                        if usage.TryGetProperty(name, &p) && p.ValueKind = JsonValueKind.Number then
+                            p.GetInt32()
+                        else
+                            0
+
+                    let prompt =
+                        tokens "input_tokens"
+                        + tokens "cache_creation_input_tokens"
+                        + tokens "cache_read_input_tokens"
+
+                    let completion = tokens "output_tokens"
+
+                    Some
+                        { PromptTokens = prompt
+                          CompletionTokens = completion
+                          TotalTokens = prompt + completion }
                 else
                     None
 
-            // Estimate tokens from cost (rough: $3/1M input, $15/1M output for Sonnet)
-            let estimatedTokens =
-                costUsd
-                |> Option.map (fun c -> int (c * 1_000_000.0 / 15.0))
-                |> Option.defaultValue 0
-
             { Text = text
               FinishReason = Some "stop"
-              Usage =
-                  Some
-                      { PromptTokens = 0
-                        CompletionTokens = estimatedTokens
-                        TotalTokens = estimatedTokens }
+              Usage = usage
               Raw = Some json }
         with _ ->
             // If JSON parsing fails, treat the entire output as text
@@ -214,23 +242,25 @@ module ClaudeCodeService =
     /// Create an ILlmService that delegates to Claude Code CLI.
     type ClaudeCodeLlmService(config: ClaudeCodeConfig) =
 
+        let complete (req: LlmRequest) (cancellationToken: CancellationToken) : Task<LlmResponse> =
+            task {
+                let! result = executeClaudeProcess config cancellationToken (systemPromptOf req) (buildPrompt req)
+
+                match result with
+                | Ok output -> return parseResponse output
+                | Error err ->
+                    return
+                        { Text = sprintf "[ClaudeCode Error] %s" err
+                          FinishReason = Some "error"
+                          Usage = None
+                          Raw = None }
+            }
+
         new() = ClaudeCodeLlmService(defaultConfig)
 
         interface ILlmService with
 
-            member _.CompleteAsync(req: LlmRequest) : Task<LlmResponse> =
-                task {
-                    let! result = executeClaudeProcess config (systemPromptOf req) (buildPrompt req)
-
-                    match result with
-                    | Ok output -> return parseResponse output
-                    | Error err ->
-                        return
-                            { Text = sprintf "[ClaudeCode Error] %s" err
-                              FinishReason = Some "error"
-                              Usage = None
-                              Raw = None }
-                }
+            member _.CompleteAsync(req: LlmRequest) : Task<LlmResponse> = complete req CancellationToken.None
 
             member _.EmbedAsync(_text: string) : Task<float32[]> =
                 // Claude Code doesn't support embeddings — fall back to empty
@@ -251,6 +281,22 @@ module ClaudeCodeService =
                     { Backend = Anthropic(config.Model |> Option.defaultValue "claude-code")
                       Endpoint = Uri "https://api.anthropic.com"
                       ApiKey = None })
+
+        // A caller's cancellation, such as an evolve task's deadline, stops the claude process.
+        interface ICancellableLlmService with
+
+            member _.CompleteAsync(req, cancellationToken) = complete req cancellationToken
+
+            member _.EmbedAsync(_text, _cancellationToken) = Task.FromResult(Array.empty<float32>)
+
+            member _.CompleteStreamAsync(req, onChunk, cancellationToken) =
+                task {
+                    let! response = complete req cancellationToken
+                    onChunk response.Text
+                    return response
+                }
+
+            member this.RouteAsync(req, _cancellationToken) = (this :> ILlmService).RouteAsync req
 
     /// Detect if Claude Code is available on the system.
     let isAvailable () : bool =

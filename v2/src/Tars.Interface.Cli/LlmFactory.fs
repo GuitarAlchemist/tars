@@ -66,13 +66,34 @@ module LlmFactory =
             None
 
     /// `llm` with `embedder`'s embeddings, for a service that has none: Claude Code returns
-    /// an empty vector, which the vector stores cannot compare with the others.
+    /// an empty vector, which the vector stores cannot compare with the others. A caller's
+    /// cancellation still reaches whichever of the two can take it.
     let withEmbeddings (embedder: ILlmService) (llm: ILlmService) : ILlmService =
         { new ILlmService with
             member _.CompleteAsync req = llm.CompleteAsync req
             member _.EmbedAsync text = embedder.EmbedAsync text
             member _.CompleteStreamAsync(req, onChunk) = llm.CompleteStreamAsync(req, onChunk)
-            member _.RouteAsync req = llm.RouteAsync req }
+            member _.RouteAsync req = llm.RouteAsync req
+          interface ICancellableLlmService with
+            member _.CompleteAsync(req, token) =
+                match llm with
+                | :? ICancellableLlmService as cancellable -> cancellable.CompleteAsync(req, token)
+                | _ -> llm.CompleteAsync req
+
+            member _.EmbedAsync(text, token) =
+                match embedder with
+                | :? ICancellableLlmService as cancellable -> cancellable.EmbedAsync(text, token)
+                | _ -> embedder.EmbedAsync text
+
+            member _.CompleteStreamAsync(req, onChunk, token) =
+                match llm with
+                | :? ICancellableLlmService as cancellable -> cancellable.CompleteStreamAsync(req, onChunk, token)
+                | _ -> llm.CompleteStreamAsync(req, onChunk)
+
+            member _.RouteAsync(req, token) =
+                match llm with
+                | :? ICancellableLlmService as cancellable -> cancellable.RouteAsync(req, token)
+                | _ -> llm.RouteAsync req }
 
     /// Create a Claude Code subprocess LLM service.
     /// Uses the user's authenticated Claude Code session — no API key needed.
