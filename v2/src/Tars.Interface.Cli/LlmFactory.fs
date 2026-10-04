@@ -65,6 +65,15 @@ module LlmFactory =
         else
             None
 
+    /// `llm` with `embedder`'s embeddings, for a service that has none: Claude Code returns
+    /// an empty vector, which the vector stores cannot compare with the others.
+    let withEmbeddings (embedder: ILlmService) (llm: ILlmService) : ILlmService =
+        { new ILlmService with
+            member _.CompleteAsync req = llm.CompleteAsync req
+            member _.EmbedAsync text = embedder.EmbedAsync text
+            member _.CompleteStreamAsync(req, onChunk) = llm.CompleteStreamAsync(req, onChunk)
+            member _.RouteAsync req = llm.RouteAsync req }
+
     /// Create a Claude Code subprocess LLM service.
     /// Uses the user's authenticated Claude Code session — no API key needed.
     let createClaudeCode (model: string option) =

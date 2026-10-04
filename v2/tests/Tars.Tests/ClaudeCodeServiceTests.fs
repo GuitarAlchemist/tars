@@ -1,6 +1,8 @@
 namespace Tars.Tests
 
 open System
+open System.IO
+open System.Threading.Tasks
 open Xunit
 open Tars.Llm
 open Tars.Llm.ClaudeCodeService
@@ -58,6 +60,64 @@ module ClaudeCodeServiceTests =
         Assert.Equal(Some "sonnet", LlmFactory.claudeCodeModel "claude:sonnet")
         Assert.Equal(None, LlmFactory.claudeCodeModel "qwen2.5-coder:7b")
         Assert.Equal(None, LlmFactory.claudeCodeModel "claude:")
+
+    [<Fact>]
+    let ``Claude Code's completions keep the configured backend's embeddings`` () =
+        let embedder =
+            { new ILlmService with
+                member _.CompleteAsync _ = failwith "completions do not go to the embedder"
+                member _.EmbedAsync _ = Task.FromResult [| 1.0f; 2.0f |]
+                member _.CompleteStreamAsync(_, _) = failwith "completions do not go to the embedder"
+                member _.RouteAsync _ = failwith "routes do not go to the embedder" }
+
+        let llm =
+            ClaudeCodeService.create (Some "sonnet") |> LlmFactory.withEmbeddings embedder
+
+        Assert.Equal<float32>([| 1.0f; 2.0f |], llm.EmbedAsync("text").Result)
+
+        match llm.RouteAsync(LlmRequest.Default).Result.Backend with
+        | Anthropic model -> Assert.Equal("sonnet", model)
+        | other -> Assert.Fail(sprintf "Expected Anthropic, got %A" other)
+
+    /// A stand-in for `claude` that runs `windows` (cmd) or `unix` (sh), whatever its arguments.
+    let private fakeClaude (windows: string) (unix: string) : string =
+        let dir = Directory.CreateTempSubdirectory("fake-claude").FullName
+
+        if OperatingSystem.IsWindows() then
+            let path = Path.Combine(dir, "claude.cmd")
+            File.WriteAllText(path, "@echo off\r\n" + windows + "\r\n")
+            path
+        else
+            let path = Path.Combine(dir, "claude")
+            File.WriteAllText(path, "#!/bin/sh\n" + unix + "\n")
+            File.SetUnixFileMode(path, UnixFileMode.UserRead ||| UnixFileMode.UserWrite ||| UnixFileMode.UserExecute)
+            path
+
+    /// More than any pipe buffer, so writing it waits for the reader.
+    let private longRequest =
+        { LlmRequest.Default with
+            Messages = [ { Role = Role.User; Content = String.replicate 1_000_000 "x" } ] }
+
+    [<Fact>]
+    let ``a claude that exits before reading the prompt reports its exit code`` () =
+        let config = { defaultConfig with ClaudePath = fakeClaude "exit /b 3" "exit 3" }
+        let response = (ClaudeCodeLlmService(config) :> ILlmService).CompleteAsync(longRequest).Result
+
+        Assert.Equal(Some "error", response.FinishReason)
+        Assert.Contains("exited with code 3", response.Text)
+
+    [<Fact>]
+    let ``a claude that never reads the prompt is stopped at the timeout`` () =
+        let config =
+            { defaultConfig with
+                ClaudePath = fakeClaude "ping -n 60 127.0.0.1 > nul" "sleep 60"
+                Timeout = TimeSpan.FromSeconds 2.0 }
+
+        let watch = Diagnostics.Stopwatch.StartNew()
+        let response = (ClaudeCodeLlmService(config) :> ILlmService).CompleteAsync(longRequest).Result
+
+        Assert.Contains("timed out", response.Text)
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds 30.0, $"took {watch.Elapsed}")
 
     [<Fact>]
     let ``buildPrompt handles multiple messages`` () =

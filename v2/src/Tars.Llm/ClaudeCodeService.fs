@@ -126,25 +126,42 @@ module ClaudeCodeService =
                     proc.Start() |> ignore
                     proc.BeginOutputReadLine()
                     proc.BeginErrorReadLine()
-                    proc.StandardInput.Write(prompt)
-                    proc.StandardInput.Close()
+
+                    // Written while the timed wait runs: a claude that stalls before reading
+                    // its stdin cannot hold the call past the timeout, and one that exits early
+                    // reports its exit code and stderr rather than a broken pipe.
+                    let input =
+                        task {
+                            try
+                                do! proc.StandardInput.WriteAsync(prompt)
+                                do! proc.StandardInput.FlushAsync()
+                                proc.StandardInput.Close()
+                                return None
+                            with ex ->
+                                try proc.StandardInput.Dispose() with _ -> ()
+                                return Some ex.Message
+                        }
 
                     let! completed =
                         Task.Run(fun () ->
                             proc.WaitForExit(int config.Timeout.TotalMilliseconds))
 
                     if not completed then
-                        try proc.Kill() with _ -> ()
+                        // The whole tree: a child still holding the pipe would keep the write pending.
+                        try proc.Kill(true) with _ -> ()
                         return Error (sprintf "Claude Code process timed out after %.0fs" config.Timeout.TotalSeconds)
                     else
                         // The timed wait can return before the output handlers have run.
                         proc.WaitForExit()
+                        let! inputError = input
 
                         if proc.ExitCode <> 0 then
                             let errText = stderr.ToString().Trim()
                             return Error (sprintf "Claude Code exited with code %d: %s" proc.ExitCode errText)
                         else
-                            return Ok (stdout.ToString().Trim())
+                            match inputError with
+                            | Some err -> return Error (sprintf "Claude Code did not take the whole prompt: %s" err)
+                            | None -> return Ok (stdout.ToString().Trim())
                 with ex ->
                     return Error (sprintf "Failed to launch Claude Code: %s" ex.Message)
             finally
