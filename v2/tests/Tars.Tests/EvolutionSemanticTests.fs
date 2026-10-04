@@ -260,7 +260,8 @@ module EvolutionSemanticTests =
     [<Fact>]
     let ``A Gemini teacher gets the judge's instructions, and JSON mode for its schema, with a warning`` () =
         let baseUri, received, listener =
-            fakeProvider """{"candidates":[{"content":{"role":"model","parts":[{"text":"ok"}]},"finishReason":"STOP","index":0}]}"""
+            fakeProvider
+                """{"candidates":[{"content":{"role":"model","parts":[{"text":"ok"}]},"finishReason":"STOP","index":0}],"usageMetadata":{"promptTokenCount":10,"candidatesTokenCount":5,"thoughtsTokenCount":200,"totalTokenCount":215}}"""
 
         use listener = listener
 
@@ -286,10 +287,18 @@ module EvolutionSemanticTests =
         let warnings = Collections.Generic.List<string>()
         Tars.Llm.Routing.ConstraintDowngradeLog.setSink warnings.Add
 
-        try
-            Assert.Equal("ok", teacher.CompleteAsync(request).Result.Text)
-        finally
-            Tars.Llm.Routing.ConstraintDowngradeLog.resetSink ()
+        let response =
+            try
+                teacher.CompleteAsync(request).Result
+            finally
+                Tars.Llm.Routing.ConstraintDowngradeLog.resetSink ()
+
+        Assert.Equal("ok", response.Text)
+
+        // Its thinking tokens are billed as output, as its answer's are.
+        let usage = response.Usage.Value
+        Assert.Equal(10, usage.PromptTokens)
+        Assert.Equal(205, usage.CompletionTokens)
 
         // The schema is given up, so it is reported, as on every other route.
         Assert.Contains(warnings, fun w -> w.Contains "json_schema grammar discarded — backend GoogleGemini")
@@ -466,6 +475,36 @@ module EvolutionSemanticTests =
         |> ignore
 
         Assert.True((untouched.Consumed.Money = 0m<usd>), $"kept {untouched.Consumed.Money}")
+
+        // A response without usage keeps its whole reservation: nothing else bounds what it cost.
+        let withoutUsage =
+            { new Tars.Llm.ILlmService with
+                member _.CompleteAsync _ =
+                    let response: Tars.Llm.LlmResponse =
+                        { Text = "ok"
+                          FinishReason = None
+                          Usage = None
+                          Raw = None }
+
+                    Task.FromResult response
+
+                member _.CompleteStreamAsync(_, _) = failwith "not used"
+                member _.EmbedAsync _ = Task.FromResult [||]
+                member _.RouteAsync _ = failwith "not used" }
+
+        let kept = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 2000m<usd> })
+
+        (global.Tars.Interface.Cli.LlmFactory.charged kept (1_000_000m, 1_000_000m) withoutUsage)
+            .CompleteAsync(
+                { Tars.Llm.LlmRequest.Default with
+                    MaxTokens = Some 1000
+                    Messages = userSays "hi" }
+            )
+            .Result
+        |> ignore
+
+        // At 1 USD a token: 64 + 2 + 8 input tokens and 1000 output tokens.
+        Assert.True((kept.Consumed.Money = 1074m<usd>), $"kept {kept.Consumed.Money}")
 
     [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =

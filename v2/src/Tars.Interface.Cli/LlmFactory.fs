@@ -176,7 +176,7 @@ module LlmFactory =
     /// input at one token per UTF-8 byte of everything billed (system prompt, messages, schema or
     /// grammar, tool definitions; plus 8 per part and 64 per call) and its `MaxTokens` of output
     /// (4096 when it sets none). That worst case is reserved before the call, then settled at the
-    /// response's usage (about 4 characters a token when there is none).
+    /// response's usage, or kept whole when the response has none.
     let charged (budget: BudgetGovernor) (inputPrice: decimal, outputPrice: decimal) (llm: ILlmService) : ILlmService =
         let usd (input: int) (output: int) =
             (decimal input * inputPrice + decimal output * outputPrice) / 1_000_000m * 1m<usd>
@@ -224,12 +224,10 @@ module LlmFactory =
                                 return raise ex
                         }
 
-                    let estimate (text: string) = (text.Length + 3) / 4
-
                     let cost =
                         match response.Usage with
                         | Some usage -> usd usage.PromptTokens usage.CompletionTokens
-                        | None -> usd (List.sumBy estimate prompt) (estimate response.Text)
+                        | None -> reserved
 
                     budget.Consume(money (cost - reserved)) |> ignore
                     return response

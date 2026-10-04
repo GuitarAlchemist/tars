@@ -50,6 +50,8 @@ module GoogleGeminiClient =
     type GeminiUsageMetadataDto =
         { promptTokenCount: int
           candidatesTokenCount: int
+          /// A thinking model's reasoning, billed as output but not counted in the candidates.
+          thoughtsTokenCount: int
           totalTokenCount: int }
 
     [<CLIMutable>]
@@ -149,7 +151,7 @@ module GoogleGeminiClient =
                     | Some u ->
                         Some
                             { PromptTokens = u.promptTokenCount
-                              CompletionTokens = u.candidatesTokenCount
+                              CompletionTokens = u.candidatesTokenCount + u.thoughtsTokenCount
                               TotalTokens = u.totalTokenCount }
                     | None -> None
 
