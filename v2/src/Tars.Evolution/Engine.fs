@@ -920,6 +920,7 @@ Requirements:
 - Each task must be a specific coding problem (NOT a question), solvable with code (NOT a discussion), and doable from its own text, without reading any file.
 - Each task goal MUST explicitly state "in F#" and name the function with its signature, e.g. "Write `isPalindrome : string -> bool` in F#".
 - validation_criteria MUST give 2 or 3 examples of input and expected output, e.g. "isPalindrome \"racecar\" = true; isPalindrome \"abc\" = false".
+- constraints are about the code (what it does, the functions or data structures it may use), never about the answer's format: the agent answers in its own protocol, with an `ACT:` line and text around its code.
 - Do NOT repeat or closely rephrase any previous tasks: %s{completedList}
 - DO NOT suggest the same task if it recently failed. PIVOT to a different problem.
 - Vary domains and artifacts (algorithms, data structures, parsing, text processing, refactors, tooling).

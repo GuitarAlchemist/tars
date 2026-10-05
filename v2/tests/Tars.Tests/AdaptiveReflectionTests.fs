@@ -1020,6 +1020,9 @@ module AdaptiveReflectionTests =
 
             Assert.Contains("MUST include the complete code to change", curriculumPrompt)
             Assert.Contains("2 or 3 examples", curriculumPrompt)
+            // A live Opus teacher wrote "exactly one ```fsharp block, no ACT: prefix", which the
+            // executor's protocol can't meet, and the judge failed code whose examples passed.
+            Assert.Contains("never about the answer's format", curriculumPrompt)
 
             match newState.CompletedTasks with
             | completed :: _ -> Assert.Equal(fst Engine.concreteTasks.Head, completed.TaskGoal)
