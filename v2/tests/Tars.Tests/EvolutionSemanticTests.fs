@@ -153,6 +153,23 @@ module EvolutionSemanticTests =
             Assert.True((routed.Backend = Tars.Llm.LlmBackend.Ollama "qwen3:14b"), $"hint '{hint}' went to {routed.Backend}")
 
     [<Fact>]
+    let ``A local --model answers the executor's requests, not the configured CodingModel`` () =
+        // The executor's requests carry its model's name as their hint; the curriculum's and the
+        // judge's, "reasoning".
+        let llm = global.Tars.Interface.Cli.Commands.Evolve.llmFor Serilog.Log.Logger "qwen2.5-coder:14b"
+
+        for hint in [ "qwen2.5-coder:14b"; "reasoning" ] do
+            let routed = llm.RouteAsync({ Tars.Llm.LlmRequest.Default with ModelHint = Some hint }).Result
+
+            let model =
+                match routed.Backend with
+                | Tars.Llm.LlmBackend.Ollama m
+                | Tars.Llm.LlmBackend.Vllm m -> m
+                | other -> string other
+
+            Assert.True((model = "qwen2.5-coder:14b"), $"hint '{hint}' went to {routed.Backend}")
+
+    [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =
         let llm = SuccessLlm("ok") :> Tars.Llm.ILlmService
         let recorder = TraceRecorder()
