@@ -58,19 +58,33 @@ module LlmFactory =
 
     /// Routing that sends every request to `model`, whatever its hint (reasoning, coding, fast).
     /// A configured LlamaSharp model would take every local route first, and Docker Model Runner
-    /// and llama.cpp would take the "docker", "llamacpp", "perf" and "gguf" hints, so they are dropped.
+    /// and llama.cpp would take the "docker", "llamacpp", "perf" and "gguf" hints, so they are dropped,
+    /// unless `model`'s own name routes there (`<name>.gguf` to a configured llama.cpp server): the
+    /// requests that carry that name as their hint, as the executor's do, then reach it there.
     let pinnedTo (model: string) (cfg: RoutingConfig) : RoutingConfig =
-        { cfg with
-            DefaultOllamaModel = model
-            DefaultVllmModel = model
-            ReasoningModel = Some model
-            CodingModel = Some model
-            FastModel = Some model
-            LlamaSharpModelPath = None
-            DockerModelRunnerBaseUri = None
-            DefaultDockerModelRunnerModel = None
-            LlamaCppBaseUri = None
-            DefaultLlamaCppModel = None }
+        let pinned =
+            { cfg with
+                DefaultOllamaModel = model
+                DefaultVllmModel = model
+                ReasoningModel = Some model
+                CodingModel = Some model
+                FastModel = Some model
+                LlamaSharpModelPath = None
+                DockerModelRunnerBaseUri = None
+                DefaultDockerModelRunnerModel = None
+                LlamaCppBaseUri = None
+                DefaultLlamaCppModel = None }
+
+        match RoutingHint.classify model with
+        | DockerHint when cfg.DockerModelRunnerBaseUri.IsSome ->
+            { pinned with
+                DockerModelRunnerBaseUri = cfg.DockerModelRunnerBaseUri
+                DefaultDockerModelRunnerModel = Some model }
+        | LlamaCppHint when cfg.LlamaCppBaseUri.IsSome ->
+            { pinned with
+                LlamaCppBaseUri = cfg.LlamaCppBaseUri
+                DefaultLlamaCppModel = Some model }
+        | _ -> pinned
 
     /// Create an LLM service that answers every request with `model`, whatever its hint.
     let createPinnedTo (_logger: ILogger) (model: string) : ILlmService =
