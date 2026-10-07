@@ -746,7 +746,7 @@ printfn "Tool Result: %s" result // Output MUST be printed to stdout
 
         $"""[TASK]
 Goal: {taskDef.Goal}
-Constraints: {taskDef.Constraints}
+Constraints: [{String.concat "; " taskDef.Constraints}]
 Validation Criteria: {taskDef.ValidationCriteria}
 
 [KNOWLEDGE CONTEXT]
