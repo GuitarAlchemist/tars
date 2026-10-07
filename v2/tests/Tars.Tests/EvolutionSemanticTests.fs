@@ -153,6 +153,79 @@ module EvolutionSemanticTests =
             Assert.True((routed.Backend = Tars.Llm.LlmBackend.Ollama "qwen3:14b"), $"hint '{hint}' went to {routed.Backend}")
 
     [<Fact>]
+    let ``The llama.cpp server gets every request for its configured model, and none for another .gguf`` () =
+        let cfg =
+            { Tars.Llm.Routing.RoutingConfig.Default with
+                LlamaCppBaseUri = Some(Uri "http://localhost:8080")
+                DefaultLlamaCppModel = Some "served-model"
+                PreferredProvider = "Ollama" }
+
+        // The server answers with the model it loaded, whatever a request names. Identifiers may be
+        // paths, so `Served-Model` is another model.
+        for model, onServer in [ "served-model", true; "other.gguf", false; "Served-Model", false ] do
+            let pinned = global.Tars.Interface.Cli.LlmFactory.pinnedTo model cfg
+            let pin = global.Tars.Interface.Cli.LlmFactory.pinnedRequest model cfg
+
+            // The executor's requests carry its model's name as their hint; the curriculum's and
+            // the judge's, "reasoning".
+            for hint in [ model; "reasoning"; "fast"; "" ] do
+                let routed =
+                    Tars.Llm.Routing.chooseBackend pinned (pin { Tars.Llm.LlmRequest.Default with ModelHint = Some hint })
+
+                let expected =
+                    match routed.Backend with
+                    | Tars.Llm.LlmBackend.LlamaCpp(m, _) ->
+                        onServer && m = model && routed.Endpoint = Uri "http://localhost:8080"
+                    | backend -> not onServer && backend = Tars.Llm.LlmBackend.Ollama model
+
+                Assert.True(expected, $"'{model}' with hint '{hint}' went to {routed.Backend}")
+
+    [<Fact>]
+    let ``The configured LlamaSharp model gets every request when it is the pinned model`` () =
+        let cfg =
+            { Tars.Llm.Routing.RoutingConfig.Default with
+                LlamaSharpModelPath = Some "/models/A.gguf"
+                PreferredProvider = "Ollama" }
+
+        // On a case-sensitive file system, `/models/a.gguf` is another file.
+        for model, onLlamaSharp in [ "/models/A.gguf", true; "/models/a.gguf", false ] do
+            let pinned = global.Tars.Interface.Cli.LlmFactory.pinnedTo model cfg
+            let pin = global.Tars.Interface.Cli.LlmFactory.pinnedRequest model cfg
+
+            let expected =
+                if onLlamaSharp then
+                    Tars.Llm.LlmBackend.LlamaSharp model
+                else
+                    Tars.Llm.LlmBackend.Ollama model
+
+            for hint in [ model; "reasoning"; "fast"; "" ] do
+                let routed =
+                    Tars.Llm.Routing.chooseBackend pinned (pin { Tars.Llm.LlmRequest.Default with ModelHint = Some hint })
+
+                Assert.True((routed.Backend = expected), $"'{model}' with hint '{hint}' went to {routed.Backend}")
+
+    [<Fact>]
+    let ``A local --model answers the executor's requests, not the configured CodingModel`` () =
+        // The executor's requests carry its model's name as their hint; the curriculum's and the
+        // judge's, "reasoning".
+        let llm = global.Tars.Interface.Cli.Commands.Evolve.llmFor Serilog.Log.Logger "qwen2.5-coder:14b"
+
+        for hint in [ "qwen2.5-coder:14b"; "reasoning" ] do
+            let routed = llm.RouteAsync({ Tars.Llm.LlmRequest.Default with ModelHint = Some hint }).Result
+
+            // Whichever local backend the configuration has: llama.cpp or LlamaSharp too, when it
+            // serves this model.
+            let model =
+                match routed.Backend with
+                | Tars.Llm.LlmBackend.Ollama m
+                | Tars.Llm.LlmBackend.Vllm m
+                | Tars.Llm.LlmBackend.LlamaCpp(m, _)
+                | Tars.Llm.LlmBackend.LlamaSharp m -> m
+                | other -> string other
+
+            Assert.True((model = "qwen2.5-coder:14b"), $"hint '{hint}' went to {routed.Backend}")
+
+    [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =
         let llm = SuccessLlm("ok") :> Tars.Llm.ILlmService
         let recorder = TraceRecorder()

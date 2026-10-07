@@ -64,6 +64,19 @@ let tracedServices
     | Some teacher -> traced (Some "executor") executor, Some(traced (Some "teacher") teacher)
     | None -> traced None executor, None
 
+/// The service for a `--model` or `--teacher` name. A `claude:<model>` sends its requests to
+/// Claude Code (`claude -p`), on the user's own Claude login; embeddings still come from the
+/// configured backend. A local model answers every request, whatever its hint: the executor's
+/// requests carry its model's name as their hint, which sends a coder model (`qwen2.5-coder:14b`)
+/// to the configured CodingModel, and the curriculum's and the judge's carry "reasoning", which
+/// would go to the configured ReasoningModel.
+let llmFor (logger: ILogger) (model: string) : ILlmService =
+    match LlmFactory.claudeCodeModel model with
+    | Some claudeModel ->
+        LlmFactory.createClaudeCode (Some claudeModel)
+        |> LlmFactory.withEmbeddings (LlmFactory.create logger)
+    | None -> LlmFactory.createPinnedTo logger model
+
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
         // Load configuration
@@ -278,29 +291,13 @@ let run (logger: ILogger) (options: EvolveOptions) =
         registry.Register(reviewerAgent)
 
         // Initialize LLM Service
-        // A `claude:<model>` sends its requests to Claude Code (`claude -p`), on the user's own
-        // Claude login. Embeddings still come from the configured backend.
-        let createLlm (m: string) =
-            match LlmFactory.claudeCodeModel m with
-            | Some claudeModel ->
-                LlmFactory.createClaudeCode (Some claudeModel)
-                |> LlmFactory.withEmbeddings (LlmFactory.create logger)
-            | None -> LlmFactory.createWithModel logger m
-
         let baseLlmService =
             match options.Model with
-            | Some m -> createLlm m
+            | Some m -> llmFor logger m
             | None -> LlmFactory.create logger
 
         // `--teacher` writes the curriculum and judges the answers; `--model` answers them.
-        // A local teacher answers every request: the curriculum and the judge ask for
-        // "reasoning", which would otherwise go to the configured ReasoningModel.
-        let teacherLlm =
-            options.Teacher
-            |> Option.map (fun m ->
-                match LlmFactory.claudeCodeModel m with
-                | Some _ -> createLlm m
-                | None -> LlmFactory.createPinnedTo logger m)
+        let teacherLlm = options.Teacher |> Option.map (llmFor logger)
 
         if not options.Quiet then
             options.Teacher |> Option.iter (fun t -> RichOutput.info $"Teacher (curriculum and judge): {t}")
