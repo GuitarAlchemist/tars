@@ -65,8 +65,9 @@ module LlmFactory =
     /// Routing that sends every request to `model`, whatever its hint (reasoning, coding, fast).
     /// A configured LlamaSharp model would take every local route first, and Docker Model Runner
     /// and llama.cpp would take the "docker", "llamacpp", "perf" and "gguf" hints, so they are
-    /// dropped, except the llama.cpp server when it serves `model`: `pinnedRequest` then sends
-    /// every request there.
+    /// dropped, except the one that serves `model`: the LlamaSharp model file when it is `model`
+    /// (it then takes every local route), or the llama.cpp server (`pinnedRequest` then sends
+    /// every request there).
     let pinnedTo (model: string) (cfg: RoutingConfig) : RoutingConfig =
         let llamaCpp = servedByLlamaCpp model cfg
 
@@ -76,7 +77,9 @@ module LlmFactory =
             ReasoningModel = Some model
             CodingModel = Some model
             FastModel = Some model
-            LlamaSharpModelPath = None
+            LlamaSharpModelPath =
+                cfg.LlamaSharpModelPath
+                |> Option.filter (fun path -> String.Equals(path, model, StringComparison.OrdinalIgnoreCase))
             DockerModelRunnerBaseUri = None
             DefaultDockerModelRunnerModel = None
             LlamaCppBaseUri = if llamaCpp then cfg.LlamaCppBaseUri else None
