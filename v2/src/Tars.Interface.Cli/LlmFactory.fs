@@ -59,8 +59,7 @@ module LlmFactory =
     /// Whether the configured llama.cpp server serves `model`: the server answers with the model
     /// it loaded, the configured one, whatever a request names.
     let private servedByLlamaCpp (model: string) (cfg: RoutingConfig) =
-        cfg.LlamaCppBaseUri.IsSome
-        && Option.exists (fun m -> String.Equals(m, model, StringComparison.OrdinalIgnoreCase)) cfg.DefaultLlamaCppModel
+        cfg.LlamaCppBaseUri.IsSome && cfg.DefaultLlamaCppModel = Some model
 
     /// Routing that sends every request to `model`, whatever its hint (reasoning, coding, fast).
     /// A configured LlamaSharp model would take every local route first, and Docker Model Runner

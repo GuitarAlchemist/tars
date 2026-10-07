@@ -160,8 +160,9 @@ module EvolutionSemanticTests =
                 DefaultLlamaCppModel = Some "served-model"
                 PreferredProvider = "Ollama" }
 
-        // The server answers with the model it loaded, whatever a request names.
-        for model, onServer in [ "served-model", true; "other.gguf", false ] do
+        // The server answers with the model it loaded, whatever a request names. Identifiers may be
+        // paths, so `Served-Model` is another model.
+        for model, onServer in [ "served-model", true; "other.gguf", false; "Served-Model", false ] do
             let pinned = global.Tars.Interface.Cli.LlmFactory.pinnedTo model cfg
             let pin = global.Tars.Interface.Cli.LlmFactory.pinnedRequest model cfg
 
@@ -212,12 +213,14 @@ module EvolutionSemanticTests =
         for hint in [ "qwen2.5-coder:14b"; "reasoning" ] do
             let routed = llm.RouteAsync({ Tars.Llm.LlmRequest.Default with ModelHint = Some hint }).Result
 
-            // Whichever local backend the configuration has: llama.cpp too, when it serves this model.
+            // Whichever local backend the configuration has: llama.cpp or LlamaSharp too, when it
+            // serves this model.
             let model =
                 match routed.Backend with
                 | Tars.Llm.LlmBackend.Ollama m
                 | Tars.Llm.LlmBackend.Vllm m
-                | Tars.Llm.LlmBackend.LlamaCpp(m, _) -> m
+                | Tars.Llm.LlmBackend.LlamaCpp(m, _)
+                | Tars.Llm.LlmBackend.LlamaSharp m -> m
                 | other -> string other
 
             Assert.True((model = "qwen2.5-coder:14b"), $"hint '{hint}' went to {routed.Backend}")
