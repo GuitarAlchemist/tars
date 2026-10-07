@@ -56,41 +56,63 @@ module LlmFactory =
         let serviceConfig = { LlmServiceConfig.Routing = routingCfg }
         DefaultLlmService(sharedClient, serviceConfig) :> ILlmService
 
+    /// Whether the configured llama.cpp server serves `model`: it is the server's configured
+    /// model, or a `.gguf` file.
+    let private servedByLlamaCpp (model: string) (cfg: RoutingConfig) =
+        cfg.LlamaCppBaseUri.IsSome
+        && (cfg.DefaultLlamaCppModel
+            |> Option.exists (fun m -> String.Equals(m, model, StringComparison.OrdinalIgnoreCase))
+            || model.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase))
+
     /// Routing that sends every request to `model`, whatever its hint (reasoning, coding, fast).
     /// A configured LlamaSharp model would take every local route first, and Docker Model Runner
-    /// and llama.cpp would take the "docker", "llamacpp", "perf" and "gguf" hints, so they are dropped,
-    /// unless `model`'s own name routes there (`<name>.gguf` to a configured llama.cpp server): the
-    /// requests that carry that name as their hint, as the executor's do, then reach it there.
+    /// and llama.cpp would take the "docker", "llamacpp", "perf" and "gguf" hints, so they are
+    /// dropped, except the llama.cpp server when it serves `model`: `pinnedRequest` then sends
+    /// every request there.
     let pinnedTo (model: string) (cfg: RoutingConfig) : RoutingConfig =
-        let pinned =
-            { cfg with
-                DefaultOllamaModel = model
-                DefaultVllmModel = model
-                ReasoningModel = Some model
-                CodingModel = Some model
-                FastModel = Some model
-                LlamaSharpModelPath = None
-                DockerModelRunnerBaseUri = None
-                DefaultDockerModelRunnerModel = None
-                LlamaCppBaseUri = None
-                DefaultLlamaCppModel = None }
+        let llamaCpp = servedByLlamaCpp model cfg
 
-        match RoutingHint.classify model with
-        | DockerHint when cfg.DockerModelRunnerBaseUri.IsSome ->
-            { pinned with
-                DockerModelRunnerBaseUri = cfg.DockerModelRunnerBaseUri
-                DefaultDockerModelRunnerModel = Some model }
-        | LlamaCppHint when cfg.LlamaCppBaseUri.IsSome ->
-            { pinned with
-                LlamaCppBaseUri = cfg.LlamaCppBaseUri
-                DefaultLlamaCppModel = Some model }
-        | _ -> pinned
+        { cfg with
+            DefaultOllamaModel = model
+            DefaultVllmModel = model
+            ReasoningModel = Some model
+            CodingModel = Some model
+            FastModel = Some model
+            LlamaSharpModelPath = None
+            DockerModelRunnerBaseUri = None
+            DefaultDockerModelRunnerModel = None
+            LlamaCppBaseUri = if llamaCpp then cfg.LlamaCppBaseUri else None
+            DefaultLlamaCppModel = if llamaCpp then Some model else None }
+
+    /// `request` as `pinnedTo`'s routing must get it. The routing reaches llama.cpp only through
+    /// the "llamacpp" hint, so when that server serves `model`, every request that names no
+    /// model of its own carries that hint.
+    let pinnedRequest (model: string) (cfg: RoutingConfig) (request: LlmRequest) : LlmRequest =
+        if servedByLlamaCpp model cfg && request.Model.IsNone then
+            { request with ModelHint = Some "llamacpp" }
+        else
+            request
 
     /// Create an LLM service that answers every request with `model`, whatever its hint.
     let createPinnedTo (_logger: ILogger) (model: string) : ILlmService =
         let _, routingCfg = loadConfig ()
-        let serviceConfig = { LlmServiceConfig.Routing = pinnedTo model routingCfg }
-        DefaultLlmService(sharedClient, serviceConfig) :> ILlmService
+        let service = DefaultLlmService(sharedClient, { LlmServiceConfig.Routing = pinnedTo model routingCfg })
+        let llm, cancellable = service :> ILlmService, service :> ICancellableLlmService
+        let pin = pinnedRequest model routingCfg
+
+        { new ILlmService with
+            member _.CompleteAsync req = llm.CompleteAsync(pin req)
+            member _.EmbedAsync text = llm.EmbedAsync text
+            member _.CompleteStreamAsync(req, onChunk) = llm.CompleteStreamAsync(pin req, onChunk)
+            member _.RouteAsync req = llm.RouteAsync(pin req)
+          interface ICancellableLlmService with
+            member _.CompleteAsync(req, token) = cancellable.CompleteAsync(pin req, token)
+            member _.EmbedAsync(text, token) = cancellable.EmbedAsync(text, token)
+
+            member _.CompleteStreamAsync(req, onChunk, token) =
+                cancellable.CompleteStreamAsync(pin req, onChunk, token)
+
+            member _.RouteAsync(req, token) = cancellable.RouteAsync(pin req, token) }
 
     /// The model `--model claude:<model>` asks Claude Code for (`claude:sonnet` -> `sonnet`).
     let claudeCodeModel (model: string) : string option =

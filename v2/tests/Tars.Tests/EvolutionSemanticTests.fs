@@ -153,27 +153,30 @@ module EvolutionSemanticTests =
             Assert.True((routed.Backend = Tars.Llm.LlmBackend.Ollama "qwen3:14b"), $"hint '{hint}' went to {routed.Backend}")
 
     [<Fact>]
-    let ``A pinned model whose name picks llama.cpp or Docker Model Runner keeps that server`` () =
+    let ``A pinned model that the configured llama.cpp server serves gets every request there`` () =
         let cfg =
             { Tars.Llm.Routing.RoutingConfig.Default with
-                DockerModelRunnerBaseUri = Some(Uri "http://localhost:12434")
                 LlamaCppBaseUri = Some(Uri "http://localhost:8080")
+                DefaultLlamaCppModel = Some "served-model"
                 PreferredProvider = "Ollama" }
 
-        // The executor's requests carry its model's name as their hint.
-        for model in [ "mistral-7b.gguf"; "docker.io/ai/smollm2" ] do
+        // The server's configured model, and a `.gguf` file whose name also says "code".
+        for model in [ "served-model"; "qwen-coder.gguf" ] do
             let pinned = global.Tars.Interface.Cli.LlmFactory.pinnedTo model cfg
+            let pin = global.Tars.Interface.Cli.LlmFactory.pinnedRequest model cfg
 
-            let routed =
-                Tars.Llm.Routing.chooseBackend pinned { Tars.Llm.LlmRequest.Default with ModelHint = Some model }
+            // The executor's requests carry its model's name as their hint; the curriculum's and
+            // the judge's, "reasoning".
+            for hint in [ model; "reasoning"; "fast"; "" ] do
+                let routed =
+                    Tars.Llm.Routing.chooseBackend pinned (pin { Tars.Llm.LlmRequest.Default with ModelHint = Some hint })
 
-            let served =
-                match routed.Backend with
-                | Tars.Llm.LlmBackend.LlamaCpp(m, _) when routed.Endpoint = Uri "http://localhost:8080" -> Some m
-                | Tars.Llm.LlmBackend.DockerModelRunner m when routed.Endpoint = Uri "http://localhost:12434" -> Some m
-                | _ -> None
+                let served =
+                    match routed.Backend with
+                    | Tars.Llm.LlmBackend.LlamaCpp(m, _) when routed.Endpoint = Uri "http://localhost:8080" -> Some m
+                    | _ -> None
 
-            Assert.True((served = Some model), $"'{model}' went to {routed.Backend} at {routed.Endpoint}")
+                Assert.True((served = Some model), $"'{model}' with hint '{hint}' went to {routed.Backend}")
 
     [<Fact>]
     let ``A local --model answers the executor's requests, not the configured CodingModel`` () =
