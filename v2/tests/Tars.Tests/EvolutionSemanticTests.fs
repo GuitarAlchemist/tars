@@ -181,21 +181,27 @@ module EvolutionSemanticTests =
 
     [<Fact>]
     let ``The configured LlamaSharp model gets every request when it is the pinned model`` () =
-        let model = "C:/models/tars.gguf"
-
         let cfg =
             { Tars.Llm.Routing.RoutingConfig.Default with
-                LlamaSharpModelPath = Some model
+                LlamaSharpModelPath = Some "/models/A.gguf"
                 PreferredProvider = "Ollama" }
 
-        let pinned = global.Tars.Interface.Cli.LlmFactory.pinnedTo model cfg
-        let pin = global.Tars.Interface.Cli.LlmFactory.pinnedRequest model cfg
+        // On a case-sensitive file system, `/models/a.gguf` is another file.
+        for model, onLlamaSharp in [ "/models/A.gguf", true; "/models/a.gguf", false ] do
+            let pinned = global.Tars.Interface.Cli.LlmFactory.pinnedTo model cfg
+            let pin = global.Tars.Interface.Cli.LlmFactory.pinnedRequest model cfg
 
-        for hint in [ model; "reasoning"; "fast"; "" ] do
-            let routed =
-                Tars.Llm.Routing.chooseBackend pinned (pin { Tars.Llm.LlmRequest.Default with ModelHint = Some hint })
+            let expected =
+                if onLlamaSharp then
+                    Tars.Llm.LlmBackend.LlamaSharp model
+                else
+                    Tars.Llm.LlmBackend.Ollama model
 
-            Assert.True((routed.Backend = Tars.Llm.LlmBackend.LlamaSharp model), $"hint '{hint}' went to {routed.Backend}")
+            for hint in [ model; "reasoning"; "fast"; "" ] do
+                let routed =
+                    Tars.Llm.Routing.chooseBackend pinned (pin { Tars.Llm.LlmRequest.Default with ModelHint = Some hint })
+
+                Assert.True((routed.Backend = expected), $"'{model}' with hint '{hint}' went to {routed.Backend}")
 
     [<Fact>]
     let ``A local --model answers the executor's requests, not the configured CodingModel`` () =
