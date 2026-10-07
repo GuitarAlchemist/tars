@@ -225,6 +225,55 @@ module EvolutionSemanticTests =
 
             Assert.True((model = "qwen2.5-coder:14b"), $"hint '{hint}' went to {routed.Backend}")
 
+    /// A file under v2/, found from the test directory.
+    let private v2File (parts: string list) =
+        let rec v2 (dir: IO.DirectoryInfo) =
+            if isNull dir then failwith "Could not locate v2/ (no Tars.sln above the test directory)"
+            elif dir.GetFiles("Tars.sln").Length > 0 then dir
+            else v2 dir.Parent
+
+        IO.Path.Combine(Array.ofList ((v2 (IO.DirectoryInfo AppContext.BaseDirectory)).FullName :: parts))
+
+    let private cliSettings () =
+        Text.Json.JsonDocument.Parse(IO.File.ReadAllText(v2File [ "src"; "Tars.Interface.Cli"; "appsettings.json" ]))
+
+    [<Fact>]
+    let ``The CLI's default model answers its own executor's requests`` () =
+        // The executor's requests carry its model's name as their hint, and a coder model's name
+        // routes to the CodingModel: appsettings.json must not leave that on another model.
+        use settings = cliSettings ()
+        let llm = settings.RootElement.GetProperty "Llm"
+
+        let setting (name: string) =
+            match llm.TryGetProperty name with
+            | true, value -> Some(value.GetString())
+            | _ -> None
+
+        let defaults = Tars.Core.ConfigurationDefaults.createDefault ()
+        let model = (setting "Model").Value
+
+        let config =
+            { defaults with
+                Llm =
+                    { defaults.Llm with
+                        Model = model
+                        CodingModel = setting "CodingModel" |> Option.orElse defaults.Llm.CodingModel } }
+
+        let routed =
+            Tars.Llm.Routing.chooseBackend
+                (Tars.Llm.Routing.RoutingConfig.fromTarsConfig config)
+                { Tars.Llm.LlmRequest.Default with ModelHint = Some model }
+
+        Assert.True((routed.Backend = Tars.Llm.LlmBackend.Ollama model), $"'{model}' went to {routed.Backend}")
+
+    [<Fact>]
+    let ``The setup script pulls the CLI's default model`` () =
+        use settings = cliSettings ()
+        let model = settings.RootElement.GetProperty("Llm").GetProperty("Model").GetString()
+        let setup = IO.File.ReadAllText(v2File [ "scripts"; "setup-tars.ps1" ])
+
+        Assert.Contains($"\"{model}\"", setup)
+
     [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =
         let llm = SuccessLlm("ok") :> Tars.Llm.ILlmService

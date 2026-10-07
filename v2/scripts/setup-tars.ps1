@@ -265,6 +265,7 @@ if (-not $SkipModels) {
     
     # Pull recommended models
     $models = @(
+        "qwen2.5-coder:14b", # TARS CLI default (Llm:Model, Llm:CodingModel): ~9 GB, ~12 GB VRAM at 16k context
         "qwen3:14b",         # Best general thinking model
         "nomic-embed-text"   # Embedding model
     )
@@ -367,7 +368,7 @@ Write-Host "  ✅ Git"
 Write-Host "  ✅ Ollama"
 if (-not $SkipLlamaCpp) { Write-Host "  ✅ llama.cpp ($(if($CpuOnly){'CPU'}else{'CUDA'}))" }
 if (-not $SkipDocker) { Write-Host "  ✅ Docker Desktop" }
-if (-not $SkipModels) { Write-Host "  ✅ LLM Models (qwen3, nomic-embed-text)" }
+if (-not $SkipModels) { Write-Host "  ✅ LLM Models (qwen2.5-coder:14b, qwen3, nomic-embed-text)" }
 Write-Host "  ✅ TARS v2"
 
 Write-Host "`nQuick Start:" -ForegroundColor Cyan
