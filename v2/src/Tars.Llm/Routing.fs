@@ -283,13 +283,12 @@ module ConstraintNeed =
             | DockerModelRunner _ -> true
             // AnthropicClient only appends a prompt hint — it enforces nothing.
             | Anthropic _
-            // GoogleGeminiClient DOES send the schema, as generationConfig.responseSchema.
-            // But that field is an OpenAPI-subset Schema with no `additionalProperties`
+            // GoogleGeminiClient sends JSON mode only, not generationConfig.responseSchema:
+            // that field is an OpenAPI-subset Schema with no `additionalProperties`
             // and a scalar `type`, and every schema we author carries
-            // additionalProperties:false (strict mode requires it). Gemini rejects
-            // unknown fields, so our schemas 400 rather than degrade. Reported as a
-            // downgrade because we cannot enforce them there — not because Gemini
-            // lacks the capability in general.
+            // additionalProperties:false (strict mode requires it), which Gemini
+            // rejects. Reported as a downgrade because we cannot enforce them there —
+            // not because Gemini lacks the capability in general.
             | GoogleGemini _
             // LlamaSharpService never reads ResponseFormat at all.
             | LlamaSharp _ -> false
@@ -337,22 +336,23 @@ let private backendName (backend: LlmBackend) =
     | LlamaCpp _ -> "LlamaCpp"
     | LlamaSharp _ -> "LlamaSharp"
 
+/// The constraint `backend` has to give up to serve `req`, if any.
+let downgradeOf (backend: LlmBackend) (req: LlmRequest) : ConstraintDowngrade option =
+    if ConstraintNeed.supports backend (ConstraintNeed.ofRequest req) then
+        None
+    else
+        Some
+            { RequestedGrammar = requestedGrammarName req
+              Backend = backendName backend }
+
 /// Route, and report whether the chosen backend can enforce the requested
 /// constraint. Still pure — callers that do not care about constraints keep using
 /// `chooseBackend` unchanged.
 let chooseBackendWithConstraints (cfg: RoutingConfig) (req: LlmRequest) : ChosenBackend =
     let routed = chooseBackend cfg req
-    let need = ConstraintNeed.ofRequest req
 
-    let downgrade =
-        if ConstraintNeed.supports routed.Backend need then
-            None
-        else
-            Some
-                { RequestedGrammar = requestedGrammarName req
-                  Backend = backendName routed.Backend }
-
-    { Routed = routed; Downgrade = downgrade }
+    { Routed = routed
+      Downgrade = downgradeOf routed.Backend req }
 
 /// Where constraint downgrades get reported. Routing stays pure, so the warning
 /// is emitted here at the service boundary instead.

@@ -28,8 +28,14 @@ type EvolveOptions =
       Model: string option
       /// The model that writes the curriculum and judges the answers (`--teacher claude:sonnet`),
       /// while `Model` answers them. None: `Model` does all three. It takes the names `Model`
-      /// takes: a local model, or `claude:<model>` for Claude Code.
+      /// takes: a local model, `claude:<model>` for Claude Code, or `openai:<model>`,
+      /// `gemini:<model>` or `anthropic:<model>` for that provider's paid API.
       Teacher: string option
+      /// A paid API `Model`'s price, "IN/OUT" USD per million input and output tokens
+      /// (`--model-price 2.5/10`), so the budget can count it. Required for such a model.
+      ModelPrice: string option
+      /// The same for a paid API `Teacher` (`--teacher-price`).
+      TeacherPrice: string option
       Trace: bool
       Budget: decimal option
       DisableGraphiti: bool
@@ -277,15 +283,40 @@ let run (logger: ILogger) (options: EvolveOptions) =
         registry.Register(executorAgent)
         registry.Register(reviewerAgent)
 
+        // Session budget for evolution
+        let budget =
+            BudgetGovernor(
+                { Budget.Infinite with
+                    MaxTokens = Some 1000000<token>
+                    MaxMoney =
+                        options.Budget
+                        |> Option.map (fun m -> m * 1m<usd>)
+                        |> Option.orElse (Some 10.0m<usd>) }
+            )
+
+        // A paid API model is charged to the budget at its price, so the budget can stop it.
+        // Without a price the budget could not count it, so evolve refuses to start.
+        let paidOnApi (m: string) (price: string option) (priceOption: string) =
+            LlmFactory.createOnApi logger m
+            |> Option.map (fun llm ->
+                match price |> Option.bind LlmFactory.parsePrice with
+                | Some price -> LlmFactory.charged budget price llm
+                | None ->
+                    failwith
+                        $"{m} is billed per token: give its price with {priceOption} IN/OUT (USD per million input and output tokens, e.g. 2.5/10), so the budget can count it.")
+
         // Initialize LLM Service
         // A `claude:<model>` sends its requests to Claude Code (`claude -p`), on the user's own
-        // Claude login. Embeddings still come from the configured backend.
+        // Claude login. Embeddings still come from the configured backend. `openai:<model>`,
+        // `gemini:<model>` and `anthropic:<model>` send them to that provider's API.
         let createLlm (m: string) =
             match LlmFactory.claudeCodeModel m with
             | Some claudeModel ->
                 LlmFactory.createClaudeCode (Some claudeModel)
                 |> LlmFactory.withEmbeddings (LlmFactory.create logger)
-            | None -> LlmFactory.createWithModel logger m
+            | None ->
+                paidOnApi m options.ModelPrice "--model-price"
+                |> Option.defaultWith (fun () -> LlmFactory.createWithModel logger m)
 
         let baseLlmService =
             match options.Model with
@@ -300,7 +331,9 @@ let run (logger: ILogger) (options: EvolveOptions) =
             |> Option.map (fun m ->
                 match LlmFactory.claudeCodeModel m with
                 | Some _ -> createLlm m
-                | None -> LlmFactory.createPinnedTo logger m)
+                | None ->
+                    paidOnApi m options.TeacherPrice "--teacher-price"
+                    |> Option.defaultWith (fun () -> LlmFactory.createPinnedTo logger m))
 
         if not options.Quiet then
             options.Teacher |> Option.iter (fun t -> RichOutput.info $"Teacher (curriculum and judge): {t}")
@@ -465,17 +498,6 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 match ledgerOpt with
                 | Some _ -> RichOutput.info "📒 Knowledge ledger initialized"
                 | None -> RichOutput.dim "📒 Knowledge ledger unavailable"
-
-            // Session budget for evolution
-            let budget =
-                BudgetGovernor(
-                    { Budget.Infinite with
-                        MaxTokens = Some 1000000<token>
-                        MaxMoney =
-                            options.Budget
-                            |> Option.map (fun m -> m * 1m<usd>)
-                            |> Option.orElse (Some 10.0m<usd>) }
-                )
 
             let epistemic =
                 if options.DemoMode then
@@ -920,6 +942,9 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
                 RichOutput.info
                     $"🧠 Knowledge graph facts: {knowledgeGraph.GetCurrentFacts().Length} (persisted to {knowledgeGraphPath})"
+
+                if budget.Consumed.Money > 0m<usd> then
+                    RichOutput.info $"💵 API cost: {budget.Consumed.Money} USD"
 
             if options.Trace then
                 let timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss")

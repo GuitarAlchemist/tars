@@ -153,6 +153,371 @@ module EvolutionSemanticTests =
             Assert.True((routed.Backend = Tars.Llm.LlmBackend.Ollama "qwen3:14b"), $"hint '{hint}' went to {routed.Backend}")
 
     [<Fact>]
+    let ``An API teacher is named with its provider`` () =
+        let route =
+            global.Tars.Interface.Cli.LlmFactory.apiRoute (fun _ -> None) Tars.Llm.Routing.RoutingConfig.Default
+        let backendOf name = route name |> Option.map (fun r -> r.Backend)
+
+        Assert.True((backendOf "openai:o3" = Some(Tars.Llm.LlmBackend.OpenAI "o3")))
+        Assert.True((backendOf "gemini:gemini-2.5-pro" = Some(Tars.Llm.LlmBackend.GoogleGemini "gemini-2.5-pro")))
+        Assert.True((backendOf "anthropic:claude-sonnet-5-5" = Some(Tars.Llm.LlmBackend.Anthropic "claude-sonnet-5-5")))
+
+        // Other names stay local, even an Ollama model named like an API one; `claude:` is Claude Code.
+        for name in [ "gpt-oss:20b"; "qwen3:14b"; "claude:sonnet"; "openai:" ] do
+            Assert.True((route name).IsNone, $"{name} went to an API")
+
+    [<Fact>]
+    let ``An API teacher only gets its own provider's key`` () =
+        // RoutingConfig.fromTarsConfig copies Llm:ApiKey, which is OPENAI_API_KEY, into every slot.
+        let cfg =
+            { Tars.Llm.Routing.RoutingConfig.Default with
+                OpenAIKey = Some "openai-key"
+                GoogleGeminiKey = Some "openai-key"
+                AnthropicKey = Some "openai-key" }
+
+        let secret =
+            function
+            | "OPENAI_API_KEY" -> Some "openai-key"
+            | _ -> None
+
+        let keyOf name =
+            (global.Tars.Interface.Cli.LlmFactory.apiRoute secret cfg name).Value.ApiKey
+
+        Assert.True((keyOf "openai:gpt-4o" = Some "openai-key"))
+        Assert.True((keyOf "anthropic:claude-sonnet-5-5" = None), "the OpenAI key went to Anthropic")
+        Assert.True((keyOf "gemini:gemini-2.5-pro" = None), "the OpenAI key went to Gemini")
+
+    /// A local HTTP server standing in for a provider's API. It answers `response` and records
+    /// each request as (path, Authorization header, x-goog-api-key header, body).
+    let fakeProvider (response: string) =
+        let port =
+            let probe = new Net.Sockets.TcpListener(Net.IPAddress.Loopback, 0)
+            probe.Start()
+            let port = (probe.LocalEndpoint :?> Net.IPEndPoint).Port
+            probe.Stop()
+            port
+
+        let baseUri = Uri($"http://localhost:{port}/")
+        let listener = new Net.HttpListener()
+        listener.Prefixes.Add(string baseUri)
+        listener.Start()
+        let received = Collections.Concurrent.ConcurrentQueue<string * string * string * string>()
+
+        task {
+            while listener.IsListening do
+                try
+                    let! context = listener.GetContextAsync()
+                    use reader = new IO.StreamReader(context.Request.InputStream)
+                    let! body = reader.ReadToEndAsync()
+                    let header (name: string) = context.Request.Headers.[name]
+                    received.Enqueue((context.Request.Url.AbsolutePath, header "Authorization", header "x-goog-api-key", body))
+                    let bytes = Text.Encoding.UTF8.GetBytes response
+                    context.Response.ContentType <- "application/json"
+                    context.Response.OutputStream.Write(bytes, 0, bytes.Length)
+                    context.Response.Close()
+                with _ ->
+                    ()
+        }
+        |> ignore
+
+        baseUri, received, listener
+
+    let private userSays (text: string) : Tars.Llm.LlmMessage list =
+        [ { Role = Tars.Llm.Role.User; Content = text } ]
+
+    [<Fact>]
+    let ``An API teacher answers every request on its provider, with its key`` () =
+        let baseUri, received, listener =
+            fakeProvider """{"id":"1","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}"""
+
+        use listener = listener
+
+        // A reasoning model is configured too: the teacher's hints must not reach it.
+        let cfg =
+            { Tars.Llm.Routing.RoutingConfig.Default with
+                OpenAIBaseUri = baseUri
+                ReasoningModel = Some "deepseek-r1:8b" }
+
+        let route =
+            (global.Tars.Interface.Cli.LlmFactory.apiRoute (fun _ -> Some "test-key") cfg "openai:gpt-4.1").Value
+        let teacher = global.Tars.Interface.Cli.LlmFactory.onRoute cfg route
+
+        for hint in [ "reasoning"; "coding"; "" ] do
+            let request =
+                { Tars.Llm.LlmRequest.Default with
+                    ModelHint = Some hint
+                    Messages = userSays "hi" }
+
+            Assert.Equal("ok", teacher.CompleteAsync(request).Result.Text)
+
+        Assert.Equal(3, received.Count)
+
+        for path, authorization, _, body in received do
+            Assert.Equal("/v1/chat/completions", path)
+            Assert.Equal("Bearer test-key", authorization)
+            Assert.Contains("\"gpt-4.1\"", body)
+
+    [<Fact>]
+    let ``A Gemini teacher gets the judge's instructions, and JSON mode for its schema, with a warning`` () =
+        let baseUri, received, listener =
+            fakeProvider
+                """{"candidates":[{"content":{"role":"model","parts":[{"text":"ok"}]},"finishReason":"STOP","index":0}],"usageMetadata":{"promptTokenCount":10,"candidatesTokenCount":5,"thoughtsTokenCount":200,"totalTokenCount":215}}"""
+
+        use listener = listener
+
+        let cfg =
+            { Tars.Llm.Routing.RoutingConfig.Default with
+                GoogleGeminiBaseUri = baseUri }
+
+        let route =
+            (global.Tars.Interface.Cli.LlmFactory.apiRoute (fun _ -> Some "test-key") cfg "gemini:gemini-2.5-pro").Value
+        let teacher = global.Tars.Interface.Cli.LlmFactory.onRoute cfg route
+
+        // The judge's request (Evaluation.fs): a system prompt and a strict JSON schema.
+        let request =
+            { Tars.Llm.LlmRequest.Default with
+                ModelHint = Some "reasoning"
+                SystemPrompt = Some "Evaluate task output for semantic correctness."
+                Messages = userSays "hi"
+                Temperature = Some 0.0
+                ResponseFormat =
+                    Some(Tars.Llm.ResponseFormat.Constrained(Tars.Llm.Grammar.JsonSchema EvolutionSchemas.evaluationSchema))
+                JsonMode = true }
+
+        let warnings = Collections.Generic.List<string>()
+        Tars.Llm.Routing.ConstraintDowngradeLog.setSink warnings.Add
+
+        let response =
+            try
+                teacher.CompleteAsync(request).Result
+            finally
+                Tars.Llm.Routing.ConstraintDowngradeLog.resetSink ()
+
+        Assert.Equal("ok", response.Text)
+
+        // Its thinking tokens are billed as output, as its answer's are.
+        let usage = response.Usage.Value
+        Assert.Equal(10, usage.PromptTokens)
+        Assert.Equal(205, usage.CompletionTokens)
+
+        // The schema is given up, so it is reported, as on every other route.
+        Assert.Contains(warnings, fun w -> w.Contains "json_schema grammar discarded — backend GoogleGemini")
+
+        let path, _, key, body = Seq.exactlyOne received
+        Assert.Equal("/v1beta/models/gemini-2.5-pro:generateContent", path)
+        Assert.Equal("test-key", key)
+
+        // The body as Gemini reads it: F# options must be plain values, not {"value": ...}.
+        use json = Text.Json.JsonDocument.Parse body
+        let root = json.RootElement
+
+        Assert.Equal(
+            "Evaluate task output for semantic correctness.",
+            root.GetProperty("systemInstruction").GetProperty("parts").[0].GetProperty("text").GetString()
+        )
+
+        let generationConfig = root.GetProperty "generationConfig"
+        Assert.Equal("application/json", generationConfig.GetProperty("responseMimeType").GetString())
+        Assert.Equal(0.0, generationConfig.GetProperty("temperature").GetDouble())
+        // Gemini's response schema has no additionalProperties, which every TARS schema carries.
+        Assert.False(fst (generationConfig.TryGetProperty "responseSchema"))
+        Assert.DoesNotContain("additionalProperties", body)
+
+    [<Fact>]
+    let ``OpenAI's reasoning models are refused, its chat models are not`` () =
+        let unsupported = global.Tars.Interface.Cli.LlmFactory.unsupportedApiModel
+
+        for name in [ "openai:o3"; "openai:o4-mini"; "openai:o1"; "openai:gpt-5"; "openai:gpt-5-mini" ] do
+            Assert.True((unsupported name).IsSome, name)
+
+        for name in
+            [ "openai:gpt-4.1"
+              "openai:gpt-4o"
+              "anthropic:claude-sonnet-5-5"
+              "gemini:gemini-2.5-pro"
+              "gpt-oss:20b"
+              "o3" ] do
+            Assert.True((unsupported name).IsNone, name)
+
+    [<Fact>]
+    let ``A paid call reserves the schema and the tools it sends too`` () =
+        let sent = ref 0
+
+        let llm =
+            { new Tars.Llm.ILlmService with
+                member _.CompleteAsync _ =
+                    sent.Value <- sent.Value + 1
+
+                    let usage: Tars.Llm.TokenUsage =
+                        { PromptTokens = 500
+                          CompletionTokens = 0
+                          TotalTokens = 500 }
+
+                    let response: Tars.Llm.LlmResponse =
+                        { Text = "{}"
+                          FinishReason = None
+                          Usage = Some usage
+                          Raw = None }
+
+                    Task.FromResult response
+
+                member _.CompleteStreamAsync(_, _) = failwith "not used"
+                member _.EmbedAsync _ = Task.FromResult [||]
+                member _.RouteAsync _ = failwith "not used" }
+
+        // 1 USD per input token, output free: 200 USD pays for 200 input tokens. The messages are
+        // 2 bytes, but the provider also bills the schema (about 400 bytes) or the tool (over 300).
+        let budget = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 200m<usd> })
+        let paid = global.Tars.Interface.Cli.LlmFactory.charged budget (1_000_000m, 0m) llm
+
+        let withSchema =
+            { Tars.Llm.LlmRequest.Default with
+                MaxTokens = Some 100
+                Messages = userSays "hi"
+                ResponseFormat =
+                    Some(Tars.Llm.ResponseFormat.Constrained(Tars.Llm.Grammar.JsonSchema EvolutionSchemas.evaluationSchema)) }
+
+        let withTool =
+            { Tars.Llm.LlmRequest.Default with
+                MaxTokens = Some 100
+                Messages = userSays "hi"
+                Tools = [ box {| name = "read_code"; description = String.replicate 300 "x" |} ] }
+
+        for request in [ withSchema; withTool ] do
+            Assert.ThrowsAny<exn>(Action(fun () -> paid.CompleteAsync(request).Result |> ignore))
+            |> ignore
+
+        Assert.Equal(0, sent.Value)
+        Assert.True((budget.Consumed.Money = 0m<usd>), $"charged {budget.Consumed.Money}")
+
+    [<Fact>]
+    let ``A price is USD per million input and output tokens`` () =
+        let parse = global.Tars.Interface.Cli.LlmFactory.parsePrice
+
+        Assert.True((parse "2.5/10" = Some(2.5m, 10m)))
+
+        for text in [ "2,5/10"; "2.5"; "1/2/3"; "-1/2"; "a/b" ] do
+            Assert.True((parse text).IsNone, text)
+
+    [<Fact>]
+    let ``A paid model's calls are charged to the budget, which they never exceed`` () =
+        let sent = Collections.Concurrent.ConcurrentQueue<Tars.Llm.LlmRequest>()
+
+        let llm =
+            { new Tars.Llm.ILlmService with
+                member _.CompleteAsync request =
+                    sent.Enqueue request
+
+                    let usage: Tars.Llm.TokenUsage =
+                        { PromptTokens = 10
+                          CompletionTokens = 1_000_000
+                          TotalTokens = 1_000_010 }
+
+                    let response: Tars.Llm.LlmResponse =
+                        { Text = "ok"
+                          FinishReason = None
+                          Usage = Some usage
+                          Raw = None }
+
+                    Task.FromResult response
+
+                member _.CompleteStreamAsync(_, _) = failwith "not used"
+                member _.EmbedAsync _ = Task.FromResult [||]
+                member _.RouteAsync _ = failwith "not used" }
+
+        // At 2 USD per million input tokens and 8 per million output tokens, a call that may write
+        // 1M tokens may cost about 8 USD, and this one does (10 input tokens, 1M output tokens).
+        let budget = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 20m<usd> })
+        let paid = global.Tars.Interface.Cli.LlmFactory.charged budget (2m, 8m) llm
+
+        let request =
+            { Tars.Llm.LlmRequest.Default with
+                MaxTokens = Some 1_000_000
+                Messages = userSays "hi" }
+
+        paid.CompleteAsync(request).Result |> ignore
+        paid.CompleteAsync(request).Result |> ignore
+
+        Assert.True((budget.Consumed.Money = 16.00004m<usd>), $"charged {budget.Consumed.Money}")
+
+        // The 4 USD left cannot pay for a call that may cost 8: it is refused before it is sent.
+        let refused =
+            Assert.ThrowsAny<exn>(Action(fun () -> paid.CompleteAsync(request).Result |> ignore))
+
+        Assert.Contains("budget is spent", refused.ToString())
+        Assert.Equal(2, sent.Count)
+        Assert.True((budget.Consumed.Money = 16.00004m<usd>), $"charged {budget.Consumed.Money}")
+
+        // A request without an output limit gets one, so its cost has a worst case.
+        let roomy = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 100m<usd> })
+
+        (global.Tars.Interface.Cli.LlmFactory.charged roomy (2m, 8m) llm)
+            .CompleteAsync(Tars.Llm.LlmRequest.Default)
+            .Result
+        |> ignore
+
+        Assert.Equal(Some 4096, (Seq.last sent).MaxTokens)
+
+        // A call the provider refused (4xx) gives its reservation back. One that failed on the
+        // way back (a timeout, a dropped connection) keeps it: the provider may have billed it.
+        let chargedAfter (error: exn) =
+            let failing =
+                { new Tars.Llm.ILlmService with
+                    member _.CompleteAsync _ =
+                        Task.FromException<Tars.Llm.LlmResponse> error
+
+                    member _.CompleteStreamAsync(_, _) = failwith "not used"
+                    member _.EmbedAsync _ = Task.FromResult [||]
+                    member _.RouteAsync _ = failwith "not used" }
+
+            let failed = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 100m<usd> })
+            let failingPaid = global.Tars.Interface.Cli.LlmFactory.charged failed (2m, 8m) failing
+
+            Assert.ThrowsAny<exn>(Action(fun () -> failingPaid.CompleteAsync(request).Result |> ignore))
+            |> ignore
+
+            failed.Consumed.Money
+
+        let refused =
+            chargedAfter (Net.Http.HttpRequestException("Bad Request", null, Nullable Net.HttpStatusCode.BadRequest))
+
+        Assert.True((refused = 0m<usd>), $"kept {refused}")
+
+        // The reservation: 64 + 2 + 8 input tokens at 2 USD per million, 1M output tokens at 8.
+        let timedOut = chargedAfter (TaskCanceledException "timed out")
+        Assert.True((timedOut = 8.000148m<usd>), $"kept {timedOut}")
+
+        // A response without usage keeps its whole reservation: nothing else bounds what it cost.
+        let withoutUsage =
+            { new Tars.Llm.ILlmService with
+                member _.CompleteAsync _ =
+                    let response: Tars.Llm.LlmResponse =
+                        { Text = "ok"
+                          FinishReason = None
+                          Usage = None
+                          Raw = None }
+
+                    Task.FromResult response
+
+                member _.CompleteStreamAsync(_, _) = failwith "not used"
+                member _.EmbedAsync _ = Task.FromResult [||]
+                member _.RouteAsync _ = failwith "not used" }
+
+        let kept = BudgetGovernor({ Budget.Infinite with MaxMoney = Some 2000m<usd> })
+
+        (global.Tars.Interface.Cli.LlmFactory.charged kept (1_000_000m, 1_000_000m) withoutUsage)
+            .CompleteAsync(
+                { Tars.Llm.LlmRequest.Default with
+                    MaxTokens = Some 1000
+                    Messages = userSays "hi" }
+            )
+            .Result
+        |> ignore
+
+        // At 1 USD a token: 64 + 2 + 8 input tokens and 1000 output tokens.
+        Assert.True((kept.Consumed.Money = 1074m<usd>), $"kept {kept.Consumed.Money}")
+
+    [<Fact>]
     let ``With --trace, the teacher's calls are traced like the executor's`` () =
         let llm = SuccessLlm("ok") :> Tars.Llm.ILlmService
         let recorder = TraceRecorder()

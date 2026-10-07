@@ -78,6 +78,182 @@ module LlmFactory =
         let serviceConfig = { LlmServiceConfig.Routing = pinnedTo model routingCfg }
         DefaultLlmService(sharedClient, serviceConfig) :> ILlmService
 
+    /// The API model `openai:<model>`, `gemini:<model>` or `anthropic:<model>` names, routed to its
+    /// provider. `anthropic:` is the paid API; `claude:` is Claude Code. The provider is named, not
+    /// guessed: Ollama's `gpt-oss:20b` stays local. The key is that provider's own `secret`
+    /// (OPENAI_API_KEY, GOOGLE_API_KEY, ANTHROPIC_API_KEY), never `cfg`'s: `RoutingConfig.fromTarsConfig`
+    /// copies `Llm:ApiKey`, which is OPENAI_API_KEY, into every provider's slot.
+    let apiRoute (secret: string -> string option) (cfg: RoutingConfig) (model: string) : RoutedBackend option =
+        let route backend endpoint secretName =
+            Some
+                { Backend = backend
+                  Endpoint = endpoint
+                  ApiKey = secret secretName }
+
+        match model.Split(':', 2, StringSplitOptions.None) with
+        | [| "openai"; name |] when name <> "" -> route (OpenAI name) cfg.OpenAIBaseUri "OPENAI_API_KEY"
+        | [| "gemini"; name |] when name <> "" -> route (GoogleGemini name) cfg.GoogleGeminiBaseUri "GOOGLE_API_KEY"
+        | [| "anthropic"; name |] when name <> "" -> route (Anthropic name) cfg.AnthropicBaseUri "ANTHROPIC_API_KEY"
+        | _ -> None
+
+    /// Why TARS cannot use the API model `model` names, if it cannot. OpenAI's reasoning models
+    /// (o1, o3, o4, gpt-5) reject the `temperature` and `max_tokens` its client sends, and would
+    /// spend the judge's 400-token limit on hidden reasoning.
+    let unsupportedApiModel (model: string) : string option =
+        match model.Split(':', 2, StringSplitOptions.None) with
+        | [| "openai"; name |] when
+            System.Text.RegularExpressions.Regex.IsMatch(
+                name,
+                @"^(o\d|gpt-5)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            )
+            ->
+            Some
+                $"{model} is an OpenAI reasoning model, which rejects the temperature and max_tokens TARS sends: use a chat model such as openai:gpt-4.1."
+        | _ -> None
+
+    /// An LLM service that sends every completion to `route`, whatever the request's model or hint.
+    /// A constraint the route cannot enforce is reported, as `DefaultLlmService` does. Embeddings
+    /// come from the configured backend, as with `create`.
+    let onRoute (cfg: RoutingConfig) (route: RoutedBackend) : ILlmService =
+        let backend = Backends.resolve { LlmServiceConfig.Routing = cfg } sharedClient route
+
+        let prepared req =
+            downgradeOf route.Backend req |> Option.iter ConstraintDowngradeLog.warn
+            enrichRequest cfg req
+
+        { new ILlmService with
+            member _.CompleteAsync req = backend.Complete(prepared req)
+            member _.CompleteStreamAsync(req, onToken) = backend.Stream(prepared req, onToken)
+            member _.EmbedAsync text = Embedder.embed sharedClient cfg text
+            member _.RouteAsync _ = Threading.Tasks.Task.FromResult route }
+
+    /// The service for `openai:<model>`, `gemini:<model>` or `anthropic:<model>`, billed to that
+    /// provider's API key (the environment or secrets.json, through CredentialVault). None for
+    /// other names.
+    let createOnApi (_logger: ILogger) (model: string) : ILlmService option =
+        let _, routingCfg = loadConfig ()
+
+        let secret name =
+            match CredentialVault.getSecret name with
+            | Ok key -> Some key
+            | _ -> None
+
+        apiRoute secret routingCfg model
+        |> Option.map (fun route ->
+            unsupportedApiModel model |> Option.iter failwith
+
+            if route.ApiKey |> Option.forall String.IsNullOrWhiteSpace then
+                let secret =
+                    match route.Backend with
+                    | OpenAI _ -> "OPENAI_API_KEY"
+                    | GoogleGemini _ -> "GOOGLE_API_KEY"
+                    | _ -> "ANTHROPIC_API_KEY"
+
+                failwith $"{model} needs an API key: set {secret}."
+
+            onRoute routingCfg route)
+
+    /// A price "IN/OUT": USD per million input tokens and per million output tokens (`2.5/10`).
+    let parsePrice (text: string) : (decimal * decimal) option =
+        let parse (s: string) =
+            match
+                Decimal.TryParse(
+                    s,
+                    Globalization.NumberStyles.AllowDecimalPoint,
+                    Globalization.CultureInfo.InvariantCulture
+                )
+            with
+            | true, value -> Some value
+            | _ -> None
+
+        match text.Split('/') with
+        | [| input; output |] -> Option.map2 (fun i o -> i, o) (parse input) (parse output)
+        | _ -> None
+
+    /// `llm`, billed at `price` (USD per million input and output tokens), within `budget`'s money,
+    /// which it never exceeds. A call is sent only when its worst case fits in the money left: its
+    /// input at one token per UTF-8 byte of everything billed (system prompt, messages, schema or
+    /// grammar, tool definitions; plus 8 per part and 64 per call) and its `MaxTokens` of output
+    /// (4096 when it sets none). That worst case is reserved before the call, then settled at the
+    /// response's usage, or kept whole when the response has none. A failed call keeps it too,
+    /// unless the provider refused it (4xx): a timeout or a dropped connection may have been billed.
+    let charged (budget: BudgetGovernor) (inputPrice: decimal, outputPrice: decimal) (llm: ILlmService) : ILlmService =
+        let usd (input: int) (output: int) =
+            (decimal input * inputPrice + decimal output * outputPrice) / 1_000_000m * 1m<usd>
+
+        let money amount = { Cost.Zero with Money = amount }
+
+        let send (req: LlmRequest) (call: LlmRequest -> Threading.Tasks.Task<LlmResponse>) =
+            task {
+                let req =
+                    { req with
+                        MaxTokens = Some(req.MaxTokens |> Option.defaultValue 4096) }
+
+                let prompt =
+                    Option.toList req.SystemPrompt @ (req.Messages |> List.map (fun m -> m.Content))
+
+                let grammar =
+                    match req.ResponseFormat with
+                    | Some(ResponseFormat.Constrained(Grammar.JsonSchema text | Grammar.Ebnf text | Grammar.Regex text)) ->
+                        [ text ]
+                    | _ -> []
+
+                let tools =
+                    req.Tools
+                    |> List.map (fun tool ->
+                        try
+                            System.Text.Json.JsonSerializer.Serialize tool
+                        with _ ->
+                            string tool)
+
+                let worstInput =
+                    64
+                    + (prompt @ grammar @ tools
+                       |> List.sumBy (fun text -> System.Text.Encoding.UTF8.GetByteCount text + 8))
+
+                let reserved = usd worstInput req.MaxTokens.Value
+
+                match budget.TryConsume(money reserved) with
+                | Ok() ->
+                    let! response =
+                        task {
+                            try
+                                return! call req
+                            with ex ->
+                                match ex with
+                                | :? HttpRequestException as http when
+                                    http.StatusCode.HasValue
+                                    && int http.StatusCode.Value >= 400
+                                    && int http.StatusCode.Value < 500
+                                    ->
+                                    budget.Consume(money -reserved) |> ignore
+                                | _ -> ()
+
+                                return raise ex
+                        }
+
+                    let cost =
+                        match response.Usage with
+                        | Some usage -> usd usage.PromptTokens usage.CompletionTokens
+                        | None -> reserved
+
+                    budget.Consume(money (cost - reserved)) |> ignore
+                    return response
+                | _ ->
+                    let left = budget.Remaining.MaxMoney |> Option.defaultValue 0m<usd>
+
+                    return
+                        failwith
+                            $"The USD budget is spent: this call may cost up to {reserved} USD, and {left} USD is left."
+            }
+
+        { new ILlmService with
+            member _.CompleteAsync req = send req llm.CompleteAsync
+            member _.CompleteStreamAsync(req, onToken) = send req (fun req -> llm.CompleteStreamAsync(req, onToken))
+            member _.EmbedAsync text = llm.EmbedAsync text
+            member _.RouteAsync req = llm.RouteAsync req }
+
     /// The model `--model claude:<model>` asks Claude Code for (`claude:sonnet` -> `sonnet`).
     let claudeCodeModel (model: string) : string option =
         let prefix = "claude:"
