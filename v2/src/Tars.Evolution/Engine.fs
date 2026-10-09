@@ -778,6 +778,28 @@ If the task truly asks for no code, give your final result instead."""
 
 Fix the code. Reply with the complete corrected code in a fenced block (```fsharp ... ```). Save it with write_code if you can."""
 
+    /// Whether the evaluator rejected the code in this answer, and said why. Not a failing
+    /// example's verdict, which went back to the executor already, nor an evaluator that could not
+    /// judge (SemanticEvaluation's "llm_output_parse_error" and "evaluation_error"), whose verdict
+    /// says nothing about the code.
+    let private reviewerRejected (result: TaskResult) (verdict: EvaluationResult) =
+        result.Success
+        && not verdict.Passed
+        && not (result.Evaluation |> Option.exists (fun examples -> not examples.Passed))
+        && verdict.Issues <> [ "llm_output_parse_error" ]
+        && verdict.Issues <> [ "evaluation_error" ]
+
+    /// The task again, after the evaluator rejected an answer to it: what the evaluator said is one
+    /// more constraint.
+    let private withReview (taskDef: TaskDefinition) (rejection: EvaluationResult) =
+        let listed (label: string) (items: string list) =
+            if items.IsEmpty then "" else $""" {label}: {String.concat "; " items}."""
+
+        { taskDef with
+            Constraints =
+                taskDef.Constraints
+                @ [ $"""A reviewer rejected a previous answer to this task: {rejection.Summary}{listed "Issues" rejection.Issues}{listed "Fixes" rejection.SuggestedFixes} Your answer must not repeat this.""" ] }
+
     let private evaluateContradiction (ctx: EvolutionContext) (goal: string) (beliefs: Belief list) =
         task {
             if beliefs.IsEmpty then
@@ -1990,10 +2012,8 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
         task {
             match state.CurrentTask with
             | Some taskDef ->
-                // 2. Execution Phase: Attempt to solve
-                let! result = executeTask ctx state taskDef
-
-                let! evaluation =
+                // The verdict on an answer: a failing example's, or else the evaluator's.
+                let judge (result: TaskResult) =
                     match result.Evaluation, ctx.Governance.Evaluator with
                     // The examples ran with the code (--run-code) and one failed: the task failed.
                     | Some examples, _ when not examples.Passed -> Task.FromResult(Some examples)
@@ -2010,6 +2030,24 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                 return None
                         }
                     | examples, None -> Task.FromResult examples
+
+                // 2. Execution Phase: Attempt to solve
+                let! result = executeTask ctx state taskDef
+                let! evaluation = judge result
+
+                // The evaluator rejected code that ran, and said why: the executor answers once more,
+                // told what it said, and the new answer is judged against the task as given. In live
+                // runs the judge rejected answers that broke a constraint, and the executor never knew.
+                let! (result, evaluation) =
+                    match evaluation with
+                    | Some rejection when reviewerRejected result rejection ->
+                        task {
+                            ctx.Logger($"[Evaluation] Rejected, the executor answers again: {rejection.Summary}")
+                            let! revised = executeTask ctx state (withReview taskDef rejection)
+                            let! verdict = judge revised
+                            return { revised with Duration = result.Duration + revised.Duration }, verdict
+                        }
+                    | _ -> Task.FromResult((result, evaluation))
 
                 let resultWithEvaluation = { result with Evaluation = evaluation }
 
