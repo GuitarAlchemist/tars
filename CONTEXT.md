@@ -35,9 +35,11 @@ via `LlmFactory.create(logger)`, never `DefaultLlmService` directly.
   the governor's own approvals, not from a verified signal.
 - **Verified signal** vs **judged signal** — a verified signal comes from running
   something: examples run with the code, `dotnet test`, benchmark PASS, or a
-  mechanical check. A judged signal is an LLM's verdict. Self-improvement learns
-  only from verified signals (ADR 0005). A judge may reject an answer and say why,
-  but its verdict alone is not training data.
+  mechanical check. A judged signal is an LLM's verdict. New self-improvement work
+  learns only from verified signals (ADR 0005). A judge may reject an answer and
+  say why, but its verdict alone is not training data. The loops ADR 0005 parks
+  still run when called and still write state from judged signals (promotion and
+  grammar weights, Darwin's improvement log): treat that state as unverified.
 - **Probabilistic grammar** — EBNF grammars (`v2/grammars/`) with Bayesian-updated
   weights for constrained decoding; managed via `grammar_weights` / `grammar_evolve`
   / `grammar_search`. The replicator behind `grammar_evolve` is parked by ADR 0005;

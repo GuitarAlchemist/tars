@@ -87,5 +87,11 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
 
 - `CONTEXT.md`'s entry for the promotion pipeline called it "the closed self-improvement loop". It now points here.
 - Constrained decoding with EBNF grammars is **not** parked. Only the replicator's weight evolution is.
+- Parking does not switch the loops off. When they are called, they still write state from judged signals:
+  - `tars promote run` updates the promotion weights from the governor's decisions;
+  - `tars grammar evolve` rewrites the grammar weights;
+  - the Darwin loop logs unverified proposals as improvements.
+
+  That state is unverified, and new work must not read it as verified.
 - Parked code still costs build and test time. Deleting it needs its own decision, and it touches callers on the MCP surface.
 - The ~30-call budget can change. A run that needs more should say so in its log, never silently exceed it.
