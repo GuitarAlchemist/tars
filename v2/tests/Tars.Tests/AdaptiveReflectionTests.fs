@@ -633,6 +633,37 @@ module AdaptiveReflectionTests =
                           EvaluatedAt = DateTime.UtcNow }
                 } }
 
+    /// An evaluator that rejects the first answer it judges, with `summary`, the issue "uses List.rev"
+    /// and the fix "build the result with an accumulator", and passes the next ones. Records in
+    /// `judged` each answer it judges.
+    let private rejectsOnce (summary: string) (judged: ResizeArray<string>) =
+        { new IEvaluationStrategy with
+            member _.Evaluate(_, result) =
+                task {
+                    judged.Add result.Output
+
+                    return
+                        { Passed = judged.Count > 1
+                          Confidence = 0.9
+                          Summary = summary
+                          Issues = [ "uses List.rev" ]
+                          SuggestedFixes = [ "build the result with an accumulator" ]
+                          EvaluatedAt = DateTime.UtcNow }
+                } }
+
+    /// rejectsOnce, whose first verdict takes `wait`.
+    let private slowlyRejectsOnce (wait: TimeSpan) (judged: ResizeArray<string>) =
+        let reviewer = rejectsOnce "The code uses List.rev, which the constraints forbid." judged
+
+        { new IEvaluationStrategy with
+            member _.Evaluate(taskDef, result) =
+                task {
+                    if judged.Count = 0 then
+                        do! Task.Delay wait
+
+                    return! reviewer.Evaluate(taskDef, result)
+                } }
+
     [<Fact>]
     let ``A failing example decides, and passing examples leave the rest to the evaluator`` () =
         task {
@@ -657,8 +688,12 @@ module AdaptiveReflectionTests =
                 Assert.False(w.Success)
                 Assert.Contains("fact 5 = 120, got 5", w.Output)
 
+                // The rejected answer was answered again, once, and judged again.
+                Assert.Equal(2, rejecting.Count)
+                Assert.Single(accepting) |> ignore
+
                 for seen in [ rejecting; accepting ] do
-                    Assert.True(seen |> Seq.exactlyOne |> Option.exists (fun e -> e.Passed))
+                    Assert.True(seen |> Seq.forall (Option.exists (fun e -> e.Passed)))
 
                 Assert.Empty(afterWrong)
             | _ -> Assert.Fail("Task was not completed")
@@ -685,6 +720,146 @@ module AdaptiveReflectionTests =
                 Assert.True(completed.Success)
                 // The evaluator then saw the fixed answer's examples pass.
                 Assert.True(seen |> Seq.exactlyOne |> Option.exists (fun e -> e.Passed))
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``A rejected answer goes back to the executor once, with the evaluator's remarks`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // In live runs the judge rejected answers that broke a constraint (List.rev, a mutable),
+            // said why, and the task failed: the executor never heard it.
+            let judged = ResizeArray()
+            let summary = "The code uses List.rev, which the constraints forbid."
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+
+            let! newState, requests =
+                stepWith "Write `fact : int -> int` in F#" (Some(rejectsOnce summary judged)) true [ right ]
+
+            Assert.Equal(2, requests.Length)
+            Assert.DoesNotContain(summary, requests.[0])
+
+            for remark in [ summary; "uses List.rev"; "build the result with an accumulator" ] do
+                Assert.Contains(remark, requests.[1])
+
+            Assert.Equal(2, judged.Count)
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success, completed.Output)
+                // Both attempts' traces are kept, around the rejection that led to the second.
+                let trace = completed.ExecutionTrace
+                let at = List.findIndex ((=) "--- REJECTED BY THE EVALUATOR, ANSWERED AGAIN ---") trace
+                let answered (steps: string list) = steps |> List.exists (fun s -> s.StartsWith "Response:")
+                Assert.Equal(summary, trace.[at + 1])
+                Assert.True(answered (List.take at trace), $"%A{trace}")
+                Assert.True(answered (List.skip (at + 2) trace), $"%A{trace}")
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``An evaluator that could not judge sends nothing back to the executor`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Its verdict says nothing about the code: the judge's answer was not JSON, or its call failed.
+            let failing =
+                { new ILlmService with
+                    member _.CompleteAsync _ =
+                        Task.FromException<LlmResponse>(TimeoutException "The judge timed out")
+
+                    member _.CompleteStreamAsync(_, _) = raise (NotImplementedException())
+                    member _.EmbedAsync _ = Task.FromResult [| 0.1f |]
+                    member _.RouteAsync _ = raise (NotImplementedException()) }
+
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+
+            for judge in [ createMockLlm "I cannot judge this."; failing ] do
+                let evaluator = SemanticEvaluation(judge) :> IEvaluationStrategy
+                let! newState, requests = stepWith "Write `fact : int -> int` in F#" (Some evaluator) true [ right ]
+
+                Assert.Equal(1, requests.Length)
+
+                match newState.CompletedTasks with
+                | completed :: _ -> Assert.False(completed.Success)
+                | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Only code whose examples passed goes back to the executor after a rejection`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Nothing else shows that the code ran: evolve without --run-code runs none, and the
+            // `fact` examples cannot call a `factorial`. A new answer would double the executor's
+            // calls for a verdict on code that may not even run.
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+            let unchecked = "```fsharp\nlet rec factorial n = if n <= 1 then 1 else n * factorial (n - 1)\n```"
+
+            for (runCode, answer) in [ (false, right); (true, unchecked) ] do
+                let judged = ResizeArray()
+
+                let! newState, requests =
+                    stepWith "Write `fact : int -> int` in F#" (Some(rejectsOnce "Uses List.rev." judged)) runCode [ answer ]
+
+                Assert.Equal(1, requests.Length)
+                Assert.Equal(1, judged.Count)
+
+                match newState.CompletedTasks with
+                | completed :: _ -> Assert.False(completed.Success)
+                | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``A rejected answer gets no new answer once the task's time is up`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The verdict comes after the task's 8 s: a new answer would run the task past its limit.
+            let judged = ResizeArray()
+
+            let! newState, requests =
+                stepWithin
+                    (TimeSpan.FromSeconds 8.0)
+                    "Write `fact : int -> int` in F#"
+                    (Some(slowlyRejectsOnce (TimeSpan.FromSeconds 9.0) judged))
+                    true
+                    [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
+
+            Assert.Equal(1, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.False(completed.Success)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``A rejected answer's new answer runs within the time the task has left`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The first answer and its 6 s verdict use part of the task's 15 s. The new answer's code
+            // would run 30 s: it is stopped at the task's deadline, not 15 s after the verdict.
+            let judged = ResizeArray()
+
+            let slow =
+                "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nSystem.Threading.Thread.Sleep 30000\n```"
+
+            let watch = Diagnostics.Stopwatch.StartNew()
+
+            let! newState, requests =
+                stepWithin
+                    (TimeSpan.FromSeconds 15.0)
+                    "Write `fact : int -> int` in F#"
+                    (Some(slowlyRejectsOnce (TimeSpan.FromSeconds 6.0) judged))
+                    true
+                    [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"; slow ]
+
+            let elapsed = watch.Elapsed
+            Assert.Equal(2, requests.Length)
+            Assert.True(elapsed < TimeSpan.FromSeconds 20.0, $"{elapsed}")
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.False(completed.Success)
+                // The reported duration is the whole task's, the 6 s verdict included.
+                Assert.True(completed.Duration > elapsed - TimeSpan.FromSeconds 2.0, $"{completed.Duration} of {elapsed}")
             | [] -> Assert.Fail("Task was not completed")
         }
 
