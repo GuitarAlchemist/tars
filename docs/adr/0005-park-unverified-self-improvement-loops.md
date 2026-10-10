@@ -1,4 +1,4 @@
-# ADR 0005 — Park the disconnected self-improvement loops; one loop on verified signals
+# ADR 0005 — Park the self-improvement loops that have no verified signal; one loop on verified signals
 
 - **Status:** Accepted, 2026-10-10.
 - **Context source:** grooming session "how can TARS self-improve efficiently?" It followed a GPU study, a 7B vs 14B evolve A/B and a replay of the judge's verdicts. Builds on ADR 0002 (self-hosting gate) and ADR 0003 (couple the gate to SelfTrain).
@@ -33,7 +33,7 @@ An inventory of every self-improvement mechanism sorted them in two groups:
   - That dataset has never been trained on, so no verified signal has changed a later run yet.
   - Evolve's own per-task verified results, its examples run with the code in `dotnet fsi`, are not persisted at all.
 
-The four loops this ADR parks, with what feeds them (paths under `v2/src/`):
+The five loops this ADR parks, with what feeds them (paths under `v2/src/`):
 
 - **Promotion pipeline and index boost** (`Tars.Evolution/PromotionPipeline.fs`, `PromotionIndex.fs`).
   - `propose` receives the pattern's name as its template.
@@ -49,12 +49,17 @@ The four loops this ADR parks, with what feeds them (paths under `v2/src/`):
 - **Darwin loop** (`runDarwinLoop` in `Tars.Evolution/Engine.fs`).
   - It runs only when `--focus` names a `.trsx` file; its fallback returns `None`.
   - It logs a proposed mutation as an improvement (`logImprovement ... true`) without checking that the mutated workflow works.
+- **Pattern-selector bandit** (`HistoryAwareSelector` in `Tars.Cortex/PatternSelector.fs`). It picks the reasoning pattern for `tars agent` (`TarsWoTAgent`) and for the MCP plan tools (`ClaudeCodeBridge`).
+  - `TarsWoTAgent` records the executor's own `result.Success` in `~/.tars/pattern_outcomes.jsonl` (`PatternOutcome.Create(patternKind, goal, result.Success, ...)`). No independent evaluator checks it.
+  - The selector reads that store back to score patterns for later runs. So the executor certifies itself, against AGENTS.md's "Review independence".
+  - Until #389, a unit test also wrote 609 of the store's 1076 rows.
+  - Unlike the four loops above, it is wired into running code. Parking it changes no runtime behavior, only where effort goes.
 
 ## Decisions
 
 | # | Decision | Rationale |
 |---|---|---|
-| D1 | **Park the four loops above.** Their code and tests stay, and they still build. They get no new features, no tuning and no new callers. They get fixes only when they break the build or corrupt shared data. | They give the appearance of learning without a signal that could make it real. Removing them is a separate decision. |
+| D1 | **Park the five loops above.** Their code and tests stay, and they still build. They get no new features, no tuning and no new callers. They get fixes only when they break the build or corrupt shared data. | They give the appearance of learning without a signal that could make it real. Removing them is a separate decision. |
 | D2 | **Self-improvement effort goes into one loop fed only by verified signals**: examples run with the code, `dotnet test`, benchmark PASS, and mechanical constraint checks. An LLM judge may reject an answer and say why (#387), but its verdict alone is not training data. | A verified signal cannot be talked into a pass. This is the anti-collapse anchor of ADR 0003, applied to the whole loop. |
 | D3 | **Claude takes the semantic roles and the local model does the volume.** Claude writes the curriculum, judges, and supplies reference solutions for tasks the local model fails, through `claude -p` on the subscription. Budget: **about 30 Claude calls per 10-task evolve run.** | The semantic roles need the stronger model. Executing tasks does not: the 14B already passes most examples. |
 | D4 | **Distillation is gated.** Verified (task, solution) pairs, from evolve and from Claude's reference solutions checked the same way, join the SFT dataset. A LoRA on the **7B** is tried first. It is kept only if it beats the current model on a held-out split of a harder benchmark, using the `self-train cycle` A/B from ADR 0003. The GPU training step is run by the owner. | It is the only path to a better model, and the gate keeps a worse one out. The 7B fits the GPU for LoRA, and the 14B is the bar to approach. |
@@ -91,7 +96,8 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
 - Parking does not switch the loops off. When they are called, they still write state from judged signals:
   - `tars promote run` updates the promotion weights from the governor's decisions;
   - `tars grammar evolve` rewrites the grammar weights;
-  - the Darwin loop logs unverified proposals as improvements.
+  - the Darwin loop logs unverified proposals as improvements;
+  - the pattern selector keeps recording the executor's self-reported outcomes and recommending from them.
 
   That state is unverified, and new work must not read it as verified.
 - Parked code still costs build and test time. Deleting it needs its own decision, and it touches callers on the MCP surface.
