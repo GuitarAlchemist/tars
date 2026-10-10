@@ -21,12 +21,17 @@ The remaining failures were scaffold failures, not model failures:
 - The executor prompt dropped every constraint after the 3rd. Fixed by #386.
 - A judge's rejection never reached the executor. Fixed by #387.
 
-### Persisted signals are judged, verified signals are not persisted
+### What feeds the next run is judged; what is verified does not reach it
 
 An inventory of every self-improvement mechanism sorted them in two groups:
 
-- **Loops that persist something across runs, all on judged, circular or polluted signals.** Up to #389, 609 of the outcome store's 1076 rows were written by a unit test.
-- **Verified signals that no loop reuses.** These are evolve's examples, which run with the code in `dotnet fsi`, the self-hosting gate's `dotnet test`, and benchmark PASS. Evolve persists no per-task result. The SFT dataset (`~/.tars/self_train/dataset.jsonl`) has never been trained on.
+- **Loops that feed their results into the next run, all on judged, circular or polluted signals.** Up to #389, 609 of the outcome store's 1076 rows were written by a unit test.
+- **Verified signals, which are persisted but feed nothing automatically.**
+  - The self-hosting gate's accepted edits are verified by `dotnet test`. `SelfHostingGate.recordWin` appends them to `~/.tars/self_host_wins.jsonl`.
+  - Validated benchmark attempts are saved by `BenchmarkRunner.saveResults`.
+  - `SelfTrain.exportDataset` merges both into the SFT dataset (`~/.tars/self_train/dataset.jsonl`). `evolve --benchmark` refreshes it after each cycle.
+  - That dataset has never been trained on, so no verified signal has changed a later run yet.
+  - Evolve's own per-task verified results, its examples run with the code in `dotnet fsi`, are not persisted at all.
 
 The four loops this ADR parks, with what feeds them (paths under `v2/src/`):
 
@@ -38,7 +43,9 @@ The four loops this ADR parks, with what feeds them (paths under `v2/src/`):
   - The CLI derives each rule's outcomes from the rule's own `SuccessRate × SelectionCount` (`GrammarCommand.fs`).
   - It then overwrites `Weight` with the replicator proportion.
   - The MCP tool passes `Map.empty` as outcomes (`Tars.Evolution/McpGrammarTools.fs`).
-- **RetroactionLoop** (`Tars.Evolution/RetroactionLoop.fs`). It audits `PatternLibrary.loadAll ()`, but `PatternLibrary` has no function that writes a pattern, so the library is empty unless someone puts files in `.tars/patterns` by hand.
+- **RetroactionLoop** (`Tars.Evolution/RetroactionLoop.fs`). It audits the pattern library in `.tars/patterns` and prunes its lowest-scoring patterns.
+  - The library is filled by `tars wot` LLM runs (`WotExecution.fs`) and by curriculum training (`WotCommand.fs`). Each writes a pattern that an LLM compiled from a run counted as a success even when no verification ran: `passed |> Option.defaultValue true`, and `None -> hasOutput && ...`.
+  - `TraceCompiler` gives every pattern `Score = 0.5`, and nothing in `v2/src` changes it afterwards. So the pruning and the "average fitness" check work on a constant.
 - **Darwin loop** (`runDarwinLoop` in `Tars.Evolution/Engine.fs`).
   - It runs only when `--focus` names a `.trsx` file; its fallback returns `None`.
   - It logs a proposed mutation as an improvement (`logImprovement ... true`) without checking that the mutated workflow works.
