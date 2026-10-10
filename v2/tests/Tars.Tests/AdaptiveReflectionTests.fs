@@ -745,7 +745,15 @@ module AdaptiveReflectionTests =
             Assert.Equal(2, judged.Count)
 
             match newState.CompletedTasks with
-            | completed :: _ -> Assert.True(completed.Success, completed.Output)
+            | completed :: _ ->
+                Assert.True(completed.Success, completed.Output)
+                // Both attempts' traces are kept, around the rejection that led to the second.
+                let trace = completed.ExecutionTrace
+                let at = List.findIndex ((=) "--- REJECTED BY THE EVALUATOR, ANSWERED AGAIN ---") trace
+                let answered (steps: string list) = steps |> List.exists (fun s -> s.StartsWith "Response:")
+                Assert.Equal(summary, trace.[at + 1])
+                Assert.True(answered (List.take at trace), $"%A{trace}")
+                Assert.True(answered (List.skip (at + 2) trace), $"%A{trace}")
             | [] -> Assert.Fail("Task was not completed")
         }
 
@@ -843,11 +851,15 @@ module AdaptiveReflectionTests =
                     true
                     [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"; slow ]
 
+            let elapsed = watch.Elapsed
             Assert.Equal(2, requests.Length)
-            Assert.True(watch.Elapsed < TimeSpan.FromSeconds 20.0, $"{watch.Elapsed}")
+            Assert.True(elapsed < TimeSpan.FromSeconds 20.0, $"{elapsed}")
 
             match newState.CompletedTasks with
-            | completed :: _ -> Assert.False(completed.Success)
+            | completed :: _ ->
+                Assert.False(completed.Success)
+                // The reported duration is the whole task's, the 6 s verdict included.
+                Assert.True(completed.Duration > elapsed - TimeSpan.FromSeconds 2.0, $"{completed.Duration} of {elapsed}")
             | [] -> Assert.Fail("Task was not completed")
         }
 

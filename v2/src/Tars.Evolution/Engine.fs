@@ -2057,7 +2057,17 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                             let! revised = executeTask ctx state revisedTask
                             let! verdict = judge revised
-                            return { revised with Duration = result.Duration + revised.Duration }, verdict
+
+                            return
+                                { revised with
+                                    // Both attempts, and why there was a second one.
+                                    ExecutionTrace =
+                                        result.ExecutionTrace
+                                        @ [ "--- REJECTED BY THE EVALUATOR, ANSWERED AGAIN ---"; rejection.Summary ]
+                                        @ revised.ExecutionTrace
+                                    // The whole task, both verdicts included.
+                                    Duration = watch.Elapsed },
+                                verdict
                         }
                     | _ -> Task.FromResult((result, evaluation))
 
