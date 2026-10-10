@@ -512,3 +512,19 @@ let ``the task prompt shows the dynamic tool pattern only for a tool task`` () =
 
     Assert.Contains("[DYNAMIC TOOL EXAMPLE]", prompt)
     Assert.Contains("fsi.CommandLineArgs", prompt)
+
+[<Fact>]
+let ``the task prompt shows every constraint`` () =
+    // A list prints its first 3 items, then "; ... ]": in live runs the executor never saw
+    // a task's 4th constraint, and the judge, who saw them all, rejected its answers for it.
+    let constraints =
+        [ "Define the type Tree = Leaf | Node of Tree * int * Tree"
+          "The helper must be tail-recursive"
+          "Do not use mutable variables"
+          "Use an accumulator, not List.rev" ]
+
+    let prompt =
+        Engine.buildTaskPrompt (taskWith "Write `depth : Tree -> int` in F#." constraints) "" "" ""
+
+    for rule in constraints do
+        Assert.Contains(rule, prompt)
