@@ -82,6 +82,7 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
 2. Evolve persists one verified result per task.
 3. A tier-5 benchmark with hidden tests and a held-out split, because the current one is saturated.
 4. The distillation experiment (D4).
+5. Count the Claude calls of each evolve run, by role, and log the total against D3's budget.
 
 ## Consequences
 
@@ -94,4 +95,4 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
 
   That state is unverified, and new work must not read it as verified.
 - Parked code still costs build and test time. Deleting it needs its own decision, and it touches callers on the MCP surface.
-- The ~30-call budget can change. A run that needs more should say so in its log, never silently exceed it.
+- The ~30-call budget is a target, and it can change. It is **not enforced yet**: without `--trace`, evolve counts no Claude calls. The curriculum alone runs an agent loop of up to 20 iterations, and the fallback, the epistemic checks and the evaluator add more. So a run can exceed the target today without saying so. Counting the calls is backlog item 5.
