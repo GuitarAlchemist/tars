@@ -778,14 +778,15 @@ If the task truly asks for no code, give your final result instead."""
 
 Fix the code. Reply with the complete corrected code in a fenced block (```fsharp ... ```). Save it with write_code if you can."""
 
-    /// Whether the evaluator rejected the code in this answer, and said why. Not a failing
-    /// example's verdict, which went back to the executor already, nor an evaluator that could not
-    /// judge (SemanticEvaluation's "llm_output_parse_error" and "evaluation_error"), whose verdict
-    /// says nothing about the code.
+    /// Whether the evaluator rejected code whose examples ran and passed (--run-code), and said why.
+    /// Nothing else shows that the code ran: without --run-code none runs, and code the examples
+    /// cannot call may not run at all. Not an evaluator that could not judge either
+    /// (SemanticEvaluation's "llm_output_parse_error" and "evaluation_error"), whose verdict says
+    /// nothing about the code.
     let private reviewerRejected (result: TaskResult) (verdict: EvaluationResult) =
         result.Success
         && not verdict.Passed
-        && not (result.Evaluation |> Option.exists (fun examples -> not examples.Passed))
+        && (result.Evaluation |> Option.exists (fun examples -> examples.Passed))
         && verdict.Issues <> [ "llm_output_parse_error" ]
         && verdict.Issues <> [ "evaluation_error" ]
 
@@ -2032,18 +2033,29 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                     | examples, None -> Task.FromResult examples
 
                 // 2. Execution Phase: Attempt to solve
+                let watch = Diagnostics.Stopwatch.StartNew()
                 let! result = executeTask ctx state taskDef
                 let! evaluation = judge result
 
-                // The evaluator rejected code that ran, and said why: the executor answers once more,
-                // told what it said, and the new answer is judged against the task as given. In live
-                // runs the judge rejected answers that broke a constraint, and the executor never knew.
+                // Both answers share the task's deadline. A Timeout of zero or less means no deadline.
+                let left = taskDef.Timeout - watch.Elapsed
+                let hasTime = taskDef.Timeout <= TimeSpan.Zero || left > TimeSpan.Zero
+
+                // The evaluator rejected code whose examples passed, and said why: the executor answers
+                // once more, told what it said, within the time the task has left, and the new answer is
+                // judged against the task as given. In live runs the judge rejected answers that broke a
+                // constraint, and the executor never knew.
                 let! (result, evaluation) =
                     match evaluation with
-                    | Some rejection when reviewerRejected result rejection ->
+                    | Some rejection when reviewerRejected result rejection && hasTime ->
                         task {
                             ctx.Logger($"[Evaluation] Rejected, the executor answers again: {rejection.Summary}")
-                            let! revised = executeTask ctx state (withReview taskDef rejection)
+
+                            let revisedTask =
+                                { withReview taskDef rejection with
+                                    Timeout = if taskDef.Timeout > TimeSpan.Zero then left else taskDef.Timeout }
+
+                            let! revised = executeTask ctx state revisedTask
                             let! verdict = judge revised
                             return { revised with Duration = result.Duration + revised.Duration }, verdict
                         }

@@ -651,6 +651,19 @@ module AdaptiveReflectionTests =
                           EvaluatedAt = DateTime.UtcNow }
                 } }
 
+    /// rejectsOnce, whose first verdict takes `wait`.
+    let private slowlyRejectsOnce (wait: TimeSpan) (judged: ResizeArray<string>) =
+        let reviewer = rejectsOnce "The code uses List.rev, which the constraints forbid." judged
+
+        { new IEvaluationStrategy with
+            member _.Evaluate(taskDef, result) =
+                task {
+                    if judged.Count = 0 then
+                        do! Task.Delay wait
+
+                    return! reviewer.Evaluate(taskDef, result)
+                } }
+
     [<Fact>]
     let ``A failing example decides, and passing examples leave the rest to the evaluator`` () =
         task {
@@ -761,6 +774,81 @@ module AdaptiveReflectionTests =
                 match newState.CompletedTasks with
                 | completed :: _ -> Assert.False(completed.Success)
                 | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Only code whose examples passed goes back to the executor after a rejection`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Nothing else shows that the code ran: evolve without --run-code runs none, and the
+            // `fact` examples cannot call a `factorial`. A new answer would double the executor's
+            // calls for a verdict on code that may not even run.
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+            let unchecked = "```fsharp\nlet rec factorial n = if n <= 1 then 1 else n * factorial (n - 1)\n```"
+
+            for (runCode, answer) in [ (false, right); (true, unchecked) ] do
+                let judged = ResizeArray()
+
+                let! newState, requests =
+                    stepWith "Write `fact : int -> int` in F#" (Some(rejectsOnce "Uses List.rev." judged)) runCode [ answer ]
+
+                Assert.Equal(1, requests.Length)
+                Assert.Equal(1, judged.Count)
+
+                match newState.CompletedTasks with
+                | completed :: _ -> Assert.False(completed.Success)
+                | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``A rejected answer gets no new answer once the task's time is up`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The verdict comes after the task's 8 s: a new answer would run the task past its limit.
+            let judged = ResizeArray()
+
+            let! newState, requests =
+                stepWithin
+                    (TimeSpan.FromSeconds 8.0)
+                    "Write `fact : int -> int` in F#"
+                    (Some(slowlyRejectsOnce (TimeSpan.FromSeconds 9.0) judged))
+                    true
+                    [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```" ]
+
+            Assert.Equal(1, requests.Length)
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.False(completed.Success)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``A rejected answer's new answer runs within the time the task has left`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The first answer and its 6 s verdict use part of the task's 15 s. The new answer's code
+            // would run 30 s: it is stopped at the task's deadline, not 15 s after the verdict.
+            let judged = ResizeArray()
+
+            let slow =
+                "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nSystem.Threading.Thread.Sleep 30000\n```"
+
+            let watch = Diagnostics.Stopwatch.StartNew()
+
+            let! newState, requests =
+                stepWithin
+                    (TimeSpan.FromSeconds 15.0)
+                    "Write `fact : int -> int` in F#"
+                    (Some(slowlyRejectsOnce (TimeSpan.FromSeconds 6.0) judged))
+                    true
+                    [ "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"; slow ]
+
+            Assert.Equal(2, requests.Length)
+            Assert.True(watch.Elapsed < TimeSpan.FromSeconds 20.0, $"{watch.Elapsed}")
+
+            match newState.CompletedTasks with
+            | completed :: _ -> Assert.False(completed.Success)
+            | [] -> Assert.Fail("Task was not completed")
         }
 
     [<Fact>]
