@@ -52,6 +52,7 @@ The five loops this ADR parks, with what feeds them (paths under `v2/src/`):
 - **Pattern-selector bandit** (`HistoryAwareSelector` in `Tars.Cortex/PatternSelector.fs`). It picks the reasoning pattern for `tars agent` (`TarsWoTAgent`) and for the MCP plan tools (`ClaudeCodeBridge`).
   - `TarsWoTAgent` records the executor's own `result.Success` in `~/.tars/pattern_outcomes.jsonl` (`PatternOutcome.Create(patternKind, goal, result.Success, ...)`). No independent evaluator checks it.
   - The selector reads that store back to score patterns for later runs. So the executor certifies itself, against AGENTS.md's "Review independence".
+  - Its golden-history boost rests on the same flag. When `tars agent` succeeds on a goal that has no golden trace yet, `RegressionChecker.maybePromoteToGolden` saves the run as one on `result.Success` alone (`TarsWoTAgent.fs`). The selector counts the golden traces of each pattern kind and adds up to 0.3 to its score (`combineScores`), more than the bandit's 0.2.
   - Until #389, a unit test also wrote 609 of the store's 1076 rows.
   - Unlike the four loops above, it is wired into running code. Parking it changes no runtime behavior, only where effort goes.
 
@@ -97,7 +98,7 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
   - `tars promote run` updates the promotion weights from the governor's decisions;
   - `tars grammar evolve` rewrites the grammar weights;
   - the Darwin loop logs unverified proposals as improvements;
-  - the pattern selector keeps recording the executor's self-reported outcomes and recommending from them.
+  - the pattern selector keeps recording the executor's self-reported outcomes, saving golden traces on the same flag, and recommending from both.
 
   That state is unverified, and new work must not read it as verified.
 - Parked code still costs build and test time. Deleting it needs its own decision, and it touches callers on the MCP surface.
