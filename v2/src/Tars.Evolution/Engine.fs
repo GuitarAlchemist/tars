@@ -682,12 +682,13 @@ module Engine =
             |> Seq.map (fun m -> m.Value)
             |> List.ofSeq
 
+        // With its namespace too: System.Math.Abs uses Math.Abs.
         let uses (token: string) =
             let pattern =
                 if token = "Regex" then
                     @"\bRegex\b|\bRegularExpressions\b"
                 else
-                    @"(?<![\w.])" + System.Text.RegularExpressions.Regex.Escape token + @"(?!\w)"
+                    @"(?<!\w)" + System.Text.RegularExpressions.Regex.Escape token + @"(?!\w)"
 
             System.Text.RegularExpressions.Regex.IsMatch(code, pattern)
 

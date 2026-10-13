@@ -556,6 +556,10 @@ let ``a constraint that names code exactly is checked against the code, outside 
 
     Assert.Empty(broken "Use List.fold to sum the values" "let sum xs = List.fold (+) 0 xs")
 
+    // A name used with its namespace is still the name.
+    Assert.Empty(broken "Use Math.Abs for the distance" "let distance (a: float) b = System.Math.Abs(a - b)")
+    Assert.Equal(1, (broken "Do not use List.rev" "let r xs = Microsoft.FSharp.Collections.List.rev xs").Length)
+
     // A word in a comment or a string is not code.
     Assert.Empty(
         broken "Do not use mutable variables" "// no mutable state here\n(* not mutable either *)\nlet s = \"mutable\"\nlet f x = x"
