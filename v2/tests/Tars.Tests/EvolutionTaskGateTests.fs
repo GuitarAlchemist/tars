@@ -528,3 +528,44 @@ let ``the task prompt shows every constraint`` () =
 
     for rule in constraints do
         Assert.Contains(rule, prompt)
+
+[<Fact>]
+let ``a constraint that names code exactly is checked against the code, outside comments and strings`` () =
+    let broken (rule: string) (code: string) = Engine.brokenConstraints [ rule ] code
+
+    let loop =
+        "let fact n =\n    let mutable acc = 1\n    for i in 2 .. n do acc <- acc * i\n    acc"
+
+    // Forbidden, and the code uses it.
+    for rule, code in
+        [ "Do not use mutable variables", loop
+          "Must be a pure function with no mutable state", loop
+          "Use an accumulator, not List.rev", "let rev xs = xs |> List.rev"
+          "Do not use List.groupBy or Seq.groupBy", "let g xs = Seq.groupBy id xs"
+          "Do not use regular expressions", "let clean (s: string) = Text.RegularExpressions.Regex.Replace(s, \"x\", \"\")"
+          "Implement it without using List.max", "let m xs = List.max xs" ] do
+        let found = broken rule code
+        Assert.True(found.Length = 1, $"{rule}: %A{found}")
+        Assert.Contains(rule, found.Head)
+
+    // Asked for, and the code does not use it.
+    Assert.Equal<string>(
+        [ "Constraint broken: the code does not use `List.fold`, which the task asks for (\"Use List.fold to sum the values\")." ],
+        broken "Use List.fold to sum the values" "let rec sum xs = match xs with [] -> 0 | x :: r -> x + sum r"
+    )
+
+    Assert.Empty(broken "Use List.fold to sum the values" "let sum xs = List.fold (+) 0 xs")
+
+    // A word in a comment or a string is not code.
+    Assert.Empty(
+        broken "Do not use mutable variables" "// no mutable state here\n(* not mutable either *)\nlet s = \"mutable\"\nlet f x = x"
+    )
+
+    // A choice or an example is left to the evaluator.
+    for rule in
+        [ "Use List.fold (or Seq.fold) with Map.add and Map.tryFind"
+          "Use a recursive function or List.fold over the tokens"
+          "Use only core library functions such as String.filter"
+          "Use List.fold, Seq.groupBy-free logic such as recursion over a char list, or a fold"
+          "Do not use any external libraries" ] do
+        Assert.Empty(broken rule loop)

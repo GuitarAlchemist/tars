@@ -658,6 +658,78 @@ module Engine =
                 return verdictOfExamples examples.Length run
         }
 
+    /// What `script` breaks among the task's constraints that name code exactly, one line each:
+    /// a token a constraint forbids ("Do not use mutable variables", "Use an accumulator, not
+    /// List.rev") that the code uses, or the one dotted name a constraint asks for, with no
+    /// alternative ("Use List.fold to sum the values"), that the code does not use. Comments and
+    /// strings are not code. A constraint that gives a choice or an example ("List.fold or
+    /// Seq.fold", "such as String.filter") is left to the evaluator.
+    let brokenConstraints (constraints: string list) (script: string) : string list =
+        let ignoreCase = System.Text.RegularExpressions.RegexOptions.IgnoreCase
+
+        // A word in a comment, a string or a char (`// no mutable state`) is not code.
+        let code =
+            System.Text.RegularExpressions.Regex.Replace(
+                script,
+                """(?://[^\n]*|\(\*(?!\))[\s\S]*?\*\)|'(?:\\[^']+|[^'\\])'|"{3}[\s\S]*?"{3}|@"(?:""|[^"])*"|"(?:\\.|[^"\\])*")""",
+                " "
+            )
+
+        // The code a constraint can name: a dotted name (`List.rev`), `mutable`, or Regex, which
+        // "regular expressions" becomes.
+        let tokensIn (text: string) =
+            System.Text.RegularExpressions.Regex.Matches(text, @"\b(?:[A-Z]\w*(?:\.\w+)+|mutable|Regex)\b")
+            |> Seq.map (fun m -> m.Value)
+            |> List.ofSeq
+
+        let uses (token: string) =
+            let pattern =
+                if token = "Regex" then
+                    @"\bRegex\b|\bRegularExpressions\b"
+                else
+                    @"(?<![\w.])" + System.Text.RegularExpressions.Regex.Escape token + @"(?!\w)"
+
+            System.Text.RegularExpressions.Regex.IsMatch(code, pattern)
+
+        constraints
+        |> List.collect (fun rule ->
+            let text =
+                System.Text.RegularExpressions.Regex.Replace(
+                    rule,
+                    @"(?:\.NET\s+)?\bregular\s+expressions?\b|\bregex(?:es)?\b",
+                    "Regex",
+                    ignoreCase
+                )
+
+            let matches (pattern: string) =
+                System.Text.RegularExpressions.Regex.Matches(text, pattern, ignoreCase) |> List.ofSeq
+
+            // Everything "do not use" names in its clause; the one token after "not", "without", "no".
+            let forbidden =
+                [ for m in matches @"\b(?:do not|don't|never|must not|should not)\s+use\b([^,;]*)" do
+                      yield! tokensIn m.Groups.[1].Value
+                  for m in
+                      matches
+                          @"(?:,\s*not|\binstead of|\brather than|\bwithout(?:\s+using)?|\bavoid(?:ing)?(?:\s+using)?|\bno)\s+(?:any\s+|the\s+)?(\S+)" do
+                      yield! tokensIn m.Groups.[1].Value |> List.truncate 1 ]
+                |> List.distinct
+
+            // The one dotted name a "Use ..." constraint gives, with no choice and no example.
+            let required =
+                let choice =
+                    matches @"^\s*use\s+only\b|\bor\b|\bsuch as\b|\be\.g\.|\bfor example\b|\blike\b"
+
+                match tokensIn text |> List.filter (fun t -> t.Contains ".") with
+                | [ token ] when forbidden.IsEmpty && not (matches @"^\s*use\s").IsEmpty && choice.IsEmpty -> [ token ]
+                | _ -> []
+
+            [ for token in forbidden do
+                  if uses token then
+                      $"Constraint broken: the code uses `{token}`, which the task forbids (\"{rule}\")."
+              for token in required do
+                  if not (uses token) then
+                      $"Constraint broken: the code does not use `{token}`, which the task asks for (\"{rule}\")." ])
+
     let private formatBelief (belief: Belief) =
         let predicate =
             match belief.Predicate with
@@ -1495,7 +1567,26 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                             | CodeFailed errors -> Some errors
                                             | _ -> None
 
-                                        return errors, verdictOfExamples examples.Length run
+                                        // Code that gives the right values but breaks a constraint the
+                                        // code shows fails as a wrong value does. In live runs the judge
+                                        // rejected such code, and only after the examples passed.
+                                        let broken =
+                                            match run with
+                                            | ExamplesPassed -> brokenConstraints taskDef.Constraints script
+                                            | _ -> []
+
+                                        if broken.IsEmpty then
+                                            return errors, verdictOfExamples examples.Length run
+                                        else
+                                            return
+                                                Some(String.concat "\n" broken),
+                                                Some
+                                                    { Passed = false
+                                                      Confidence = 1.0
+                                                      Summary = String.concat " " broken
+                                                      Issues = broken
+                                                      SuggestedFixes = []
+                                                      EvaluatedAt = DateTime.UtcNow }
                                 with ex ->
                                     ctx.Logger $"[Executor] Could not run the code: {ex.Message}"
                                     return None, None
@@ -1519,7 +1610,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                                         match errors with
                                         | Some errors ->
-                                            if errors.StartsWith "Example failed" then
+                                            if errors.StartsWith "Example failed" || errors.StartsWith "Constraint broken" then
                                                 ctx.Logger $"[Executor] {errors}; asking for a fix."
                                             else
                                                 ctx.Logger "[Executor] The code failed to run; asking for a fix."
