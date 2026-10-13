@@ -548,26 +548,23 @@ let ``a constraint that names code exactly is checked against the code, outside 
         Assert.True(found.Length = 1, $"{rule}: %A{found}")
         Assert.Contains(rule, found.Head)
 
-    // Asked for, and the code does not use it.
-    Assert.Equal<string>(
-        [ "Constraint broken: the code does not use `List.fold`, which the task asks for (\"Use List.fold to sum the values\")." ],
-        broken "Use List.fold to sum the values" "let rec sum xs = match xs with [] -> 0 | x :: r -> x + sum r"
-    )
-
-    Assert.Empty(broken "Use List.fold to sum the values" "let sum xs = List.fold (+) 0 xs")
-
     // A name used with its namespace is still the name.
-    Assert.Empty(broken "Use Math.Abs for the distance" "let distance (a: float) b = System.Math.Abs(a - b)")
+    Assert.Equal(1, (broken "Do not use Math.Abs" "let distance (a: float) b = System.Math.Abs(a - b)").Length)
     Assert.Equal(1, (broken "Do not use List.rev" "let r xs = Microsoft.FSharp.Collections.List.rev xs").Length)
+
+    // "Do not use" forbids what its own sentence names, not what the next one asks for.
+    Assert.Empty(broken "Do not use recursion. Use List.fold to sum the values." "let sum xs = List.fold (+) 0 xs")
 
     // A word in a comment or a string is not code.
     Assert.Empty(
         broken "Do not use mutable variables" "// no mutable state here\n(* not mutable either *)\nlet s = \"mutable\"\nlet f x = x"
     )
 
-    // A choice or an example is left to the evaluator.
+    // What the code must use is left to the evaluator, which can tell an equivalent from it.
+    // So is a choice, an example, or a rule that names no code.
     for rule in
-        [ "Use List.fold (or Seq.fold) with Map.add and Map.tryFind"
+        [ "Use List.fold to sum the values"
+          "Use List.fold (or Seq.fold) with Map.add and Map.tryFind"
           "Use a recursive function or List.fold over the tokens"
           "Use only core library functions such as String.filter"
           "Use List.fold, Seq.groupBy-free logic such as recursion over a char list, or a fold"

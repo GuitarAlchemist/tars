@@ -658,12 +658,10 @@ module Engine =
                 return verdictOfExamples examples.Length run
         }
 
-    /// What `script` breaks among the task's constraints that name code exactly, one line each:
-    /// a token a constraint forbids ("Do not use mutable variables", "Use an accumulator, not
-    /// List.rev") that the code uses, or the one dotted name a constraint asks for, with no
-    /// alternative ("Use List.fold to sum the values"), that the code does not use. Comments and
-    /// strings are not code. A constraint that gives a choice or an example ("List.fold or
-    /// Seq.fold", "such as String.filter") is left to the evaluator.
+    /// What `script` uses that the task's constraints forbid by name, one line each: "Do not use
+    /// mutable variables", "Do not use List.groupBy or Seq.groupBy", "Use an accumulator, not
+    /// List.rev". Comments and strings are not code. What the code must use ("Use List.fold") is
+    /// left to the evaluator, which can tell an equivalent from it.
     let brokenConstraints (constraints: string list) (script: string) : string list =
         let ignoreCase = System.Text.RegularExpressions.RegexOptions.IgnoreCase
 
@@ -705,9 +703,10 @@ module Engine =
             let matches (pattern: string) =
                 System.Text.RegularExpressions.Regex.Matches(text, pattern, ignoreCase) |> List.ofSeq
 
-            // Everything "do not use" names in its clause; the one token after "not", "without", "no".
+            // Everything "do not use" names in its clause, which ends at a comma, a semicolon or the
+            // end of its sentence; the one token after "not", "without", "no".
             let forbidden =
-                [ for m in matches @"\b(?:do not|don't|never|must not|should not)\s+use\b([^,;]*)" do
+                [ for m in matches @"\b(?:do not|don't|never|must not|should not)\s+use\b(.*?)(?=[,;]|\.(?:\s|$)|$)" do
                       yield! tokensIn m.Groups.[1].Value
                   for m in
                       matches
@@ -715,21 +714,9 @@ module Engine =
                       yield! tokensIn m.Groups.[1].Value |> List.truncate 1 ]
                 |> List.distinct
 
-            // The one dotted name a "Use ..." constraint gives, with no choice and no example.
-            let required =
-                let choice =
-                    matches @"^\s*use\s+only\b|\bor\b|\bsuch as\b|\be\.g\.|\bfor example\b|\blike\b"
-
-                match tokensIn text |> List.filter (fun t -> t.Contains ".") with
-                | [ token ] when forbidden.IsEmpty && not (matches @"^\s*use\s").IsEmpty && choice.IsEmpty -> [ token ]
-                | _ -> []
-
             [ for token in forbidden do
                   if uses token then
-                      $"Constraint broken: the code uses `{token}`, which the task forbids (\"{rule}\")."
-              for token in required do
-                  if not (uses token) then
-                      $"Constraint broken: the code does not use `{token}`, which the task asks for (\"{rule}\")." ])
+                      $"Constraint broken: the code uses `{token}`, which the task forbids (\"{rule}\")." ])
 
     let private formatBelief (belief: Belief) =
         let predicate =
