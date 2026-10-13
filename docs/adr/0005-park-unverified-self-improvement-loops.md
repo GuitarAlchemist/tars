@@ -108,5 +108,6 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
   - the pattern selector keeps recording self-reported outcomes (the executor's, and the `--grammar-mesh` sweep's), saving golden traces on the executor's flag, and recommending from all of them.
 
   That state is unverified, and new work must not read it as verified.
+- A verified signal is only as strong as its check. `BenchmarkRunner.compileAndValidate` used to validate a solution when the output held `PASS` and no `FAIL`, whatever the exit code. A solution that printed `PASS` and left before its validation ran was counted, and `SelfTrain` could export it. #393 fixes this: the validation ends by printing a mark the solution cannot know, and the process must exit with 0. Benchmark results saved before #393 were validated by the weaker rule.
 - Parked code still costs build and test time. Deleting it needs its own decision, and it touches callers on the MCP surface.
 - The ~30-call budget is a target, and it can change. It is **not enforced yet**: without `--trace`, evolve counts no Claude calls. The curriculum alone runs an agent loop of up to 20 iterations, and the fallback, the epistemic checks and the evaluator add more. So a run can exceed the target today without saying so. Counting the calls is backlog item 5.
