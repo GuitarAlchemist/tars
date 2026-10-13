@@ -109,6 +109,7 @@ module AdaptiveReflectionTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let taskDef =
@@ -200,6 +201,7 @@ module AdaptiveReflectionTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let taskDef =
@@ -298,6 +300,7 @@ module AdaptiveReflectionTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let taskDef =
@@ -387,6 +390,7 @@ module AdaptiveReflectionTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let taskDef =
@@ -485,6 +489,7 @@ module AdaptiveReflectionTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let taskDef =
@@ -521,9 +526,10 @@ module AdaptiveReflectionTests =
 
     /// Runs one evolve step on a coding task with `goal`, the criteria "fact 5 = 120" and
     /// `timeout`, whose executor answers with `answers`, in order (the last one repeats), with
-    /// `evaluator` and evolve's --run-code set to `runCode`. Returns the new state and every
-    /// request the executor got.
-    let private stepWithin
+    /// `evaluator` and evolve's --run-code set to `runCode`, and gives `record` each task it
+    /// finishes. Returns the new state and every request the executor got.
+    let private stepRecordingWithin
+        (record: Engine.TaskRecord -> unit)
         (timeout: TimeSpan)
         (goal: string)
         (evaluator: IEvaluationStrategy option)
@@ -584,7 +590,8 @@ module AdaptiveReflectionTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       SelfImprovement = false
-                      RunCode = runCode } }
+                      RunCode = runCode
+                      RecordTask = record } }
 
             let taskDef =
                 { Id = Guid.NewGuid()
@@ -607,6 +614,9 @@ module AdaptiveReflectionTests =
             let! newState = Engine.step ctx state
             return newState, List.ofSeq requests
         }
+
+    /// stepRecordingWithin, with the records ignored.
+    let private stepWithin = stepRecordingWithin ignore
 
     /// stepWithin, with 2 minutes for the task.
     let private stepWith (goal: string) (evaluator: IEvaluationStrategy option) (runCode: bool) (answers: string list) =
@@ -697,6 +707,37 @@ module AdaptiveReflectionTests =
 
                 Assert.Empty(afterWrong)
             | _ -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Each finished task is recorded once, with its examples' verdict apart from the evaluator's`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Evolve keeps one line per task in results.jsonl. The examples' verdict is the only one
+            // that comes from running the code, and the evaluator can reject code whose examples passed.
+            let goal = "Write `fact : int -> int` in F#"
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+
+            for runCode, examples in [ true, Some true; false, None ] do
+                let records = ResizeArray<Engine.TaskRecord>()
+
+                let! _ =
+                    stepRecordingWithin
+                        records.Add
+                        (TimeSpan.FromMinutes 2.0)
+                        goal
+                        (Some(fixedEvaluator false (ResizeArray())))
+                        runCode
+                        [ right ]
+
+                // With --run-code the rejected answer is answered again: still one task.
+                Assert.Equal(1, records.Count)
+                let record = records.[0]
+                Assert.Equal(goal, record.Definition.Goal)
+                Assert.Equal("fact 5 = 120", record.Definition.ValidationCriteria)
+                Assert.False(record.Result.Success)
+                Assert.Equal(Some "fixed verdict", record.Result.Evaluation |> Option.map (fun e -> e.Summary))
+                Assert.Equal(examples, record.Examples |> Option.map (fun e -> e.Passed))
         }
 
     [<Fact>]
@@ -1180,6 +1221,7 @@ module AdaptiveReflectionTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let state =

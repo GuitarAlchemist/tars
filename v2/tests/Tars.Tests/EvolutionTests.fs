@@ -202,6 +202,7 @@ module EvolutionTests =
                   ToolRegistry = None
                   ResearchEnhanced = false
                   RunCode = false
+                  RecordTask = ignore
                   SelfImprovement = false } }
 
         let _nextState =
