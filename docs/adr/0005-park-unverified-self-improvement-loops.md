@@ -96,10 +96,11 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
 
 - `CONTEXT.md`'s entry for the promotion pipeline called it "the closed self-improvement loop". It now points here.
 - Constrained decoding with EBNF grammars is **not** parked. Only the replicator's weight evolution is.
-- **Not decided here.** Review found other mechanisms that write or read unverified state. Whether to park them is the owner's open decision. Until then, what they write is unverified, and D2 already keeps new self-improvement work from learning from it:
+- **Not decided here.** Review found other mechanisms that write or read unverified state. The list below is what review found, and it may not be complete. Whether to park them is the owner's open decision. Until then, what they write is unverified, and D2 already keeps new self-improvement work from learning from it:
   - MCP `grammar_update` writes the grammar weights from a `Success` flag that its caller supplies and nothing checks (`Tars.Evolution/McpGrammarTools.fs`). `PromotionIndex.build` reads those weights.
   - `SelfImprovement.analyzeAndPropose` has two callers besides the Darwin loop. Both log the proposal as an improvement (`logImprovement ... true`) before anything checks it: `tars evolve --self-improve`, after a task times out or throws (`Tars.Interface.Cli/Commands/Evolve.fs`), and `tars wot curriculum train`, after a failed problem (`WotCommand.fs`), which runs the variant only after logging it.
   - `tars ralph start` without `--goal` builds its prompt from the failures in the outcome store (`RalphCommand.fs`, `generatePrompt`). So self-reported rows can choose which gap a Ralph loop works on.
+  - `tars wot curriculum train` keeps its own state in `.tars/curriculum.json`. When a problem has no workflow file, and `--llm` is off or no pattern matches, it draws the result at random by difficulty (`WotCommand.fs`, "Simulating"). `CurriculumManager` uses that state to skip completed problems and to raise the difficulty.
 - Parking does not switch the loops off. When they are called, they still write state from judged signals:
   - `tars promote run` updates the promotion weights from the governor's decisions;
   - `tars grammar evolve` rewrites the grammar weights;
