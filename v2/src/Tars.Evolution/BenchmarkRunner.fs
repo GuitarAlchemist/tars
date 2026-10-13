@@ -134,8 +134,10 @@ Do not use 'open' statements — write self-contained code."""
 
     /// Compile and validate a solution via dotnet fsi. The solution runs first, in the same
     /// process as the validation, so what it prints proves nothing. The validation ends by
-    /// printing a mark the solution cannot know, and the process must exit with 0: without
-    /// both, a solution that printed PASS and left (`exit 0`, an exception) was validated.
+    /// printing a mark made for this run, and the process must exit with 0: without both, a
+    /// solution that printed PASS and left (`exit 0`, an exception) was validated.
+    /// That stops a solution that leaves early. It does not stop one written to cheat, which
+    /// can read the mark from the script or rewrite what the validation prints (#394).
     let private compileAndValidate (solutionCode: string) (validationCode: string) : Task<bool * bool * string list * string> =
         task {
             let tmpDir = Path.Combine(Path.GetTempPath(), "tars-benchmark")
