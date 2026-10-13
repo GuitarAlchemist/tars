@@ -53,6 +53,7 @@ The five loops this ADR parks, with what feeds them (paths under `v2/src/`):
   - `TarsWoTAgent` records the executor's own `result.Success` in `~/.tars/pattern_outcomes.jsonl` (`PatternOutcome.Create(patternKind, goal, result.Success, ...)`). No independent evaluator checks it.
   - The selector reads that store back to score patterns for later runs. So the executor certifies itself, against AGENTS.md's "Review independence".
   - Its golden-history boost rests on the same flag. When `tars agent` succeeds on a goal that has no golden trace yet, `RegressionChecker.maybePromoteToGolden` saves the run as one on `result.Success` alone (`TarsWoTAgent.fs`). The selector counts the golden traces of each pattern kind and adds up to 0.3 to its score (`combineScores`), more than the bandit's 0.2.
+  - `tars evolve --grammar-mesh` is another producer. After its sweep (ADR 0001) it records a `WorkflowOfThought` outcome as a success when the best reward is positive and the derivation is not empty (`Tars.Interface.Cli/Commands/Evolve.fs`). That reward is a search score, and in the serial fallback it is the number of generated actions (`Tars.Evolution/GrammarMeshBridge.fs`). No run of the derived workflow backs it.
   - Until #389, a unit test also wrote 609 of the store's 1076 rows.
   - Unlike the four loops above, it is wired into running code. Parking it changes no runtime behavior, only where effort goes.
 
@@ -94,11 +95,12 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
 
 - `CONTEXT.md`'s entry for the promotion pipeline called it "the closed self-improvement loop". It now points here.
 - Constrained decoding with EBNF grammars is **not** parked. Only the replicator's weight evolution is.
+- **Not decided here:** MCP `grammar_update` also writes the grammar weights, from a `Success` flag that its caller supplies and nothing checks (`Tars.Evolution/McpGrammarTools.fs`). `PromotionIndex.build` reads those weights. Whether to park it is the owner's open decision. Until then, what it writes is unverified, like the other grammar weights.
 - Parking does not switch the loops off. When they are called, they still write state from judged signals:
   - `tars promote run` updates the promotion weights from the governor's decisions;
   - `tars grammar evolve` rewrites the grammar weights;
   - the Darwin loop logs unverified proposals as improvements;
-  - the pattern selector keeps recording the executor's self-reported outcomes, saving golden traces on the same flag, and recommending from both.
+  - the pattern selector keeps recording self-reported outcomes (the executor's, and the `--grammar-mesh` sweep's), saving golden traces on the executor's flag, and recommending from all of them.
 
   That state is unverified, and new work must not read it as verified.
 - Parked code still costs build and test time. Deleting it needs its own decision, and it touches callers on the MCP surface.
