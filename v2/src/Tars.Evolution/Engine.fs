@@ -661,7 +661,8 @@ module Engine =
     /// What `script` uses that the task's constraints forbid by name, one line each: "Do not use
     /// mutable variables", "Do not use List.groupBy or Seq.groupBy", "Use an accumulator, not
     /// List.rev". Comments and strings are not code. What the code must use ("Use List.fold") is
-    /// left to the evaluator, which can tell an equivalent from it.
+    /// left to the evaluator, which can tell an equivalent from it, and so is a rule with a scope
+    /// ("outside the loop", "except for the accumulator").
     let brokenConstraints (constraints: string list) (script: string) : string list =
         let ignoreCase = System.Text.RegularExpressions.RegexOptions.IgnoreCase
 
@@ -703,9 +704,13 @@ module Engine =
             let matches (pattern: string) =
                 System.Text.RegularExpressions.Regex.Matches(text, pattern, ignoreCase) |> List.ofSeq
 
+            let scoped =
+                not (matches @"\b(?:outside|except|unless|other than|apart from|beyond|more than|at most)\b").IsEmpty
+
             // Everything "do not use" names in its clause, which ends at a comma, a semicolon or the
             // end of its sentence; the one token after "not", "without", "no".
             let forbidden =
+                if scoped then [] else
                 [ for m in matches @"\b(?:do not|don't|never|must not|should not)\s+use\b(.*?)(?=[,;]|\.(?:\s|$)|$)" do
                       yield! tokensIn m.Groups.[1].Value
                   for m in
@@ -1546,7 +1551,15 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                         let! alone = runScript (limit ()) script
 
                                         match alone with
-                                        | Result.Ok() -> return None, None
+                                        | Result.Ok() ->
+                                            // Nothing checked its values, so the evaluator decides; the
+                                            // executor still hears which forbidden name its code used.
+                                            let broken = brokenConstraints taskDef.Constraints script
+
+                                            if broken.IsEmpty then
+                                                return None, None
+                                            else
+                                                return Some(String.concat "\n" broken), None
                                         | Result.Error errors -> return Some errors, None
                                     | Some run ->
                                         let errors =
@@ -1688,6 +1701,9 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                                                 match verdict with
                                                 | Some v when v.Passed -> return Some(outcome, verdict)
+                                                | None when errors |> Option.exists (fun e -> e.StartsWith "Constraint broken") ->
+                                                    ctx.Logger "[Executor] The code broke a constraint."
+                                                    return! sample (n + 1) unchecked
                                                 | None when errors.IsSome ->
                                                     ctx.Logger "[Executor] The code failed to run."
                                                     return! sample (n + 1) unchecked

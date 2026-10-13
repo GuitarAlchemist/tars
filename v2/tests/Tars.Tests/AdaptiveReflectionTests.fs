@@ -784,6 +784,38 @@ module AdaptiveReflectionTests =
         }
 
     [<Fact>]
+    let ``Without examples, code that breaks a constraint hears it once, and the evaluator decides`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The goal names no function, so no example checks the values and the check cannot
+            // fail the task. The executor still hears which forbidden name its code used.
+            let loop = "```fsharp\nlet fact n =\n    let mutable acc = 1\n    for i in 2 .. n do acc <- acc * i\n    acc\n```"
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+            let seen = ResizeArray()
+
+            let! newState, requests =
+                stepRecordingWithin
+                    ignore
+                    (TimeSpan.FromMinutes 2.0)
+                    "Write a recursive factorial function in F#"
+                    [ "Do not use mutable variables" ]
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ loop; right ]
+
+            Assert.Equal(2, requests.Length)
+            Assert.Contains("Constraint broken: the code uses `mutable`", requests.[1])
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success, completed.Output)
+                Assert.Contains("let rec fact n", completed.Output)
+                // Nothing checked its values: the evaluator judged it, with no examples' verdict.
+                Assert.True(seen |> Seq.exactlyOne |> Option.isNone)
+            | [] -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
     let ``A failing example goes back to the executor, and its fixed answer is what is checked`` () =
         task {
             if not (TestHelpers.requireTools()) then () else

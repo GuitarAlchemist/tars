@@ -561,12 +561,14 @@ let ``a constraint that names code exactly is checked against the code, outside 
     )
 
     // What the code must use is left to the evaluator, which can tell an equivalent from it.
-    // So is a choice, an example, or a rule that names no code.
+    // So is a choice, an example, a rule with a scope, or a rule that names no code.
     for rule in
         [ "Use List.fold to sum the values"
           "Use List.fold (or Seq.fold) with Map.add and Map.tryFind"
           "Use a recursive function or List.fold over the tokens"
           "Use only core library functions such as String.filter"
           "Use List.fold, Seq.groupBy-free logic such as recursion over a char list, or a fold"
-          "Do not use any external libraries" ] do
+          "Do not use any external libraries"
+          "Do not use mutable variables outside the loop"
+          "No mutable state except for the accumulator" ] do
         Assert.Empty(broken rule loop)
