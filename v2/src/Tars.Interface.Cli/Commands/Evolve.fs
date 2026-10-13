@@ -77,6 +77,33 @@ let llmFor (logger: ILogger) (model: string) : ILlmService =
         |> LlmFactory.withEmbeddings (LlmFactory.create logger)
     | None -> LlmFactory.createPinnedTo logger model
 
+/// Appends `record` to the JSON lines file at `path`, with the evolve run and the executor's model:
+/// one line per task, so the answers whose examples passed can be found after the run. A file
+/// that cannot be written is logged, and the run goes on.
+let recordTo (logger: ILogger) (path: string) (run: string) (model: string) (record: Engine.TaskRecord) =
+    try
+        Directory.CreateDirectory(Path.GetDirectoryName path) |> ignore
+
+        let line =
+            System.Text.Json.JsonSerializer.Serialize
+                {| run = run
+                   model = model
+                   taskId = record.Definition.Id
+                   goal = record.Definition.Goal
+                   constraints = record.Definition.Constraints
+                   criteria = record.Definition.ValidationCriteria
+                   // null when the examples did not run (no --run-code).
+                   examplesPassed = record.Examples |> Option.map (fun e -> e.Passed) |> Option.toNullable
+                   success = record.Result.Success
+                   verdict = record.Result.Evaluation |> Option.map (fun e -> e.Summary) |> Option.toObj
+                   output = record.Result.Output
+                   durationMs = int64 record.Result.Duration.TotalMilliseconds
+                   finishedAt = DateTime.UtcNow |}
+
+        File.AppendAllText(path, line + "\n")
+    with ex ->
+        logger.Warning("Could not record the task in {Path}: {Message}", path, ex.Message)
+
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
         // Load configuration
@@ -587,6 +614,22 @@ let run (logger: ILogger) (options: EvolveOptions) =
             let memoryBuffer =
                 BufferAgent<Engine.MemoryItem>(10, TimeSpan.FromSeconds(5.0), onFlush)
 
+            // Names this evolve run, so each cycle's benchmark results can be told
+            // apart on disk ("<run>/<cycle>").
+            let evolveRun = Guid.NewGuid().ToString("N").Substring(0, 8)
+
+            // The run's results.jsonl, one line per task, and the executor's workspace.
+            let runDir =
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".tars",
+                    "evolve",
+                    "runs",
+                    evolveRun
+                )
+
+            let resultsPath = Path.Combine(runDir, "results.jsonl")
+
             let evoCtx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = llmService
@@ -633,7 +676,8 @@ let run (logger: ILogger) (options: EvolveOptions) =
                       ToolRegistry = Some toolRegistry
                       ResearchEnhanced = options.ResearchEnhanced
                       SelfImprovement = options.SelfImprovement
-                      RunCode = options.RunCode } }
+                      RunCode = options.RunCode
+                      RecordTask = recordTo logger resultsPath evolveRun model } }
 
             // Load Plan if provided
             let initialTasks =
@@ -691,25 +735,14 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 { evoState with
                     TaskQueue = initialTasks }
 
-            // Names this evolve run, so each cycle's benchmark results can be told
-            // apart on disk ("<run>/<cycle>").
-            let evolveRun = Guid.NewGuid().ToString("N").Substring(0, 8)
-
             // The executor's write_code and patch_code land here, not in the repository.
-            let executorWorkspace =
-                Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".tars",
-                    "evolve",
-                    "runs",
-                    evolveRun,
-                    "workspace"
-                )
+            let executorWorkspace = Path.Combine(runDir, "workspace")
 
             Tars.Tools.ToolWorkspace.set (Some executorWorkspace)
 
             if not options.Quiet then
                 RichOutput.info $"Executor workspace: {executorWorkspace}"
+                RichOutput.info $"Results: {resultsPath}"
 
             if options.RunCode then
                 RichOutput.warning

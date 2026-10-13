@@ -112,6 +112,7 @@ module EvolutionBenchmarkTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let mutable state: EvolutionState =

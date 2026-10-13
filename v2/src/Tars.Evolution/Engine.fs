@@ -37,6 +37,14 @@ module Engine =
           OutputGuard: IOutputGuard option
           Evaluator: IEvaluationStrategy option }
 
+    /// A finished task as evolve keeps it: the task as given, its final result, whose Evaluation is
+    /// the evaluator's verdict, and the verdict of its examples when they ran with the code
+    /// (`--run-code`), the only one that comes from running the code.
+    type TaskRecord =
+        { Definition: TaskDefinition
+          Result: TaskResult
+          Examples: EvaluationResult option }
+
     type RunOptions =
         { RunId: RunId option
           Verbose: bool
@@ -48,7 +56,9 @@ module Engine =
           /// Run the F# code in the executor's answers with dotnet fsi (`evolve --run-code`), with the
           /// task's examples, and ask for new answers while they fail. It runs with the user's rights,
           /// outside any sandbox, so it is off unless asked for.
-          RunCode: bool }
+          RunCode: bool
+          /// Gets each task the step finishes, once, after the evaluator's verdict.
+          RecordTask: TaskRecord -> unit }
 
     /// The context for the evolution engine
     type EvolutionContext =
@@ -2087,6 +2097,11 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 match ctx.Memory.Ledger with
                 | Some ledger -> do! LedgerIngestion.recordTaskResult ledger ctx.Memory.EvidenceStore ctx.Options.RunId taskDef finalResult ctx.Logger
                 | None -> ()
+
+                ctx.Options.RecordTask
+                    { Definition = taskDef
+                      Result = finalResult
+                      Examples = result.Evaluation }
 
                 let resultForDisplay =
                     match evaluation with
