@@ -132,7 +132,10 @@ Do not use 'open' statements — write self-contained code."""
             return extractCode response.Text, sw.ElapsedMilliseconds
         }
 
-    /// Compile and validate a solution via dotnet fsi.
+    /// Compile and validate a solution via dotnet fsi. The solution runs first, in the same
+    /// process as the validation, so what it prints proves nothing. The validation ends by
+    /// printing a mark the solution cannot know, and the process must exit with 0: without
+    /// both, a solution that printed PASS and left (`exit 0`, an exception) was validated.
     let private compileAndValidate (solutionCode: string) (validationCode: string) : Task<bool * bool * string list * string> =
         task {
             let tmpDir = Path.Combine(Path.GetTempPath(), "tars-benchmark")
@@ -140,7 +143,9 @@ Do not use 'open' statements — write self-contained code."""
                 Directory.CreateDirectory tmpDir |> ignore
 
             let scriptPath = Path.Combine(tmpDir, $"bench_{Guid.NewGuid():N}.fsx")
-            let fullScript = solutionCode + "\n\n// === VALIDATION ===\n" + validationCode
+            let mark = Guid.NewGuid().ToString("N")
+            let fullScript =
+                solutionCode + "\n\n// === VALIDATION ===\n" + validationCode + $"\nprintfn \"{mark}\"\n"
 
             try
                 File.WriteAllText(scriptPath, fullScript)
@@ -169,7 +174,8 @@ Do not use 'open' statements — write self-contained code."""
                     stderr <- "error FS0000: Process timed out after 30 seconds"
 
                 let compiled = not timedOut && not (stderr.Contains("error FS"))
-                let validated = stdout.Contains("PASS") && not (stdout.Contains("FAIL"))
+                let ranToTheEnd = not timedOut && proc.ExitCode = 0 && stdout.Contains mark
+                let validated = ranToTheEnd && stdout.Contains("PASS") && not (stdout.Contains("FAIL"))
 
                 let errors =
                     if compiled then []
@@ -178,7 +184,7 @@ Do not use 'open' statements — write self-contained code."""
                         |> Array.filter (fun l -> l.Contains("error FS"))
                         |> Array.toList
 
-                return compiled, validated, errors, stdout.Trim()
+                return compiled, validated, errors, stdout.Replace(mark, "").Trim()
             finally
                 try File.Delete(scriptPath) with _ -> ()
         }
