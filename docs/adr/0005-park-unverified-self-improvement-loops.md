@@ -55,6 +55,8 @@ The five loops this ADR parks, with what feeds them (paths under `v2/src/`):
   - The selector reads that store back to score patterns for later runs. So the executor certifies itself, against AGENTS.md's "Review independence".
   - Its golden-history boost rests on the same flag. When `tars agent` succeeds on a goal that has no golden trace yet, `RegressionChecker.maybePromoteToGolden` saves the run as one on `result.Success` alone (`TarsWoTAgent.fs`). The selector counts the golden traces of each pattern kind and adds up to 0.3 to its score (`combineScores`), more than the bandit's 0.2.
   - `tars evolve --grammar-mesh` is another producer. After its sweep (ADR 0001) it records a `WorkflowOfThought` outcome as a success when the best reward is positive and the derivation is not empty (`Tars.Interface.Cli/Commands/Evolve.fs`). That reward is a search score, and in the serial fallback it is the number of generated actions (`Tars.Evolution/GrammarMeshBridge.fs`). No run of the derived workflow backs it.
+  - MCP `tars_complete_plan` is a third. `ClaudeCodeBridge.completePlan` records a success when at least one step ran and none failed. It does not require the plan's other nodes, or its Validate nodes, to have run. A step that is not a tool call passes with the caller's input as its output.
+  - With the benchmark rows above, those are the store's four writers in `v2/src`.
   - Until #389, a unit test also wrote 609 of the store's 1076 rows.
   - Unlike the four loops above, it is wired into running code. Parking it changes no runtime behavior, only where effort goes.
 
@@ -101,13 +103,17 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
   - `SelfImprovement.analyzeAndPropose` has two callers besides the Darwin loop. Both log the proposal as an improvement (`logImprovement ... true`) before anything checks it: `tars evolve --self-improve`, after a task times out or throws (`Tars.Interface.Cli/Commands/Evolve.fs`), and `tars wot curriculum train`, after a failed problem (`WotCommand.fs`), which runs the variant only after logging it.
   - `tars ralph start` without `--goal` builds its prompt from the failures in the outcome store (`RalphCommand.fs`, `generatePrompt`). So self-reported rows can choose which gap a Ralph loop works on.
   - `tars wot curriculum train` keeps its own state in `.tars/curriculum.json`. When a problem has no workflow file, and `--llm` is off or no pattern matches, it draws the result at random by difficulty (`WotCommand.fs`, "Simulating"). `CurriculumManager` uses that state to skip completed problems and to raise the difficulty.
+  - The outcome store has readers besides the selector and Ralph, and they read the same self-reported rows:
+    - `tars breed` breeds patterns from them (`BreedCommand.fs`, `EvolutionaryPatternBreeder.breed`);
+    - `tars meta` derives capability gaps and learning tasks from them (`MetaCommand.fs`);
+    - `InsightExporter.export` turns their failure rates into gaps with a remedy, and writes them to `~/.tars/insights/` for Guitar Alchemist to read. `tars evolve` runs it after its cycle, and so does the MCP `export_insights` tool.
 - Parking does not switch the loops off. When they are called, they still write state from judged signals:
   - `tars promote run` updates the promotion weights from the governor's decisions;
   - `tars grammar evolve` rewrites the grammar weights;
   - the Darwin loop logs unverified proposals as improvements;
-  - the pattern selector keeps recording self-reported outcomes (the executor's, and the `--grammar-mesh` sweep's), saving golden traces on the executor's flag, and recommending from all of them.
+  - the pattern selector keeps recording self-reported outcomes (the executor's, the MCP plan tools', and the `--grammar-mesh` sweep's), saving golden traces on the executor's flag, and recommending from all of them.
 
   That state is unverified, and new work must not read it as verified.
-- A verified signal is only as strong as its check. `BenchmarkRunner.compileAndValidate` used to validate a solution when the output held `PASS` and no `FAIL`, whatever the exit code. A solution that printed `PASS` and left before its validation ran was counted, and `SelfTrain` could export it. #393 fixes this: the validation ends by printing a mark the solution cannot know, and the process must exit with 0. Benchmark results saved before #393 were validated by the weaker rule.
+- A verified signal is only as strong as its check. `BenchmarkRunner.compileAndValidate` used to validate a solution when the output held `PASS` and no `FAIL`, whatever the exit code. A solution that printed `PASS` and left before its validation ran was counted, and `SelfTrain` could export it. #393 stops that: the validation ends by printing a mark made for that run, and the process must exit with 0. Benchmark results saved before #393 were validated by the weaker rule. The check is still not proof against a solution written to cheat. The solution runs in the process that prints the verdict, so it can read the mark from the script, or rewrite what the validation prints. Closing that means the runner compares the solution's results itself, against expected values that never reach the script (#394).
 - Parked code still costs build and test time. Deleting it needs its own decision, and it touches callers on the MCP surface.
 - The ~30-call budget is a target, and it can change. It is **not enforced yet**: without `--trace`, evolve counts no Claude calls. The curriculum alone runs an agent loop of up to 20 iterations, and the fallback, the epistemic checks and the evaluator add more. So a run can exceed the target today without saying so. Counting the calls is backlog item 5.
