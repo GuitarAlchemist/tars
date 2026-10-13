@@ -23,14 +23,15 @@ The remaining failures were scaffold failures, not model failures:
 
 ### What feeds the next run is judged; what is verified does not reach it
 
-An inventory of every self-improvement mechanism sorted them in two groups:
+An inventory of the self-improvement mechanisms sorted them in two groups:
 
 - **Loops that feed their results into the next run, all on judged, circular or polluted signals.** Up to #389, 609 of the outcome store's 1076 rows were written by a unit test.
 - **Verified signals, which are persisted but feed nothing automatically.**
   - The self-hosting gate's accepted edits are verified by `dotnet test`. `SelfHostingGate.recordWin` appends them to `~/.tars/self_host_wins.jsonl`.
   - Validated benchmark attempts are saved by `BenchmarkRunner.saveResults`.
   - `SelfTrain.exportDataset` merges both into the SFT dataset (`~/.tars/self_train/dataset.jsonl`). `evolve --benchmark` refreshes it after each cycle.
-  - That dataset has never been trained on, so no verified signal has changed a later run yet.
+  - That dataset has never been trained on, so no verified signal has taught a later run anything yet.
+  - One verified signal does reach later runs, as a side effect. `BenchmarkRunner.recordOutcomes` also writes each benchmark attempt to the outcome store, as a `Custom "benchmark:<category>"` row, and the selector's bandit normalizes over every kind in that store. Those rows lower the boost of the six selectable kinds together. They do not rank them.
   - Evolve's own per-task verified results, its examples run with the code in `dotnet fsi`, are not persisted at all.
 
 The five loops this ADR parks, with what feeds them (paths under `v2/src/`):
@@ -95,7 +96,10 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
 
 - `CONTEXT.md`'s entry for the promotion pipeline called it "the closed self-improvement loop". It now points here.
 - Constrained decoding with EBNF grammars is **not** parked. Only the replicator's weight evolution is.
-- **Not decided here:** MCP `grammar_update` also writes the grammar weights, from a `Success` flag that its caller supplies and nothing checks (`Tars.Evolution/McpGrammarTools.fs`). `PromotionIndex.build` reads those weights. Whether to park it is the owner's open decision. Until then, what it writes is unverified, like the other grammar weights.
+- **Not decided here.** Review found other mechanisms that write or read unverified state. Whether to park them is the owner's open decision. Until then, what they write is unverified, and D2 already keeps new self-improvement work from learning from it:
+  - MCP `grammar_update` writes the grammar weights from a `Success` flag that its caller supplies and nothing checks (`Tars.Evolution/McpGrammarTools.fs`). `PromotionIndex.build` reads those weights.
+  - `SelfImprovement.analyzeAndPropose` has two callers besides the Darwin loop. Both log the proposal as an improvement (`logImprovement ... true`) before anything checks it: `tars evolve --self-improve`, after a task times out or throws (`Tars.Interface.Cli/Commands/Evolve.fs`), and `tars wot curriculum train`, after a failed problem (`WotCommand.fs`), which runs the variant only after logging it.
+  - `tars ralph start` without `--goal` builds its prompt from the failures in the outcome store (`RalphCommand.fs`, `generatePrompt`). So self-reported rows can choose which gap a Ralph loop works on.
 - Parking does not switch the loops off. When they are called, they still write state from judged signals:
   - `tars promote run` updates the promotion weights from the governor's decisions;
   - `tars grammar evolve` rewrites the grammar weights;
