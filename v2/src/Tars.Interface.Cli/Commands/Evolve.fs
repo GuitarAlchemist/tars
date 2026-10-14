@@ -533,6 +533,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
             | Some _ -> RichOutput.info "🧠 Capability index: Postgres (agent_capabilities)"
             | None -> RichOutput.info $"🧠 Capability index: {config.Memory.VectorStorePath} (agent_capabilities)"
 
+        // The tasks finished so far, kept out of the try below: a run that fails still reports
+        // the Claude calls it made.
+        let tasksFinished = ref 0
+
+        let reportClaudeCalls () =
+            match claudeCallsReport claudeCalls tasksFinished.Value with
+            | Some(true, line) -> logger.Warning("{ClaudeCalls}", line)
+            | Some(false, line) -> logger.Information("{ClaudeCalls}", line)
+            | None -> ()
+
         try
             let! ledgerAndStoreOpt =
                 task {
@@ -950,6 +960,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                                     CurrentTask = None }
 
                     currentState <- nextState
+                    tasksFinished.Value <- currentState.CompletedTasks.Length
 
                     try
                         knowledgeGraph.Save(knowledgeGraphPath)
@@ -1038,11 +1049,6 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
                 RichOutput.info
                     $"🧠 Knowledge graph facts: {knowledgeGraph.GetCurrentFacts().Length} (persisted to {knowledgeGraphPath})"
-
-            match claudeCallsReport claudeCalls currentState.CompletedTasks.Length with
-            | Some(true, line) -> logger.Warning("{ClaudeCalls}", line)
-            | Some(false, line) -> logger.Information("{ClaudeCalls}", line)
-            | None -> ()
 
             if options.Trace then
                 let timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss")
@@ -1144,9 +1150,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
             with ex ->
                 logger.Warning("Failed to save knowledge graph: {Message}", ex.Message)
 
+            reportClaudeCalls ()
             return 0
         with ex ->
             RichOutput.error $"Evolution failed: {ex.Message}"
             logger.Error(ex, "Evolution Engine Failed")
+            reportClaudeCalls ()
             return 1
     }
