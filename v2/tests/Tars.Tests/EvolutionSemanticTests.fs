@@ -411,20 +411,21 @@ module EvolutionSemanticTests =
         let curriculum = calls.Count "curriculum" (Some "claude:sonnet") llm
         let judge = calls.Count "judge" (Some "claude:sonnet") llm
 
-        for _ in 1..2 do
+        for _ in 1..3 do
             curriculum.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
 
         judge.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
 
         let report = global.Tars.Interface.Cli.Commands.Evolve.claudeCallsReport calls
 
-        // D3: about 30 calls per 10-task run.
-        Assert.Equal(Some(false, "Claude calls: 3 (curriculum 2, judge 1), within ADR 0005's budget of 3 for 1 task"), report 1)
-        Assert.Equal(Some(true, "Claude calls: 3 (curriculum 2, judge 1), over ADR 0005's budget of 0 for 0 tasks"), report 0)
-        Assert.Equal(Some(false, "Claude calls: 3 (curriculum 2, judge 1), within ADR 0005's budget of 30 for 10 tasks"), report 10)
+        // D3: about 30 calls per 10-task run. The budget is the run's, as --loop and
+        // --max-iterations asked for it: a run that fails on its first task is not over it.
+        Assert.Equal(Some(true, "Claude calls: 4 (curriculum 3, judge 1), over ADR 0005's budget of 3 for a 1-task run (1 finished)"), report 1 1)
+        Assert.Equal(Some(false, "Claude calls: 4 (curriculum 3, judge 1), within ADR 0005's budget of 30 for a 10-task run (10 finished)"), report 10 10)
+        Assert.Equal(Some(false, "Claude calls: 4 (curriculum 3, judge 1), within ADR 0005's budget of 30 for a 10-task run (0 finished)"), report 10 0)
 
         // A run with no Claude role has nothing to report.
-        Assert.Equal(None, global.Tars.Interface.Cli.Commands.Evolve.claudeCallsReport (global.Tars.Interface.Cli.Commands.Evolve.ClaudeCalls()) 10)
+        Assert.Equal(None, global.Tars.Interface.Cli.Commands.Evolve.claudeCallsReport (global.Tars.Interface.Cli.Commands.Evolve.ClaudeCalls()) 10 10)
 
     [<Fact>]
     let ``Evolution loop validates speech acts in response`` () =

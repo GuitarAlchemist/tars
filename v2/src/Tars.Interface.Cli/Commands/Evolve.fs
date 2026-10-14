@@ -138,19 +138,23 @@ type ClaudeCalls() =
 /// ADR 0005 (D3) budgets about 30 Claude calls per 10-task evolve run.
 let claudeCallBudget (tasks: int) = 3 * tasks
 
-/// How an evolve run's Claude calls compare with ADR 0005's budget for the tasks it finished:
-/// whether they went over it, and the line that says so. None when no role is on Claude Code.
-let claudeCallsReport (calls: ClaudeCalls) (tasks: int) : (bool * string) option =
+/// How an evolve run's Claude calls compare with ADR 0005's budget for the run it was asked
+/// for, `planned` tasks (`--loop` times `--max-iterations`): whether they went over it, and the
+/// line that says so, with the tasks it `finished`. A run that fails on its first task is not
+/// over budget for that task's calls. None when no role is on Claude Code.
+let claudeCallsReport (calls: ClaudeCalls) (planned: int) (finished: int) : (bool * string) option =
     match calls.ByRole with
     | [] -> None
     | roles ->
-        let budget = claudeCallBudget tasks
+        let budget = claudeCallBudget planned
         let over = calls.Total > budget
         let byRole = roles |> List.map (fun (role, n) -> $"{role} {n}") |> String.concat ", "
         let verdict = if over then "over" else "within"
-        let noun = if tasks = 1 then "task" else "tasks"
 
-        Some(over, $"Claude calls: {calls.Total} ({byRole}), {verdict} ADR 0005's budget of {budget} for {tasks} {noun}")
+        Some(
+            over,
+            $"Claude calls: {calls.Total} ({byRole}), {verdict} ADR 0005's budget of {budget} for a {planned}-task run ({finished} finished)"
+        )
 
 /// Appends `record` to the JSON lines file at `path`, with the evolve run and the executor's model:
 /// one line per task, so the answers whose examples passed can be found after the run. A file
@@ -538,7 +542,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
         let tasksFinished = ref 0
 
         let reportClaudeCalls () =
-            match claudeCallsReport claudeCalls tasksFinished.Value with
+            match claudeCallsReport claudeCalls (options.LoopCount * options.MaxIterations) tasksFinished.Value with
             | Some(true, line) -> logger.Warning("{ClaudeCalls}", line)
             | Some(false, line) -> logger.Information("{ClaudeCalls}", line)
             | None -> ()
