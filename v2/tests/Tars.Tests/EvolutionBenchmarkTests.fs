@@ -134,6 +134,28 @@ module EvolutionBenchmarkTests =
             Assert.True(stateAfterExecution.CompletedTasks.Head.Success)
         }
 
+    // A solution runs in the same fsi process as its validation, before it, so what it prints
+    // lands in the same output. "PASS" in that output was enough: a solution that printed it and
+    // left before the validation ran was counted as validated, and SelfTrain could export it.
+
+    let private attemptOnReverse (solution: string) =
+        let problem = ProblemBank.tryFind "basic-reverse-string" |> Option.get
+        (BenchmarkRunner.runProblem (BenchmarkLlm solution) problem false ignore).Result
+
+    [<Fact>]
+    let ``A solution that prints PASS and leaves before the validation is not validated`` () =
+        let wrong = "let reverse (s: string) : string = s\nprintfn \"PASS\"\n"
+        Assert.False((attemptOnReverse (wrong + "exit 0")).Validated, "exit 0")
+        Assert.False((attemptOnReverse (wrong + "failwith \"stop\" |> ignore")).Validated, "an exception")
+
+    [<Fact>]
+    let ``A solution the validation accepts is validated, whatever it prints itself`` () =
+        let right = "let reverse (s: string) : string = System.String(Array.rev (s.ToCharArray()))\n"
+        let attempt = attemptOnReverse right
+        Assert.True(attempt.Validated)
+        Assert.Equal("PASS", attempt.ValidationOutput)
+        Assert.True((attemptOnReverse (right + "printfn \"PASS\"")).Validated)
+
 module BenchmarkProvenanceTests =
 
     open System
