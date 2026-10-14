@@ -31,14 +31,14 @@ An inventory of the self-improvement mechanisms sorted them in two groups:
   - Validated benchmark attempts are saved by `BenchmarkRunner.saveResults`.
   - `SelfTrain.exportDataset` merges both into the SFT dataset (`~/.tars/self_train/dataset.jsonl`). `evolve --benchmark` refreshes it after each cycle.
   - That dataset has never been trained on, so no verified signal has taught a later run anything yet.
-  - One verified signal does reach later runs, as a side effect. `BenchmarkRunner.recordOutcomes` also writes each benchmark attempt to the outcome store, as a `Custom "benchmark:<category>"` row, and the selector's bandit normalizes over every kind in that store. Those rows lower the boost of the six selectable kinds together. They do not rank them.
-  - Evolve's own per-task verified results, its examples run with the code in `dotnet fsi`, are not persisted at all.
+  - One verified signal does reach later runs, as a side effect, without telling them anything. `BenchmarkRunner.recordOutcomes` also writes each benchmark attempt to the outcome store, as a `Custom "benchmark:<category>"` row. The selector's bandit takes a softmax over every kind in that store, so those rows shrink the bandit's share of each of the six selectable kinds by one common factor. `combineScores` adds that share to each kind's other scores, so a smaller share can change which kind wins. The rows say nothing about the six kinds: they change the selection without informing it.
+  - Evolve's own per-task verified results, its examples run with the code in `dotnet fsi`, were not persisted at all until #391, which keeps one line per evolve task in the run's `results.jsonl`.
 
 The five loops this ADR parks, with what feeds them (paths under `v2/src/`):
 
 - **Promotion pipeline and index boost** (`Tars.Evolution/PromotionPipeline.fs`, `PromotionIndex.fs`).
   - `propose` receives the pattern's name as its template.
-  - The Bayesian weight update counts the Grammar Governor's own `Approve` as a success, so the pipeline's approvals train its own ranking.
+  - The Bayesian weight update counts a success when the Grammar Governor approves and `RoundtripValidation.quickValidate` passes (`PromotionGate.decide`). That check is about form: the rollback expansion must exist, and it loses points when it is not longer than the template, shares few of the template's identifiers, or is under ten characters. It runs nothing, so it cannot tell whether the pattern works. The pipeline's approvals still train its own ranking.
   - `tars promote run` feeds it synthetic artifacts (`Tars.Interface.Cli/Commands/PromoteCommand.fs`, "Create synthetic artifacts to demonstrate the pipeline").
 - **Grammar-weight replicator** (`tars grammar evolve`, MCP `grammar_evolve`).
   - The CLI derives each rule's outcomes from the rule's own `SuccessRate × SelectionCount` (`GrammarCommand.fs`).

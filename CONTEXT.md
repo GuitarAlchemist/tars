@@ -32,10 +32,13 @@ via `LlmFactory.create(logger)`, never `DefaultLlmService` directly.
   → Persist → Govern**. Patterns climb *Implementation → Helper → Builder →
   DslClause → GrammarRule*; the Bayesian-weighted index persists to
   `~/.tars/promotion/index.json`. **Parked** by ADR 0005: its weights learn from
-  the governor's own approvals, not from a verified signal.
+  the governor's approvals, which a round-trip check tests for form only, not from
+  a verified signal.
 - **Verified signal** vs **judged signal** — a verified signal comes from running
   something: examples run with the code, `dotnet test`, benchmark PASS, or a
-  mechanical check. A judged signal is an LLM's verdict. New self-improvement work
+  mechanical check of the answer's code against its task's constraints. A check
+  of form alone, such as the promotion pipeline's round-trip check, is not one.
+  A judged signal is an LLM's verdict. New self-improvement work
   learns only from verified signals (ADR 0005). A judge may reject an answer and
   say why, but its verdict alone is not training data. The loops ADR 0005 parks
   still run when called and still write state from judged signals (promotion and
