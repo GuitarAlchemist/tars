@@ -900,6 +900,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         match options.BenchmarkDomain.ToLowerInvariant() with
                         | "ga" | "music" -> GaProblemBank.all ()
                         | "all" -> ProblemBank.all () @ GaProblemBank.all ()
+                        | "hard" -> ProblemBank.hard ()
                         | _ -> ProblemBank.all ()
 
                     let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
