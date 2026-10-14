@@ -21,11 +21,11 @@ The remaining failures were scaffold failures, not model failures:
 - The executor prompt dropped every constraint after the 3rd. Fixed by #386.
 - A judge's rejection never reached the executor. Fixed by #387.
 
-### What feeds the next run is judged; what is verified does not reach it
+### What feeds the next run is unverified; what is verified does not reach it
 
 An inventory of the self-improvement mechanisms sorted them in two groups:
 
-- **Loops that feed their results into the next run, all on judged, circular or polluted signals.** Up to #389, 609 of the outcome store's 1076 rows were written by a unit test.
+- **Loops that feed their results into the next run, all on unverified signals: judged, self-reported, circular or polluted.** Up to #389, 609 of the outcome store's 1076 rows were written by a unit test.
 - **Verified signals, which are persisted but feed nothing automatically.**
   - The self-hosting gate's accepted edits are verified by `dotnet test`. `SelfHostingGate.recordWin` appends them to `~/.tars/self_host_wins.jsonl`.
   - Validated benchmark attempts are saved by `BenchmarkRunner.saveResults`.
@@ -68,7 +68,7 @@ The five loops this ADR parks, with what feeds them (paths under `v2/src/`):
 | D2 | **Self-improvement effort goes into one loop fed only by verified signals**: examples run with the code, `dotnet test`, benchmark PASS, and mechanical constraint checks. An LLM judge may reject an answer and say why (#387), but its verdict alone is not training data. | A verified signal cannot be talked into a pass. This is the anti-collapse anchor of ADR 0003, applied to the whole loop. |
 | D3 | **Claude takes the semantic roles and the local model does the volume.** Claude writes the curriculum, judges, and supplies reference solutions for tasks the local model fails, through `claude -p` on the subscription. Budget: **about 30 Claude calls per 10-task evolve run.** | The semantic roles need the stronger model. Executing tasks does not: the 14B already passes most examples. |
 | D4 | **Distillation is gated.** Verified (task, solution) pairs, from evolve and from Claude's reference solutions checked the same way, join the SFT dataset. A LoRA on the **7B** is tried first. It is kept only if it beats the current model on a held-out split of a harder benchmark, using the `self-train cycle` A/B from ADR 0003. The GPU training step is run by the owner. | It is the only path to a better model, and the gate keeps a worse one out. The 7B fits the GPU for LoRA, and the 14B is the bar to approach. |
-| D5 | **A parked loop is un-parked only together with a verified signal.** For example, promotion weights could be fed by verified task outcomes instead of governor approvals. That would be decided in a later ADR. | It keeps the door open without letting judged signals back in. |
+| D5 | **A parked loop is un-parked only together with a verified signal.** For example, promotion weights could be fed by verified task outcomes instead of governor approvals. That would be decided in a later ADR. | It keeps the door open without letting unverified signals back in. |
 
 ## The loop
 
@@ -107,7 +107,7 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
     - `tars breed` breeds patterns from them (`BreedCommand.fs`, `EvolutionaryPatternBreeder.breed`);
     - `tars meta` derives capability gaps and learning tasks from them (`MetaCommand.fs`);
     - `InsightExporter.export` turns their failure rates into gaps with a remedy, and writes them to `~/.tars/insights/` for Guitar Alchemist to read. `tars evolve` runs it after its cycle, and so does the MCP `export_insights` tool.
-- Parking does not switch the loops off. When they are called, they still write state from judged signals:
+- Parking does not switch the loops off. When they are called, they still write state from unverified signals, self-reported or circular:
   - `tars promote run` updates the promotion weights from the governor's decisions;
   - `tars grammar evolve` rewrites the grammar weights;
   - the Darwin loop logs unverified proposals as improvements;
