@@ -107,6 +107,7 @@ These are vertical slices, one PR each, each starting from a failing test. #386,
     - `tars breed` breeds patterns from them (`BreedCommand.fs`, `EvolutionaryPatternBreeder.breed`);
     - `tars meta` derives capability gaps and learning tasks from them (`MetaCommand.fs`);
     - `InsightExporter.export` turns their failure rates into gaps with a remedy, and writes them to `~/.tars/insights/` for Guitar Alchemist to read. `tars evolve` runs it after its cycle, and so does the MCP `export_insights` tool.
+  - Inside an evolve run, a successful task shapes the next ones. The epistemic governor, an LLM, extracts a principle from the task's output and adds it to the run's active beliefs, and each next task is suggested from those beliefs (`Tars.Evolution/Engine.fs`, `ExtractPrinciple`, `SuggestCurriculum`). Without `--run-code`, the default, that success rests on the LLM evaluator's verdict, or on the executor's own flag when no evaluator is set. The principle is also saved to the `tars-beliefs` vector store, which nothing in `v2/src` reads back.
 - Parking does not switch the loops off. When they are called, they still write state from unverified signals, self-reported or circular:
   - `tars promote run` updates the promotion weights from the governor's decisions;
   - `tars grammar evolve` rewrites the grammar weights;
