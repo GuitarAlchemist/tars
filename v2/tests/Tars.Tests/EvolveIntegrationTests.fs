@@ -123,6 +123,7 @@ module EvolveIntegrationTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let! nextState = Engine.step context state |> Async.AwaitTask

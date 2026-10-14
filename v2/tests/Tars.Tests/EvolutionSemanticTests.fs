@@ -113,6 +113,7 @@ module EvolutionSemanticTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let state: EvolutionState =
@@ -224,6 +225,82 @@ module EvolutionSemanticTests =
                 | other -> string other
 
             Assert.True((model = "qwen2.5-coder:14b"), $"hint '{hint}' went to {routed.Backend}")
+
+    [<Fact>]
+    let ``Evolve keeps one JSON line per task, with its examples' verdict apart from the evaluator's`` () =
+        let dir = IO.Path.Combine(IO.Path.GetTempPath(), Guid.NewGuid().ToString "N")
+        let path = IO.Path.Combine(dir, "results.jsonl")
+
+        let verdict passed summary : EvaluationResult =
+            { Passed = passed
+              Confidence = 1.0
+              Summary = summary
+              Issues = []
+              SuggestedFixes = []
+              EvaluatedAt = DateTime.UtcNow }
+
+        let taskDef: TaskDefinition =
+            { Id = Guid.NewGuid()
+              DifficultyLevel = 1
+              Goal = "Write `fact : int -> int` in F#"
+              Constraints = [ "Use recursion"; "No mutable"; "No List.rev"; "No loops" ]
+              ValidationCriteria = "fact 5 = 120"
+              Timeout = TimeSpan.FromMinutes 2.0
+              Score = 1.0 }
+
+        let rejected: TaskResult =
+            { TaskId = taskDef.Id
+              TaskGoal = taskDef.Goal
+              ExecutorId = AgentId(Guid.NewGuid())
+              Success = false
+              Output = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+              ExecutionTrace = []
+              Duration = TimeSpan.FromSeconds 3.0
+              Evaluation = Some(verdict false "Uses a loop.") }
+
+        let entry result examples : Engine.TaskRecord =
+            { Definition = taskDef
+              Result = result
+              Examples = examples }
+
+        try
+            let record =
+                global.Tars.Interface.Cli.Commands.Evolve.recordTo Serilog.Log.Logger path "run1" "qwen2.5-coder:14b"
+
+            // Rejected although its examples passed; then accepted with no examples run.
+            record (entry rejected (Some(verdict true "The examples passed.")))
+            record (entry { rejected with Success = true; Evaluation = None } None)
+
+            let lines =
+                IO.File.ReadAllLines path
+                |> Array.map (fun line -> Text.Json.JsonDocument.Parse(line).RootElement)
+
+            Assert.Equal(2, lines.Length)
+
+            for line in lines do
+                let text (name: string) = line.GetProperty(name).GetString()
+                Assert.Equal("run1", text "run")
+                Assert.Equal("qwen2.5-coder:14b", text "model")
+                Assert.Equal(string taskDef.Id, text "taskId")
+                Assert.Equal(taskDef.Goal, text "goal")
+
+                Assert.Equal<string>(
+                    taskDef.Constraints,
+                    [ for c in line.GetProperty("constraints").EnumerateArray() -> c.GetString() ]
+                )
+
+                Assert.Equal("fact 5 = 120", text "criteria")
+                Assert.Equal(rejected.Output, text "output")
+
+            Assert.True(lines.[0].GetProperty("examplesPassed").GetBoolean())
+            Assert.False(lines.[0].GetProperty("success").GetBoolean())
+            Assert.Equal("Uses a loop.", lines.[0].GetProperty("verdict").GetString())
+            Assert.Equal(Text.Json.JsonValueKind.Null, lines.[1].GetProperty("examplesPassed").ValueKind)
+            Assert.True(lines.[1].GetProperty("success").GetBoolean())
+            Assert.Equal(Text.Json.JsonValueKind.Null, lines.[1].GetProperty("verdict").ValueKind)
+        finally
+            if IO.Directory.Exists dir then
+                IO.Directory.Delete(dir, true)
 
     /// A file under v2/, found from the test directory.
     let private v2File (parts: string list) =
@@ -371,6 +448,7 @@ module EvolutionSemanticTests =
                       ToolRegistry = None
                       ResearchEnhanced = false
                       RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let state: EvolutionState =

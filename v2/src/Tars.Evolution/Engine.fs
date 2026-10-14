@@ -37,6 +37,14 @@ module Engine =
           OutputGuard: IOutputGuard option
           Evaluator: IEvaluationStrategy option }
 
+    /// A finished task as evolve keeps it: the task as given, its final result, whose Evaluation is
+    /// the evaluator's verdict, and the verdict of its examples when they ran with the code
+    /// (`--run-code`), the only one that comes from running the code.
+    type TaskRecord =
+        { Definition: TaskDefinition
+          Result: TaskResult
+          Examples: EvaluationResult option }
+
     type RunOptions =
         { RunId: RunId option
           Verbose: bool
@@ -48,7 +56,9 @@ module Engine =
           /// Run the F# code in the executor's answers with dotnet fsi (`evolve --run-code`), with the
           /// task's examples, and ask for new answers while they fail. It runs with the user's rights,
           /// outside any sandbox, so it is off unless asked for.
-          RunCode: bool }
+          RunCode: bool
+          /// Gets each task the step finishes, once, after the evaluator's verdict.
+          RecordTask: TaskRecord -> unit }
 
     /// The context for the evolution engine
     type EvolutionContext =
@@ -777,6 +787,29 @@ If the task truly asks for no code, give your final result instead."""
 {errors}
 
 Fix the code. Reply with the complete corrected code in a fenced block (```fsharp ... ```). Save it with write_code if you can."""
+
+    /// Whether the evaluator rejected code whose examples ran and passed (--run-code), and said why.
+    /// Nothing else shows that the code ran: without --run-code none runs, and code the examples
+    /// cannot call may not run at all. Not an evaluator that could not judge either
+    /// (SemanticEvaluation's "llm_output_parse_error" and "evaluation_error"), whose verdict says
+    /// nothing about the code.
+    let private reviewerRejected (result: TaskResult) (verdict: EvaluationResult) =
+        result.Success
+        && not verdict.Passed
+        && (result.Evaluation |> Option.exists (fun examples -> examples.Passed))
+        && verdict.Issues <> [ "llm_output_parse_error" ]
+        && verdict.Issues <> [ "evaluation_error" ]
+
+    /// The task again, after the evaluator rejected an answer to it: what the evaluator said is one
+    /// more constraint.
+    let private withReview (taskDef: TaskDefinition) (rejection: EvaluationResult) =
+        let listed (label: string) (items: string list) =
+            if items.IsEmpty then "" else $""" {label}: {String.concat "; " items}."""
+
+        { taskDef with
+            Constraints =
+                taskDef.Constraints
+                @ [ $"""A reviewer rejected a previous answer to this task: {rejection.Summary}{listed "Issues" rejection.Issues}{listed "Fixes" rejection.SuggestedFixes} Your answer must not repeat this.""" ] }
 
     let private evaluateContradiction (ctx: EvolutionContext) (goal: string) (beliefs: Belief list) =
         task {
@@ -1990,10 +2023,8 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
         task {
             match state.CurrentTask with
             | Some taskDef ->
-                // 2. Execution Phase: Attempt to solve
-                let! result = executeTask ctx state taskDef
-
-                let! evaluation =
+                // The verdict on an answer: a failing example's, or else the evaluator's.
+                let judge (result: TaskResult) =
                     match result.Evaluation, ctx.Governance.Evaluator with
                     // The examples ran with the code (--run-code) and one failed: the task failed.
                     | Some examples, _ when not examples.Passed -> Task.FromResult(Some examples)
@@ -2011,6 +2042,45 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         }
                     | examples, None -> Task.FromResult examples
 
+                // 2. Execution Phase: Attempt to solve
+                let watch = Diagnostics.Stopwatch.StartNew()
+                let! result = executeTask ctx state taskDef
+                let! evaluation = judge result
+
+                // Both answers share the task's deadline. A Timeout of zero or less means no deadline.
+                let left = taskDef.Timeout - watch.Elapsed
+                let hasTime = taskDef.Timeout <= TimeSpan.Zero || left > TimeSpan.Zero
+
+                // The evaluator rejected code whose examples passed, and said why: the executor answers
+                // once more, told what it said, within the time the task has left, and the new answer is
+                // judged against the task as given. In live runs the judge rejected answers that broke a
+                // constraint, and the executor never knew.
+                let! (result, evaluation) =
+                    match evaluation with
+                    | Some rejection when reviewerRejected result rejection && hasTime ->
+                        task {
+                            ctx.Logger($"[Evaluation] Rejected, the executor answers again: {rejection.Summary}")
+
+                            let revisedTask =
+                                { withReview taskDef rejection with
+                                    Timeout = if taskDef.Timeout > TimeSpan.Zero then left else taskDef.Timeout }
+
+                            let! revised = executeTask ctx state revisedTask
+                            let! verdict = judge revised
+
+                            return
+                                { revised with
+                                    // Both attempts, and why there was a second one.
+                                    ExecutionTrace =
+                                        result.ExecutionTrace
+                                        @ [ "--- REJECTED BY THE EVALUATOR, ANSWERED AGAIN ---"; rejection.Summary ]
+                                        @ revised.ExecutionTrace
+                                    // The whole task, both verdicts included.
+                                    Duration = watch.Elapsed },
+                                verdict
+                        }
+                    | _ -> Task.FromResult((result, evaluation))
+
                 let resultWithEvaluation = { result with Evaluation = evaluation }
 
                 let evaluationPassed =
@@ -2027,6 +2097,11 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                 match ctx.Memory.Ledger with
                 | Some ledger -> do! LedgerIngestion.recordTaskResult ledger ctx.Memory.EvidenceStore ctx.Options.RunId taskDef finalResult ctx.Logger
                 | None -> ()
+
+                ctx.Options.RecordTask
+                    { Definition = taskDef
+                      Result = finalResult
+                      Examples = result.Evaluation }
 
                 let resultForDisplay =
                     match evaluation with
