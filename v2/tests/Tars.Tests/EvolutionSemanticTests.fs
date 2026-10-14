@@ -380,6 +380,53 @@ module EvolutionSemanticTests =
         Assert.Equal<string>([ "executor"; "teacher" ], roles ())
 
     [<Fact>]
+    let ``An evolve run counts its Claude calls by role, and not a local model's`` () =
+        let calls = global.Tars.Interface.Cli.Commands.Evolve.ClaudeCalls()
+        let llm = SuccessLlm("ok") :> Tars.Llm.ILlmService
+        let curriculum = calls.Count "curriculum" (Some "claude:sonnet") llm
+        let judge = calls.Count "judge" (Some "claude:sonnet") llm
+        let governor = calls.Count "governor" (Some "claude:sonnet") llm
+        let executor = calls.Count "executor" (Some "qwen2.5-coder:14b") llm
+        let request = Tars.Llm.LlmRequest.Default
+
+        curriculum.CompleteAsync(request).Result |> ignore
+        curriculum.CompleteStreamAsync(request, ignore).Result |> ignore
+
+        (judge :?> Tars.Llm.ICancellableLlmService).CompleteAsync(request, Threading.CancellationToken.None).Result
+        |> ignore
+
+        executor.CompleteAsync(request).Result |> ignore
+        // An embedding and a route are not calls to Claude.
+        curriculum.EmbedAsync("text").Result |> ignore
+        curriculum.RouteAsync(request).Result |> ignore
+
+        // A Claude role that made no call is still listed, with 0.
+        Assert.Equal<string * int>([ "curriculum", 2; "governor", 0; "judge", 1 ], calls.ByRole)
+        Assert.Equal(3, calls.Total)
+
+    [<Fact>]
+    let ``An evolve run's Claude calls are reported against ADR 0005's budget`` () =
+        let calls = global.Tars.Interface.Cli.Commands.Evolve.ClaudeCalls()
+        let llm = SuccessLlm("ok") :> Tars.Llm.ILlmService
+        let curriculum = calls.Count "curriculum" (Some "claude:sonnet") llm
+        let judge = calls.Count "judge" (Some "claude:sonnet") llm
+
+        for _ in 1..2 do
+            curriculum.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
+
+        judge.CompleteAsync(Tars.Llm.LlmRequest.Default).Result |> ignore
+
+        let report = global.Tars.Interface.Cli.Commands.Evolve.claudeCallsReport calls
+
+        // D3: about 30 calls per 10-task run.
+        Assert.Equal(Some(false, "Claude calls: 3 (curriculum 2, judge 1), within ADR 0005's budget of 3 for 1 task"), report 1)
+        Assert.Equal(Some(true, "Claude calls: 3 (curriculum 2, judge 1), over ADR 0005's budget of 0 for 0 tasks"), report 0)
+        Assert.Equal(Some(false, "Claude calls: 3 (curriculum 2, judge 1), within ADR 0005's budget of 30 for 10 tasks"), report 10)
+
+        // A run with no Claude role has nothing to report.
+        Assert.Equal(None, global.Tars.Interface.Cli.Commands.Evolve.claudeCallsReport (global.Tars.Interface.Cli.Commands.Evolve.ClaudeCalls()) 10)
+
+    [<Fact>]
     let ``Evolution loop validates speech acts in response`` () =
         task {
             if not (TestHelpers.requireTools()) then () else

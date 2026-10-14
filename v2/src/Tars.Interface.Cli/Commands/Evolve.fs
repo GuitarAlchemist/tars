@@ -77,6 +77,81 @@ let llmFor (logger: ILogger) (model: string) : ILlmService =
         |> LlmFactory.withEmbeddings (LlmFactory.create logger)
     | None -> LlmFactory.createPinnedTo logger model
 
+/// The Claude calls of an evolve run, by role. A call is a completion, streamed or not: one
+/// `claude -p` process. Embeddings and routes are not calls to Claude.
+type ClaudeCalls() =
+    let counts = System.Collections.Concurrent.ConcurrentDictionary<string, int>()
+
+    let add role =
+        counts.AddOrUpdate(role, 1, (fun _ n -> n + 1)) |> ignore
+
+    /// `llm`, with its completions counted as `role`'s when `model` is a Claude Code name
+    /// (`claude:<model>`). Another model's service is returned as it is.
+    member _.Count (role: string) (model: string option) (llm: ILlmService) : ILlmService =
+        match model |> Option.bind LlmFactory.claudeCodeModel with
+        | None -> llm
+        | Some _ ->
+            counts.TryAdd(role, 0) |> ignore
+
+            { new ILlmService with
+                member _.CompleteAsync req =
+                    add role
+                    llm.CompleteAsync req
+
+                member _.CompleteStreamAsync(req, onChunk) =
+                    add role
+                    llm.CompleteStreamAsync(req, onChunk)
+
+                member _.EmbedAsync text = llm.EmbedAsync text
+                member _.RouteAsync req = llm.RouteAsync req
+              interface ICancellableLlmService with
+                member _.CompleteAsync(req, token) =
+                    add role
+
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.CompleteAsync(req, token)
+                    | _ -> llm.CompleteAsync req
+
+                member _.EmbedAsync(text, token) =
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.EmbedAsync(text, token)
+                    | _ -> llm.EmbedAsync text
+
+                member _.CompleteStreamAsync(req, onChunk, token) =
+                    add role
+
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.CompleteStreamAsync(req, onChunk, token)
+                    | _ -> llm.CompleteStreamAsync(req, onChunk)
+
+                member _.RouteAsync(req, token) =
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.RouteAsync(req, token)
+                    | _ -> llm.RouteAsync req }
+
+    /// Each role on Claude Code, with its calls so far, by role name.
+    member _.ByRole: (string * int) list =
+        counts |> Seq.map (fun kv -> kv.Key, kv.Value) |> Seq.sortBy fst |> List.ofSeq
+
+    member this.Total = this.ByRole |> List.sumBy snd
+
+/// ADR 0005 (D3) budgets about 30 Claude calls per 10-task evolve run.
+let claudeCallBudget (tasks: int) = 3 * tasks
+
+/// How an evolve run's Claude calls compare with ADR 0005's budget for the tasks it finished:
+/// whether they went over it, and the line that says so. None when no role is on Claude Code.
+let claudeCallsReport (calls: ClaudeCalls) (tasks: int) : (bool * string) option =
+    match calls.ByRole with
+    | [] -> None
+    | roles ->
+        let budget = claudeCallBudget tasks
+        let over = calls.Total > budget
+        let byRole = roles |> List.map (fun (role, n) -> $"{role} {n}") |> String.concat ", "
+        let verdict = if over then "over" else "within"
+        let noun = if tasks = 1 then "task" else "tasks"
+
+        Some(over, $"Claude calls: {calls.Total} ({byRole}), {verdict} ADR 0005's budget of {budget} for {tasks} {noun}")
+
 /// Appends `record` to the JSON lines file at `path`, with the evolve run and the executor's model:
 /// one line per task, so the answers whose examples passed can be found after the run. A file
 /// that cannot be written is logged, and the run goes on.
@@ -338,6 +413,18 @@ let run (logger: ILogger) (options: EvolveOptions) =
         let llmService, teacherLlm =
             tracedServices options.Trace traceRecorder baseLlmService teacherLlm
 
+        // The run's Claude calls, by role, for ADR 0005's budget. The teacher, or the executor's
+        // model without one, writes the curriculum, judges, and runs the epistemic governor.
+        // "executor" counts every call on `--model`'s service: the intent classifier's, the
+        // memory's and the benchmark's too.
+        let claudeCalls = ClaudeCalls()
+        let teacherService = teacherLlm |> Option.defaultValue llmService
+        let teacherModel = options.Teacher |> Option.orElse options.Model
+        let curriculumLlm = claudeCalls.Count "curriculum" teacherModel teacherService
+        let judgeLlm = claudeCalls.Count "judge" teacherModel teacherService
+        let governorLlm = claudeCalls.Count "governor" teacherModel teacherService
+        let llmService = claudeCalls.Count "executor" options.Model llmService
+
         if options.Trace then
             let! traceId = (traceRecorder :> ITraceRecorder).StartTraceAsync() |> Async.StartAsTask
             logger.Information("Started trace {TraceId}", traceId)
@@ -508,7 +595,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                     // It suggests the curriculum's focus and verifies the answers: the teacher's job.
                     Some(
                         Tars.Cortex.EpistemicGovernor(
-                            teacherLlm |> Option.defaultValue llmService,
+                            governorLlm,
                             Some knowledgeGraph,
                             Some budget
                         )
@@ -520,7 +607,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             let evaluator =
                 SemanticEvaluation(
-                    teacherLlm |> Option.defaultValue llmService,
+                    judgeLlm,
                     minConfidence = 0.6,
                     logger = fun msg -> logger.Information("{Evaluation}", msg)
                 )
@@ -633,7 +720,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
             let evoCtx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = llmService
-                  CurriculumLlm = teacherLlm
+                  CurriculumLlm = Some curriculumLlm
                   VectorStore = vectorStore
                   Logger =
                     fun s ->
@@ -951,6 +1038,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
                 RichOutput.info
                     $"🧠 Knowledge graph facts: {knowledgeGraph.GetCurrentFacts().Length} (persisted to {knowledgeGraphPath})"
+
+            match claudeCallsReport claudeCalls currentState.CompletedTasks.Length with
+            | Some(true, line) -> logger.Warning("{ClaudeCalls}", line)
+            | Some(false, line) -> logger.Information("{ClaudeCalls}", line)
+            | None -> ()
 
             if options.Trace then
                 let timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss")
