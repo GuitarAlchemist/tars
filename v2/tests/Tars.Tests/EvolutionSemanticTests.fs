@@ -429,6 +429,46 @@ module EvolutionSemanticTests =
         Assert.Equal(None, global.Tars.Interface.Cli.Commands.Evolve.claudeCallsReport (global.Tars.Interface.Cli.Commands.Evolve.ClaudeCalls()) 10)
 
     [<Fact>]
+    let ``With --trace, each call's request is recorded`` () =
+        let recorder = TraceRecorder()
+
+        let llm =
+            Tars.Llm.TracingLlmService(SuccessLlm("ok"), recorder, "teacher") :> Tars.Llm.ILlmService
+
+        let request =
+            { Tars.Llm.LlmRequest.Default with
+                SystemPrompt = Some "Judge the code."
+                Messages = [ { Role = Tars.Llm.Role.User; Content = "let x = 1" } ]
+                ResponseFormat = Some Tars.Llm.ResponseFormat.Json }
+
+        llm.CompleteAsync(request).Result |> ignore
+
+        (llm :?> Tars.Llm.ICancellableLlmService).CompleteAsync(request, Threading.CancellationToken.None).Result
+        |> ignore
+
+        let inputs () =
+            ((recorder :> ITraceRecorder).GetTraceAsync() |> Async.RunSynchronously).Value.Events
+            |> List.map (fun e -> e.Input)
+
+        // The recording is fire-and-forget.
+        let watch = Diagnostics.Stopwatch.StartNew()
+
+        while inputs().Length < 2 && watch.Elapsed < TimeSpan.FromSeconds 5.0 do
+            Threading.Thread.Sleep 20
+
+        Assert.Equal(2, inputs().Length)
+
+        for input in inputs () do
+            // The roles and the response format are F# unions, which System.Text.Json cannot write.
+            Assert.DoesNotContain("Serialization failed", input)
+            use json = Text.Json.JsonDocument.Parse input
+            Assert.Equal("Judge the code.", json.RootElement.GetProperty("SystemPrompt").GetString())
+            let message = json.RootElement.GetProperty("Messages").[0]
+            Assert.Equal("User", message.GetProperty("Role").GetString())
+            Assert.Equal("let x = 1", message.GetProperty("Content").GetString())
+            Assert.Equal("Json", json.RootElement.GetProperty("ResponseFormat").GetString())
+
+    [<Fact>]
     let ``Evolution loop validates speech acts in response`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
