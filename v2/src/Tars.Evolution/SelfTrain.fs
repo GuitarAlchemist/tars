@@ -20,9 +20,10 @@ open System.Text.Json
 /// held-out split (`EvalSplit`), whose solutions are never exported (#294).
 module SelfTrain =
 
-    /// All known problems, indexed by id (generic coding + GA music-theory).
-    let private problemsById =
-        (ProblemBank.all () @ GaProblemBank.all ())
+    /// All known problems, indexed by id (generic coding, GA music-theory, the hard bank).
+    /// An attempt on a problem missing from here is never exported.
+    let problemsById =
+        (ProblemBank.all () @ GaProblemBank.all () @ ProblemBank.hard ())
         |> List.map (fun p -> p.Id, p)
         |> Map.ofList
 
