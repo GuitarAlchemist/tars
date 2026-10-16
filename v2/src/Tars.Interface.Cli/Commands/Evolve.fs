@@ -138,25 +138,21 @@ type ClaudeCalls() =
 /// ADR 0005 (D3) budgets about 30 Claude calls per 10-task evolve run.
 let claudeCallBudget (tasks: int) = 3 * tasks
 
-/// How an evolve run's Claude calls compare with ADR 0005's budget for the tasks it `finished`,
-/// plus the one it was on when it `failed`: whether they went over it, and the line that says
-/// so. A step whose curriculum gave no task finishes none, so its calls get no budget. None when
-/// no role is on Claude Code.
-let claudeCallsReport (calls: ClaudeCalls) (finished: int) (failed: bool) : (bool * string) option =
+/// How an evolve run's Claude calls compare with ADR 0005's budget for the tasks it finished:
+/// whether they went over it, and the line that says so. A task that failed, timed out or threw
+/// is finished, since `run` records it. A step whose curriculum gave no task finishes none, so its
+/// calls get no budget. None when no role is on Claude Code.
+let claudeCallsReport (calls: ClaudeCalls) (finished: int) : (bool * string) option =
     match calls.ByRole with
     | [] -> None
     | roles ->
-        let budget = claudeCallBudget (if failed then finished + 1 else finished)
+        let budget = claudeCallBudget finished
         let over = calls.Total > budget
         let byRole = roles |> List.map (fun (role, n) -> $"{role} {n}") |> String.concat ", "
         let verdict = if over then "over" else "within"
         let noun = if finished = 1 then "task" else "tasks"
-        let failedOn = if failed then " and the one the run failed on" else ""
 
-        Some(
-            over,
-            $"Claude calls: {calls.Total} ({byRole}), {verdict} ADR 0005's budget of {budget} for {finished} {noun} finished{failedOn}"
-        )
+        Some(over, $"Claude calls: {calls.Total} ({byRole}), {verdict} ADR 0005's budget of {budget} for {finished} {noun} finished")
 
 /// Appends `record` to the JSON lines file at `path`, with the evolve run and the executor's model:
 /// one line per task, so the answers whose examples passed can be found after the run. A file
@@ -543,8 +539,8 @@ let run (logger: ILogger) (options: EvolveOptions) =
         // the Claude calls it made.
         let tasksFinished = ref 0
 
-        let reportClaudeCalls (failed: bool) =
-            match claudeCallsReport claudeCalls tasksFinished.Value failed with
+        let reportClaudeCalls () =
+            match claudeCallsReport claudeCalls tasksFinished.Value with
             | Some(true, line) -> logger.Warning("{ClaudeCalls}", line)
             | Some(false, line) -> logger.Information("{ClaudeCalls}", line)
             | None -> ()
@@ -1156,11 +1152,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
             with ex ->
                 logger.Warning("Failed to save knowledge graph: {Message}", ex.Message)
 
-            reportClaudeCalls false
+            reportClaudeCalls ()
             return 0
         with ex ->
             RichOutput.error $"Evolution failed: {ex.Message}"
             logger.Error(ex, "Evolution Engine Failed")
-            reportClaudeCalls true
+            reportClaudeCalls ()
             return 1
     }

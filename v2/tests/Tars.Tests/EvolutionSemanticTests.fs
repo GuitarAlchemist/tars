@@ -418,16 +418,15 @@ module EvolutionSemanticTests =
 
         let report = global.Tars.Interface.Cli.Commands.Evolve.claudeCallsReport calls
 
-        // D3: about 30 calls per 10-task run, so 3 per task the run finished.
-        Assert.Equal(Some(false, "Claude calls: 3 (curriculum 2, judge 1), within ADR 0005's budget of 3 for 1 task finished"), report 1 false)
-        Assert.Equal(Some(false, "Claude calls: 3 (curriculum 2, judge 1), within ADR 0005's budget of 30 for 10 tasks finished"), report 10 false)
+        // D3: about 30 calls per 10-task run, so 3 per task the run finished. A task that
+        // failed is finished too: evolve records it.
+        Assert.Equal(Some(false, "Claude calls: 3 (curriculum 2, judge 1), within ADR 0005's budget of 3 for 1 task finished"), report 1)
+        Assert.Equal(Some(false, "Claude calls: 3 (curriculum 2, judge 1), within ADR 0005's budget of 30 for 10 tasks finished"), report 10)
         // A run whose curriculum gave no task spent its calls on nothing: no budget for them.
-        Assert.Equal(Some(true, "Claude calls: 3 (curriculum 2, judge 1), over ADR 0005's budget of 0 for 0 tasks finished"), report 0 false)
-        // A run that failed is also given the task it failed on.
-        Assert.Equal(Some(false, "Claude calls: 3 (curriculum 2, judge 1), within ADR 0005's budget of 3 for 0 tasks finished and the one the run failed on"), report 0 true)
+        Assert.Equal(Some(true, "Claude calls: 3 (curriculum 2, judge 1), over ADR 0005's budget of 0 for 0 tasks finished"), report 0)
 
         // A run with no Claude role has nothing to report.
-        Assert.Equal(None, global.Tars.Interface.Cli.Commands.Evolve.claudeCallsReport (global.Tars.Interface.Cli.Commands.Evolve.ClaudeCalls()) 10 false)
+        Assert.Equal(None, global.Tars.Interface.Cli.Commands.Evolve.claudeCallsReport (global.Tars.Interface.Cli.Commands.Evolve.ClaudeCalls()) 10)
 
     [<Fact>]
     let ``Evolution loop validates speech acts in response`` () =
