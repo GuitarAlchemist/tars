@@ -524,14 +524,15 @@ module AdaptiveReflectionTests =
             | [] -> Assert.Fail("Task was not completed")
         }
 
-    /// Runs one evolve step on a coding task with `goal`, the criteria "fact 5 = 120" and
-    /// `timeout`, whose executor answers with `answers`, in order (the last one repeats), with
-    /// `evaluator` and evolve's --run-code set to `runCode`, and gives `record` each task it
-    /// finishes. Returns the new state and every request the executor got.
+    /// Runs one evolve step on a coding task with `goal`, the criteria "fact 5 = 120",
+    /// `constraints` and `timeout`, whose executor answers with `answers`, in order (the last one
+    /// repeats), with `evaluator` and evolve's --run-code set to `runCode`, and gives `record`
+    /// each task it finishes. Returns the new state and every request the executor got.
     let private stepRecordingWithin
         (record: Engine.TaskRecord -> unit)
         (timeout: TimeSpan)
         (goal: string)
+        (constraints: string list)
         (evaluator: IEvaluationStrategy option)
         (runCode: bool)
         (answers: string list)
@@ -597,7 +598,7 @@ module AdaptiveReflectionTests =
                 { Id = Guid.NewGuid()
                   DifficultyLevel = 1
                   Goal = goal
-                  Constraints = []
+                  Constraints = constraints
                   ValidationCriteria = "fact 5 = 120"
                   Timeout = timeout
                   Score = 1.0 }
@@ -615,8 +616,9 @@ module AdaptiveReflectionTests =
             return newState, List.ofSeq requests
         }
 
-    /// stepRecordingWithin, with the records ignored.
-    let private stepWithin = stepRecordingWithin ignore
+    /// stepRecordingWithin, with no constraints and the records ignored.
+    let private stepWithin timeout goal evaluator runCode answers =
+        stepRecordingWithin ignore timeout goal [] evaluator runCode answers
 
     /// stepWithin, with 2 minutes for the task.
     let private stepWith (goal: string) (evaluator: IEvaluationStrategy option) (runCode: bool) (answers: string list) =
@@ -726,6 +728,7 @@ module AdaptiveReflectionTests =
                         records.Add
                         (TimeSpan.FromMinutes 2.0)
                         goal
+                        []
                         (Some(fixedEvaluator false (ResizeArray())))
                         runCode
                         [ right ]
@@ -738,6 +741,78 @@ module AdaptiveReflectionTests =
                 Assert.False(record.Result.Success)
                 Assert.Equal(Some "fixed verdict", record.Result.Evaluation |> Option.map (fun e -> e.Summary))
                 Assert.Equal(examples, record.Examples |> Option.map (fun e -> e.Passed))
+        }
+
+    [<Fact>]
+    let ``Code that breaks a constraint goes back to the executor, and fails the task if no answer keeps it`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // In live runs the judge rejected code that used `mutable` when the task forbade it,
+            // although its examples passed. That shows in the code itself.
+            let goal = "Write `fact : int -> int` in F#"
+            let rule = "Do not use mutable variables"
+            let loop = "```fsharp\nlet fact n =\n    let mutable acc = 1\n    for i in 2 .. n do acc <- acc * i\n    acc\n```"
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+            let fixedSeen = ResizeArray()
+            let neverSeen = ResizeArray()
+            let within = TimeSpan.FromMinutes 2.0
+
+            let! fixedState, fixedRequests =
+                stepRecordingWithin ignore within goal [ rule ] (Some(fixedEvaluator true fixedSeen)) true [ loop; right ]
+
+            let! neverState, _ =
+                stepRecordingWithin ignore within goal [ rule ] (Some(fixedEvaluator true neverSeen)) true [ loop ]
+
+            match fixedState.CompletedTasks, neverState.CompletedTasks with
+            | fixedTask :: _, never :: _ ->
+                // The executor heard which rule its code broke, and fixed it.
+                Assert.Equal(2, fixedRequests.Length)
+                Assert.Contains("Constraint broken: the code uses `mutable`", fixedRequests.[1])
+                Assert.Contains(rule, fixedRequests.[1])
+                Assert.True(fixedTask.Success, fixedTask.Output)
+                Assert.True(fixedSeen |> Seq.exactlyOne |> Option.exists (fun e -> e.Passed))
+
+                // No answer kept the rule: the task fails on the check, and the evaluator is not asked.
+                Assert.False(never.Success)
+                Assert.Empty(neverSeen)
+
+                Assert.Contains(
+                    "Constraint broken",
+                    never.Evaluation |> Option.map (fun e -> e.Summary) |> Option.defaultValue ""
+                )
+            | _ -> Assert.Fail("Task was not completed")
+        }
+
+    [<Fact>]
+    let ``Without examples, code that breaks a constraint hears it once, and the evaluator decides`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // The goal names no function, so no example checks the values and the check cannot
+            // fail the task. The executor still hears which forbidden name its code used.
+            let loop = "```fsharp\nlet fact n =\n    let mutable acc = 1\n    for i in 2 .. n do acc <- acc * i\n    acc\n```"
+            let right = "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```"
+            let seen = ResizeArray()
+
+            let! newState, requests =
+                stepRecordingWithin
+                    ignore
+                    (TimeSpan.FromMinutes 2.0)
+                    "Write a recursive factorial function in F#"
+                    [ "Do not use mutable variables" ]
+                    (Some(fixedEvaluator true seen))
+                    true
+                    [ loop; right ]
+
+            Assert.Equal(2, requests.Length)
+            Assert.Contains("Constraint broken: the code uses `mutable`", requests.[1])
+
+            match newState.CompletedTasks with
+            | completed :: _ ->
+                Assert.True(completed.Success, completed.Output)
+                Assert.Contains("let rec fact n", completed.Output)
+                // Nothing checked its values: the evaluator judged it, with no examples' verdict.
+                Assert.True(seen |> Seq.exactlyOne |> Option.isNone)
+            | [] -> Assert.Fail("Task was not completed")
         }
 
     [<Fact>]
