@@ -432,14 +432,16 @@ Do not use 'open' statements — write self-contained code."""
         : Task<BenchmarkRunSummary> =
         runSuiteFromProblems llm (ProblemBank.all ()) difficulty category maxProblems retryOnFail logger
 
-    /// Record benchmark results into PatternOutcomeStore for self-improvement feedback.
+    /// Record benchmark results into PatternOutcomeStore for self-improvement feedback. An attempt
+    /// succeeds when it validated and its property tests, if any ran, held: like SelfTrain, which
+    /// leaves out a solution whose properties failed.
     let recordOutcomes (selector: IPatternSelector) (summary: BenchmarkRunSummary) : unit =
         for attempt in summary.Attempts do
             selector.RecordOutcome
                 { PatternOutcome.Create(
                     Custom $"benchmark:{attempt.Category}",
                     attempt.ProblemId,
-                    attempt.Validated,
+                    attempt.Validated && attempt.PropertiesValidated <> Some false,
                     attempt.GenerationTimeMs + attempt.ValidationTimeMs) with
                     Timestamp = attempt.Timestamp
                     CycleId = summary.CycleId
