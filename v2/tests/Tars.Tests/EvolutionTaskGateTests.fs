@@ -571,6 +571,20 @@ let ``expected values bound to their process give no verdict rather than a failu
     }
 
 [<Fact>]
+let ``an answer that redefines not does not loosen a condition's type check`` () =
+    task {
+        // The union case is written `true`, as the Boolean a condition is expected to be.
+        let answer =
+            "[<RequireQualifiedAccess>]\n"
+            + "type Flag = | ``true``\n"
+            + "let not (_: Flag) = false\n"
+            + "let flag () = Flag.``true``"
+
+        let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "flag ()" ]
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
 let ``the expected values do not use the answer's definitions`` () =
     task {
         // The answer redefines abs, but the example means F#'s: abs (-1) is 1.
