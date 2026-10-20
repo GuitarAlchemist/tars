@@ -429,14 +429,15 @@ module Engine =
         else
             Some script
 
-    /// Runs an F# script with dotnet fsi, in a temporary directory, with no input, for at most
-    /// `timeout`. Ok with what it printed when it exits with 0; otherwise Error with what went wrong.
+    /// Runs an F# script with dotnet fsi and `options` (such as "--typecheck-only "), in a temporary
+    /// directory, with no input, for at most `timeout`. Ok with what it printed when it exits with 0;
+    /// otherwise Error with what went wrong.
     /// System is opened first: the model writes Char or String.IsNullOrEmpty without opening it.
     /// A leading namespace or top-level module cannot follow that open, but fsi rejects both
     /// anyway, and scriptOfAnswer has already dropped the first and turned the second into
     /// `module X =`, which can. The #line directive keeps error positions on the lines of the
     /// script itself.
-    let private runFsi (timeout: TimeSpan) (script: string) : Task<Result<string, string>> =
+    let private runFsiWith (options: string) (timeout: TimeSpan) (script: string) : Task<Result<string, string>> =
         task {
             let dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "tars-evolve-run", Guid.NewGuid().ToString("N"))
             System.IO.Directory.CreateDirectory dir |> ignore
@@ -444,7 +445,7 @@ module Engine =
 
             try
                 System.IO.File.WriteAllText(path, "open System\n#line 1 \"answer.fsx\"\n" + script)
-                let psi = System.Diagnostics.ProcessStartInfo("dotnet", $"fsi \"{path}\"")
+                let psi = System.Diagnostics.ProcessStartInfo("dotnet", $"fsi {options}\"{path}\"")
                 psi.WorkingDirectory <- dir
                 psi.RedirectStandardInput <- true
                 psi.RedirectStandardOutput <- true
@@ -489,6 +490,8 @@ module Engine =
                 with _ ->
                     ()
         }
+
+    let private runFsi timeout script = runFsiWith "" timeout script
 
     /// Runs an F# script as runFsi does: Ok when it exits with 0; otherwise Error with what went wrong.
     let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
@@ -610,8 +613,8 @@ module Engine =
 
     /// F# that writes a value in full, for valueLine: every item of a collection, which %A stops
     /// after 100 of, and the bounds of an array of several dimensions; strings escaped; floats and
-    /// dates exactly. Numbers keep the mark of their type (2, 2.0, 2L, 2I), as `=` did not compile
-    /// across types. Two values get the same text only when they are equal. A value it cannot
+    /// dates exactly, decimals without trailing zeros. Numbers keep the mark of their type (2, 2.0,
+    /// 2L, 2I). Two values of one type get the same text only when they are equal. A value it cannot
     /// write exactly, such as an object of a class or NaN, which equals nothing, stops the script,
     /// so its examples are not compared.
     let private valueText =
@@ -632,6 +635,7 @@ module Engine =
         let r = f.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
         (if r.Contains "." || r.Contains "E" || r.Contains "Infinity" then r else r + ".0") + "f"
     | :? System.Numerics.BigInteger as b -> b.ToString() + "I"
+    | :? decimal as d -> (d / 1.0000000000000000000000000000M).ToString(System.Globalization.CultureInfo.InvariantCulture) + "M"
     | :? System.Array as a ->
         let shape =
             if a.Rank = 1 && a.GetLowerBound 0 = 0 then ""
@@ -655,7 +659,7 @@ module Engine =
     | :? System.DateTime as d -> d.ToString("o")
     | :? System.DateTimeOffset as d -> d.ToString("o")
     | :? System.TimeSpan as d -> d.ToString("c")
-    | _ when t.IsPrimitive || t.IsEnum || (value :? decimal) || (value :? System.Guid) ->
+    | _ when t.IsPrimitive || t.IsEnum || (value :? System.Guid) ->
         sprintf "%A" value
     | _ -> failwithf "No exact text for a value of type %s" t.FullName"""
 
@@ -705,15 +709,19 @@ module Engine =
             |> Option.map ExampleFailed
             |> Option.defaultValue ExamplesPassed
 
-    /// Runs `script` followed by its examples, in one dotnet fsi process, and says what they show
-    /// (#394). A process without the code first prints the examples' expected values; an example
-    /// written as a condition is expected to be true. When it can, the code's process prints only
-    /// the values of the examples' calls, and this process compares them: the expected values
-    /// never reach the code's script, so the code passes only by printing the right values. When
-    /// the expected values do not compute without the code, the code's process checks the
-    /// examples itself and ends by printing a mark, since fsi also exits with 0 when the code
+    /// Runs `script` followed by its examples, and says what they show (#394). Three dotnet fsi
+    /// processes share `timeout`, and the code runs in one only:
+    /// - the first type-checks the code followed by the examples' checks, and runs nothing: `=` did
+    ///   not compile across types, and the values compared below as text do not show them;
+    /// - a process without the code prints the examples' expected values; an example written as a
+    ///   condition is expected to be true;
+    /// - the code's process prints only the values of the examples' calls, and this process
+    ///   compares them. The expected values never reach the code's script, so the code passes
+    ///   only by printing the right values.
+    /// When the expected values do not compute without the code, the code's process runs the
+    /// checks itself, which end by printing a mark, since fsi also exits with 0 when the code
     /// calls `exit 0`. The code can read that mark from its script, so there a failure counts and
-    /// a pass does not. Either way the code runs once.
+    /// a pass does not.
     let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
         task {
             let mark = Guid.NewGuid().ToString("N")
@@ -725,26 +733,16 @@ module Engine =
             let valueLines exprs =
                 valueText :: List.mapi (valueLine mark) exprs |> String.concat "\n"
 
-            // The two processes share the timeout.
-            let started = System.Diagnostics.Stopwatch.StartNew()
-            let! expected = runFsi timeout (valueLines (List.map snd pairs))
-
             let checks =
-                match expected with
-                | Result.Ok _ -> valueLines (List.map fst pairs)
-                | Result.Error _ ->
-                    (examples |> List.map exampleCheck |> String.concat "\n") + $"\nprintfn \"{mark}\""
+                (examples |> List.map exampleCheck |> String.concat "\n") + $"\nprintfn \"{mark}\""
 
-            let! run =
-                runFsi (max TimeSpan.Zero (timeout - started.Elapsed)) (script + "\n#line 1 \"examples.fsx\"\n" + checks)
+            let withExamples lines =
+                script + "\n#line 1 \"examples.fsx\"\n" + lines
 
-            match run, expected with
-            | Result.Ok output, Result.Ok expectedOutput ->
-                return compareValues examples (printedValues mark expectedOutput) (printedValues mark output)
-            | Result.Ok output, Result.Error errors when output.Contains mark ->
-                return ExamplesNotCompared(firstLine errors)
-            | Result.Ok _, Result.Error _ -> return CodeFailed endedEarly
-            | Result.Error errors, _ ->
+            let started = System.Diagnostics.Stopwatch.StartNew()
+            let left () = max TimeSpan.Zero (timeout - started.Elapsed)
+
+            let fromErrors (errors: string) =
                 let compileErrorIn (file: string) =
                     System.Text.RegularExpressions.Regex.IsMatch(
                         errors,
@@ -753,10 +751,30 @@ module Engine =
 
                 let failed = System.Text.RegularExpressions.Regex.Match(errors, @"Example failed: [^\r\n]*")
 
-                if compileErrorIn "answer.fsx" then return CodeFailed errors
-                elif compileErrorIn "examples.fsx" then return ExamplesUnusable
-                elif failed.Success then return ExampleFailed failed.Value
-                else return CodeFailed errors
+                if compileErrorIn "answer.fsx" then CodeFailed errors
+                elif compileErrorIn "examples.fsx" then ExamplesUnusable
+                elif failed.Success then ExampleFailed failed.Value
+                else CodeFailed errors
+
+            let! typed = runFsiWith "--typecheck-only " (left ()) (withExamples checks)
+
+            match typed with
+            | Result.Error errors -> return fromErrors errors
+            | Result.Ok _ ->
+                let! expected = runFsi (left ()) (valueLines (List.map snd pairs))
+
+                let! run =
+                    match expected with
+                    | Result.Ok _ -> runFsi (left ()) (withExamples (valueLines (List.map fst pairs)))
+                    | Result.Error _ -> runFsi (left ()) (withExamples checks)
+
+                match run, expected with
+                | Result.Ok output, Result.Ok expectedOutput ->
+                    return compareValues examples (printedValues mark expectedOutput) (printedValues mark output)
+                | Result.Ok output, Result.Error errors when output.Contains mark ->
+                    return ExamplesNotCompared(firstLine errors)
+                | Result.Ok _, Result.Error _ -> return CodeFailed endedEarly
+                | Result.Error errors, _ -> return fromErrors errors
         }
 
     /// The evaluation an examples run gives: None when the examples say nothing about the code.

@@ -451,7 +451,30 @@ let ``values of another type with the same digits, or NaN, do not pass`` () =
 
         for example in [ "half 4 = 2"; "big () = 2I"; "ratio () = nan" ] do
             let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
-            Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"{example}: %A{verdict}")
+            Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``an empty collection of another element type does not pass`` () =
+    task {
+        // Both are written `[||]`: only their types differ, and `=` did not compile across them.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let empties () = Array.empty<int>"
+                [ "empties () = Array.empty<string>" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``decimals of another scale are equal`` () =
+    task {
+        // 1.00M = 1.0M, though %A writes them apart.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let price () = 1.00M" [ "price () = 1.0M" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
     }
 
 [<Fact>]
