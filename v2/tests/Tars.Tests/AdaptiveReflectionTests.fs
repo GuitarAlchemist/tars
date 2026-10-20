@@ -144,6 +144,86 @@ module AdaptiveReflectionTests =
         }
 
     [<Fact>]
+    let ``A finished task is not sent to the governor as a cut-down statement to verify`` () =
+        task {
+            if not (TestHelpers.requireTools()) then () else
+            // Evolve asked the governor to verify "Task '<goal, cut to 50 characters>' was completed
+            // with output: <output, cut to 100>". No model can check that: in a live run Claude
+            // rejected 4 of 6 as truncated. The verdict only tagged the output shown on screen.
+            let agent = createTestAgent ()
+            let statements = ResizeArray<string>()
+            let reviewer = createMockEpistemic true "Good job"
+
+            let epistemic =
+                { new IEpistemicGovernor with
+                    member _.GenerateVariants(desc, count) = reviewer.GenerateVariants(desc, count)
+                    member _.VerifyGeneralization(desc, sol, vars) = reviewer.VerifyGeneralization(desc, sol, vars)
+                    member _.ExtractPrinciple(desc, sol) = reviewer.ExtractPrinciple(desc, sol)
+                    member _.SuggestCurriculum(completed, active, isCritical) =
+                        reviewer.SuggestCurriculum(completed, active, isCritical)
+
+                    member _.Verify(stmt) =
+                        statements.Add stmt
+                        Task.FromResult true
+
+                    member _.GetRelatedCodeContext(query) = reviewer.GetRelatedCodeContext(query) }
+
+            let ctx: Engine.EvolutionContext =
+                { Registry = createMockRegistry agent
+                  Llm = createMockLlm "Initial Solution"
+                  CurriculumLlm = None
+                  VectorStore = Unchecked.defaultof<_>
+                  Logger = fun _ -> ()
+                  Memory =
+                    { SemanticMemory = None
+                      KnowledgeBase = None
+                      KnowledgeGraph = None
+                      MemoryBuffer = None
+                      EpisodeService = None
+                      Ledger = None
+                      EvidenceStore = None }
+                  Governance =
+                    { Epistemic = Some epistemic
+                      PreLlm = None
+                      Budget = None
+                      OutputGuard = None
+                      Evaluator = None }
+                  Options =
+                    { RunId = None
+                      Verbose = false
+                      ShowSemanticMessage = fun _ _ -> ()
+                      Focus = None
+                      ToolRegistry = None
+                      ResearchEnhanced = false
+                      RunCode = false
+                      RecordTask = ignore
+                      SelfImprovement = false } }
+
+            let taskDef =
+                { Id = Guid.NewGuid()
+                  DifficultyLevel = 1
+                  Goal = "Write `sumByGroup : (int * int) list -> Map<int,int>` in F# with List.fold"
+                  Constraints = []
+                  ValidationCriteria = "None"
+                  Timeout = TimeSpan.FromMinutes(1.0)
+                  Score = 1.0 }
+
+            let state =
+                { Generation = 0
+                  CompletedTasks = []
+                  TaskQueue = []
+                  CurrentTask = Some taskDef
+                  ActiveBeliefs = []
+                  CurriculumAgentId = AgentId(Guid.NewGuid())
+                  ExecutorAgentId = agent.Id }
+
+            let! newState = Engine.step ctx state
+
+            Assert.True((Assert.Single newState.CompletedTasks).Success)
+            Assert.Empty(statements)
+        }
+
+    [<Fact>]
     let ``A task's duration is measured, not derived from its reflection count`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
