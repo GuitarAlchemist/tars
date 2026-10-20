@@ -598,8 +598,9 @@ module Engine =
         /// so nothing ran: they say nothing about it.
         | ExamplesUnusable
         /// The examples passed, but in the code's process: the process without the code did not
-        /// compute their expected values (they use the code's types, or it failed), so this process
-        /// could not compare them. `reason` is the first line of that process's errors.
+        /// compute their expected values (they use the code's types, or it failed), or computed
+        /// values that differ from one process to another, so this process could not compare them.
+        /// `reason` is the first line of that process's errors.
         | ExamplesNotCompared of reason: string
 
     /// The first line of `errors` that is not blank.
@@ -800,17 +801,29 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                 else CodeFailed errors
 
             let printer = valuePrinter mark
+            let expectedValues = printer + "\n" + valueLines (List.map snd pairs)
 
-            // Both start now, so the code's process waits for one fsi startup rather than two. When
+            // All start now, so the code's process waits for one fsi startup rather than three. When
             // the type check fails, the expected values are left to their own timeout, not awaited.
+            // They are computed in two processes: values that differ from one process to another,
+            // such as a process id or a working directory, cannot be compared with the code's.
             let typing = runFsiWith "--typecheck-only " (left ()) (withExamples checks)
-            let computing = runFsi (left ()) (printer + "\n" + valueLines (List.map snd pairs))
+            let computing = runFsi (left ()) expectedValues
+            let computingAgain = runFsi (left ()) expectedValues
             let! typed = typing
 
             match typed with
             | Result.Error errors -> return fromErrors errors
             | Result.Ok _ ->
-                let! expected = computing
+                let! first = computing
+                let! second = computingAgain
+
+                let expected =
+                    match first, second with
+                    | Result.Ok one, Result.Ok other when printedValues mark one <> printedValues mark other ->
+                        Result.Error "The expected values differ from one process to another."
+                    | Result.Ok _, Result.Error errors -> Result.Error errors
+                    | _ -> first
 
                 let! run =
                     match expected with
@@ -1693,7 +1706,7 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                         | Result.Error errors -> return Some errors, None
                                     | Some(ExamplesNotCompared reason) ->
                                         ctx.Logger
-                                            $"[Executor] The examples passed in the code's process, but their expected values did not compute without the code ({reason}), so they were not compared outside it; the evaluation decides."
+                                            $"[Executor] The examples passed in the code's process, but their expected values could not be computed outside it ({reason}), so they were not compared there; the evaluation decides."
 
                                         return None, None
                                     | Some run ->

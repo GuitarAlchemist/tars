@@ -555,6 +555,22 @@ let ``a failed type check does not wait for the expected values`` () =
     }
 
 [<Fact>]
+let ``expected values bound to their process give no verdict rather than a failure`` () =
+    task {
+        // Each holds in the code's own process, but another process has another id and another
+        // working directory.
+        let answer =
+            "let pid () = System.Environment.ProcessId\n"
+            + "let cwd () = System.IO.Directory.GetCurrentDirectory()"
+
+        for example in
+            [ "pid () = System.Environment.ProcessId"
+              "cwd () = System.IO.Directory.GetCurrentDirectory()" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict.IsNone, $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
 let ``the expected values do not use the answer's definitions`` () =
     task {
         // The answer redefines abs, but the example means F#'s: abs (-1) is 1.
