@@ -881,23 +881,22 @@ Do any of the known beliefs contradict executing this task? Respond in JSON: {{"
                 | Some b -> b.IsCritical(0.1) // Less than 10% remaining
                 | None -> false
 
-            // Epistemic Governor: Get Curriculum Suggestions
-            let! suggestion =
+            // The curriculum reads the run's principles itself, under [ACQUIRED PRINCIPLES]. The
+            // epistemic governor used to turn them into a one-sentence suggestion first: one more
+            // call per cycle, against ADR 0005's call budget.
+            let suggestion =
                 match ctx.Governance.Epistemic with
-                | Some governor ->
-                    task {
-                        try
-                            let recentOutputs =
-                                state.CompletedTasks
-                                |> List.truncate 5
-                                |> List.map (fun t -> t.Output.Substring(0, Math.Min(t.Output.Length, 100)) + "...")
+                | Some _ ->
+                    "Choose the next learning focus: a gap in what the run has learned, or an area that needs reinforcement."
+                | None -> "Focus on basic coding tasks."
 
-                            return! governor.SuggestCurriculum(recentOutputs, state.ActiveBeliefs, isCritical)
-                        with ex ->
-                            ctx.Logger($"[Epistemic] SuggestCurriculum failed: {ex.Message}")
-                            return "Focus on basic coding tasks."
-                    }
-                | None -> Task.FromResult "Focus on basic coding tasks."
+            let principles =
+                if state.ActiveBeliefs.IsEmpty then
+                    ""
+                else
+                    "\n[ACQUIRED PRINCIPLES]\n"
+                    + (state.ActiveBeliefs |> List.map (fun b -> "- " + b) |> String.concat "\n")
+                    + "\n"
 
             let guidance =
                 if isCritical then
@@ -942,7 +941,7 @@ Generation: %d{state.Generation}. Completed tasks: %d{state.CompletedTasks.Lengt
 
 [RECENT FAILURES]
 {lastFailedTask}
-
+{principles}
 [GUIDANCE]
 %s{if String.IsNullOrWhiteSpace(guidance) then
        "Focus on exploring the codebase and maintaining core invariants."
