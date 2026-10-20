@@ -515,13 +515,25 @@ let ``a call typed only by its expected value is compared at that type`` () =
     }
 
 [<Fact>]
-let ``an expected value typed only by its call is not compared without it`` () =
+let ``an expected value typed only by its call is computed at the call's type`` () =
     task {
-        // Against `f ()`, Unchecked.defaultof<_> is an int, 0; alone it holds obj, and is null.
-        let example = "f () = Unchecked.defaultof<_>"
-        let! right = Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let f () : int = 0" [ example ]
-        let! wrong = Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let f () : int = 1" [ example ]
-        Assert.True(right.IsNone, $"%A{right}")
+        // Against `f ()`, Unchecked.defaultof<_> is an int, 0, and GenericOne / (GenericOne +
+        // GenericOne) a float, 0.5. Alone, the first holds obj and is null, the second is an int, 0.
+        let defaulted = "f () = Unchecked.defaultof<_>"
+
+        let half =
+            "f () = LanguagePrimitives.GenericOne / (LanguagePrimitives.GenericOne + LanguagePrimitives.GenericOne)"
+
+        let check answer example =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+
+        let! zero = check "let f () : int = 0" defaulted
+        let! one = check "let f () : int = 1" defaulted
+        let! right = check "let f () = 0.5" half
+        let! wrong = check "let f () = 0.0" half
+        Assert.True(zero |> Option.exists (fun v -> v.Passed), $"%A{zero}")
+        Assert.False(one |> Option.exists (fun v -> v.Passed), $"%A{one}")
+        Assert.True(right |> Option.exists (fun v -> v.Passed), $"%A{right}")
         Assert.False(wrong |> Option.exists (fun v -> v.Passed), $"%A{wrong}")
     }
 
@@ -719,7 +731,8 @@ let ``examples whose expected values need the code's own types give no verdict``
 
         Assert.True(verdict.IsNone, $"%A{verdict}")
 
-        // Why they were not compared: the error of the process without the code.
+        // Why they were not compared: the error of the process without the code, which computes
+        // them at the code's type.
         let! run =
             Engine.runWithExamples
                 (TimeSpan.FromSeconds 60.0)
@@ -727,7 +740,7 @@ let ``examples whose expected values need the code's own types give no verdict``
                 [ "largest [ Circle 1.0; Square 2.0 ] = Square 2.0" ]
 
         match run with
-        | Engine.ExamplesNotCompared reason -> Assert.Contains("Square", reason)
+        | Engine.ExamplesNotCompared reason -> Assert.Contains("Shape", reason)
         | other -> Assert.Fail $"%A{other}"
     }
 

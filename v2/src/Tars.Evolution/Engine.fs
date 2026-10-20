@@ -430,19 +430,14 @@ module Engine =
             Some script
 
     /// Runs an F# script with dotnet fsi and `options` (such as "--typecheck-only "), in a temporary
-    /// directory, with no input, for at most `timeout`, or until `stop` is cancelled. Ok with what it
-    /// printed when it exits with 0; otherwise Error with what went wrong.
+    /// directory, with no input, for at most `timeout`. Ok with what it printed when it exits with 0;
+    /// otherwise Error with what went wrong.
     /// System is opened first: the model writes Char or String.IsNullOrEmpty without opening it.
     /// A leading namespace or top-level module cannot follow that open, but fsi rejects both
     /// anyway, and scriptOfAnswer has already dropped the first and turned the second into
     /// `module X =`, which can. The #line directive keeps error positions on the lines of the
     /// script itself.
-    let private runFsiWith
-        (options: string)
-        (stop: CancellationToken)
-        (timeout: TimeSpan)
-        (script: string)
-        : Task<Result<string, string>> =
+    let private runFsiWith (options: string) (timeout: TimeSpan) (script: string) : Task<Result<string, string>> =
         task {
             let dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "tars-evolve-run", Guid.NewGuid().ToString("N"))
             System.IO.Directory.CreateDirectory dir |> ignore
@@ -463,8 +458,7 @@ module Engine =
                 // Both streams are read while the script runs, so a full pipe cannot block it.
                 let stdout = proc.StandardOutput.ReadToEndAsync()
                 let stderr = proc.StandardError.ReadToEndAsync()
-                use cts = CancellationTokenSource.CreateLinkedTokenSource stop
-                cts.CancelAfter timeout
+                use cts = new CancellationTokenSource(timeout)
 
                 try
                     do! proc.WaitForExitAsync(cts.Token)
@@ -489,10 +483,7 @@ module Engine =
                     with _ ->
                         ()
 
-                    if stop.IsCancellationRequested then
-                        return Result.Error "It was stopped."
-                    else
-                        return Result.Error $"It did not finish within {timeout.TotalSeconds:F0} s."
+                    return Result.Error $"It did not finish within {timeout.TotalSeconds:F0} s."
             finally
                 try
                     System.IO.Directory.Delete(dir, true)
@@ -500,8 +491,7 @@ module Engine =
                     ()
         }
 
-    let private runFsi timeout script =
-        runFsiWith "" CancellationToken.None timeout script
+    let private runFsi timeout script = runFsiWith "" timeout script
 
     /// Runs an F# script as runFsi does: Ok when it exits with 0; otherwise Error with what went wrong.
     let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
@@ -609,8 +599,8 @@ module Engine =
         | ExamplesUnusable
         /// The examples passed, but in the code's process: the process without the code did not
         /// compute their expected values (they use the code's types, or it failed), or computed
-        /// values that differ from one process to another, or that may lack, alone, the type their
-        /// call gives them, so this process could not compare them.
+        /// values that differ from one process to another, or the type check did not give the type
+        /// each example compares at, so this process could not compare them.
         /// `reason` is the first line of that process's errors.
         | ExamplesNotCompared of reason: string
 
@@ -695,6 +685,8 @@ let tarsOpen (t: System.Type) =
             |> Array.exists (fun c -> c.GetFields() |> Array.exists (fun p -> isOpen p.PropertyType))
         else t.IsGenericType && Array.exists isOpen (t.GetGenericArguments())
     isOpen t
+type TarsProbe = | TarsProbe
+type TarsSlot<'T> = TarsSlot of 'T
 let tarsTyped (value: 'T) (_: 'T -> bool) = value
 let tarsValueLine (mark: string) (index: int) (value: 'T) =
     let base64 (text: string) = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes text)
@@ -706,27 +698,67 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     let private valueLine (mark: string) (index: int) (expr: string) =
         $"V{mark}.tarsValueLine \"{mark}\" {index} ({expr})"
 
-    /// valueLine for the call of an example whose expected value is `expected`. The call is written
-    /// next to `expected`, in a function that is never called, so that it gets the type the example
-    /// gives it: `make () = 0` makes `make ()` an int, which alone would hold obj. The expected value
-    /// is not computed there.
+    /// The call of an example whose expected value is `expected`, written next to `expected` in a
+    /// function that is never called, so that it gets the type the example gives it: `make () = 0`
+    /// makes `make ()` an int, which alone would hold obj. The expected value is not computed.
+    let private typedCall (mark: string) (call: string) (expected: string) =
+        $"V{mark}.tarsTyped ({call}) (fun tarsCalled{mark} -> global.Microsoft.FSharp.Core.Operators.(=) tarsCalled{mark} ({expected}))"
+
+    /// valueLine for the call of an example, typed as typedCall types it.
     let private callLine (mark: string) (index: int) (call: string, expected: string) =
-        valueLine
-            mark
-            index
-            $"V{mark}.tarsTyped ({call}) (fun tarsCalled{mark} -> global.Microsoft.FSharp.Core.Operators.(=) tarsCalled{mark} ({expected}))"
+        valueLine mark index (typedCall mark call expected)
+
+    /// F# after the examples that makes the type check report the type `=` compares each example
+    /// at, so that the expected values can be computed at it: alone, `Unchecked.defaultof<_>` holds
+    /// obj where `f () = Unchecked.defaultof<_>` has an int. Each call, typed as typedCall types
+    /// it, goes in a tuple of TarsSlot, which is then given a type it cannot have. fsi stops at that
+    /// error, which names the tuple's type.
+    let private typeProbe (mark: string) (pairs: (string * string) list) =
+        let slots =
+            pairs
+            |> List.map (fun (call, expected) -> $"V{mark}.TarsSlot ({typedCall mark call expected})")
+            |> String.concat ", "
+
+        $"let tarsTypes{mark} () = ({slots})\nlet _ : V{mark}.TarsProbe = tarsTypes{mark} ()"
+
+    /// The types typeProbe's error gives its slots, in order. None when it does not give one for
+    /// each of `count` examples, or gives one with a backtick or a quote, which F# prints only in a
+    /// name the answer chose.
+    let private probedTypes (mark: string) (count: int) (errors: string) : string list option =
+        let at = errors.IndexOf("but here has type", StringComparison.Ordinal)
+        let slot = $"V{mark}.TarsSlot<"
+
+        // The slot's type ends at the > that closes its <.
+        let rec close (text: string) i depth =
+            if i >= text.Length then None
+            elif text.[i] = '<' then close text (i + 1) (depth + 1)
+            elif text.[i] = '>' then (if depth = 0 then Some i else close text (i + 1) (depth - 1))
+            else close text (i + 1) depth
+
+        let rec slots (text: string) from found =
+            match text.IndexOf(slot, from, StringComparison.Ordinal) with
+            | -1 -> List.rev found
+            | start ->
+                let first = start + slot.Length
+
+                match close text first 0 with
+                | Some last -> slots text (last + 1) (text.Substring(first, last - first) :: found)
+                | None -> List.rev found
+
+        if at < 0 then
+            None
+        else
+            let types = slots (errors.Substring at) 0 []
+
+            if types.Length = count && types |> List.forall (fun t -> not (t.Contains '`' || t.Contains '"')) then
+                Some types
+            else
+                None
 
     /// valueText in a module named after `mark`, which valueLine names, so a name the answer
     /// defines cannot hide it.
     let private valuePrinter (mark: string) =
         $"module V{mark} =\n" + (valueText.Split('\n') |> Array.map (fun line -> "    " + line) |> String.concat "\n")
-
-    /// Whether a value's text holds null: the word, outside its strings and chars.
-    let private holdsNull (text: string) =
-        let withoutLiterals =
-            System.Text.RegularExpressions.Regex.Replace(text, @"""(?:\\.|[^""\\])*""|'(?:[^'\\]|\\'|\\[^']*)'", "")
-
-        System.Text.RegularExpressions.Regex.IsMatch(withoutLiterals, @"\bnull\b")
 
     /// A value a run printed with valueLine.
     type private PrintedValue =
@@ -785,18 +817,19 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     /// Runs `script` followed by its examples, and says what they show (#394). Three dotnet fsi
     /// processes share `timeout`, the caller's deadline, and the code runs in the last only:
     /// - the first type-checks the code followed by the examples' checks, and runs nothing: `=` did
-    ///   not compile across types, and the values compared below as text do not show them;
-    /// - the second, started with the first, prints the examples' expected values without the
-    ///   code; an example written as a condition is expected to be true;
+    ///   not compile across types, and the values compared below as text do not show them. It also
+    ///   reports the type `=` compares each example at (typeProbe);
+    /// - the second prints the examples' expected values at those types, without the code; an
+    ///   example written as a condition is expected to be true;
     /// - the code's process prints only the values of the examples' calls, and this process
     ///   compares them. The expected values are not computed there: each call is written next to
     ///   its expected value only for its type (callLine), so the code passes only by printing the
     ///   right values. The examples are in the executor's prompt, though, so a pass does not show
     ///   that the code computed them rather than printed values it was shown.
-    /// When the expected values do not compute without the code, or may lack there the type their
-    /// call gives them, the code's process runs the checks itself, which end by printing a mark,
-    /// since fsi also exits with 0 when the code calls `exit 0`. The code can read that mark from
-    /// its script, so there a failure counts and a pass does not.
+    /// When the expected values do not compute without the code, the code's process runs the
+    /// checks itself, which end by printing a mark, since fsi also exits with 0 when the code
+    /// calls `exit 0`. The code can read that mark from its script, so there a failure counts and
+    /// a pass does not.
     let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
         task {
             let mark = Guid.NewGuid().ToString("N")
@@ -817,60 +850,66 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
             let started = System.Diagnostics.Stopwatch.StartNew()
             let left () = max TimeSpan.Zero (timeout - started.Elapsed)
 
-            let fromErrors (errors: string) =
-                let compileErrorIn (file: string) =
-                    System.Text.RegularExpressions.Regex.IsMatch(
-                        errors,
-                        System.Text.RegularExpressions.Regex.Escape file + @"\(\d+,\d+\): error"
-                    )
+            let compileErrorIn (file: string) (errors: string) =
+                System.Text.RegularExpressions.Regex.IsMatch(
+                    errors,
+                    System.Text.RegularExpressions.Regex.Escape file + @"\(\d+,\d+\): error"
+                )
 
+            let fromErrors (errors: string) =
                 let failed = System.Text.RegularExpressions.Regex.Match(errors, @"Example failed: [^\r\n]*")
 
-                if compileErrorIn "answer.fsx" then CodeFailed errors
-                elif compileErrorIn "examples.fsx" then ExamplesUnusable
+                if compileErrorIn "answer.fsx" errors then CodeFailed errors
+                elif compileErrorIn "examples.fsx" errors then ExamplesUnusable
                 elif failed.Success then ExampleFailed failed.Value
                 else CodeFailed errors
 
             let printer = valuePrinter mark
-            let expectedValues = printer + "\n" + valueLines (List.map snd pairs)
+            let beforeAnswer = "#line 1 \"values.fsx\"\n" + printer + "\n#line 1 \"answer.fsx\"\n"
 
-            // All start now, so the code's process waits for one fsi startup rather than three. When
-            // the type check fails, the expected values' processes are stopped rather than left to
-            // run until the deadline. They are computed in two processes: values that differ from one
-            // process to another, such as a process id or a working directory, cannot be compared
-            // with the code's.
-            use stopComputing = new CancellationTokenSource()
-            let typing = runFsiWith "--typecheck-only " CancellationToken.None (left ()) (withExamples checks)
-            let computing = runFsiWith "" stopComputing.Token (left ()) expectedValues
-            let computingAgain = runFsiWith "" stopComputing.Token (left ()) expectedValues
-            let! typed = typing
+            // The type check goes first, as the expected values are computed at the types it reports.
+            // Its probe always fails, so a passing check stops in types.fsx; when it fails before,
+            // nothing else starts.
+            let! typed =
+                runFsiWith
+                    "--typecheck-only --preferreduilang:en-US "
+                    (left ())
+                    (beforeAnswer + withExamples checks + "\n#line 1 \"types.fsx\"\n" + typeProbe mark pairs)
 
             match typed with
-            | Result.Error errors ->
-                stopComputing.Cancel()
-                let! _ = computing
-                let! _ = computingAgain
-                return fromErrors errors
-            | Result.Ok _ ->
-                let! first = computing
-                let! second = computingAgain
+            | Result.Error errors when not (compileErrorIn "types.fsx" errors) -> return fromErrors errors
+            | _ ->
+                let types =
+                    match typed with
+                    | Result.Error errors -> probedTypes mark pairs.Length errors
+                    | Result.Ok _ -> None
 
-                // Alone, an expected value that gets its type from its call holds obj in its place:
-                // Unchecked.defaultof<_> is null there, though 0 against an int. A null where the
-                // type holds obj shows it.
-                let typedByTheirCalls output =
-                    printedValues mark output
-                    |> Map.exists (fun _ values -> values |> List.exists (fun v -> v.Open && holdsNull v.Text))
+                // They are computed in two processes at once: values that differ from one process to
+                // another, such as a process id or a working directory, cannot be compared with the
+                // code's.
+                let! expected =
+                    match types with
+                    | None ->
+                        Task.FromResult(Result.Error "The type check did not give the type each example compares at.")
+                    | Some types ->
+                        task {
+                            let expectedValues =
+                                printer
+                                + "\n"
+                                + valueLines (List.map2 (fun (_, expected) t -> $"({expected}) : {t}") pairs types)
 
-                let expected =
-                    match first, second with
-                    | Result.Ok one, Result.Ok other when printedValues mark one <> printedValues mark other ->
-                        Result.Error "The expected values differ from one process to another."
-                    | Result.Ok one, Result.Ok _ when typedByTheirCalls one ->
-                        Result.Error
-                            "An expected value holds null where its type holds obj, so alone it may lack the type its call gives it."
-                    | Result.Ok _, Result.Error errors -> Result.Error errors
-                    | _ -> first
+                            let computing = runFsi (left ()) expectedValues
+                            let computingAgain = runFsi (left ()) expectedValues
+                            let! first = computing
+                            let! second = computingAgain
+
+                            return
+                                match first, second with
+                                | Result.Ok one, Result.Ok other when printedValues mark one <> printedValues mark other ->
+                                    Result.Error "The expected values differ from one process to another."
+                                | Result.Ok _, Result.Error errors -> Result.Error errors
+                                | _ -> first
+                        }
 
                 let! run =
                     match expected with
@@ -879,7 +918,7 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                         // code redefined.
                         let values =
                             withExamples (List.mapi (callLine mark) pairs |> String.concat "\n")
-                        runFsi (left ()) ("#line 1 \"values.fsx\"\n" + printer + "\n#line 1 \"answer.fsx\"\n" + values)
+                        runFsi (left ()) (beforeAnswer + values)
                     | Result.Error _ -> runFsi (left ()) (withExamples checks)
 
                 match run, expected with
