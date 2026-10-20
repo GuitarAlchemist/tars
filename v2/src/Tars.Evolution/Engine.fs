@@ -721,11 +721,14 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
 
         $"let tarsTypes{mark} () = ({slots})\nlet _ : V{mark}.TarsProbe = tarsTypes{mark} ()"
 
-    /// The types typeProbe's error gives its slots, in order. None when it does not give one for
-    /// each of `count` examples, or gives one with a backtick or a quote, which F# prints only in a
-    /// name the answer chose.
+    /// The types typeProbe's error gives its slots, in order. They are read after the TarsProbe the
+    /// error names first, because the words between depend on the compiler: for a tuple, the
+    /// .NET 10.0.402 SDK says "but is a tuple of type" where the .NET 11 preview says "but here
+    /// has type". None when it does not give one for each of `count` examples, or gives one with a
+    /// backtick or a quote, which F# prints only in a name the answer chose.
     let private probedTypes (mark: string) (count: int) (errors: string) : string list option =
-        let at = errors.IndexOf("but here has type", StringComparison.Ordinal)
+        let probe = $"V{mark}.TarsProbe"
+        let at = errors.IndexOf(probe, StringComparison.Ordinal)
         let slot = $"V{mark}.TarsSlot<"
 
         // The slot's type ends at the > that closes its <.
@@ -748,7 +751,7 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
         if at < 0 then
             None
         else
-            let types = slots (errors.Substring at) 0 []
+            let types = slots (errors.Substring(at + probe.Length)) 0 []
 
             if types.Length = count && types |> List.forall (fun t -> not (t.Contains '`' || t.Contains '"')) then
                 Some types

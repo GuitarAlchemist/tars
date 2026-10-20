@@ -955,18 +955,20 @@ module AdaptiveReflectionTests =
     let ``A rejected answer's new answer runs within the time the task has left`` () =
         task {
             if not (TestHelpers.requireTools()) then () else
-            // The first answer and its 6 s verdict use part of the task's 15 s. The new answer's code
-            // would run 30 s: it is stopped at the task's deadline, not 15 s after the verdict.
+            // The first answer and its 6 s verdict use part of the task's 25 s. The new answer's code
+            // would run 60 s: it is stopped at the task's deadline, not 25 s after the verdict. The
+            // first answer's check runs fsi in three steps, one after the other, so under load it
+            // can take 10 s.
             let judged = ResizeArray()
 
             let slow =
-                "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nSystem.Threading.Thread.Sleep 30000\n```"
+                "```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nSystem.Threading.Thread.Sleep 60000\n```"
 
             let watch = Diagnostics.Stopwatch.StartNew()
 
             let! newState, requests =
                 stepWithin
-                    (TimeSpan.FromSeconds 15.0)
+                    (TimeSpan.FromSeconds 25.0)
                     "Write `fact : int -> int` in F#"
                     (Some(slowlyRejectsOnce (TimeSpan.FromSeconds 6.0) judged))
                     true
@@ -974,7 +976,7 @@ module AdaptiveReflectionTests =
 
             let elapsed = watch.Elapsed
             Assert.Equal(2, requests.Length)
-            Assert.True(elapsed < TimeSpan.FromSeconds 20.0, $"{elapsed}")
+            Assert.True(elapsed < TimeSpan.FromSeconds 30.0, $"{elapsed}")
 
             match newState.CompletedTasks with
             | completed :: _ ->
