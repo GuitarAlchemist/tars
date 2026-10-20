@@ -361,13 +361,13 @@ let ``an answer that ends the script before its examples does not pass them`` ()
 [<Fact>]
 let ``an answer that prints the examples' mark itself does not pass them`` () =
     task {
-        // #394's third form: the code reads the last line of its script, where the mark was,
-        // prints part of it and exits before any example runs. It passed on main; now it prints no
-        // value, and the next test forges one.
+        // #394's third form: the code reads the last line of its script, where the mark is,
+        // prints it and exits before any example runs. It passed on main; now it prints no value,
+        // and the next test forges one.
         let answer =
             "let reverse (xs: int list) = xs\n"
             + "let self = System.IO.File.ReadAllLines \"answer.fsx\"\n"
-            + "printfn \"%s\" ((Array.last self).Substring(9, 32))\n"
+            + "printfn \"%s\" ((Array.last self).Substring(15, 32))\n"
             + "exit 0"
 
         let! verdict =
@@ -515,6 +515,16 @@ let ``values typed obj are equal only as F# equality has them, with their runtim
         for example in [ "two () = 2"; "empties () = box Array.empty<string>" ] do
             let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
             Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``an answer that redefines = does not change how its values are written`` () =
+    task {
+        // Written after this answer, `if f = 0.0 then "0"` would write any float as 0.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let (=) _ _ = true\nlet f () = 1.0" [ "f () = 0.0" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
     }
 
 [<Fact>]

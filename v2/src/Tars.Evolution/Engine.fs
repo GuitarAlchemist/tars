@@ -768,7 +768,7 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                 |> List.map (fun example -> callAndExpected example |> Option.defaultValue (example, "true"))
 
             let valueLines exprs =
-                valueText :: List.mapi (valueLine mark) exprs |> String.concat "\n"
+                List.mapi (valueLine mark) exprs |> String.concat "\n"
 
             let checks =
                 (examples |> List.map exampleCheck |> String.concat "\n") + $"\nprintfn \"{mark}\""
@@ -795,7 +795,7 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
 
             // Both start now, so the code's process waits for one fsi startup rather than two.
             let typing = runFsiWith "--typecheck-only " (left ()) (withExamples checks)
-            let computing = runFsi (left ()) (valueLines (List.map snd pairs))
+            let computing = runFsi (left ()) (valueText + "\n" + valueLines (List.map snd pairs))
             let! typed = typing
             let! expected = computing
 
@@ -804,7 +804,11 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
             | Result.Ok _ ->
                 let! run =
                     match expected with
-                    | Result.Ok _ -> runFsi (left ()) (withExamples (valueLines (List.map fst pairs)))
+                    | Result.Ok _ ->
+                        // valueText goes before the code, so the names it uses are F#'s, not ones the
+                        // code redefined.
+                        let values = withExamples (valueLines (List.map fst pairs))
+                        runFsi (left ()) ("#line 1 \"values.fsx\"\n" + valueText + "\n#line 1 \"answer.fsx\"\n" + values)
                     | Result.Error _ -> runFsi (left ()) (withExamples checks)
 
                 match run, expected with
