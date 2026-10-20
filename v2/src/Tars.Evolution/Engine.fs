@@ -2289,50 +2289,15 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                     SpeechActBridge.logSpeechAct ctx.Logger responseMsg
 
-                    // Feature C: Epistemic Verification Checkpoint
-                    let! isVerified =
-                        match ctx.Governance.Epistemic, resultWithEvaluation.Success with
-                        | Some governor, true ->
-                            task {
-                                try
-                                    let statement =
-                                        sprintf
-                                            "Task '%s' was completed with output: %s"
-                                            (taskDef.Goal.Substring(0, min 50 taskDef.Goal.Length))
-                                            (resultWithEvaluation.Output.Substring(
-                                                0,
-                                                min 100 resultWithEvaluation.Output.Length
-                                            ))
-
-                                    let! verified = governor.Verify(statement)
-
-                                    if not verified then
-                                        ctx.Logger("[Epistemic] ⚠️ Output verification FAILED - possible quality issue")
-                                    else
-                                        ctx.Logger("[Epistemic] ✓ Output verified")
-
-                                    return verified
-                                with ex ->
-                                    ctx.Logger($"[Epistemic] Verification skipped: {ex.Message}")
-                                    return true // Skip on error, don't block
-                            }
-                        | _ -> Task.FromResult(true)
-
-                    // Adjust result based on verification (add metadata)
-                    let verifiedResult =
-                        let baseResult = resultForDisplay
-
-                        if isVerified then
-                            baseResult
-                        else
-                            { baseResult with
-                                Output = baseResult.Output + "\n[UNVERIFIED - Review Recommended]" }
+                    // The governor no longer verifies a finished task here. It was given the goal cut
+                    // to 50 characters and the output cut to 100, which no model can check, and its
+                    // verdict only tagged the output shown below. The evaluator, when set, judges the whole answer.
 
                     // Display task completion with generated solution
                     DemoVisualization.showTaskComplete
-                        verifiedResult.Success
-                        verifiedResult.Output
-                        verifiedResult.Duration
+                        resultForDisplay.Success
+                        resultForDisplay.Output
+                        resultForDisplay.Duration
 
                     // Capture episode to Graphiti knowledge graph
                     match ctx.Memory.EpisodeService with
