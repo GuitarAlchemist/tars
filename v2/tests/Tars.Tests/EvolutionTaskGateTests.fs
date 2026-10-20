@@ -359,6 +359,392 @@ let ``an answer that ends the script before its examples does not pass them`` ()
     }
 
 [<Fact>]
+let ``an answer that prints the examples' mark itself does not pass them`` () =
+    task {
+        // #394's third form: the code reads the last line of its script, where the mark is,
+        // prints it and exits before any example runs. It passed on main; now it prints no value,
+        // and the next test forges one.
+        let answer =
+            "let reverse (xs: int list) = xs\n"
+            + "let last = Array.last (System.IO.File.ReadAllLines \"answer.fsx\")\n"
+            + "printfn \"%s\" (last.Substring(last.IndexOf(\"tarsValueLine \\\"\") + 15, 32))\n"
+            + "exit 0"
+
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "reverse [1; 2; 3] = [3; 2; 1]" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``a value line forged with the mark read from the script is compared like any other`` () =
+    task {
+        // The code reads the mark from its script and prints a well-formed value line for the
+        // example, with a value of its choice, before the real one could run. The expected value is
+        // not in the script, so the forged value is only a guess, and this one is wrong.
+        let answer =
+            "let reverse (xs: int list) = xs\n"
+            + "let script = System.IO.File.ReadAllText \"answer.fsx\"\n"
+            + "let mark = script.Substring(script.LastIndexOf(\"tarsValueLine \\\"\") + 15, 32)\n"
+            + "let forged = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes \"[1; 2; 3]\")\n"
+            + "printfn \"\\n%s 0 %s %s false\" mark forged forged\n"
+            + "exit 0"
+
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "reverse [1; 2; 3] = [3; 2; 1]" ]
+
+        match verdict with
+        | Some v ->
+            Assert.False(v.Passed)
+            // The forged line was read: its value is the one reported.
+            Assert.Contains("got [1; 2; 3]", v.Summary)
+        | None -> Assert.Fail "no verdict"
+    }
+
+[<Fact>]
+let ``equal values pass outside the code's process, over several lines or of no element type`` () =
+    task {
+        // %A prints a list of 40 numbers over several lines, and `[]` alone as a list of objects.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let countUp n = [ 1..n ]"
+                [ "countUp 40 = [ 1..40 ]"; "countUp 0 = []" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``values that differ past what %A prints do not pass`` () =
+    task {
+        // %A prints the first 100 items of a list: these two differ only in the 150th.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let countUp n = [ 1 .. n - 1 ] @ [ 0 ]"
+                [ "countUp 150 = [ 1..150 ]" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``arrays of another shape, or dates a few milliseconds apart, do not pass`` () =
+    task {
+        // Their items in order are the same, and %A prints both dates to the second.
+        let answer =
+            "let grid () = array2D [ [ 1; 2; 3; 4 ] ]\n"
+            + "let stamp () = System.DateTime(2026, 1, 1, 0, 0, 0, 5)"
+
+        for example in
+            [ "grid () = array2D [ [ 1; 2 ]; [ 3; 4 ] ]"
+              "stamp () = System.DateTime(2026, 1, 1)" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``values that F# equality would not compare, or not hold equal, do not pass`` () =
+    task {
+        // An int is not a big integer, NaN equals nothing, and `=` compares a ResizeArray by
+        // reference.
+        let answer =
+            "let big () = 2\nlet ratio () = nan\nlet items () = ResizeArray [ 1; 2 ]"
+
+        for example in [ "big () = 2I"; "ratio () = nan"; "items () = ResizeArray [ 1; 2 ]" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``values that F# equality holds equal pass: a widened int, either zero, one instant at two offsets`` () =
+    task {
+        // `=` widens the int 2 to a float here, holds -0.0 = 0.0, and compares instants.
+        let answer =
+            "let half (n: int) = float n / 2.0\n"
+            + "let negZero () = -0.0\n"
+            + "let midnight () = System.DateTimeOffset(2026, 1, 1, 0, 0, 0, System.TimeSpan.Zero)"
+
+        for example in
+            [ "half 4 = 2"
+              "negZero () = 0.0"
+              "midnight () = System.DateTimeOffset(2026, 1, 1, 1, 0, 0, System.TimeSpan.FromHours 1.0)" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``an empty collection of another element type does not pass`` () =
+    task {
+        // Both are written `[||]`: only their types differ, and `=` did not compile across them.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let empties () = Array.empty<int>"
+                [ "empties () = Array.empty<string>" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``values typed with an abstract class are compared with their runtime types`` () =
+    task {
+        // Typed System.Array, `=` compares the items as objects: a 1 is not a 1L.
+        let answer = "let f () : System.Array = [| 1 |]"
+
+        let! long = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "f () = ([| 1L |] :> System.Array)" ]
+        let! same = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "f () = ([| 1 |] :> System.Array)" ]
+        Assert.False(long |> Option.exists (fun v -> v.Passed), $"%A{long}")
+        Assert.True(same |> Option.exists (fun v -> v.Passed), $"%A{same}")
+    }
+
+[<Fact>]
+let ``a call typed only by its expected value is compared at that type`` () =
+    task {
+        // `make ()` is an int and `reverse []` an int list only because the example compares them
+        // with one; alone, each would hold obj.
+        let make = "let make<'T> () : 'T = Unchecked.defaultof<'T>"
+        let! zero = Engine.checkExamples (TimeSpan.FromSeconds 60.0) make [ "make () = 0" ]
+        let! one = Engine.checkExamples (TimeSpan.FromSeconds 60.0) make [ "make () = 1" ]
+
+        let! empty =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let reverse xs = List.rev xs" [ "reverse [] = ([]: int list)" ]
+
+        Assert.True(zero |> Option.exists (fun v -> v.Passed), $"%A{zero}")
+        Assert.False(one |> Option.exists (fun v -> v.Passed), $"%A{one}")
+        Assert.True(empty |> Option.exists (fun v -> v.Passed), $"%A{empty}")
+    }
+
+[<Fact>]
+let ``an expected value typed only by its call is computed at the call's type`` () =
+    task {
+        // Against `f ()`, Unchecked.defaultof<_> is an int, 0, and GenericOne / (GenericOne +
+        // GenericOne) a float, 0.5. Alone, the first holds obj and is null, the second is an int, 0.
+        let defaulted = "f () = Unchecked.defaultof<_>"
+
+        let half =
+            "f () = LanguagePrimitives.GenericOne / (LanguagePrimitives.GenericOne + LanguagePrimitives.GenericOne)"
+
+        let check answer example =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+
+        let! zero = check "let f () : int = 0" defaulted
+        let! one = check "let f () : int = 1" defaulted
+        let! right = check "let f () = 0.5" half
+        let! wrong = check "let f () = 0.0" half
+        Assert.True(zero |> Option.exists (fun v -> v.Passed), $"%A{zero}")
+        Assert.False(one |> Option.exists (fun v -> v.Passed), $"%A{one}")
+        Assert.True(right |> Option.exists (fun v -> v.Passed), $"%A{right}")
+        Assert.False(wrong |> Option.exists (fun v -> v.Passed), $"%A{wrong}")
+    }
+
+[<Fact>]
+let ``an answer that redefines <> does not loosen the examples' type check`` () =
+    task {
+        // The checks the type check reads would otherwise use it, and it accepts any two types.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let (<>) (_: 'a) (_: 'b) = false\nlet empties () = Array.empty<int>"
+                [ "empties () = Array.empty<string>" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``values typed obj are equal only as F# equality has them, with their runtime types`` () =
+    task {
+        // Under obj, `=` holds a boxed 2 apart from a boxed 2L, also inside a tuple, but a boxed 2
+        // equal to 2, and two empty arrays equal whatever their element types.
+        let answer =
+            "let two () : obj = box 2\n"
+            + "let pair () = (1, box 2)\n"
+            + "let empties () : obj = box Array.empty<int>"
+
+        for example in [ "two () = box 2L"; "pair () = (1, box 2L)" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+
+        for example in [ "two () = 2"; "empties () = box Array.empty<string>" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``an answer that redefines = does not change how its values are written`` () =
+    task {
+        // Written after this answer, `if f = 0.0 then "0"` would write any float as 0.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let (=) _ _ = true\nlet f () = 1.0" [ "f () = 0.0" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``an answer that defines tarsValueLine is checked like any other`` () =
+    task {
+        // The value lines call the printer by a name of their own, which the answer cannot hide.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let tarsValueLine x = x + 1" [ "tarsValueLine 1 = 2" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``a failed type check does not wait for the expected values`` () =
+    task {
+        // The call does not exist, so the type check fails at once; the expected value would take
+        // ten minutes.
+        let started = Diagnostics.Stopwatch.StartNew()
+
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let f x = x"
+                [ "undefinedCall 1 = (System.Threading.Thread.Sleep 600000; 2)" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+        Assert.True(started.Elapsed < TimeSpan.FromSeconds 30.0, $"took {started.Elapsed}")
+    }
+
+[<Fact>]
+let ``a failed type check stops the processes computing the expected values`` () =
+    task {
+        // Each process computing the expected value names a file after its id, then would run
+        // ten minutes. The call does not exist, so the type check fails at once.
+        let dir = IO.Path.Combine(IO.Path.GetTempPath(), "tars-expected-stopped", Guid.NewGuid().ToString("N"))
+        IO.Directory.CreateDirectory dir |> ignore
+        let named = dir.Replace("\\", "/")
+
+        try
+            let! verdict =
+                Engine.checkExamples
+                    (TimeSpan.FromSeconds 60.0)
+                    "let f x = x"
+                    [ $"undefinedCall 1 = (System.IO.File.WriteAllText(\"{named}/\" + string System.Environment.ProcessId, \"\"); System.Threading.Thread.Sleep 600000; 2)" ]
+
+            Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+
+            let running () =
+                IO.Directory.GetFiles dir
+                |> Array.map IO.Path.GetFileName
+                |> Array.filter (fun pid ->
+                    try
+                        not (Diagnostics.Process.GetProcessById(int pid).HasExited)
+                    with _ ->
+                        false)
+
+            // A process left running names its file within seconds of starting.
+            let watch = Diagnostics.Stopwatch.StartNew()
+
+            while watch.Elapsed < TimeSpan.FromSeconds 15.0 && Array.isEmpty (running ()) do
+                do! Threading.Tasks.Task.Delay 500
+
+            Assert.Empty(running ())
+        finally
+            try
+                IO.Directory.Delete(dir, true)
+            with _ ->
+                ()
+    }
+
+[<Fact>]
+let ``expected values bound to their process give no verdict rather than a failure`` () =
+    task {
+        // Each holds in the code's own process, but another process has another id and another
+        // working directory.
+        let answer =
+            "let pid () = System.Environment.ProcessId\n"
+            + "let cwd () = System.IO.Directory.GetCurrentDirectory()"
+
+        for example in
+            [ "pid () = System.Environment.ProcessId"
+              "cwd () = System.IO.Directory.GetCurrentDirectory()" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict.IsNone, $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``an answer that redefines not does not loosen a condition's type check`` () =
+    task {
+        // The union case is written `true`, as the Boolean a condition is expected to be.
+        let answer =
+            "[<RequireQualifiedAccess>]\n"
+            + "type Flag = | ``true``\n"
+            + "let not (_: Flag) = false\n"
+            + "let flag () = Flag.``true``"
+
+        let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "flag ()" ]
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``the expected values do not use the answer's definitions`` () =
+    task {
+        // The answer redefines abs, but the example means F#'s: abs (-1) is 1.
+        let check answer =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "f () = abs (-1)" ]
+
+        let! wrong = check "let abs (_: int) = 0\nlet f () = 0"
+        let! right = check "let abs (_: int) = 0\nlet f () = 1"
+        Assert.True(wrong |> Option.exists (fun v -> not v.Passed), $"%A{wrong}")
+        Assert.True(right |> Option.exists (fun v -> v.Passed), $"%A{right}")
+    }
+
+[<Fact>]
+let ``decimals of another scale are equal`` () =
+    task {
+        // 1.00M = 1.0M, though %A writes them apart.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let price () = 1.00M" [ "price () = 1.0M" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``a value is read after output that has no line end`` () =
+    task {
+        // The call prints without a line end, just before its value is printed.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let shout (s: string) =\n    printf \"%s\" s\n    s.ToUpper()"
+                [ "shout \"a\" = \"A\"" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``examples whose expected values need the code's own types give no verdict`` () =
+    task {
+        // `Square 2.0` does not compute without the code, so it cannot be compared outside the
+        // code's process: the evaluation decides.
+        let answer =
+            "type Shape =\n    | Circle of float\n    | Square of float\n\n"
+            + "let largest (shapes: Shape list) =\n"
+            + "    shapes |> List.maxBy (function Circle r -> 3.14 * r * r | Square s -> s * s)"
+
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                answer
+                [ "largest [ Circle 1.0; Square 2.0 ] = Square 2.0" ]
+
+        Assert.True(verdict.IsNone, $"%A{verdict}")
+
+        // Why they were not compared: the error of the process without the code, which computes
+        // them at the code's type.
+        let! run =
+            Engine.runWithExamples
+                (TimeSpan.FromSeconds 60.0)
+                answer
+                [ "largest [ Circle 1.0; Square 2.0 ] = Square 2.0" ]
+
+        match run with
+        | Engine.ExamplesNotCompared reason -> Assert.Contains("Shape", reason)
+        | other -> Assert.Fail $"%A{other}"
+    }
+
+[<Fact>]
 let ``a function in the answer's module is seen by the next block and by the examples`` () =
     task {
         // A live answer put composeFunctions in `module ComposeFunctions`, then called it from a
