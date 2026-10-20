@@ -567,6 +567,47 @@ let ``a failed type check does not wait for the expected values`` () =
     }
 
 [<Fact>]
+let ``a failed type check stops the processes computing the expected values`` () =
+    task {
+        // Each process computing the expected value names a file after its id, then would run
+        // ten minutes. The call does not exist, so the type check fails at once.
+        let dir = IO.Path.Combine(IO.Path.GetTempPath(), "tars-expected-stopped", Guid.NewGuid().ToString("N"))
+        IO.Directory.CreateDirectory dir |> ignore
+        let named = dir.Replace("\\", "/")
+
+        try
+            let! verdict =
+                Engine.checkExamples
+                    (TimeSpan.FromSeconds 60.0)
+                    "let f x = x"
+                    [ $"undefinedCall 1 = (System.IO.File.WriteAllText(\"{named}/\" + string System.Environment.ProcessId, \"\"); System.Threading.Thread.Sleep 600000; 2)" ]
+
+            Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+
+            let running () =
+                IO.Directory.GetFiles dir
+                |> Array.map IO.Path.GetFileName
+                |> Array.filter (fun pid ->
+                    try
+                        not (Diagnostics.Process.GetProcessById(int pid).HasExited)
+                    with _ ->
+                        false)
+
+            // A process left running names its file within seconds of starting.
+            let watch = Diagnostics.Stopwatch.StartNew()
+
+            while watch.Elapsed < TimeSpan.FromSeconds 15.0 && Array.isEmpty (running ()) do
+                do! Threading.Tasks.Task.Delay 500
+
+            Assert.Empty(running ())
+        finally
+            try
+                IO.Directory.Delete(dir, true)
+            with _ ->
+                ()
+    }
+
+[<Fact>]
 let ``expected values bound to their process give no verdict rather than a failure`` () =
     task {
         // Each holds in the code's own process, but another process has another id and another

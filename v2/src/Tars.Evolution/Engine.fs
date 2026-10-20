@@ -430,14 +430,19 @@ module Engine =
             Some script
 
     /// Runs an F# script with dotnet fsi and `options` (such as "--typecheck-only "), in a temporary
-    /// directory, with no input, for at most `timeout`. Ok with what it printed when it exits with 0;
-    /// otherwise Error with what went wrong.
+    /// directory, with no input, for at most `timeout`, or until `stop` is cancelled. Ok with what it
+    /// printed when it exits with 0; otherwise Error with what went wrong.
     /// System is opened first: the model writes Char or String.IsNullOrEmpty without opening it.
     /// A leading namespace or top-level module cannot follow that open, but fsi rejects both
     /// anyway, and scriptOfAnswer has already dropped the first and turned the second into
     /// `module X =`, which can. The #line directive keeps error positions on the lines of the
     /// script itself.
-    let private runFsiWith (options: string) (timeout: TimeSpan) (script: string) : Task<Result<string, string>> =
+    let private runFsiWith
+        (options: string)
+        (stop: CancellationToken)
+        (timeout: TimeSpan)
+        (script: string)
+        : Task<Result<string, string>> =
         task {
             let dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "tars-evolve-run", Guid.NewGuid().ToString("N"))
             System.IO.Directory.CreateDirectory dir |> ignore
@@ -458,7 +463,8 @@ module Engine =
                 // Both streams are read while the script runs, so a full pipe cannot block it.
                 let stdout = proc.StandardOutput.ReadToEndAsync()
                 let stderr = proc.StandardError.ReadToEndAsync()
-                use cts = new CancellationTokenSource(timeout)
+                use cts = CancellationTokenSource.CreateLinkedTokenSource stop
+                cts.CancelAfter timeout
 
                 try
                     do! proc.WaitForExitAsync(cts.Token)
@@ -483,7 +489,10 @@ module Engine =
                     with _ ->
                         ()
 
-                    return Result.Error $"It did not finish within {timeout.TotalSeconds:F0} s."
+                    if stop.IsCancellationRequested then
+                        return Result.Error "It was stopped."
+                    else
+                        return Result.Error $"It did not finish within {timeout.TotalSeconds:F0} s."
             finally
                 try
                     System.IO.Directory.Delete(dir, true)
@@ -491,7 +500,8 @@ module Engine =
                     ()
         }
 
-    let private runFsi timeout script = runFsiWith "" timeout script
+    let private runFsi timeout script =
+        runFsiWith "" CancellationToken.None timeout script
 
     /// Runs an F# script as runFsi does: Ok when it exits with 0; otherwise Error with what went wrong.
     let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
@@ -805,16 +815,22 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
             let expectedValues = printer + "\n" + valueLines (List.map snd pairs)
 
             // All start now, so the code's process waits for one fsi startup rather than three. When
-            // the type check fails, the expected values are left to their own timeout, not awaited.
-            // They are computed in two processes: values that differ from one process to another,
-            // such as a process id or a working directory, cannot be compared with the code's.
-            let typing = runFsiWith "--typecheck-only " (left ()) (withExamples checks)
-            let computing = runFsi (left ()) expectedValues
-            let computingAgain = runFsi (left ()) expectedValues
+            // the type check fails, the expected values' processes are stopped rather than left to
+            // run until the deadline. They are computed in two processes: values that differ from one
+            // process to another, such as a process id or a working directory, cannot be compared
+            // with the code's.
+            use stopComputing = new CancellationTokenSource()
+            let typing = runFsiWith "--typecheck-only " CancellationToken.None (left ()) (withExamples checks)
+            let computing = runFsiWith "" stopComputing.Token (left ()) expectedValues
+            let computingAgain = runFsiWith "" stopComputing.Token (left ()) expectedValues
             let! typed = typing
 
             match typed with
-            | Result.Error errors -> return fromErrors errors
+            | Result.Error errors ->
+                stopComputing.Cancel()
+                let! _ = computing
+                let! _ = computingAgain
+                return fromErrors errors
             | Result.Ok _ ->
                 let! first = computing
                 let! second = computingAgain
