@@ -740,7 +740,7 @@ let ``examples whose expected values need the code's own types give no verdict``
                 [ "largest [ Circle 1.0; Square 2.0 ] = Square 2.0" ]
 
         match run with
-        | Engine.ExamplesNotCompared reason -> Assert.Contains("Shape", reason)
+        | ExampleCheck.ExamplesNotCompared reason -> Assert.Contains("Shape", reason)
         | other -> Assert.Fail $"%A{other}"
     }
 
