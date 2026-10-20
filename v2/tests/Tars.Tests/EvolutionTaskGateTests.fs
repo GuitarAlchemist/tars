@@ -366,8 +366,8 @@ let ``an answer that prints the examples' mark itself does not pass them`` () =
         // and the next test forges one.
         let answer =
             "let reverse (xs: int list) = xs\n"
-            + "let self = System.IO.File.ReadAllLines \"answer.fsx\"\n"
-            + "printfn \"%s\" ((Array.last self).Substring(15, 32))\n"
+            + "let last = Array.last (System.IO.File.ReadAllLines \"answer.fsx\")\n"
+            + "printfn \"%s\" (last.Substring(last.IndexOf(\"tarsValueLine \\\"\") + 15, 32))\n"
             + "exit 0"
 
         let! verdict =
@@ -525,6 +525,33 @@ let ``an answer that redefines = does not change how its values are written`` ()
             Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let (=) _ _ = true\nlet f () = 1.0" [ "f () = 0.0" ]
 
         Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``an answer that defines tarsValueLine is checked like any other`` () =
+    task {
+        // The value lines call the printer by a name of their own, which the answer cannot hide.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let tarsValueLine x = x + 1" [ "tarsValueLine 1 = 2" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``a failed type check does not wait for the expected values`` () =
+    task {
+        // The call does not exist, so the type check fails at once; the expected value would take
+        // ten minutes.
+        let started = Diagnostics.Stopwatch.StartNew()
+
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let f x = x"
+                [ "undefinedCall 1 = (System.Threading.Thread.Sleep 600000; 2)" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+        Assert.True(started.Elapsed < TimeSpan.FromSeconds 30.0, $"took {started.Elapsed}")
     }
 
 [<Fact>]

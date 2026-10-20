@@ -690,7 +690,12 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     /// the example's index, the value's text and typed text, in base64 so they stay on that line,
     /// and whether its static type holds obj or an interface.
     let private valueLine (mark: string) (index: int) (expr: string) =
-        $"tarsValueLine \"{mark}\" {index} ({expr})"
+        $"V{mark}.tarsValueLine \"{mark}\" {index} ({expr})"
+
+    /// valueText in a module named after `mark`, which valueLine names, so a name the answer
+    /// defines cannot hide it.
+    let private valuePrinter (mark: string) =
+        $"module V{mark} =\n" + (valueText.Split('\n') |> Array.map (fun line -> "    " + line) |> String.concat "\n")
 
     /// A value a run printed with valueLine.
     type private PrintedValue =
@@ -794,22 +799,26 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                 elif failed.Success then ExampleFailed failed.Value
                 else CodeFailed errors
 
-            // Both start now, so the code's process waits for one fsi startup rather than two.
+            let printer = valuePrinter mark
+
+            // Both start now, so the code's process waits for one fsi startup rather than two. When
+            // the type check fails, the expected values are left to their own timeout, not awaited.
             let typing = runFsiWith "--typecheck-only " (left ()) (withExamples checks)
-            let computing = runFsi (left ()) (valueText + "\n" + valueLines (List.map snd pairs))
+            let computing = runFsi (left ()) (printer + "\n" + valueLines (List.map snd pairs))
             let! typed = typing
-            let! expected = computing
 
             match typed with
             | Result.Error errors -> return fromErrors errors
             | Result.Ok _ ->
+                let! expected = computing
+
                 let! run =
                     match expected with
                     | Result.Ok _ ->
-                        // valueText goes before the code, so the names it uses are F#'s, not ones the
+                        // The printer goes before the code, so the names it uses are F#'s, not ones the
                         // code redefined.
                         let values = withExamples (valueLines (List.map fst pairs))
-                        runFsi (left ()) ("#line 1 \"values.fsx\"\n" + valueText + "\n#line 1 \"answer.fsx\"\n" + values)
+                        runFsi (left ()) ("#line 1 \"values.fsx\"\n" + printer + "\n#line 1 \"answer.fsx\"\n" + values)
                     | Result.Error _ -> runFsi (left ()) (withExamples checks)
 
                 match run, expected with
