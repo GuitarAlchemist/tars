@@ -385,9 +385,9 @@ let ``a value line forged with the mark read from the script is compared like an
         let answer =
             "let reverse (xs: int list) = xs\n"
             + "let script = System.IO.File.ReadAllText \"answer.fsx\"\n"
-            + "let mark = script.Substring(script.LastIndexOf(\"%s %d %s\\\" \\\"\") + 11, 32)\n"
+            + "let mark = script.Substring(script.LastIndexOf(\"tarsValueLine \\\"\") + 15, 32)\n"
             + "let forged = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes \"[1; 2; 3]\")\n"
-            + "printfn \"\\n%s 0 %s\" mark forged\n"
+            + "printfn \"\\n%s 0 %s %s false\" mark forged forged\n"
             + "exit 0"
 
         let! verdict =
@@ -496,6 +496,25 @@ let ``an answer that redefines <> does not loosen the examples' type check`` () 
                 [ "empties () = Array.empty<string>" ]
 
         Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``values typed obj are equal only as F# equality has them, with their runtime types`` () =
+    task {
+        // Under obj, `=` holds a boxed 2 apart from a boxed 2L, also inside a tuple, but a boxed 2
+        // equal to 2, and two empty arrays equal whatever their element types.
+        let answer =
+            "let two () : obj = box 2\n"
+            + "let pair () = (1, box 2)\n"
+            + "let empties () : obj = box Array.empty<int>"
+
+        for example in [ "two () = box 2L"; "pair () = (1, box 2L)" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+
+        for example in [ "two () = 2"; "empties () = box Array.empty<string>" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
     }
 
 [<Fact>]

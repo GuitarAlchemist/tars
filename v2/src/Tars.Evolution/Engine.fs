@@ -620,11 +620,17 @@ module Engine =
     /// float zero has one text, as -0.0 = 0.0, and a decimal no trailing zeros. A date is written by
     /// its ticks, and a date with an offset by its instant. A value `=` compares by reference, such
     /// as a ResizeArray or a seq, or one it cannot write exactly, such as NaN, which equals nothing,
-    /// stops the script, so its examples are not compared.
+    /// stops the script, so its examples are not compared. Where a value's type holds obj or an
+    /// interface, `=` compares runtime types: a boxed 2 is not a boxed 2L, though two arrays with
+    /// equal items are equal. So `typed` also writes the runtime type of each value but an array,
+    /// and tarsValueLine prints both texts, and whether the static type holds obj or an interface.
     let private valueText =
-        """let rec tarsValueText (value: obj) : string =
+        """let rec tarsValueText (typed: bool) (value: obj) : string =
+    if typed && not (isNull value) && not (value :? System.Array) then value.GetType().FullName + " " + tarsValueOf typed value
+    else tarsValueOf typed value
+and tarsValueOf (typed: bool) (value: obj) : string =
     let items (xs: obj) =
-        System.String.Join("; ", Seq.cast<obj> (xs :?> System.Collections.IEnumerable) |> Seq.map tarsValueText)
+        System.String.Join("; ", Seq.cast<obj> (xs :?> System.Collections.IEnumerable) |> Seq.map (tarsValueText typed))
     let invariant = System.Globalization.CultureInfo.InvariantCulture
     let t = if isNull value then null else value.GetType()
     let definition = if isNull t || not t.IsGenericType then null else t.GetGenericTypeDefinition()
@@ -652,36 +658,63 @@ module Engine =
     | _ when definition = typedefof<Map<_, _>> -> "map [" + items value + "]"
     | _ when definition = typedefof<Set<_>> -> "set [" + items value + "]"
     | _ when definition = typedefof<System.Collections.Generic.KeyValuePair<_, _>> ->
-        "(" + tarsValueText (t.GetProperty("Key").GetValue value) + ", " + tarsValueText (t.GetProperty("Value").GetValue value) + ")"
+        "(" + tarsValueText typed (t.GetProperty("Key").GetValue value) + ", " + tarsValueText typed (t.GetProperty("Value").GetValue value) + ")"
     | _ when Microsoft.FSharp.Reflection.FSharpType.IsTuple t ->
-        "(" + System.String.Join(", ", Microsoft.FSharp.Reflection.FSharpValue.GetTupleFields value |> Array.map tarsValueText) + ")"
+        "(" + System.String.Join(", ", Microsoft.FSharp.Reflection.FSharpValue.GetTupleFields value |> Array.map (tarsValueText typed)) + ")"
     | _ when Microsoft.FSharp.Reflection.FSharpType.IsRecord t ->
         let names = Microsoft.FSharp.Reflection.FSharpType.GetRecordFields t |> Array.map (fun p -> p.Name)
-        let values = Microsoft.FSharp.Reflection.FSharpValue.GetRecordFields value |> Array.map tarsValueText
+        let values = Microsoft.FSharp.Reflection.FSharpValue.GetRecordFields value |> Array.map (tarsValueText typed)
         "{ " + System.String.Join("; ", Array.map2 (fun n v -> n + " = " + v) names values) + " }"
     | _ when Microsoft.FSharp.Reflection.FSharpType.IsUnion t ->
         let case, fields = Microsoft.FSharp.Reflection.FSharpValue.GetUnionFields(value, t)
-        if fields.Length = 0 then case.Name else case.Name + " (" + System.String.Join(", ", fields |> Array.map tarsValueText) + ")"
-    | _ -> failwithf "No exact text for a value of type %s" t.FullName"""
+        if fields.Length = 0 then case.Name else case.Name + " (" + System.String.Join(", ", fields |> Array.map (tarsValueText typed)) + ")"
+    | _ -> failwithf "No exact text for a value of type %s" t.FullName
+let tarsOpen (t: System.Type) =
+    let seen = System.Collections.Generic.HashSet<System.Type>()
+    let rec isOpen (t: System.Type) =
+        if not (seen.Add t) then false
+        elif t = typeof<obj> || t.IsInterface || t = typeof<System.ValueType> || t = typeof<System.Enum> then true
+        elif t.IsArray then isOpen (t.GetElementType())
+        elif Microsoft.FSharp.Reflection.FSharpType.IsRecord t then
+            Microsoft.FSharp.Reflection.FSharpType.GetRecordFields t |> Array.exists (fun p -> isOpen p.PropertyType)
+        elif Microsoft.FSharp.Reflection.FSharpType.IsUnion t then
+            Microsoft.FSharp.Reflection.FSharpType.GetUnionCases t
+            |> Array.exists (fun c -> c.GetFields() |> Array.exists (fun p -> isOpen p.PropertyType))
+        else t.IsGenericType && Array.exists isOpen (t.GetGenericArguments())
+    isOpen t
+let tarsValueLine (mark: string) (index: int) (value: 'T) =
+    let base64 (text: string) = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes text)
+    printfn "\n%s %d %s %s %b" mark index (base64 (tarsValueText false (box value))) (base64 (tarsValueText true (box value))) (tarsOpen typeof<'T>)"""
 
-    /// The F# line that prints the value of `expr` as valueText writes it, on a line of its own,
-    /// after `mark` and the example's index. The text is in base64, so it stays on that line.
+    /// The F# line that prints the value of `expr` with tarsValueLine, on a line of its own: `mark`,
+    /// the example's index, the value's text and typed text, in base64 so they stay on that line,
+    /// and whether its static type holds obj or an interface.
     let private valueLine (mark: string) (index: int) (expr: string) =
-        $"printfn \"\\n%%s %%d %%s\" \"{mark}\" {index} (System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(tarsValueText (box ({expr})))))"
+        $"tarsValueLine \"{mark}\" {index} ({expr})"
+
+    /// A value a run printed with valueLine.
+    type private PrintedValue =
+        { Text: string
+          Typed: string
+          /// Its static type holds obj or an interface. On the code's side, the type of the call
+          /// fixes the type `=` compares at, so there `=` compares runtime types.
+          Open: bool }
 
     /// The values a run printed with valueLine, decoded, by example index. Other lines, and lines
     /// that do not decode, are left out.
-    let private printedValues (mark: string) (output: string) : Map<int, string list> =
+    let private printedValues (mark: string) (output: string) : Map<int, PrintedValue list> =
+        let decode (value: string) =
+            try
+                Some(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String value))
+            with :? FormatException ->
+                None
+
         output.Split('\n')
         |> Array.choose (fun line ->
             match line.Trim().Split(' ') with
-            | [| m; index; value |] when m = mark ->
-                match Int32.TryParse index with
-                | true, i ->
-                    try
-                        Some(i, System.Text.Encoding.UTF8.GetString(Convert.FromBase64String value))
-                    with :? FormatException ->
-                        None
+            | [| m; index; text; typed; isOpen |] when m = mark ->
+                match Int32.TryParse index, decode text, decode typed with
+                | (true, i), Some text, Some typed -> Some(i, { Text = text; Typed = typed; Open = (isOpen = "true") })
                 | _ -> None
             | _ -> None)
         |> Array.toList
@@ -693,8 +726,8 @@ module Engine =
     /// by example index.
     let private compareValues
         (examples: string list)
-        (expected: Map<int, string list>)
-        (actual: Map<int, string list>)
+        (expected: Map<int, PrintedValue list>)
+        (actual: Map<int, PrintedValue list>)
         =
         let printed = examples |> List.mapi (fun i example -> i, example, Map.tryFind i actual)
 
@@ -703,10 +736,13 @@ module Engine =
         else
             printed
             |> List.tryPick (fun (i, example, values) ->
-                match values with
-                | Some [ value ] when Map.tryFind i expected = Some [ value ] -> None
-                | Some [ value ] -> Some $"Example failed: {example}, got {value}"
-                | _ -> Some $"Example failed: {example}, the code printed more than one value for it")
+                match values, Map.tryFind i expected with
+                | Some [ value ], Some [ wanted ] when (if value.Open then value.Typed = wanted.Typed else value.Text = wanted.Text) ->
+                    None
+                | Some [ value ], _ ->
+                    let got = if value.Open then value.Typed else value.Text
+                    Some $"Example failed: {example}, got {got}"
+                | _, _ -> Some $"Example failed: {example}, the code printed more than one value for it")
             |> Option.map ExampleFailed
             |> Option.defaultValue ExamplesPassed
 
