@@ -171,6 +171,14 @@ let recordTo (logger: ILogger) (path: string) (run: string) (model: string) (rec
                    criteria = record.Definition.ValidationCriteria
                    // null when the examples did not run (no --run-code).
                    examplesPassed = record.Examples |> Option.map (fun e -> e.Passed) |> Option.toNullable
+                   // true when the examples passed, which since #394 needs this process to compare the
+                   // code's values with expected values computed without the code; null otherwise. Rows
+                   // written before #394 lack it: their examples were checked only in the code's process.
+                   examplesComparedOutside =
+                       record.Examples
+                       |> Option.filter (fun e -> e.Passed)
+                       |> Option.map (fun _ -> true)
+                       |> Option.toNullable
                    success = record.Result.Success
                    verdict = record.Result.Evaluation |> Option.map (fun e -> e.Summary) |> Option.toObj
                    output = record.Result.Output

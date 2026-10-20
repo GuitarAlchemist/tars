@@ -359,6 +359,55 @@ let ``an answer that ends the script before its examples does not pass them`` ()
     }
 
 [<Fact>]
+let ``an answer that prints the examples' mark itself does not pass them`` () =
+    task {
+        // #394: the code reads the mark from its own script, prints it and exits before any
+        // example runs. The checks run in the code's process, so they cannot tell.
+        let answer =
+            "let reverse (xs: int list) = xs\n"
+            + "let self = System.IO.File.ReadAllLines \"answer.fsx\"\n"
+            + "printfn \"%s\" ((Array.last self).Substring(9, 32))\n"
+            + "exit 0"
+
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "reverse [1; 2; 3] = [3; 2; 1]" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``equal values pass outside the code's process, over several lines or of no element type`` () =
+    task {
+        // %A prints a list of 40 numbers over several lines, and `[]` alone as a list of objects.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let countUp n = [ 1..n ]"
+                [ "countUp 40 = [ 1..40 ]"; "countUp 0 = []" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``examples whose expected values need the code's own types give no verdict`` () =
+    task {
+        // `Square 2.0` does not compute without the code, so it cannot be compared outside the
+        // code's process: the evaluation decides.
+        let answer =
+            "type Shape =\n    | Circle of float\n    | Square of float\n\n"
+            + "let largest (shapes: Shape list) =\n"
+            + "    shapes |> List.maxBy (function Circle r -> 3.14 * r * r | Square s -> s * s)"
+
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                answer
+                [ "largest [ Circle 1.0; Square 2.0 ] = Square 2.0" ]
+
+        Assert.True(verdict.IsNone, $"%A{verdict}")
+    }
+
+[<Fact>]
 let ``a function in the answer's module is seen by the next block and by the examples`` () =
     task {
         // A live answer put composeFunctions in `module ComposeFunctions`, then called it from a

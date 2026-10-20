@@ -293,9 +293,11 @@ module EvolutionSemanticTests =
                 Assert.Equal(rejected.Output, text "output")
 
             Assert.True(lines.[0].GetProperty("examplesPassed").GetBoolean())
+            Assert.True(lines.[0].GetProperty("examplesComparedOutside").GetBoolean())
             Assert.False(lines.[0].GetProperty("success").GetBoolean())
             Assert.Equal("Uses a loop.", lines.[0].GetProperty("verdict").GetString())
             Assert.Equal(Text.Json.JsonValueKind.Null, lines.[1].GetProperty("examplesPassed").ValueKind)
+            Assert.Equal(Text.Json.JsonValueKind.Null, lines.[1].GetProperty("examplesComparedOutside").ValueKind)
             Assert.True(lines.[1].GetProperty("success").GetBoolean())
             Assert.Equal(Text.Json.JsonValueKind.Null, lines.[1].GetProperty("verdict").ValueKind)
         finally

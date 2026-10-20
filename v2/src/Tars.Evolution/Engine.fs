@@ -561,22 +561,23 @@ module Engine =
                         "^" + System.Text.RegularExpressions.Regex.Escape name + @"(\s|\(|$)"
                     )))
 
+    /// The call and the expected value of an example `call = expected`, split at its top-level `=`.
+    /// None for an example written as a condition.
+    let private callAndExpected (example: string) =
+        topLevel example
+        |> List.tryFind (fun i ->
+            example.[i] = '='
+            && (i = 0 || not ("<>=!:".Contains example.[i - 1]))
+            && (i + 1 >= example.Length || not ("=>".Contains example.[i + 1])))
+        |> Option.map (fun at -> example.Substring(0, at).Trim(), example.Substring(at + 1).Trim())
+
     /// The F# line that checks one example. For `call = expected` it reports the value it got.
     let private exampleCheck (example: string) =
         let quoted =
             "\"" + example.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\""
 
-        let equals =
-            topLevel example
-            |> List.tryFind (fun i ->
-                example.[i] = '='
-                && (i = 0 || not ("<>=!:".Contains example.[i - 1]))
-                && (i + 1 >= example.Length || not ("=>".Contains example.[i + 1])))
-
-        match equals with
-        | Some at ->
-            let call = example.Substring(0, at).Trim()
-            let expected = example.Substring(at + 1).Trim()
+        match callAndExpected example with
+        | Some(call, expected) ->
             // A match, not a let: a let of `reverse []` would not compile (value restriction).
             $"match ({call}) with actual when actual <> ({expected}) -> failwithf \"Example failed: %%s, got %%A\" {quoted} actual | _ -> ()"
         | None -> $"if not ({example}) then failwithf \"Example failed: %%s\" {quoted}"
@@ -592,22 +593,95 @@ module Engine =
         /// The examples do not compile against the code (a name or a signature it does not have),
         /// so nothing ran: they say nothing about it.
         | ExamplesUnusable
+        /// The examples passed, but in the code's process: their expected values do not compute
+        /// without the code (they use its types), so this process could not compare them.
+        | ExamplesNotCompared
 
-    /// Runs `script` followed by one check per example, in one dotnet fsi process. The checks end
-    /// by printing a mark the code cannot know: fsi also exits with 0 when the code calls `exit 0`,
-    /// and then no example ran.
+    let private endedEarly =
+        "The script ended inside the code, so the examples after it never ran (does the code call exit?)."
+
+    /// The F# line that prints the value of `expr` as %A shows it, after `mark` and the example's
+    /// index. The text is in base64, so a value that %A spreads over several lines stays on one.
+    let private valueLine (mark: string) (index: int) (expr: string) =
+        $"printfn \"%%s %%d %%s\" \"{mark}\" {index} (System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(sprintf \"%%A\" ({expr}))))"
+
+    /// The values a run printed with valueLine, decoded, by example index. Other lines, and lines
+    /// that do not decode, are left out.
+    let private printedValues (mark: string) (output: string) : Map<int, string list> =
+        output.Split('\n')
+        |> Array.choose (fun line ->
+            match line.Trim().Split(' ') with
+            | [| m; index; value |] when m = mark ->
+                match Int32.TryParse index with
+                | true, i ->
+                    try
+                        Some(i, System.Text.Encoding.UTF8.GetString(Convert.FromBase64String value))
+                    with :? FormatException ->
+                        None
+                | _ -> None
+            | _ -> None)
+        |> Array.toList
+        |> List.groupBy fst
+        |> List.map (fun (i, values) -> i, List.map snd values)
+        |> Map.ofList
+
+    /// What the values the code printed for its examples show against the expected values, both
+    /// by example index.
+    let private compareValues
+        (examples: string list)
+        (expected: Map<int, string list>)
+        (actual: Map<int, string list>)
+        =
+        let printed = examples |> List.mapi (fun i example -> i, example, Map.tryFind i actual)
+
+        if printed |> List.exists (fun (_, _, values) -> values.IsNone) then
+            CodeFailed endedEarly
+        else
+            printed
+            |> List.tryPick (fun (i, example, values) ->
+                match values with
+                | Some [ value ] when Map.tryFind i expected = Some [ value ] -> None
+                | Some [ value ] -> Some $"Example failed: {example}, got {value}"
+                | _ -> Some $"Example failed: {example}, the code printed more than one value for it")
+            |> Option.map ExampleFailed
+            |> Option.defaultValue ExamplesPassed
+
+    /// Runs `script` followed by its examples, in one dotnet fsi process, and says what they show
+    /// (#394). A process without the code first prints the examples' expected values; an example
+    /// written as a condition is expected to be true. When it can, the code's process prints only
+    /// the values of the examples' calls, and this process compares them: the expected values
+    /// never reach the code's script, so the code passes only by printing the right values. When
+    /// the expected values do not compute without the code, the code's process checks the
+    /// examples itself and ends by printing a mark, since fsi also exits with 0 when the code
+    /// calls `exit 0`. The code can read that mark from its script, so there a failure counts and
+    /// a pass does not. Either way the code runs once.
     let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
         task {
             let mark = Guid.NewGuid().ToString("N")
-            let checks = examples |> List.map exampleCheck |> String.concat "\n"
-            let! run = runFsi timeout (script + "\n#line 1 \"examples.fsx\"\n" + checks + $"\nprintfn \"{mark}\"")
 
-            match run with
-            | Result.Ok output when output.Contains mark -> return ExamplesPassed
-            | Result.Ok _ ->
-                return
-                    CodeFailed "The script ended inside the code, so the examples after it never ran (does the code call exit?)."
-            | Result.Error errors ->
+            let pairs =
+                examples
+                |> List.map (fun example -> callAndExpected example |> Option.defaultValue (example, "true"))
+
+            let valueLines exprs =
+                exprs |> List.mapi (valueLine mark) |> String.concat "\n"
+
+            let! expected = runFsi timeout (valueLines (List.map snd pairs))
+
+            let checks =
+                match expected with
+                | Result.Ok _ -> valueLines (List.map fst pairs)
+                | Result.Error _ ->
+                    (examples |> List.map exampleCheck |> String.concat "\n") + $"\nprintfn \"{mark}\""
+
+            let! run = runFsi timeout (script + "\n#line 1 \"examples.fsx\"\n" + checks)
+
+            match run, expected with
+            | Result.Ok output, Result.Ok expectedOutput ->
+                return compareValues examples (printedValues mark expectedOutput) (printedValues mark output)
+            | Result.Ok output, Result.Error _ when output.Contains mark -> return ExamplesNotCompared
+            | Result.Ok _, Result.Error _ -> return CodeFailed endedEarly
+            | Result.Error errors, _ ->
                 let compileErrorIn (file: string) =
                     System.Text.RegularExpressions.Regex.IsMatch(
                         errors,
@@ -644,7 +718,8 @@ module Engine =
                 |> Option.defaultValue errors
 
             verdict false $"The code did not run: {firstLine}"
-        | ExamplesUnusable -> None
+        | ExamplesUnusable
+        | ExamplesNotCompared -> None
 
     /// Runs `script` and then checks `examples`. Some verdict when they ran: passed when each gave
     /// the expected value; failed when one did not, or the code did not compile or run. None when
@@ -1446,7 +1521,9 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         // gave the right values, and the verifier answered VERIFIED to every answer, right or
                         // wrong. When they pass, the evaluator judges only what they do not check (see step).
                         // Without examples, or when they do not compile against the code, the code runs alone
-                        // and the evaluator decides, as before.
+                        // and the evaluator decides, as before. The examples' expected values come from a process
+                        // without the code, and this process compares (#394); when they do not compute without
+                        // the code, the examples check themselves in its process, and only a failure counts.
                         let examples = examplesOf taskDef.Goal taskDef.ValidationCriteria
 
                         let logVerdict (verdict: EvaluationResult option) =
@@ -1487,6 +1564,11 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                         match alone with
                                         | Result.Ok() -> return None, None
                                         | Result.Error errors -> return Some errors, None
+                                    | Some ExamplesNotCompared ->
+                                        ctx.Logger
+                                            "[Executor] The examples passed in the code's process, but their expected values do not compute without the code, so they could not be compared outside it; the evaluation decides."
+
+                                        return None, None
                                     | Some run ->
                                         let errors =
                                             match run with
