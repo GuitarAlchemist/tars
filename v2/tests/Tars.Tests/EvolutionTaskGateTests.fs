@@ -486,6 +486,18 @@ let ``an empty collection of another element type does not pass`` () =
     }
 
 [<Fact>]
+let ``values typed with an abstract class are compared with their runtime types`` () =
+    task {
+        // Typed System.Array, `=` compares the items as objects: a 1 is not a 1L.
+        let answer = "let f () : System.Array = [| 1 |]"
+
+        let! long = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "f () = ([| 1L |] :> System.Array)" ]
+        let! same = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "f () = ([| 1 |] :> System.Array)" ]
+        Assert.False(long |> Option.exists (fun v -> v.Passed), $"%A{long}")
+        Assert.True(same |> Option.exists (fun v -> v.Passed), $"%A{same}")
+    }
+
+[<Fact>]
 let ``an answer that redefines <> does not loosen the examples' type check`` () =
     task {
         // The checks the type check reads would otherwise use it, and it accepts any two types.

@@ -622,9 +622,10 @@ module Engine =
     /// its ticks, and a date with an offset by its instant. A value `=` compares by reference, such
     /// as a ResizeArray or a seq, or one it cannot write exactly, such as NaN, which equals nothing,
     /// stops the script, so its examples are not compared. Where a value's type holds obj or an
-    /// interface, `=` compares runtime types: a boxed 2 is not a boxed 2L, though two arrays with
-    /// equal items are equal. So `typed` also writes the runtime type of each value but an array,
-    /// and tarsValueLine prints both texts, and whether the static type holds obj or an interface.
+    /// abstract type (an interface, System.Array), `=` compares runtime types: a boxed 2 is not a
+    /// boxed 2L, though two arrays with equal items are equal. So `typed` also writes the runtime
+    /// type of each value but an array, and tarsValueLine prints both texts, and whether the
+    /// static type holds obj or an abstract type.
     let private valueText =
         """let rec tarsValueText (typed: bool) (value: obj) : string =
     if typed && not (isNull value) && not (value :? System.Array) then value.GetType().FullName + " " + tarsValueOf typed value
@@ -674,7 +675,7 @@ let tarsOpen (t: System.Type) =
     let seen = System.Collections.Generic.HashSet<System.Type>()
     let rec isOpen (t: System.Type) =
         if not (seen.Add t) then false
-        elif t = typeof<obj> || t.IsInterface || t = typeof<System.ValueType> || t = typeof<System.Enum> then true
+        elif t = typeof<obj> || (t.IsAbstract && not (Microsoft.FSharp.Reflection.FSharpType.IsUnion t)) then true
         elif t.IsArray then isOpen (t.GetElementType())
         elif Microsoft.FSharp.Reflection.FSharpType.IsRecord t then
             Microsoft.FSharp.Reflection.FSharpType.GetRecordFields t |> Array.exists (fun p -> isOpen p.PropertyType)
@@ -689,7 +690,7 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
 
     /// The F# line that prints the value of `expr` with tarsValueLine, on a line of its own: `mark`,
     /// the example's index, the value's text and typed text, in base64 so they stay on that line,
-    /// and whether its static type holds obj or an interface.
+    /// and whether its static type holds obj or an abstract type.
     let private valueLine (mark: string) (index: int) (expr: string) =
         $"V{mark}.tarsValueLine \"{mark}\" {index} ({expr})"
 
@@ -702,7 +703,7 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     type private PrintedValue =
         { Text: string
           Typed: string
-          /// Its static type holds obj or an interface. On the code's side, the type of the call
+          /// Its static type holds obj or an abstract type. On the code's side, the type of the call
           /// fixes the type `=` compares at, so there `=` compares runtime types.
           Open: bool }
 
