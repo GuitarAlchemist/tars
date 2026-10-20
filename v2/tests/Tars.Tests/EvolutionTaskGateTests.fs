@@ -443,6 +443,18 @@ let ``arrays of another shape, or dates a few milliseconds apart, do not pass`` 
     }
 
 [<Fact>]
+let ``values of another type with the same digits, or NaN, do not pass`` () =
+    task {
+        // `=` in the code's process did not compile across types, and NaN is equal to nothing.
+        let answer =
+            "let half (n: int) = float n / 2.0\nlet big () = 2\nlet ratio () = nan"
+
+        for example in [ "half 4 = 2"; "big () = 2I"; "ratio () = nan" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
 let ``a value is read after output that has no line end`` () =
     task {
         // The call prints without a line end, just before its value is printed.
@@ -472,6 +484,17 @@ let ``examples whose expected values need the code's own types give no verdict``
                 [ "largest [ Circle 1.0; Square 2.0 ] = Square 2.0" ]
 
         Assert.True(verdict.IsNone, $"%A{verdict}")
+
+        // Why they were not compared: the error of the process without the code.
+        let! run =
+            Engine.runWithExamples
+                (TimeSpan.FromSeconds 60.0)
+                answer
+                [ "largest [ Circle 1.0; Square 2.0 ] = Square 2.0" ]
+
+        match run with
+        | Engine.ExamplesNotCompared reason -> Assert.Contains("Square", reason)
+        | other -> Assert.Fail $"%A{other}"
     }
 
 [<Fact>]

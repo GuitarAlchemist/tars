@@ -593,18 +593,27 @@ module Engine =
         /// The examples do not compile against the code (a name or a signature it does not have),
         /// so nothing ran: they say nothing about it.
         | ExamplesUnusable
-        /// The examples passed, but in the code's process: their expected values do not compute
-        /// without the code (they use its types), so this process could not compare them.
-        | ExamplesNotCompared
+        /// The examples passed, but in the code's process: the process without the code did not
+        /// compute their expected values (they use the code's types, or it failed), so this process
+        /// could not compare them. `reason` is the first line of that process's errors.
+        | ExamplesNotCompared of reason: string
+
+    /// The first line of `errors` that is not blank.
+    let private firstLine (errors: string) =
+        errors.Split('\n')
+        |> Array.map (fun l -> l.Trim())
+        |> Array.tryFind (fun l -> l <> "")
+        |> Option.defaultValue errors
 
     let private endedEarly =
         "The script ended inside the code, so the examples after it never ran (does the code call exit?)."
 
     /// F# that writes a value in full, for valueLine: every item of a collection, which %A stops
     /// after 100 of, and the bounds of an array of several dimensions; strings escaped; floats and
-    /// dates exactly. Two values of one type get the same text only when they are equal. A value
-    /// it cannot write exactly, such as an object of a class, stops the script, so its examples
-    /// are not compared.
+    /// dates exactly. Numbers keep the mark of their type (2, 2.0, 2L, 2I), as `=` did not compile
+    /// across types. Two values get the same text only when they are equal. A value it cannot
+    /// write exactly, such as an object of a class or NaN, which equals nothing, stops the script,
+    /// so its examples are not compared.
     let private valueText =
         """let rec tarsValueText (value: obj) : string =
     let items (xs: obj) =
@@ -614,8 +623,15 @@ module Engine =
     match value with
     | null -> "null"
     | :? string as s -> System.String.Concat("\"", s.Replace("\\", "\\\\").Replace("\"", "\\\""), "\"")
-    | :? float as f -> f.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
-    | :? float32 as f -> f.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "f"
+    | :? float as f when System.Double.IsNaN f -> failwith "NaN equals nothing, not even itself"
+    | :? float32 as f when System.Single.IsNaN f -> failwith "NaN equals nothing, not even itself"
+    | :? float as f ->
+        let r = f.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+        if r.Contains "." || r.Contains "E" || r.Contains "Infinity" then r else r + ".0"
+    | :? float32 as f ->
+        let r = f.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+        (if r.Contains "." || r.Contains "E" || r.Contains "Infinity" then r else r + ".0") + "f"
+    | :? System.Numerics.BigInteger as b -> b.ToString() + "I"
     | :? System.Array as a ->
         let shape =
             if a.Rank = 1 && a.GetLowerBound 0 = 0 then ""
@@ -639,7 +655,7 @@ module Engine =
     | :? System.DateTime as d -> d.ToString("o")
     | :? System.DateTimeOffset as d -> d.ToString("o")
     | :? System.TimeSpan as d -> d.ToString("c")
-    | _ when t.IsPrimitive || t.IsEnum || (value :? decimal) || (value :? System.Numerics.BigInteger) || (value :? System.Guid) ->
+    | _ when t.IsPrimitive || t.IsEnum || (value :? decimal) || (value :? System.Guid) ->
         sprintf "%A" value
     | _ -> failwithf "No exact text for a value of type %s" t.FullName"""
 
@@ -725,7 +741,8 @@ module Engine =
             match run, expected with
             | Result.Ok output, Result.Ok expectedOutput ->
                 return compareValues examples (printedValues mark expectedOutput) (printedValues mark output)
-            | Result.Ok output, Result.Error _ when output.Contains mark -> return ExamplesNotCompared
+            | Result.Ok output, Result.Error errors when output.Contains mark ->
+                return ExamplesNotCompared(firstLine errors)
             | Result.Ok _, Result.Error _ -> return CodeFailed endedEarly
             | Result.Error errors, _ ->
                 let compileErrorIn (file: string) =
@@ -756,16 +773,9 @@ module Engine =
         match run with
         | ExamplesPassed -> verdict true $"The code ran and gave the expected value for all {count} examples."
         | ExampleFailed failure -> verdict false failure
-        | CodeFailed errors ->
-            let firstLine =
-                errors.Split('\n')
-                |> Array.map (fun l -> l.Trim())
-                |> Array.tryFind (fun l -> l <> "")
-                |> Option.defaultValue errors
-
-            verdict false $"The code did not run: {firstLine}"
+        | CodeFailed errors -> verdict false $"The code did not run: {firstLine errors}"
         | ExamplesUnusable
-        | ExamplesNotCompared -> None
+        | ExamplesNotCompared _ -> None
 
     /// Runs `script` and then checks `examples`. Some verdict when they ran: passed when each gave
     /// the expected value; failed when one did not, or the code did not compile or run. None when
@@ -1610,9 +1620,9 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                         match alone with
                                         | Result.Ok() -> return None, None
                                         | Result.Error errors -> return Some errors, None
-                                    | Some ExamplesNotCompared ->
+                                    | Some(ExamplesNotCompared reason) ->
                                         ctx.Logger
-                                            "[Executor] The examples passed in the code's process, but their expected values do not compute without the code, so they could not be compared outside it; the evaluation decides."
+                                            $"[Executor] The examples passed in the code's process, but their expected values did not compute without the code ({reason}), so they were not compared outside it; the evaluation decides."
 
                                         return None, None
                                     | Some run ->
