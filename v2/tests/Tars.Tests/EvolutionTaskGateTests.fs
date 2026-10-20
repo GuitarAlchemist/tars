@@ -498,6 +498,23 @@ let ``values typed with an abstract class are compared with their runtime types`
     }
 
 [<Fact>]
+let ``a call typed only by its expected value is compared at that type`` () =
+    task {
+        // `make ()` is an int and `reverse []` an int list only because the example compares them
+        // with one; alone, each would hold obj.
+        let make = "let make<'T> () : 'T = Unchecked.defaultof<'T>"
+        let! zero = Engine.checkExamples (TimeSpan.FromSeconds 60.0) make [ "make () = 0" ]
+        let! one = Engine.checkExamples (TimeSpan.FromSeconds 60.0) make [ "make () = 1" ]
+
+        let! empty =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let reverse xs = List.rev xs" [ "reverse [] = ([]: int list)" ]
+
+        Assert.True(zero |> Option.exists (fun v -> v.Passed), $"%A{zero}")
+        Assert.False(one |> Option.exists (fun v -> v.Passed), $"%A{one}")
+        Assert.True(empty |> Option.exists (fun v -> v.Passed), $"%A{empty}")
+    }
+
+[<Fact>]
 let ``an answer that redefines <> does not loosen the examples' type check`` () =
     task {
         // The checks the type check reads would otherwise use it, and it accepts any two types.

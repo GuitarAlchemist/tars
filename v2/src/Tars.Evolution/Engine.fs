@@ -694,6 +694,7 @@ let tarsOpen (t: System.Type) =
             |> Array.exists (fun c -> c.GetFields() |> Array.exists (fun p -> isOpen p.PropertyType))
         else t.IsGenericType && Array.exists isOpen (t.GetGenericArguments())
     isOpen t
+let tarsTyped (value: 'T) (_: 'T -> bool) = value
 let tarsValueLine (mark: string) (index: int) (value: 'T) =
     let base64 (text: string) = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes text)
     printfn "\n%s %d %s %s %b" mark index (base64 (tarsValueText false (box value))) (base64 (tarsValueText true (box value))) (tarsOpen typeof<'T>)"""
@@ -703,6 +704,16 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     /// and whether its static type holds obj or an abstract type.
     let private valueLine (mark: string) (index: int) (expr: string) =
         $"V{mark}.tarsValueLine \"{mark}\" {index} ({expr})"
+
+    /// valueLine for the call of an example whose expected value is `expected`. The call is written
+    /// next to `expected`, in a function that is never called, so that it gets the type the example
+    /// gives it: `make () = 0` makes `make ()` an int, which alone would hold obj. The expected value
+    /// is not computed there.
+    let private callLine (mark: string) (index: int) (call: string, expected: string) =
+        valueLine
+            mark
+            index
+            $"V{mark}.tarsTyped ({call}) (fun tarsCalled{mark} -> global.Microsoft.FSharp.Core.Operators.(=) tarsCalled{mark} ({expected}))"
 
     /// valueText in a module named after `mark`, which valueLine names, so a name the answer
     /// defines cannot hide it.
@@ -770,9 +781,10 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     /// - the second, started with the first, prints the examples' expected values without the
     ///   code; an example written as a condition is expected to be true;
     /// - the code's process prints only the values of the examples' calls, and this process
-    ///   compares them. The expected values never reach the code's script, so the code passes
-    ///   only by printing the right values. The examples are in the executor's prompt, though, so
-    ///   a pass does not show that the code computed them rather than printed values it was shown.
+    ///   compares them. The expected values are not computed there: each call is written next to
+    ///   its expected value only for its type (callLine), so the code passes only by printing the
+    ///   right values. The examples are in the executor's prompt, though, so a pass does not show
+    ///   that the code computed them rather than printed values it was shown.
     /// When the expected values do not compute without the code, the code's process runs the
     /// checks itself, which end by printing a mark, since fsi also exits with 0 when the code
     /// calls `exit 0`. The code can read that mark from its script, so there a failure counts and
@@ -847,7 +859,8 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                     | Result.Ok _ ->
                         // The printer goes before the code, so the names it uses are F#'s, not ones the
                         // code redefined.
-                        let values = withExamples (valueLines (List.map fst pairs))
+                        let values =
+                            withExamples (List.mapi (callLine mark) pairs |> String.concat "\n")
                         runFsi (left ()) ("#line 1 \"values.fsx\"\n" + printer + "\n#line 1 \"answer.fsx\"\n" + values)
                     | Result.Error _ -> runFsi (left ()) (withExamples checks)
 
