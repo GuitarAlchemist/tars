@@ -361,8 +361,9 @@ let ``an answer that ends the script before its examples does not pass them`` ()
 [<Fact>]
 let ``an answer that prints the examples' mark itself does not pass them`` () =
     task {
-        // #394: the code reads the mark from its own script, prints it and exits before any
-        // example runs. The checks run in the code's process, so they cannot tell.
+        // #394's third form: the code reads the last line of its script, where the mark was,
+        // prints part of it and exits before any example runs. It passed on main; now it prints no
+        // value, and the next test forges one.
         let answer =
             "let reverse (xs: int list) = xs\n"
             + "let self = System.IO.File.ReadAllLines \"answer.fsx\"\n"
@@ -376,6 +377,31 @@ let ``an answer that prints the examples' mark itself does not pass them`` () =
     }
 
 [<Fact>]
+let ``a value line forged with the mark read from the script is compared like any other`` () =
+    task {
+        // The code reads the mark from its script and prints a well-formed value line for the
+        // example, with a value of its choice, before the real one could run. The expected value is
+        // not in the script, so the forged value is only a guess, and this one is wrong.
+        let answer =
+            "let reverse (xs: int list) = xs\n"
+            + "let script = System.IO.File.ReadAllText \"answer.fsx\"\n"
+            + "let mark = script.Substring(script.LastIndexOf(\"%s %d %s\\\" \\\"\") + 11, 32)\n"
+            + "let forged = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes \"[1; 2; 3]\")\n"
+            + "printfn \"\\n%s 0 %s\" mark forged\n"
+            + "exit 0"
+
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "reverse [1; 2; 3] = [3; 2; 1]" ]
+
+        match verdict with
+        | Some v ->
+            Assert.False(v.Passed)
+            // The forged line was read: its value is the one reported.
+            Assert.Contains("got [1; 2; 3]", v.Summary)
+        | None -> Assert.Fail "no verdict"
+    }
+
+[<Fact>]
 let ``equal values pass outside the code's process, over several lines or of no element type`` () =
     task {
         // %A prints a list of 40 numbers over several lines, and `[]` alone as a list of objects.
@@ -384,6 +410,32 @@ let ``equal values pass outside the code's process, over several lines or of no 
                 (TimeSpan.FromSeconds 60.0)
                 "let countUp n = [ 1..n ]"
                 [ "countUp 40 = [ 1..40 ]"; "countUp 0 = []" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``values that differ past what %A prints do not pass`` () =
+    task {
+        // %A prints the first 100 items of a list: these two differ only in the 150th.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let countUp n = [ 1 .. n - 1 ] @ [ 0 ]"
+                [ "countUp 150 = [ 1..150 ]" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``a value is read after output that has no line end`` () =
+    task {
+        // The call prints without a line end, just before its value is printed.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let shout (s: string) =\n    printf \"%s\" s\n    s.ToUpper()"
+                [ "shout \"a\" = \"A\"" ]
 
         Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
     }

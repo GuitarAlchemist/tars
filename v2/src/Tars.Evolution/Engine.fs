@@ -600,10 +600,42 @@ module Engine =
     let private endedEarly =
         "The script ended inside the code, so the examples after it never ran (does the code call exit?)."
 
-    /// The F# line that prints the value of `expr` as %A shows it, after `mark` and the example's
-    /// index. The text is in base64, so a value that %A spreads over several lines stays on one.
+    /// F# that writes a value in full, for valueLine: every item of a collection, which %A stops
+    /// after 100 of; strings escaped; floats exactly. Two values of one type get the same text
+    /// only when they are equal.
+    let private valueText =
+        """let rec tarsValueText (value: obj) : string =
+    let items (xs: obj) =
+        System.String.Join("; ", Seq.cast<obj> (xs :?> System.Collections.IEnumerable) |> Seq.map tarsValueText)
+    let t = if isNull value then null else value.GetType()
+    let definition = if isNull t || not t.IsGenericType then null else t.GetGenericTypeDefinition()
+    match value with
+    | null -> "null"
+    | :? string as s -> System.String.Concat("\"", s.Replace("\\", "\\\\").Replace("\"", "\\\""), "\"")
+    | :? float as f -> f.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+    | :? float32 as f -> f.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "f"
+    | _ when t.IsArray -> "[|" + items value + "|]"
+    | _ when definition = typedefof<list<_>> -> "[" + items value + "]"
+    | _ when definition = typedefof<Map<_, _>> -> "map [" + items value + "]"
+    | _ when definition = typedefof<Set<_>> -> "set [" + items value + "]"
+    | _ when definition = typedefof<System.Collections.Generic.KeyValuePair<_, _>> ->
+        "(" + tarsValueText (t.GetProperty("Key").GetValue value) + ", " + tarsValueText (t.GetProperty("Value").GetValue value) + ")"
+    | _ when Microsoft.FSharp.Reflection.FSharpType.IsTuple t ->
+        "(" + System.String.Join(", ", Microsoft.FSharp.Reflection.FSharpValue.GetTupleFields value |> Array.map tarsValueText) + ")"
+    | _ when Microsoft.FSharp.Reflection.FSharpType.IsRecord t ->
+        let names = Microsoft.FSharp.Reflection.FSharpType.GetRecordFields t |> Array.map (fun p -> p.Name)
+        let values = Microsoft.FSharp.Reflection.FSharpValue.GetRecordFields value |> Array.map tarsValueText
+        "{ " + System.String.Join("; ", Array.map2 (fun n v -> n + " = " + v) names values) + " }"
+    | _ when Microsoft.FSharp.Reflection.FSharpType.IsUnion t ->
+        let case, fields = Microsoft.FSharp.Reflection.FSharpValue.GetUnionFields(value, t)
+        if fields.Length = 0 then case.Name else case.Name + " (" + System.String.Join(", ", fields |> Array.map tarsValueText) + ")"
+    | :? System.Collections.IEnumerable -> "seq [" + items value + "]"
+    | _ -> sprintf "%A" value"""
+
+    /// The F# line that prints the value of `expr` as valueText writes it, on a line of its own,
+    /// after `mark` and the example's index. The text is in base64, so it stays on that line.
     let private valueLine (mark: string) (index: int) (expr: string) =
-        $"printfn \"%%s %%d %%s\" \"{mark}\" {index} (System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(sprintf \"%%A\" ({expr}))))"
+        $"printfn \"\\n%%s %%d %%s\" \"{mark}\" {index} (System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(tarsValueText (box ({expr})))))"
 
     /// The values a run printed with valueLine, decoded, by example index. Other lines, and lines
     /// that do not decode, are left out.
@@ -664,8 +696,10 @@ module Engine =
                 |> List.map (fun example -> callAndExpected example |> Option.defaultValue (example, "true"))
 
             let valueLines exprs =
-                exprs |> List.mapi (valueLine mark) |> String.concat "\n"
+                valueText :: List.mapi (valueLine mark) exprs |> String.concat "\n"
 
+            // The two processes share the timeout.
+            let started = System.Diagnostics.Stopwatch.StartNew()
             let! expected = runFsi timeout (valueLines (List.map snd pairs))
 
             let checks =
@@ -674,7 +708,8 @@ module Engine =
                 | Result.Error _ ->
                     (examples |> List.map exampleCheck |> String.concat "\n") + $"\nprintfn \"{mark}\""
 
-            let! run = runFsi timeout (script + "\n#line 1 \"examples.fsx\"\n" + checks)
+            let! run =
+                runFsi (max TimeSpan.Zero (timeout - started.Elapsed)) (script + "\n#line 1 \"examples.fsx\"\n" + checks)
 
             match run, expected with
             | Result.Ok output, Result.Ok expectedOutput ->
