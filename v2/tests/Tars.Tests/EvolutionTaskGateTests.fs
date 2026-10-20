@@ -443,15 +443,33 @@ let ``arrays of another shape, or dates a few milliseconds apart, do not pass`` 
     }
 
 [<Fact>]
-let ``values of another type with the same digits, or NaN, do not pass`` () =
+let ``values that F# equality would not compare, or not hold equal, do not pass`` () =
     task {
-        // `=` in the code's process did not compile across types, and NaN is equal to nothing.
+        // An int is not a big integer, NaN equals nothing, and `=` compares a ResizeArray by
+        // reference.
         let answer =
-            "let half (n: int) = float n / 2.0\nlet big () = 2\nlet ratio () = nan"
+            "let big () = 2\nlet ratio () = nan\nlet items () = ResizeArray [ 1; 2 ]"
 
-        for example in [ "half 4 = 2"; "big () = 2I"; "ratio () = nan" ] do
+        for example in [ "big () = 2I"; "ratio () = nan"; "items () = ResizeArray [ 1; 2 ]" ] do
             let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
             Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``values that F# equality holds equal pass: a widened int, either zero, one instant at two offsets`` () =
+    task {
+        // `=` widens the int 2 to a float here, holds -0.0 = 0.0, and compares instants.
+        let answer =
+            "let half (n: int) = float n / 2.0\n"
+            + "let negZero () = -0.0\n"
+            + "let midnight () = System.DateTimeOffset(2026, 1, 1, 0, 0, 0, System.TimeSpan.Zero)"
+
+        for example in
+            [ "half 4 = 2"
+              "negZero () = 0.0"
+              "midnight () = System.DateTimeOffset(2026, 1, 1, 1, 0, 0, System.TimeSpan.FromHours 1.0)" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
     }
 
 [<Fact>]

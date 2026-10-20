@@ -611,16 +611,20 @@ module Engine =
     let private endedEarly =
         "The script ended inside the code, so the examples after it never ran (does the code call exit?)."
 
-    /// F# that writes a value in full, for valueLine: every item of a collection, which %A stops
-    /// after 100 of, and the bounds of an array of several dimensions; strings escaped; floats and
-    /// dates exactly, decimals without trailing zeros. Numbers keep the mark of their type (2, 2.0,
-    /// 2L, 2I). Two values of one type get the same text only when they are equal. A value it cannot
-    /// write exactly, such as an object of a class or NaN, which equals nothing, stops the script,
-    /// so its examples are not compared.
+    /// F# that writes a value in full, for valueLine, so that two values get the same text when `=`
+    /// holds them equal, and only then. It writes every item of a list, array, map or set (%A stops
+    /// after 100), with the bounds of an array of several dimensions, the fields of tuples, records
+    /// and unions, and strings escaped. Numbers are written by value alone: the type check in
+    /// runWithExamples holds both sides to types `=` accepts, and `=` widens an int to a float. A
+    /// float zero has one text, as -0.0 = 0.0, and a decimal no trailing zeros. A date is written by
+    /// its ticks, and a date with an offset by its instant. A value `=` compares by reference, such
+    /// as a ResizeArray or a seq, or one it cannot write exactly, such as NaN, which equals nothing,
+    /// stops the script, so its examples are not compared.
     let private valueText =
         """let rec tarsValueText (value: obj) : string =
     let items (xs: obj) =
         System.String.Join("; ", Seq.cast<obj> (xs :?> System.Collections.IEnumerable) |> Seq.map tarsValueText)
+    let invariant = System.Globalization.CultureInfo.InvariantCulture
     let t = if isNull value then null else value.GetType()
     let definition = if isNull t || not t.IsGenericType then null else t.GetGenericTypeDefinition()
     match value with
@@ -628,14 +632,16 @@ module Engine =
     | :? string as s -> System.String.Concat("\"", s.Replace("\\", "\\\\").Replace("\"", "\\\""), "\"")
     | :? float as f when System.Double.IsNaN f -> failwith "NaN equals nothing, not even itself"
     | :? float32 as f when System.Single.IsNaN f -> failwith "NaN equals nothing, not even itself"
-    | :? float as f ->
-        let r = f.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
-        if r.Contains "." || r.Contains "E" || r.Contains "Infinity" then r else r + ".0"
-    | :? float32 as f ->
-        let r = f.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
-        (if r.Contains "." || r.Contains "E" || r.Contains "Infinity" then r else r + ".0") + "f"
-    | :? System.Numerics.BigInteger as b -> b.ToString() + "I"
-    | :? decimal as d -> (d / 1.0000000000000000000000000000M).ToString(System.Globalization.CultureInfo.InvariantCulture) + "M"
+    | :? float as f -> if f = 0.0 then "0" else f.ToString("R", invariant)
+    | :? float32 as f -> if f = 0.0f then "0" else f.ToString("R", invariant)
+    | :? decimal as d -> (d / 1.0000000000000000000000000000M).ToString(invariant)
+    | :? System.Numerics.BigInteger as b -> b.ToString(invariant)
+    | :? System.DateTime as d -> "DateTime " + string d.Ticks
+    | :? System.DateTimeOffset as d -> "DateTimeOffset " + string d.UtcTicks
+    | :? System.TimeSpan as d -> "TimeSpan " + string d.Ticks
+    | :? bool | :? char | :? System.Guid -> sprintf "%A" value
+    | _ when t.IsEnum -> sprintf "%A" value
+    | _ when t.IsPrimitive -> System.Convert.ToString(value, invariant)
     | :? System.Array as a ->
         let shape =
             if a.Rank = 1 && a.GetLowerBound 0 = 0 then ""
@@ -655,12 +661,6 @@ module Engine =
     | _ when Microsoft.FSharp.Reflection.FSharpType.IsUnion t ->
         let case, fields = Microsoft.FSharp.Reflection.FSharpValue.GetUnionFields(value, t)
         if fields.Length = 0 then case.Name else case.Name + " (" + System.String.Join(", ", fields |> Array.map tarsValueText) + ")"
-    | :? System.Collections.IEnumerable -> "seq [" + items value + "]"
-    | :? System.DateTime as d -> d.ToString("o")
-    | :? System.DateTimeOffset as d -> d.ToString("o")
-    | :? System.TimeSpan as d -> d.ToString("c")
-    | _ when t.IsPrimitive || t.IsEnum || (value :? System.Guid) ->
-        sprintf "%A" value
     | _ -> failwithf "No exact text for a value of type %s" t.FullName"""
 
     /// The F# line that prints the value of `expr` as valueText writes it, on a line of its own,
@@ -710,11 +710,11 @@ module Engine =
             |> Option.defaultValue ExamplesPassed
 
     /// Runs `script` followed by its examples, and says what they show (#394). Three dotnet fsi
-    /// processes share `timeout`, and the code runs in one only:
+    /// processes share `timeout`, the caller's deadline, and the code runs in the last only:
     /// - the first type-checks the code followed by the examples' checks, and runs nothing: `=` did
     ///   not compile across types, and the values compared below as text do not show them;
-    /// - a process without the code prints the examples' expected values; an example written as a
-    ///   condition is expected to be true;
+    /// - the second, started with the first, prints the examples' expected values without the
+    ///   code; an example written as a condition is expected to be true;
     /// - the code's process prints only the values of the examples' calls, and this process
     ///   compares them. The expected values never reach the code's script, so the code passes
     ///   only by printing the right values.
@@ -756,13 +756,15 @@ module Engine =
                 elif failed.Success then ExampleFailed failed.Value
                 else CodeFailed errors
 
-            let! typed = runFsiWith "--typecheck-only " (left ()) (withExamples checks)
+            // Both start now, so the code's process waits for one fsi startup rather than two.
+            let typing = runFsiWith "--typecheck-only " (left ()) (withExamples checks)
+            let computing = runFsi (left ()) (valueLines (List.map snd pairs))
+            let! typed = typing
+            let! expected = computing
 
             match typed with
             | Result.Error errors -> return fromErrors errors
             | Result.Ok _ ->
-                let! expected = runFsi (left ()) (valueLines (List.map snd pairs))
-
                 let! run =
                     match expected with
                     | Result.Ok _ -> runFsi (left ()) (withExamples (valueLines (List.map fst pairs)))
