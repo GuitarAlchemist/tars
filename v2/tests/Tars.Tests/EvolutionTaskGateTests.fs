@@ -428,6 +428,21 @@ let ``values that differ past what %A prints do not pass`` () =
     }
 
 [<Fact>]
+let ``arrays of another shape, or dates a few milliseconds apart, do not pass`` () =
+    task {
+        // Their items in order are the same, and %A prints both dates to the second.
+        let answer =
+            "let grid () = array2D [ [ 1; 2; 3; 4 ] ]\n"
+            + "let stamp () = System.DateTime(2026, 1, 1, 0, 0, 0, 5)"
+
+        for example in
+            [ "grid () = array2D [ [ 1; 2 ]; [ 3; 4 ] ]"
+              "stamp () = System.DateTime(2026, 1, 1)" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
 let ``a value is read after output that has no line end`` () =
     task {
         // The call prints without a line end, just before its value is printed.

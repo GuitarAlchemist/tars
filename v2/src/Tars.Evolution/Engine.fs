@@ -601,8 +601,10 @@ module Engine =
         "The script ended inside the code, so the examples after it never ran (does the code call exit?)."
 
     /// F# that writes a value in full, for valueLine: every item of a collection, which %A stops
-    /// after 100 of; strings escaped; floats exactly. Two values of one type get the same text
-    /// only when they are equal.
+    /// after 100 of, and the bounds of an array of several dimensions; strings escaped; floats and
+    /// dates exactly. Two values of one type get the same text only when they are equal. A value
+    /// it cannot write exactly, such as an object of a class, stops the script, so its examples
+    /// are not compared.
     let private valueText =
         """let rec tarsValueText (value: obj) : string =
     let items (xs: obj) =
@@ -614,7 +616,11 @@ module Engine =
     | :? string as s -> System.String.Concat("\"", s.Replace("\\", "\\\\").Replace("\"", "\\\""), "\"")
     | :? float as f -> f.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
     | :? float32 as f -> f.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "f"
-    | _ when t.IsArray -> "[|" + items value + "|]"
+    | :? System.Array as a ->
+        let shape =
+            if a.Rank = 1 && a.GetLowerBound 0 = 0 then ""
+            else System.String.Join(", ", [ for d in 0 .. a.Rank - 1 -> string (a.GetLowerBound d) + ".." + string (a.GetUpperBound d) ]) + ": "
+        "[|" + shape + items value + "|]"
     | _ when definition = typedefof<list<_>> -> "[" + items value + "]"
     | _ when definition = typedefof<Map<_, _>> -> "map [" + items value + "]"
     | _ when definition = typedefof<Set<_>> -> "set [" + items value + "]"
@@ -630,7 +636,12 @@ module Engine =
         let case, fields = Microsoft.FSharp.Reflection.FSharpValue.GetUnionFields(value, t)
         if fields.Length = 0 then case.Name else case.Name + " (" + System.String.Join(", ", fields |> Array.map tarsValueText) + ")"
     | :? System.Collections.IEnumerable -> "seq [" + items value + "]"
-    | _ -> sprintf "%A" value"""
+    | :? System.DateTime as d -> d.ToString("o")
+    | :? System.DateTimeOffset as d -> d.ToString("o")
+    | :? System.TimeSpan as d -> d.ToString("c")
+    | _ when t.IsPrimitive || t.IsEnum || (value :? decimal) || (value :? System.Numerics.BigInteger) || (value :? System.Guid) ->
+        sprintf "%A" value
+    | _ -> failwithf "No exact text for a value of type %s" t.FullName"""
 
     /// The F# line that prints the value of `expr` as valueText writes it, on a line of its own,
     /// after `mark` and the example's index. The text is in base64, so it stays on that line.
