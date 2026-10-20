@@ -609,7 +609,8 @@ module Engine =
         | ExamplesUnusable
         /// The examples passed, but in the code's process: the process without the code did not
         /// compute their expected values (they use the code's types, or it failed), or computed
-        /// values that differ from one process to another, so this process could not compare them.
+        /// values that differ from one process to another, or that may lack, alone, the type their
+        /// call gives them, so this process could not compare them.
         /// `reason` is the first line of that process's errors.
         | ExamplesNotCompared of reason: string
 
@@ -720,6 +721,13 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     let private valuePrinter (mark: string) =
         $"module V{mark} =\n" + (valueText.Split('\n') |> Array.map (fun line -> "    " + line) |> String.concat "\n")
 
+    /// Whether a value's text holds null: the word, outside its strings and chars.
+    let private holdsNull (text: string) =
+        let withoutLiterals =
+            System.Text.RegularExpressions.Regex.Replace(text, @"""(?:\\.|[^""\\])*""|'(?:[^'\\]|\\'|\\[^']*)'", "")
+
+        System.Text.RegularExpressions.Regex.IsMatch(withoutLiterals, @"\bnull\b")
+
     /// A value a run printed with valueLine.
     type private PrintedValue =
         { Text: string
@@ -785,10 +793,10 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     ///   its expected value only for its type (callLine), so the code passes only by printing the
     ///   right values. The examples are in the executor's prompt, though, so a pass does not show
     ///   that the code computed them rather than printed values it was shown.
-    /// When the expected values do not compute without the code, the code's process runs the
-    /// checks itself, which end by printing a mark, since fsi also exits with 0 when the code
-    /// calls `exit 0`. The code can read that mark from its script, so there a failure counts and
-    /// a pass does not.
+    /// When the expected values do not compute without the code, or may lack there the type their
+    /// call gives them, the code's process runs the checks itself, which end by printing a mark,
+    /// since fsi also exits with 0 when the code calls `exit 0`. The code can read that mark from
+    /// its script, so there a failure counts and a pass does not.
     let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
         task {
             let mark = Guid.NewGuid().ToString("N")
@@ -847,10 +855,20 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                 let! first = computing
                 let! second = computingAgain
 
+                // Alone, an expected value that gets its type from its call holds obj in its place:
+                // Unchecked.defaultof<_> is null there, though 0 against an int. A null where the
+                // type holds obj shows it.
+                let typedByTheirCalls output =
+                    printedValues mark output
+                    |> Map.exists (fun _ values -> values |> List.exists (fun v -> v.Open && holdsNull v.Text))
+
                 let expected =
                     match first, second with
                     | Result.Ok one, Result.Ok other when printedValues mark one <> printedValues mark other ->
                         Result.Error "The expected values differ from one process to another."
+                    | Result.Ok one, Result.Ok _ when typedByTheirCalls one ->
+                        Result.Error
+                            "An expected value holds null where its type holds obj, so alone it may lack the type its call gives it."
                     | Result.Ok _, Result.Error errors -> Result.Error errors
                     | _ -> first
 

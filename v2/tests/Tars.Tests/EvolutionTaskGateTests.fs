@@ -515,6 +515,17 @@ let ``a call typed only by its expected value is compared at that type`` () =
     }
 
 [<Fact>]
+let ``an expected value typed only by its call is not compared without it`` () =
+    task {
+        // Against `f ()`, Unchecked.defaultof<_> is an int, 0; alone it holds obj, and is null.
+        let example = "f () = Unchecked.defaultof<_>"
+        let! right = Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let f () : int = 0" [ example ]
+        let! wrong = Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let f () : int = 1" [ example ]
+        Assert.True(right.IsNone, $"%A{right}")
+        Assert.False(wrong |> Option.exists (fun v -> v.Passed), $"%A{wrong}")
+    }
+
+[<Fact>]
 let ``an answer that redefines <> does not loosen the examples' type check`` () =
     task {
         // The checks the type check reads would otherwise use it, and it accepts any two types.
