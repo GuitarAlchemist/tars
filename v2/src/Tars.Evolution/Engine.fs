@@ -754,7 +754,8 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     ///   code; an example written as a condition is expected to be true;
     /// - the code's process prints only the values of the examples' calls, and this process
     ///   compares them. The expected values never reach the code's script, so the code passes
-    ///   only by printing the right values.
+    ///   only by printing the right values. The examples are in the executor's prompt, though, so
+    ///   a pass does not show that the code computed them rather than printed values it was shown.
     /// When the expected values do not compute without the code, the code's process runs the
     /// checks itself, which end by printing a mark, since fsi also exits with 0 when the code
     /// calls `exit 0`. The code can read that mark from its script, so there a failure counts and
