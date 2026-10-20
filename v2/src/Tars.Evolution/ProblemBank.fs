@@ -7,19 +7,25 @@ module ProblemBank =
     let private mkProblem id title desc diff cat sig_ hints timeout validation =
         { Id = id; Title = title; Description = desc; Difficulty = diff
           Category = cat; ExpectedSignature = sig_; Hints = hints
-          TimeLimitSeconds = timeout; ValidationCode = validation
+          TimeLimitSeconds = timeout; ValidationCode = validation; Examples = []
           PerfHarness = None; Properties = None }
+
+    /// `problem`, checked by `examples` compared outside the solution's process.
+    let private withExamples (examples: string list) (problem: BenchmarkProblem) =
+        { problem with Examples = examples }
 
     // =========================================================================
     // Basic
     // =========================================================================
 
     let private basicProblems =
-        [ mkProblem "basic-reverse-string" "Reverse a String"
-            "Write a function that reverses a string without using the built-in Reverse method."
-            Beginner StringManipulation "let reverse (s: string) : string"
-            ["You can convert to char array and work with indices"] 30
-            "let mutable passed = true\nlet check inp exp =\n    let got = reverse inp\n    if got <> exp then printfn \"FAIL: reverse '%s' = '%s', expected '%s'\" inp got exp; passed <- false\ncheck \"hello\" \"olleh\"\ncheck \"\" \"\"\ncheck \"a\" \"a\"\ncheck \"abcdef\" \"fedcba\"\nif passed then printfn \"PASS\"\n"
+        [ withExamples
+            [ "reverse \"hello\" = \"olleh\""; "reverse \"\" = \"\""; "reverse \"a\" = \"a\""; "reverse \"abcdef\" = \"fedcba\"" ]
+            (mkProblem "basic-reverse-string" "Reverse a String"
+                "Write a function that reverses a string without using the built-in Reverse method."
+                Beginner StringManipulation "let reverse (s: string) : string"
+                ["You can convert to char array and work with indices"] 30
+                "")
 
           mkProblem "basic-fizzbuzz" "FizzBuzz"
             "Write a function that returns a list of strings for numbers 1 to n. For multiples of 3 return Fizz, for multiples of 5 return Buzz, for multiples of both return FizzBuzz, otherwise return the number as a string."

@@ -156,6 +156,22 @@ module EvolutionBenchmarkTests =
         Assert.Equal("PASS", attempt.ValidationOutput)
         Assert.True((attemptOnReverse (right + "printfn \"PASS\"")).Validated)
 
+    // The two forms #394 ran by hand. The first reads the mark from the script and prints PASS
+    // with it; the second rewrites FAIL to PASS in what the process prints. Both were validated
+    // while the validation ran in the solution's process.
+    [<Fact>]
+    let ``A solution that forges the validation's output is not validated`` () =
+        let wrong = "let reverse (s: string) : string = s\n"
+
+        let readsTheMark =
+            "let self = System.IO.File.ReadAllLines(System.IO.Path.Combine(__SOURCE_DIRECTORY__, __SOURCE_FILE__))\nlet last = self |> Array.filter (fun l -> l.StartsWith \"printfn \\\"\") |> Array.last\nlet mark = last.Substring(9, 32)\nprintfn \"PASS\"\nprintfn \"%s\" mark\nexit 0\n"
+
+        let rewritesFail =
+            "let real = System.Console.Out\nSystem.Console.SetOut(\n    { new System.IO.StringWriter() with\n        override _.WriteLine(s: string) = real.WriteLine(s.Replace(\"FAIL\", \"PASS\"))\n        override _.Write(s: string) = real.Write(s.Replace(\"FAIL\", \"PASS\")) })\n"
+
+        Assert.False((attemptOnReverse (wrong + readsTheMark)).Validated, "reads the mark")
+        Assert.False((attemptOnReverse (wrong + rewritesFail)).Validated, "rewrites FAIL")
+
 module BenchmarkProvenanceTests =
 
     open System
