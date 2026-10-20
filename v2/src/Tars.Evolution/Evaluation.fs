@@ -459,12 +459,9 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     /// The call of an example whose expected value is `expected`, written next to `expected` in a
     /// function that is never called, so that it gets the type the example gives it: `make () = 0`
     /// makes `make ()` an int, which alone would hold obj. The expected value is not computed.
+    /// Only the type check writes it: a script the code runs from would show the code `expected`.
     let private typedCall (mark: string) (call: string) (expected: string) =
         $"V{mark}.tarsTyped ({call}) (fun tarsCalled{mark} -> global.Microsoft.FSharp.Core.Operators.(=) tarsCalled{mark} ({expected}))"
-
-    /// valueLine for the call of an example, typed as typedCall types it.
-    let private callLine (mark: string) (index: int) (call: string, expected: string) =
-        valueLine mark index (typedCall mark call expected)
 
     /// F# after the examples that makes the type check report the type `=` compares each example
     /// at, so that the expected values can be computed at it: alone, `Unchecked.defaultof<_>` holds
@@ -583,10 +580,10 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     /// - the second prints the examples' expected values at those types, without the code; an
     ///   example written as a condition is expected to be true;
     /// - the code's process prints only the values of the examples' calls, and this process
-    ///   compares them. The expected values are not computed there: each call is written next to
-    ///   its expected value only for its type (callLine), so the code passes only by printing the
-    ///   right values. The examples are in the executor's prompt, though, so a pass does not show
-    ///   that the code computed them rather than printed values it was shown.
+    ///   compares them. Each call is given the type the type check reported, `((call) : int)`, so
+    ///   that process's script holds no expected value, and the code passes only by printing the
+    ///   right values. The examples are in evolve's executor prompt, though, so there a pass does
+    ///   not show that the code computed them rather than printed values it was shown.
     /// When the expected values do not compute without the code, the code's process runs the
     /// checks itself, which end by printing a mark, since fsi also exits with 0 when the code
     /// calls `exit 0`. The code can read that mark from its script, so there a failure counts and
@@ -673,14 +670,14 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                         }
 
                 let! run =
-                    match expected with
-                    | Result.Ok _ ->
+                    match expected, types with
+                    | Result.Ok _, Some types ->
                         // The printer goes before the code, so the names it uses are F#'s, not ones the
                         // code redefined.
                         let values =
-                            withExamples (List.mapi (callLine mark) pairs |> String.concat "\n")
+                            withExamples (valueLines (List.map2 (fun (call, _) t -> $"({call}) : {t}") pairs types))
                         runFsi (left ()) (beforeAnswer + values)
-                    | Result.Error _ -> runFsi (left ()) (withExamples checks)
+                    | _ -> runFsi (left ()) (withExamples checks)
 
                 match run, expected with
                 | Result.Ok output, Result.Ok expectedOutput ->

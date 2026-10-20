@@ -172,6 +172,22 @@ module EvolutionBenchmarkTests =
         Assert.False((attemptOnReverse (wrong + readsTheMark)).Validated, "reads the mark")
         Assert.False((attemptOnReverse (wrong + rewritesFail)).Validated, "rewrites FAIL")
 
+    // The code's script held each call next to its expected value, to type the call. A solution
+    // could read the expected values there and return them.
+    [<Fact>]
+    let ``A solution that reads the expected values from its script is not validated`` () =
+        let readsTheExpected =
+            """let reverse (s: string) : string =
+    let self = System.IO.File.ReadAllText "answer.fsx"
+    let at = self.IndexOf("(reverse \"" + s + "\") (fun")
+    if at < 0 then s
+    else
+        let from = self.IndexOf("(\"", self.IndexOf("Operators.(=)", at)) + 2
+        self.Substring(from, self.IndexOf("\")", from) - from)
+"""
+
+        Assert.False((attemptOnReverse readsTheExpected).Validated)
+
 module BenchmarkProvenanceTests =
 
     open System
