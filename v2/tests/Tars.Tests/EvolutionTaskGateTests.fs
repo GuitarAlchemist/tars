@@ -486,6 +486,32 @@ let ``an empty collection of another element type does not pass`` () =
     }
 
 [<Fact>]
+let ``an answer that redefines <> does not loosen the examples' type check`` () =
+    task {
+        // The checks the type check reads would otherwise use it, and it accepts any two types.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let (<>) (_: 'a) (_: 'b) = false\nlet empties () = Array.empty<int>"
+                [ "empties () = Array.empty<string>" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``the expected values do not use the answer's definitions`` () =
+    task {
+        // The answer redefines abs, but the example means F#'s: abs (-1) is 1.
+        let check answer =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "f () = abs (-1)" ]
+
+        let! wrong = check "let abs (_: int) = 0\nlet f () = 0"
+        let! right = check "let abs (_: int) = 0\nlet f () = 1"
+        Assert.True(wrong |> Option.exists (fun v -> not v.Passed), $"%A{wrong}")
+        Assert.True(right |> Option.exists (fun v -> v.Passed), $"%A{right}")
+    }
+
+[<Fact>]
 let ``decimals of another scale are equal`` () =
     task {
         // 1.00M = 1.0M, though %A writes them apart.

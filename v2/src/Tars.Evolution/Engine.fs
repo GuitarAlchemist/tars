@@ -575,6 +575,7 @@ module Engine =
         |> Option.map (fun at -> example.Substring(0, at).Trim(), example.Substring(at + 1).Trim())
 
     /// The F# line that checks one example. For `call = expected` it reports the value it got.
+    /// It names F#'s own `<>`, which the answer before it may have redefined.
     let private exampleCheck (example: string) =
         let quoted =
             "\"" + example.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\""
@@ -582,7 +583,7 @@ module Engine =
         match callAndExpected example with
         | Some(call, expected) ->
             // A match, not a let: a let of `reverse []` would not compile (value restriction).
-            $"match ({call}) with actual when actual <> ({expected}) -> failwithf \"Example failed: %%s, got %%A\" {quoted} actual | _ -> ()"
+            $"match ({call}) with actual when global.Microsoft.FSharp.Core.Operators.(<>) actual ({expected}) -> failwithf \"Example failed: %%s, got %%A\" {quoted} actual | _ -> ()"
         | None -> $"if not ({example}) then failwithf \"Example failed: %%s\" {quoted}"
 
     /// What running an answer's code followed by checks of its examples showed.
