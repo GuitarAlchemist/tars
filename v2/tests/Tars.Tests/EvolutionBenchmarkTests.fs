@@ -279,6 +279,36 @@ module BenchmarkProvenanceTests =
         BenchmarkRunner.recordOutcomes selector { summary with Attempts = [ attempt ] }
         Assert.Equal(None, (Assert.Single(selector.Recorded)).ModelId)
 
+    [<Fact>]
+    let ``a solution that failed its property tests is recorded as a failure`` () =
+        let summary = run (RoutedLlm None)
+
+        let validated properties : BenchmarkAttempt =
+            { ProblemId = "p"
+              Difficulty = Beginner
+              Category = StringManipulation
+              GeneratedCode = ""
+              Compiled = true
+              Validated = true
+              CompileErrors = []
+              ValidationOutput = "PASS"
+              GenerationTimeMs = 0L
+              ValidationTimeMs = 0L
+              ExecutionNs = None
+              PropertiesValidated = properties
+              Timestamp = DateTime.UtcNow }
+
+        let selector = RecordingSelector()
+
+        BenchmarkRunner.recordOutcomes
+            selector
+            { summary with
+                Attempts = [ validated (Some false); validated (Some true); validated None ] }
+
+        // SelfTrain leaves out a solution whose examples passed and whose properties failed: it is
+        // not verified, so it is no success in the outcome store either.
+        Assert.Equal<bool>([ false; true; true ], selector.Recorded |> List.map (fun o -> o.Success))
+
 module HardBankTests =
 
     open System.Threading
