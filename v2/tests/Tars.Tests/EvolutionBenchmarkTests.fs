@@ -239,6 +239,16 @@ module EvolutionBenchmarkTests =
         let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm referenceSolutions.[id]) problem false ignore).Result
         Assert.True(attempt.Validated, $"{id}: {attempt.ValidationOutput}")
 
+    // The examples accept what the ValidationCode accepted, so results stay comparable: it checked
+    // fizzBuzz 15's length and its elements 0, 1, 2, 4 and 14, not the others.
+    [<Fact>]
+    let ``fizzbuzz's examples check what its ValidationCode checked`` () =
+        let problem = ProblemBank.tryFind "basic-fizzbuzz" |> Option.get
+        let wrongAtThree =
+            "let fizzBuzz (n: int) : string list =\n    [ for i in 1 .. n ->\n        if i = 4 then \"four\"\n        elif i % 15 = 0 then \"FizzBuzz\"\n        elif i % 3 = 0 then \"Fizz\"\n        elif i % 5 = 0 then \"Buzz\"\n        else string i ]"
+        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm wrongAtThree) problem false ignore).Result
+        Assert.True(attempt.Validated, attempt.ValidationOutput)
+
 module BenchmarkProvenanceTests =
 
     open System

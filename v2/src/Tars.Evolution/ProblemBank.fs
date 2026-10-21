@@ -28,7 +28,12 @@ module ProblemBank =
                 "")
 
           withExamples
-            [ "fizzBuzz 15 = [\"1\"; \"2\"; \"Fizz\"; \"4\"; \"Buzz\"; \"Fizz\"; \"7\"; \"8\"; \"Fizz\"; \"Buzz\"; \"11\"; \"Fizz\"; \"13\"; \"14\"; \"FizzBuzz\"]" ]
+            [ "(fizzBuzz 15).Length = 15"
+              "(fizzBuzz 15).[0] = \"1\""
+              "(fizzBuzz 15).[1] = \"2\""
+              "(fizzBuzz 15).[2] = \"Fizz\""
+              "(fizzBuzz 15).[4] = \"Buzz\""
+              "(fizzBuzz 15).[14] = \"FizzBuzz\"" ]
             (mkProblem "basic-fizzbuzz" "FizzBuzz"
                 "Write a function that returns a list of strings for numbers 1 to n. For multiples of 3 return Fizz, for multiples of 5 return Buzz, for multiples of both return FizzBuzz, otherwise return the number as a string."
                 Beginner Algorithms "let fizzBuzz (n: int) : string list"
