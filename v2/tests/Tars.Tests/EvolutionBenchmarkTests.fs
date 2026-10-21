@@ -259,6 +259,25 @@ module EvolutionBenchmarkTests =
         let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm acceptedBefore.[id]) problem false ignore).Result
         Assert.True(attempt.Validated, $"{id}: {attempt.ValidationOutput}")
 
+    /// Solutions whose first call is wrong and later calls right. The ValidationCode of these
+    /// problems checked one result, fizzBuzz 15's, matMul's or fib 40's, so it rejected them.
+    let private firstCallWrong =
+        Map.ofList
+            [ "basic-fizzbuzz", "let mutable calls = 0\nlet fizzBuzz (n: int) : string list =\n    calls <- calls + 1\n    [ for i in 1 .. n ->\n        if calls = 1 then \"wrong\"\n        elif i % 15 = 0 then \"FizzBuzz\"\n        elif i % 3 = 0 then \"Fizz\"\n        elif i % 5 = 0 then \"Buzz\"\n        else string i ]"
+              "adv-matrix-multiply", "let mutable calls = 0\nlet matMul (a: float[,]) (b: float[,]) : float[,] =\n    calls <- calls + 1\n    Array2D.init (Array2D.length1 a) (Array2D.length2 b) (fun i j ->\n        if calls = 1 && (i, j) <> (0, 0) then 0.0\n        else Seq.sum (seq { for k in 0 .. Array2D.length2 a - 1 -> a.[i, k] * b.[k, j] }))"
+              "exp-memoize", "let memoize (f: 'a -> 'b) : ('a -> 'b) =\n    let cache = System.Collections.Generic.Dictionary<'a, 'b>()\n    fun x ->\n        match cache.TryGetValue x with\n        | true, v -> v\n        | _ ->\n            let v = f x\n            cache.[x] <- v\n            v\nlet rec right : int -> int64 =\n    memoize (fun n -> if n < 2 then int64 n else right (n - 1) + right (n - 2))\nlet mutable fortyCalls = 0\nlet fib (n: int) : int64 =\n    if n = 40 then fortyCalls <- fortyCalls + 1\n    if n = 40 && fortyCalls = 1 then 0L else right n" ]
+
+    // Where the ValidationCode checked several things of one result, one example checks them on
+    // one call, so a solution cannot answer each check with another call.
+    [<Theory>]
+    [<InlineData("basic-fizzbuzz")>]
+    [<InlineData("adv-matrix-multiply")>]
+    [<InlineData("exp-memoize")>]
+    let ``a solution whose first call is wrong is not validated where one result was checked`` (id: string) =
+        let problem = ProblemBank.tryFind id |> Option.get
+        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm firstCallWrong.[id]) problem false ignore).Result
+        Assert.False(attempt.Validated, $"{id}: {attempt.ValidationOutput}")
+
 module BenchmarkProvenanceTests =
 
     open System

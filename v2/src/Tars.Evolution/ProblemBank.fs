@@ -28,12 +28,7 @@ module ProblemBank =
                 "")
 
           withExamples
-            [ "(fizzBuzz 15).Length = 15"
-              "(fizzBuzz 15).[0] = \"1\""
-              "(fizzBuzz 15).[1] = \"2\""
-              "(fizzBuzz 15).[2] = \"Fizz\""
-              "(fizzBuzz 15).[4] = \"Buzz\""
-              "(fizzBuzz 15).[14] = \"FizzBuzz\"" ]
+            [ "(let r = fizzBuzz 15 in (r.Length, r.[0], r.[1], r.[2], r.[4], r.[14])) = (15, \"1\", \"2\", \"Fizz\", \"Buzz\", \"FizzBuzz\")" ]
             (mkProblem "basic-fizzbuzz" "FizzBuzz"
                 "Write a function that returns a list of strings for numbers 1 to n. For multiples of 3 return Fizz, for multiples of 5 return Buzz, for multiples of both return FizzBuzz, otherwise return the number as a string."
                 Beginner Algorithms "let fizzBuzz (n: int) : string list"
@@ -175,10 +170,7 @@ module ProblemBank =
                 "")
 
           withExamples
-            [ "(matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]])).[0, 0] = 19.0"
-              "(matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]])).[0, 1] = 22.0"
-              "(matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]])).[1, 0] = 43.0"
-              "(matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]])).[1, 1] = 50.0" ]
+            [ "(let c = matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]]) in (c.[0, 0], c.[0, 1], c.[1, 0], c.[1, 1])) = (19.0, 22.0, 43.0, 50.0)" ]
             (mkProblem "adv-matrix-multiply" "Matrix Multiplication"
                 "Implement matrix multiplication for two 2D float arrays. Return the product matrix."
                 Advanced Algorithms "let matMul (a: float[,]) (b: float[,]) : float[,]"
@@ -226,9 +218,8 @@ module ProblemBank =
               "fib 1 = 1L"
               "fib 10 = 55L"
               "fib 30 = 832040L"
-              // The first call of fib 40 is the timed one, so no earlier call has filled the cache.
-              "(let sw = global.System.Diagnostics.Stopwatch.StartNew() in global.Microsoft.FSharp.Core.Operators.ignore (fib 40); global.Microsoft.FSharp.Core.Operators.(<=) sw.ElapsedMilliseconds 1000L)"
-              "fib 40 = 102334155L" ]
+              // One call of fib 40, its first, is both timed and checked.
+              "(let sw = global.System.Diagnostics.Stopwatch.StartNew() in let r = fib 40 in (r, global.Microsoft.FSharp.Core.Operators.(<=) sw.ElapsedMilliseconds 1000L)) = (102334155L, true)" ]
             (mkProblem "exp-memoize" "Generic Memoization"
                 "Write a generic memoize function that caches results. Use it to memoize a recursive Fibonacci function."
                 Expert TypeDesign "let memoize (f: 'a -> 'b) : ('a -> 'b)\nlet fib : int -> int64"
