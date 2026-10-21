@@ -190,19 +190,26 @@ module ExampleCheck =
     /// Runs an F# script with dotnet fsi and `options` (such as "--typecheck-only "), in a temporary
     /// directory, with no input, for at most `timeout`. Ok with what it printed when it exits with 0;
     /// otherwise Error with what went wrong.
-    /// System is opened first: the model writes Char or String.IsNullOrEmpty without opening it.
+    /// With `openSystem`, System is opened first: the model writes Char or String.IsNullOrEmpty
+    /// without opening it.
     /// A leading namespace or top-level module cannot follow that open, but fsi rejects both
     /// anyway, and scriptOfAnswer has already dropped the first and turned the second into
     /// `module X =`, which can. The #line directive keeps error positions on the lines of the
     /// script itself.
-    let private runFsiWith (options: string) (timeout: TimeSpan) (script: string) : Task<Result<string, string>> =
+    let private runFsiWith
+        (openSystem: bool)
+        (options: string)
+        (timeout: TimeSpan)
+        (script: string)
+        : Task<Result<string, string>> =
         task {
             let dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "tars-evolve-run", Guid.NewGuid().ToString("N"))
             System.IO.Directory.CreateDirectory dir |> ignore
             let path = System.IO.Path.Combine(dir, "answer.fsx")
 
             try
-                System.IO.File.WriteAllText(path, "open System\n#line 1 \"answer.fsx\"\n" + script)
+                let opening = if openSystem then "open System\n" else ""
+                System.IO.File.WriteAllText(path, opening + "#line 1 \"answer.fsx\"\n" + script)
                 let psi = System.Diagnostics.ProcessStartInfo("dotnet", $"fsi {options}\"{path}\"")
                 psi.WorkingDirectory <- dir
                 psi.RedirectStandardInput <- true
@@ -249,7 +256,7 @@ module ExampleCheck =
                     ()
         }
 
-    let private runFsi timeout script = runFsiWith "" timeout script
+    let private runFsi timeout script = runFsiWith true "" timeout script
 
     /// Runs an F# script as runFsi does: Ok when it exits with 0; otherwise Error with what went wrong.
     let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
@@ -587,10 +594,12 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     /// When the expected values do not compute without the code, the code's process runs the
     /// checks itself, which end by printing a mark, since fsi also exits with 0 when the code
     /// calls `exit 0`. The code can read that mark from its script, so there a failure counts and
-    /// a pass does not. The code's process has at most `codeTimeout` of the deadline.
+    /// a pass does not. The code's process has at most `codeTimeout` of the deadline, and the
+    /// processes open System first when `openSystem`.
     let runWithExamplesWithin
         (timeout: TimeSpan)
         (codeTimeout: TimeSpan)
+        (openSystem: bool)
         (script: string)
         (examples: string list)
         : Task<ExampleRun> =
@@ -613,6 +622,7 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
             let started = System.Diagnostics.Stopwatch.StartNew()
             let left () = max TimeSpan.Zero (timeout - started.Elapsed)
             let codeLeft () = min (left ()) codeTimeout
+            let runFsi timeout script = runFsiWith openSystem "" timeout script
 
             let compileErrorIn (file: string) (errors: string) =
                 System.Text.RegularExpressions.Regex.IsMatch(
@@ -636,6 +646,7 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
             // nothing else starts.
             let! typed =
                 runFsiWith
+                    openSystem
                     "--typecheck-only --preferreduilang:en-US "
                     (left ())
                     (beforeAnswer + withExamples checks + "\n#line 1 \"types.fsx\"\n" + typeProbe mark pairs)
@@ -694,9 +705,9 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                 | Result.Error errors, _ -> return fromErrors errors
         }
 
-    /// runWithExamplesWithin, where the code's process may take the whole deadline.
+    /// runWithExamplesWithin, where the code's process may take the whole deadline, with System open.
     let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
-        runWithExamplesWithin timeout timeout script examples
+        runWithExamplesWithin timeout timeout true script examples
 
     /// The evaluation an examples run gives: None when the examples say nothing about the code.
     let verdictOfExamples (count: int) (run: ExampleRun) : EvaluationResult option =

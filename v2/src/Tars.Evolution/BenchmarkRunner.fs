@@ -263,7 +263,8 @@ Do not use 'open' statements — write self-contained code."""
     /// ValidationCode in the solution's process (compileAndValidate). Examples that do not compile
     /// against the solution count as a compile failure, as that ValidationCode would, so the
     /// solver is retried. Examples that could not be compared do not validate it. The solution's
-    /// process has 30 s, as in compileAndValidate, of the 60 s the examples' processes share.
+    /// process has 30 s, as in compileAndValidate, of the 60 s the examples' processes share, and
+    /// System is not opened for it, as compileAndValidate did not.
     let private validate (solutionCode: string) (problem: BenchmarkProblem) : Task<bool * bool * string list * string> =
         if problem.Examples.IsEmpty then
             compileAndValidate solutionCode problem.ValidationCode
@@ -273,6 +274,7 @@ Do not use 'open' statements — write self-contained code."""
                     ExampleCheck.runWithExamplesWithin
                         (TimeSpan.FromSeconds 60.0)
                         (TimeSpan.FromSeconds 30.0)
+                        false
                         solutionCode
                         problem.Examples
 

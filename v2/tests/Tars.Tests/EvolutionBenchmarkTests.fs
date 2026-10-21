@@ -288,6 +288,16 @@ module EvolutionBenchmarkTests =
         let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm slow) problem false ignore).Result
         Assert.False(attempt.Validated, attempt.ValidationOutput)
 
+    // compileAndValidate did not open System for the solution, so the benchmark's examples do not
+    // open it either, though evolve's do.
+    [<Fact>]
+    let ``a solution that names System's types without opening System is not validated`` () =
+        let problem = ProblemBank.tryFind "basic-reverse-string" |> Option.get
+        let unopened =
+            "let reverse (s: string) : string = s.ToCharArray() |> Array.rev |> Array.map Char.ToString |> String.concat \"\""
+        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm unopened) problem false ignore).Result
+        Assert.False(attempt.Validated, attempt.ValidationOutput)
+
 module BenchmarkProvenanceTests =
 
     open System
