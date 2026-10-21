@@ -264,7 +264,8 @@ Do not use 'open' statements — write self-contained code."""
     /// against the solution count as a compile failure, as that ValidationCode would, so the
     /// solver is retried. Examples that could not be compared do not validate it. The solution's
     /// process has 30 s, as in compileAndValidate, of the 60 s the examples' processes share, and
-    /// System is not opened for it, as compileAndValidate did not.
+    /// System is not opened for it, as compileAndValidate did not. A timeout counts as a compile
+    /// failure, as there, so the solver is retried.
     let private validate (solutionCode: string) (problem: BenchmarkProblem) : Task<bool * bool * string list * string> =
         if problem.Examples.IsEmpty then
             compileAndValidate solutionCode problem.ValidationCode
@@ -281,6 +282,8 @@ Do not use 'open' statements — write self-contained code."""
                 match run with
                 | ExampleCheck.ExamplesPassed -> return true, true, [], "PASS"
                 | ExampleCheck.ExampleFailed failure -> return true, false, [], failure
+                | ExampleCheck.CodeFailed errors when ExampleCheck.timedOut errors ->
+                    return false, false, [ "error FS0000: Process timed out after 30 seconds" ], errors
                 | ExampleCheck.CodeFailed errors ->
                     let compileErrors =
                         errors.Split([| '\n' |])

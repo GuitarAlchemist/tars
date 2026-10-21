@@ -187,6 +187,9 @@ module ExampleCheck =
 
     open System.Threading
 
+    /// How runFsiWith's error starts when the script did not finish in time.
+    let private notFinished = "It did not finish within"
+
     /// Runs an F# script with dotnet fsi and `options` (such as "--typecheck-only "), in a temporary
     /// directory, with no input, for at most `timeout`. Ok with what it printed when it exits with 0;
     /// otherwise Error with what went wrong.
@@ -248,7 +251,7 @@ module ExampleCheck =
                     with _ ->
                         ()
 
-                    return Result.Error $"It did not finish within {timeout.TotalSeconds:F0} s."
+                    return Result.Error $"{notFinished} {timeout.TotalSeconds:F0} s."
             finally
                 try
                     System.IO.Directory.Delete(dir, true)
@@ -257,6 +260,10 @@ module ExampleCheck =
         }
 
     let private runFsi timeout script = runFsiWith true "" timeout script
+
+    /// Whether a run's errors say that it did not finish in time.
+    let timedOut (errors: string) =
+        errors.StartsWith(notFinished, StringComparison.Ordinal)
 
     /// Runs an F# script as runFsi does: Ok when it exits with 0; otherwise Error with what went wrong.
     let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =

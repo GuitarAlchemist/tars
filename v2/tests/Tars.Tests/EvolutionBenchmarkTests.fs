@@ -298,6 +298,22 @@ module EvolutionBenchmarkTests =
         let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm unopened) problem false ignore).Result
         Assert.False(attempt.Validated, attempt.ValidationOutput)
 
+    // compileAndValidate counted a timeout as a compile failure, so the solver was retried. This
+    // solution sleeps on its first run only, so the retry passes.
+    [<Fact>]
+    let ``a solution that times out is retried`` () =
+        let problem = ProblemBank.tryFind "basic-reverse-string" |> Option.get
+        let marker = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"tars-timeout-{Guid.NewGuid():N}")
+
+        let slowOnce =
+            $"if not (System.IO.File.Exists @\"{marker}\") then\n    System.IO.File.WriteAllText(@\"{marker}\", \"\")\n    System.Threading.Thread.Sleep 35000\nlet reverse (s: string) : string = System.String(Array.rev (s.ToCharArray()))"
+
+        try
+            let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm slowOnce) problem true ignore).Result
+            Assert.True(attempt.Validated, attempt.ValidationOutput)
+        finally
+            System.IO.File.Delete marker
+
 module BenchmarkProvenanceTests =
 
     open System
