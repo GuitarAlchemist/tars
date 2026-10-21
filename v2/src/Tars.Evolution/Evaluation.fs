@@ -587,8 +587,13 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     /// When the expected values do not compute without the code, the code's process runs the
     /// checks itself, which end by printing a mark, since fsi also exits with 0 when the code
     /// calls `exit 0`. The code can read that mark from its script, so there a failure counts and
-    /// a pass does not.
-    let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
+    /// a pass does not. The code's process has at most `codeTimeout` of the deadline.
+    let runWithExamplesWithin
+        (timeout: TimeSpan)
+        (codeTimeout: TimeSpan)
+        (script: string)
+        (examples: string list)
+        : Task<ExampleRun> =
         task {
             let mark = Guid.NewGuid().ToString("N")
 
@@ -607,6 +612,7 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
 
             let started = System.Diagnostics.Stopwatch.StartNew()
             let left () = max TimeSpan.Zero (timeout - started.Elapsed)
+            let codeLeft () = min (left ()) codeTimeout
 
             let compileErrorIn (file: string) (errors: string) =
                 System.Text.RegularExpressions.Regex.IsMatch(
@@ -676,8 +682,8 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                         // code redefined.
                         let values =
                             withExamples (valueLines (List.map2 (fun (call, _) t -> $"({call}) : {t}") pairs types))
-                        runFsi (left ()) (beforeAnswer + values)
-                    | _ -> runFsi (left ()) (withExamples checks)
+                        runFsi (codeLeft ()) (beforeAnswer + values)
+                    | _ -> runFsi (codeLeft ()) (withExamples checks)
 
                 match run, expected with
                 | Result.Ok output, Result.Ok expectedOutput ->
@@ -687,6 +693,10 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                 | Result.Ok _, Result.Error _ -> return CodeFailed endedEarly
                 | Result.Error errors, _ -> return fromErrors errors
         }
+
+    /// runWithExamplesWithin, where the code's process may take the whole deadline.
+    let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
+        runWithExamplesWithin timeout timeout script examples
 
     /// The evaluation an examples run gives: None when the examples say nothing about the code.
     let verdictOfExamples (count: int) (run: ExampleRun) : EvaluationResult option =

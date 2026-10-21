@@ -262,13 +262,19 @@ Do not use 'open' statements — write self-contained code."""
     /// their expected values are computed without it. A problem without examples runs its
     /// ValidationCode in the solution's process (compileAndValidate). Examples that do not compile
     /// against the solution count as a compile failure, as that ValidationCode would, so the
-    /// solver is retried. Examples that could not be compared do not validate it.
+    /// solver is retried. Examples that could not be compared do not validate it. The solution's
+    /// process has 30 s, as in compileAndValidate, of the 60 s the examples' processes share.
     let private validate (solutionCode: string) (problem: BenchmarkProblem) : Task<bool * bool * string list * string> =
         if problem.Examples.IsEmpty then
             compileAndValidate solutionCode problem.ValidationCode
         else
             task {
-                let! run = ExampleCheck.runWithExamples (TimeSpan.FromSeconds 60.0) solutionCode problem.Examples
+                let! run =
+                    ExampleCheck.runWithExamplesWithin
+                        (TimeSpan.FromSeconds 60.0)
+                        (TimeSpan.FromSeconds 30.0)
+                        solutionCode
+                        problem.Examples
 
                 match run with
                 | ExampleCheck.ExamplesPassed -> return true, true, [], "PASS"

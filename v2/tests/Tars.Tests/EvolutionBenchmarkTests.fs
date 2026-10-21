@@ -278,6 +278,16 @@ module EvolutionBenchmarkTests =
         let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm firstCallWrong.[id]) problem false ignore).Result
         Assert.False(attempt.Validated, $"{id}: {attempt.ValidationOutput}")
 
+    // compileAndValidate killed the solution's process after 30 s. The examples' processes share
+    // 60 s, and the solution's own process keeps its 30 s. This one sleeps once, before its calls.
+    [<Fact>]
+    let ``a solution whose run takes more than 30 s is not validated`` () =
+        let problem = ProblemBank.tryFind "basic-reverse-string" |> Option.get
+        let slow =
+            "System.Threading.Thread.Sleep 35000\nlet reverse (s: string) : string = System.String(Array.rev (s.ToCharArray()))"
+        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm slow) problem false ignore).Result
+        Assert.False(attempt.Validated, attempt.ValidationOutput)
+
 module BenchmarkProvenanceTests =
 
     open System
