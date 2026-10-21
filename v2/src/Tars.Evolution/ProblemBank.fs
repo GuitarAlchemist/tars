@@ -175,7 +175,10 @@ module ProblemBank =
                 "")
 
           withExamples
-            [ "matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]]) = array2D [[19.0; 22.0]; [43.0; 50.0]]" ]
+            [ "(matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]])).[0, 0] = 19.0"
+              "(matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]])).[0, 1] = 22.0"
+              "(matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]])).[1, 0] = 43.0"
+              "(matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]])).[1, 1] = 50.0" ]
             (mkProblem "adv-matrix-multiply" "Matrix Multiplication"
                 "Implement matrix multiplication for two 2D float arrays. Return the product matrix."
                 Advanced Algorithms "let matMul (a: float[,]) (b: float[,]) : float[,]"
@@ -189,7 +192,7 @@ module ProblemBank =
     let private expertProblems =
         [ withExamples
             [ "result { let! x = Ok 5 in let! y = Ok x in return y + 1 } = Ok 6"
-              "result { let! x = Error \"division by zero\" in return x + 1 } = Error \"division by zero\"" ]
+              "global.Microsoft.FSharp.Core.Result.isError (result { let! x = Error \"division by zero\" in return x + 1 })" ]
             (mkProblem "exp-result-ce" "Result Computation Expression"
                 "Implement a computation expression builder for Result<'T, string> that supports let!, return, and return!. Bind should short-circuit on Error."
                 Expert TypeDesign "type ResultBuilder() = ...\nlet result = ResultBuilder()"
@@ -224,7 +227,7 @@ module ProblemBank =
               "fib 10 = 55L"
               "fib 30 = 832040L"
               // The first call of fib 40 is the timed one, so no earlier call has filled the cache.
-              "(let sw = global.System.Diagnostics.Stopwatch.StartNew() in global.Microsoft.FSharp.Core.Operators.ignore (fib 40); global.Microsoft.FSharp.Core.Operators.(<) sw.ElapsedMilliseconds 1000L)"
+              "(let sw = global.System.Diagnostics.Stopwatch.StartNew() in global.Microsoft.FSharp.Core.Operators.ignore (fib 40); global.Microsoft.FSharp.Core.Operators.(<=) sw.ElapsedMilliseconds 1000L)"
               "fib 40 = 102334155L" ]
             (mkProblem "exp-memoize" "Generic Memoization"
                 "Write a generic memoize function that caches results. Use it to memoize a recursive Fibonacci function."

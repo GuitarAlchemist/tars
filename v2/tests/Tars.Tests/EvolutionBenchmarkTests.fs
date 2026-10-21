@@ -239,15 +239,25 @@ module EvolutionBenchmarkTests =
         let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm referenceSolutions.[id]) problem false ignore).Result
         Assert.True(attempt.Validated, $"{id}: {attempt.ValidationOutput}")
 
-    // The examples accept what the ValidationCode accepted, so results stay comparable: it checked
-    // fizzBuzz 15's length and its elements 0, 1, 2, 4 and 14, not the others.
-    [<Fact>]
-    let ``fizzbuzz's examples check what its ValidationCode checked`` () =
-        let problem = ProblemBank.tryFind "basic-fizzbuzz" |> Option.get
-        let wrongAtThree =
-            "let fizzBuzz (n: int) : string list =\n    [ for i in 1 .. n ->\n        if i = 4 then \"four\"\n        elif i % 15 = 0 then \"FizzBuzz\"\n        elif i % 3 = 0 then \"Fizz\"\n        elif i % 5 = 0 then \"Buzz\"\n        else string i ]"
-        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm wrongAtThree) problem false ignore).Result
-        Assert.True(attempt.Validated, attempt.ValidationOutput)
+    /// Solutions wrong only where a problem's ValidationCode did not look, which it accepted:
+    /// fizzBuzz 15's element 3, the cells of matMul's result past the four it checked, and the
+    /// error a failed result CE gives, where it checked only that there was one.
+    let private acceptedBefore =
+        Map.ofList
+            [ "basic-fizzbuzz", "let fizzBuzz (n: int) : string list =\n    [ for i in 1 .. n ->\n        if i = 4 then \"four\"\n        elif i % 15 = 0 then \"FizzBuzz\"\n        elif i % 3 = 0 then \"Fizz\"\n        elif i % 5 = 0 then \"Buzz\"\n        else string i ]"
+              "adv-matrix-multiply", "let matMul (a: float[,]) (b: float[,]) : float[,] =\n    Array2D.init (Array2D.length1 a + 1) (Array2D.length2 b + 1) (fun i j ->\n        if i < Array2D.length1 a && j < Array2D.length2 b then\n            Seq.sum (seq { for k in 0 .. Array2D.length2 a - 1 -> a.[i, k] * b.[k, j] })\n        else 0.0)"
+              "exp-result-ce", "type ResultBuilder() =\n    member _.Bind(m, f) = match m with Ok x -> f x | Error _ -> Error \"failed\"\n    member _.Return x = Ok x\nlet result = ResultBuilder()" ]
+
+    // The examples accept what the ValidationCode accepted, so results stay comparable with
+    // earlier runs.
+    [<Theory>]
+    [<InlineData("basic-fizzbuzz")>]
+    [<InlineData("adv-matrix-multiply")>]
+    [<InlineData("exp-result-ce")>]
+    let ``a problem's examples accept what its ValidationCode accepted`` (id: string) =
+        let problem = ProblemBank.tryFind id |> Option.get
+        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm acceptedBefore.[id]) problem false ignore).Result
+        Assert.True(attempt.Validated, $"{id}: {attempt.ValidationOutput}")
 
 module BenchmarkProvenanceTests =
 
