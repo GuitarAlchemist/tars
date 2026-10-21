@@ -22,6 +22,7 @@ module GaProblemBank =
           Hints = hints
           TimeLimitSeconds = 45
           ValidationCode = validation
+          Examples = []
           PerfHarness = None
           Properties = None }
 
