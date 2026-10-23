@@ -188,6 +188,132 @@ module EvolutionBenchmarkTests =
 
         Assert.False((attemptOnReverse readsTheExpected).Validated)
 
+    /// A right solution to each problem whose examples are compared outside the solution's process.
+    let private referenceSolutions =
+        Map.ofList
+            [ "basic-reverse-string", "let reverse (s: string) : string = System.String(Array.rev (s.ToCharArray()))"
+              "basic-fizzbuzz", "let fizzBuzz (n: int) : string list =\n    [ for i in 1 .. n ->\n        if i % 15 = 0 then \"FizzBuzz\"\n        elif i % 3 = 0 then \"Fizz\"\n        elif i % 5 = 0 then \"Buzz\"\n        else string i ]"
+              "basic-count-vowels", "let countVowels (s: string) : int =\n    s |> Seq.filter (fun c -> \"aeiouAEIOU\".Contains c) |> Seq.length"
+              "basic-palindrome", "let isPalindrome (s: string) : bool =\n    let t = s.ToLower().Replace(\" \", \"\")\n    t = System.String(Array.rev (t.ToCharArray()))"
+              "basic-max-element", "let findMax (xs: int list) : int = List.reduce max xs"
+              "inter-binary-search", "let binarySearch (arr: int[]) (target: int) : int option =\n    let rec go lo hi =\n        if lo > hi then None\n        else\n            let mid = (lo + hi) / 2\n            if arr.[mid] = target then Some mid\n            elif arr.[mid] < target then go (mid + 1) hi\n            else go lo (mid - 1)\n    go 0 (arr.Length - 1)"
+              "inter-flatten", "let flatten (xss: 'a list list) : 'a list = List.concat xss"
+              "inter-safe-divide", "let safeDivide (a: float) (b: float) : Result<float, string> =\n    if b = 0.0 then Error \"division by zero\" else Ok (a / b)"
+              "inter-group-by", "let groupByKey (items: (string * int) list) : Map<string, int list> =\n    items |> List.groupBy fst |> List.map (fun (k, vs) -> k, List.map snd vs) |> Map.ofList"
+              "inter-roman-numerals", "let toRoman (n: int) : string =\n    let table = [ 1000, \"M\"; 900, \"CM\"; 500, \"D\"; 400, \"CD\"; 100, \"C\"; 90, \"XC\"; 50, \"L\"; 40, \"XL\"; 10, \"X\"; 9, \"IX\"; 5, \"V\"; 4, \"IV\"; 1, \"I\" ]\n    let rec go n acc table =\n        match table with\n        | [] -> acc\n        | (v, s) :: rest -> if n >= v then go (n - v) (acc + s) table else go n acc rest\n    go n \"\" table"
+              "adv-merge-sort", "let mergeSort (xs: int list) : int list = List.sort xs"
+              "adv-balanced-parens", "let isBalanced (s: string) : bool =\n    let rec go stack chars =\n        match chars with\n        | [] -> List.isEmpty stack\n        | c :: rest ->\n            match c with\n            | '(' | '[' | '{' -> go (c :: stack) rest\n            | ')' | ']' | '}' ->\n                let opening = if c = ')' then '(' elif c = ']' then '[' else '{'\n                match stack with\n                | top :: below when top = opening -> go below rest\n                | _ -> false\n            | _ -> go stack rest\n    go [] (List.ofSeq s)"
+              "adv-eval-rpn", "let evalRPN (tokens: string list) : int =\n    let step stack token =\n        match token, stack with\n        | \"+\", b :: a :: rest -> a + b :: rest\n        | \"-\", b :: a :: rest -> a - b :: rest\n        | \"*\", b :: a :: rest -> a * b :: rest\n        | \"/\", b :: a :: rest -> a / b :: rest\n        | n, _ -> int n :: stack\n    List.fold step [] tokens |> List.head"
+              "adv-matrix-multiply", "let matMul (a: float[,]) (b: float[,]) : float[,] =\n    Array2D.init (Array2D.length1 a) (Array2D.length2 b) (fun i j ->\n        Seq.sum (seq { for k in 0 .. Array2D.length2 a - 1 -> a.[i, k] * b.[k, j] }))"
+              "exp-result-ce", "type ResultBuilder() =\n    member _.Bind(m, f) = Result.bind f m\n    member _.Return x = Ok x\n    member _.ReturnFrom m = m\nlet result = ResultBuilder()"
+              "exp-active-pattern", "let (|Int|Float|Word|) (s: string) =\n    match System.Int32.TryParse s with\n    | true, _ -> Int\n    | _ ->\n        match System.Double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture) with\n        | true, _ -> Float\n        | _ -> Word\nlet classify (s: string) : string =\n    match s with\n    | Int -> \"int\"\n    | Float -> \"float\"\n    | Word -> \"word\""
+              "exp-graph-cycle", "let hasCycle (graph: Map<int, int list>) : bool =\n    let rec visit (path: Set<int>) (node: int) =\n        path.Contains node\n        || (graph |> Map.tryFind node |> Option.defaultValue [] |> List.exists (visit (path.Add node)))\n    graph |> Map.exists (fun node _ -> visit Set.empty node)"
+              "exp-memoize", "let memoize (f: 'a -> 'b) : ('a -> 'b) =\n    let cache = System.Collections.Generic.Dictionary<'a, 'b>()\n    fun x ->\n        match cache.TryGetValue x with\n        | true, v -> v\n        | _ ->\n            let v = f x\n            cache.[x] <- v\n            v\nlet rec fib : int -> int64 =\n    memoize (fun n -> if n < 2 then int64 n else fib (n - 1) + fib (n - 2))"
+              "inter-perf-sum-squares", "let sumSquares (xs: float[]) : float = Array.fold (fun acc x -> acc + x * x) 0.0 xs" ]
+
+    // Each of these problems is checked by examples, the cases its ValidationCode checked, and
+    // a right solution to it is validated.
+    [<Theory>]
+    [<InlineData("basic-reverse-string")>]
+    [<InlineData("basic-fizzbuzz")>]
+    [<InlineData("basic-count-vowels")>]
+    [<InlineData("basic-palindrome")>]
+    [<InlineData("basic-max-element")>]
+    [<InlineData("inter-binary-search")>]
+    [<InlineData("inter-flatten")>]
+    [<InlineData("inter-safe-divide")>]
+    [<InlineData("inter-group-by")>]
+    [<InlineData("inter-roman-numerals")>]
+    [<InlineData("adv-merge-sort")>]
+    [<InlineData("adv-balanced-parens")>]
+    [<InlineData("adv-eval-rpn")>]
+    [<InlineData("adv-matrix-multiply")>]
+    [<InlineData("exp-result-ce")>]
+    [<InlineData("exp-active-pattern")>]
+    [<InlineData("exp-graph-cycle")>]
+    [<InlineData("exp-memoize")>]
+    [<InlineData("inter-perf-sum-squares")>]
+    let ``a problem with a reference solution is checked by examples and validates it`` (id: string) =
+        let problem = ProblemBank.tryFind id |> Option.get
+        Assert.False(problem.Examples.IsEmpty, $"{id} has no examples")
+        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm referenceSolutions.[id]) problem false ignore).Result
+        Assert.True(attempt.Validated, $"{id}: {attempt.ValidationOutput}")
+
+    /// Solutions wrong only where a problem's ValidationCode did not look, which it accepted:
+    /// fizzBuzz 15's element 3, the cells of matMul's result past the four it checked, and the
+    /// error a failed result CE gives, where it checked only that there was one.
+    let private acceptedBefore =
+        Map.ofList
+            [ "basic-fizzbuzz", "let fizzBuzz (n: int) : string list =\n    [ for i in 1 .. n ->\n        if i = 4 then \"four\"\n        elif i % 15 = 0 then \"FizzBuzz\"\n        elif i % 3 = 0 then \"Fizz\"\n        elif i % 5 = 0 then \"Buzz\"\n        else string i ]"
+              "adv-matrix-multiply", "let matMul (a: float[,]) (b: float[,]) : float[,] =\n    Array2D.init (Array2D.length1 a + 1) (Array2D.length2 b + 1) (fun i j ->\n        if i < Array2D.length1 a && j < Array2D.length2 b then\n            Seq.sum (seq { for k in 0 .. Array2D.length2 a - 1 -> a.[i, k] * b.[k, j] })\n        else 0.0)"
+              "exp-result-ce", "type ResultBuilder() =\n    member _.Bind(m, f) = match m with Ok x -> f x | Error _ -> Error \"failed\"\n    member _.Return x = Ok x\nlet result = ResultBuilder()" ]
+
+    // The examples accept what the ValidationCode accepted, so results stay comparable with
+    // earlier runs.
+    [<Theory>]
+    [<InlineData("basic-fizzbuzz")>]
+    [<InlineData("adv-matrix-multiply")>]
+    [<InlineData("exp-result-ce")>]
+    let ``a problem's examples accept what its ValidationCode accepted`` (id: string) =
+        let problem = ProblemBank.tryFind id |> Option.get
+        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm acceptedBefore.[id]) problem false ignore).Result
+        Assert.True(attempt.Validated, $"{id}: {attempt.ValidationOutput}")
+
+    /// Solutions whose first call is wrong and later calls right. The ValidationCode of these
+    /// problems checked one result, fizzBuzz 15's, matMul's or fib 40's, so it rejected them.
+    let private firstCallWrong =
+        Map.ofList
+            [ "basic-fizzbuzz", "let mutable calls = 0\nlet fizzBuzz (n: int) : string list =\n    calls <- calls + 1\n    [ for i in 1 .. n ->\n        if calls = 1 then \"wrong\"\n        elif i % 15 = 0 then \"FizzBuzz\"\n        elif i % 3 = 0 then \"Fizz\"\n        elif i % 5 = 0 then \"Buzz\"\n        else string i ]"
+              "adv-matrix-multiply", "let mutable calls = 0\nlet matMul (a: float[,]) (b: float[,]) : float[,] =\n    calls <- calls + 1\n    Array2D.init (Array2D.length1 a) (Array2D.length2 b) (fun i j ->\n        if calls = 1 && (i, j) <> (0, 0) then 0.0\n        else Seq.sum (seq { for k in 0 .. Array2D.length2 a - 1 -> a.[i, k] * b.[k, j] }))"
+              "exp-memoize", "let memoize (f: 'a -> 'b) : ('a -> 'b) =\n    let cache = System.Collections.Generic.Dictionary<'a, 'b>()\n    fun x ->\n        match cache.TryGetValue x with\n        | true, v -> v\n        | _ ->\n            let v = f x\n            cache.[x] <- v\n            v\nlet rec right : int -> int64 =\n    memoize (fun n -> if n < 2 then int64 n else right (n - 1) + right (n - 2))\nlet mutable fortyCalls = 0\nlet fib (n: int) : int64 =\n    if n = 40 then fortyCalls <- fortyCalls + 1\n    if n = 40 && fortyCalls = 1 then 0L else right n" ]
+
+    // Where the ValidationCode checked several things of one result, one example checks them on
+    // one call, so a solution cannot answer each check with another call.
+    [<Theory>]
+    [<InlineData("basic-fizzbuzz")>]
+    [<InlineData("adv-matrix-multiply")>]
+    [<InlineData("exp-memoize")>]
+    let ``a solution whose first call is wrong is not validated where one result was checked`` (id: string) =
+        let problem = ProblemBank.tryFind id |> Option.get
+        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm firstCallWrong.[id]) problem false ignore).Result
+        Assert.False(attempt.Validated, $"{id}: {attempt.ValidationOutput}")
+
+    // compileAndValidate killed the solution's process after 30 s. The examples' processes share
+    // 60 s, and the solution's own process keeps its 30 s. This one sleeps once, before its calls.
+    [<Fact>]
+    let ``a solution whose run takes more than 30 s is not validated`` () =
+        let problem = ProblemBank.tryFind "basic-reverse-string" |> Option.get
+        let slow =
+            "System.Threading.Thread.Sleep 35000\nlet reverse (s: string) : string = System.String(Array.rev (s.ToCharArray()))"
+        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm slow) problem false ignore).Result
+        Assert.False(attempt.Validated, attempt.ValidationOutput)
+
+    // compileAndValidate did not open System for the solution, so the benchmark's examples do not
+    // open it either, though evolve's do.
+    [<Fact>]
+    let ``a solution that names System's types without opening System is not validated`` () =
+        let problem = ProblemBank.tryFind "basic-reverse-string" |> Option.get
+        let unopened =
+            "let reverse (s: string) : string = s.ToCharArray() |> Array.rev |> Array.map Char.ToString |> String.concat \"\""
+        let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm unopened) problem false ignore).Result
+        Assert.False(attempt.Validated, attempt.ValidationOutput)
+
+    // compileAndValidate counted a timeout as a compile failure, so the solver was retried. This
+    // solution sleeps on its first run only, so the retry passes.
+    [<Fact>]
+    let ``a solution that times out is retried`` () =
+        let problem = ProblemBank.tryFind "basic-reverse-string" |> Option.get
+        let marker = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"tars-timeout-{Guid.NewGuid():N}")
+
+        let slowOnce =
+            $"if not (System.IO.File.Exists @\"{marker}\") then\n    System.IO.File.WriteAllText(@\"{marker}\", \"\")\n    System.Threading.Thread.Sleep 35000\nlet reverse (s: string) : string = System.String(Array.rev (s.ToCharArray()))"
+
+        try
+            let attempt = (BenchmarkRunner.runProblem (BenchmarkLlm slowOnce) problem true ignore).Result
+            Assert.True(attempt.Validated, attempt.ValidationOutput)
+        finally
+            System.IO.File.Delete marker
+
 module BenchmarkProvenanceTests =
 
     open System

@@ -187,22 +187,32 @@ module ExampleCheck =
 
     open System.Threading
 
+    /// How runFsiWith's error starts when the script did not finish in time.
+    let private notFinished = "It did not finish within"
+
     /// Runs an F# script with dotnet fsi and `options` (such as "--typecheck-only "), in a temporary
     /// directory, with no input, for at most `timeout`. Ok with what it printed when it exits with 0;
     /// otherwise Error with what went wrong.
-    /// System is opened first: the model writes Char or String.IsNullOrEmpty without opening it.
+    /// With `openSystem`, System is opened first: the model writes Char or String.IsNullOrEmpty
+    /// without opening it.
     /// A leading namespace or top-level module cannot follow that open, but fsi rejects both
     /// anyway, and scriptOfAnswer has already dropped the first and turned the second into
     /// `module X =`, which can. The #line directive keeps error positions on the lines of the
     /// script itself.
-    let private runFsiWith (options: string) (timeout: TimeSpan) (script: string) : Task<Result<string, string>> =
+    let private runFsiWith
+        (openSystem: bool)
+        (options: string)
+        (timeout: TimeSpan)
+        (script: string)
+        : Task<Result<string, string>> =
         task {
             let dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "tars-evolve-run", Guid.NewGuid().ToString("N"))
             System.IO.Directory.CreateDirectory dir |> ignore
             let path = System.IO.Path.Combine(dir, "answer.fsx")
 
             try
-                System.IO.File.WriteAllText(path, "open System\n#line 1 \"answer.fsx\"\n" + script)
+                let opening = if openSystem then "open System\n" else ""
+                System.IO.File.WriteAllText(path, opening + "#line 1 \"answer.fsx\"\n" + script)
                 let psi = System.Diagnostics.ProcessStartInfo("dotnet", $"fsi {options}\"{path}\"")
                 psi.WorkingDirectory <- dir
                 psi.RedirectStandardInput <- true
@@ -241,7 +251,7 @@ module ExampleCheck =
                     with _ ->
                         ()
 
-                    return Result.Error $"It did not finish within {timeout.TotalSeconds:F0} s."
+                    return Result.Error $"{notFinished} {timeout.TotalSeconds:F0} s."
             finally
                 try
                     System.IO.Directory.Delete(dir, true)
@@ -249,7 +259,11 @@ module ExampleCheck =
                     ()
         }
 
-    let private runFsi timeout script = runFsiWith "" timeout script
+    let private runFsi timeout script = runFsiWith true "" timeout script
+
+    /// Whether a run's errors say that it did not finish in time.
+    let timedOut (errors: string) =
+        errors.StartsWith(notFinished, StringComparison.Ordinal)
 
     /// Runs an F# script as runFsi does: Ok when it exits with 0; otherwise Error with what went wrong.
     let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
@@ -587,8 +601,15 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
     /// When the expected values do not compute without the code, the code's process runs the
     /// checks itself, which end by printing a mark, since fsi also exits with 0 when the code
     /// calls `exit 0`. The code can read that mark from its script, so there a failure counts and
-    /// a pass does not.
-    let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
+    /// a pass does not. The code's process has at most `codeTimeout` of the deadline, and the
+    /// processes open System first when `openSystem`.
+    let runWithExamplesWithin
+        (timeout: TimeSpan)
+        (codeTimeout: TimeSpan)
+        (openSystem: bool)
+        (script: string)
+        (examples: string list)
+        : Task<ExampleRun> =
         task {
             let mark = Guid.NewGuid().ToString("N")
 
@@ -607,6 +628,8 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
 
             let started = System.Diagnostics.Stopwatch.StartNew()
             let left () = max TimeSpan.Zero (timeout - started.Elapsed)
+            let codeLeft () = min (left ()) codeTimeout
+            let runFsi timeout script = runFsiWith openSystem "" timeout script
 
             let compileErrorIn (file: string) (errors: string) =
                 System.Text.RegularExpressions.Regex.IsMatch(
@@ -630,6 +653,7 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
             // nothing else starts.
             let! typed =
                 runFsiWith
+                    openSystem
                     "--typecheck-only --preferreduilang:en-US "
                     (left ())
                     (beforeAnswer + withExamples checks + "\n#line 1 \"types.fsx\"\n" + typeProbe mark pairs)
@@ -676,8 +700,8 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                         // code redefined.
                         let values =
                             withExamples (valueLines (List.map2 (fun (call, _) t -> $"({call}) : {t}") pairs types))
-                        runFsi (left ()) (beforeAnswer + values)
-                    | _ -> runFsi (left ()) (withExamples checks)
+                        runFsi (codeLeft ()) (beforeAnswer + values)
+                    | _ -> runFsi (codeLeft ()) (withExamples checks)
 
                 match run, expected with
                 | Result.Ok output, Result.Ok expectedOutput ->
@@ -687,6 +711,10 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
                 | Result.Ok _, Result.Error _ -> return CodeFailed endedEarly
                 | Result.Error errors, _ -> return fromErrors errors
         }
+
+    /// runWithExamplesWithin, where the code's process may take the whole deadline, with System open.
+    let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
+        runWithExamplesWithin timeout timeout true script examples
 
     /// The evaluation an examples run gives: None when the examples say nothing about the code.
     let verdictOfExamples (count: int) (run: ExampleRun) : EvaluationResult option =

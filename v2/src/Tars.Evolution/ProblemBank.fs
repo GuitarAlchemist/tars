@@ -27,122 +27,204 @@ module ProblemBank =
                 ["You can convert to char array and work with indices"] 30
                 "")
 
-          mkProblem "basic-fizzbuzz" "FizzBuzz"
-            "Write a function that returns a list of strings for numbers 1 to n. For multiples of 3 return Fizz, for multiples of 5 return Buzz, for multiples of both return FizzBuzz, otherwise return the number as a string."
-            Beginner Algorithms "let fizzBuzz (n: int) : string list"
-            ["Use List.map with pattern matching on modulo"] 30
-            "let result = fizzBuzz 15\nlet mutable passed = true\nlet check idx exp =\n    if result.[idx] <> exp then printfn \"FAIL: fizzBuzz(15).[%d] = '%s', expected '%s'\" idx result.[idx] exp; passed <- false\nif result.Length <> 15 then printfn \"FAIL: expected 15 elements, got %d\" result.Length; passed <- false\nelse\n    check 0 \"1\"\n    check 1 \"2\"\n    check 2 \"Fizz\"\n    check 4 \"Buzz\"\n    check 14 \"FizzBuzz\"\nif passed then printfn \"PASS\"\n"
+          withExamples
+            [ "(let r = fizzBuzz 15 in (r.Length, r.[0], r.[1], r.[2], r.[4], r.[14])) = (15, \"1\", \"2\", \"Fizz\", \"Buzz\", \"FizzBuzz\")" ]
+            (mkProblem "basic-fizzbuzz" "FizzBuzz"
+                "Write a function that returns a list of strings for numbers 1 to n. For multiples of 3 return Fizz, for multiples of 5 return Buzz, for multiples of both return FizzBuzz, otherwise return the number as a string."
+                Beginner Algorithms "let fizzBuzz (n: int) : string list"
+                ["Use List.map with pattern matching on modulo"] 30
+                "")
 
-          mkProblem "basic-count-vowels" "Count Vowels"
-            "Write a function that counts the number of vowels (a, e, i, o, u, case-insensitive) in a string."
-            Beginner StringManipulation "let countVowels (s: string) : int"
-            ["Use Seq.filter or fold over characters"] 30
-            "let mutable passed = true\nlet check inp exp =\n    let got = countVowels inp\n    if got <> exp then printfn \"FAIL: countVowels '%s' = %d, expected %d\" inp got exp; passed <- false\ncheck \"hello\" 2\ncheck \"AEIOU\" 5\ncheck \"rhythm\" 0\ncheck \"\" 0\nif passed then printfn \"PASS\"\n"
+          withExamples
+            [ "countVowels \"hello\" = 2"
+              "countVowels \"AEIOU\" = 5"
+              "countVowels \"rhythm\" = 0"
+              "countVowels \"\" = 0" ]
+            (mkProblem "basic-count-vowels" "Count Vowels"
+                "Write a function that counts the number of vowels (a, e, i, o, u, case-insensitive) in a string."
+                Beginner StringManipulation "let countVowels (s: string) : int"
+                ["Use Seq.filter or fold over characters"] 30
+                "")
 
-          mkProblem "basic-palindrome" "Palindrome Check"
-            "Write a function that checks if a string is a palindrome (reads the same forwards and backwards, case-insensitive, ignoring spaces)."
-            Beginner StringManipulation "let isPalindrome (s: string) : bool"
-            ["Normalize to lowercase and remove spaces first"] 30
-            "let mutable passed = true\nlet check inp exp =\n    let got = isPalindrome inp\n    if got <> exp then printfn \"FAIL: isPalindrome '%s' = %b, expected %b\" inp got exp; passed <- false\ncheck \"racecar\" true\ncheck \"hello\" false\ncheck \"\" true\ncheck \"ab\" false\nif passed then printfn \"PASS\"\n"
+          withExamples
+            [ "isPalindrome \"racecar\" = true"
+              "isPalindrome \"hello\" = false"
+              "isPalindrome \"\" = true"
+              "isPalindrome \"ab\" = false" ]
+            (mkProblem "basic-palindrome" "Palindrome Check"
+                "Write a function that checks if a string is a palindrome (reads the same forwards and backwards, case-insensitive, ignoring spaces)."
+                Beginner StringManipulation "let isPalindrome (s: string) : bool"
+                ["Normalize to lowercase and remove spaces first"] 30
+                "")
 
-          mkProblem "basic-max-element" "Find Maximum Element"
-            "Write a function that finds the maximum element in a non-empty integer list without using List.max."
-            Beginner Algorithms "let findMax (xs: int list) : int"
-            ["Use List.fold or recursion"] 30
-            "let mutable passed = true\nlet check inp exp =\n    let got = findMax inp\n    if got <> exp then printfn \"FAIL: findMax %A = %d, expected %d\" inp got exp; passed <- false\ncheck [1; 3; 2] 3\ncheck [5] 5\ncheck [-1; -5; -2] -1\ncheck [10; 20; 30; 5] 30\nif passed then printfn \"PASS\"\n" ]
+          withExamples
+            [ "findMax [1; 3; 2] = 3"
+              "findMax [5] = 5"
+              "findMax [-1; -5; -2] = -1"
+              "findMax [10; 20; 30; 5] = 30" ]
+            (mkProblem "basic-max-element" "Find Maximum Element"
+                "Write a function that finds the maximum element in a non-empty integer list without using List.max."
+                Beginner Algorithms "let findMax (xs: int list) : int"
+                ["Use List.fold or recursion"] 30
+                "") ]
 
     // =========================================================================
     // Intermediate
     // =========================================================================
 
     let private intermediateProblems =
-        [ mkProblem "inter-binary-search" "Binary Search"
-            "Implement binary search on a sorted integer array. Return Some index if found, None if not."
-            Intermediate Algorithms "let binarySearch (arr: int[]) (target: int) : int option"
-            ["Use a recursive helper with low/high bounds"] 45
-            "let mutable passed = true\nlet check arr target exp =\n    let got = binarySearch arr target\n    if got <> exp then printfn \"FAIL: binarySearch %A %d = %A, expected %A\" arr target got exp; passed <- false\ncheck [|1;3;5;7;9|] 5 (Some 2)\ncheck [|1;3;5;7;9|] 4 None\ncheck [|1;3;5;7;9|] 1 (Some 0)\ncheck [|1;3;5;7;9|] 9 (Some 4)\ncheck [||] 1 None\nif passed then printfn \"PASS\"\n"
+        [ withExamples
+            [ "binarySearch [|1; 3; 5; 7; 9|] 5 = Some 2"
+              "binarySearch [|1; 3; 5; 7; 9|] 4 = None"
+              "binarySearch [|1; 3; 5; 7; 9|] 1 = Some 0"
+              "binarySearch [|1; 3; 5; 7; 9|] 9 = Some 4"
+              "binarySearch [||] 1 = None" ]
+            (mkProblem "inter-binary-search" "Binary Search"
+                "Implement binary search on a sorted integer array. Return Some index if found, None if not."
+                Intermediate Algorithms "let binarySearch (arr: int[]) (target: int) : int option"
+                ["Use a recursive helper with low/high bounds"] 45
+                "")
 
-          mkProblem "inter-flatten" "Flatten Nested Lists"
-            "Write a function that flattens a list of lists into a single list."
-            Intermediate DataStructures "let flatten (xss: 'a list list) : 'a list"
-            ["Use List.collect or List.concat"] 30
-            "let mutable passed = true\nlet got1 = flatten [[1;2];[3;4];[5]]\nif got1 <> [1;2;3;4;5] then printfn \"FAIL: flatten [[1;2];[3;4];[5]] = %A\" got1; passed <- false\nlet got2 : int list = flatten []\nif got2 <> [] then printfn \"FAIL: flatten [] not empty\"; passed <- false\nlet got3 = flatten [[1];[];[2;3]]\nif got3 <> [1;2;3] then printfn \"FAIL: flatten [[1];[];[2;3]] = %A\" got3; passed <- false\nif passed then printfn \"PASS\"\n"
+          withExamples
+            [ "flatten [[1; 2]; [3; 4]; [5]] = [1; 2; 3; 4; 5]"
+              "flatten [] = ([]: int list)"
+              "flatten [[1]; []; [2; 3]] = [1; 2; 3]" ]
+            (mkProblem "inter-flatten" "Flatten Nested Lists"
+                "Write a function that flattens a list of lists into a single list."
+                Intermediate DataStructures "let flatten (xss: 'a list list) : 'a list"
+                ["Use List.collect or List.concat"] 30
+                "")
 
-          mkProblem "inter-safe-divide" "Safe Division with Result"
-            "Write a function that divides two floats, returning Ok result or Error message for division by zero."
-            Intermediate ErrorHandling "let safeDivide (a: float) (b: float) : Result<float, string>"
-            ["Check if b is zero, return Error with descriptive message"] 30
-            "let mutable passed = true\nmatch safeDivide 10.0 2.0 with | Ok v when abs(v - 5.0) < 0.001 -> () | other -> printfn \"FAIL: safeDivide 10.0 2.0 = %A\" other; passed <- false\nmatch safeDivide 1.0 0.0 with | Error _ -> () | other -> printfn \"FAIL: safeDivide 1.0 0.0 should be Error\" ; passed <- false\nmatch safeDivide 0.0 5.0 with | Ok v when abs(v) < 0.001 -> () | other -> printfn \"FAIL: safeDivide 0.0 5.0 = %A\" other; passed <- false\nif passed then printfn \"PASS\"\n"
+          withExamples
+            [ "safeDivide 10.0 2.0 = Ok 5.0"
+              "global.Microsoft.FSharp.Core.Result.isError (safeDivide 1.0 0.0)"
+              "safeDivide 0.0 5.0 = Ok 0.0" ]
+            (mkProblem "inter-safe-divide" "Safe Division with Result"
+                "Write a function that divides two floats, returning Ok result or Error message for division by zero."
+                Intermediate ErrorHandling "let safeDivide (a: float) (b: float) : Result<float, string>"
+                ["Check if b is zero, return Error with descriptive message"] 30
+                "")
 
-          mkProblem "inter-group-by" "Group By Key"
-            "Write a function that groups a list of (key, value) tuples into a Map where each key maps to a list of values."
-            Intermediate DataStructures "let groupByKey (items: (string * int) list) : Map<string, int list>"
-            ["Use List.groupBy or fold with Map"] 30
-            "let mutable passed = true\nlet result = groupByKey [(\"a\", 1); (\"b\", 2); (\"a\", 3); (\"b\", 4); (\"c\", 5)]\nif result.Count <> 3 then printfn \"FAIL: expected 3 groups, got %d\" result.Count; passed <- false\nlet empty = groupByKey []\nif empty.Count <> 0 then printfn \"FAIL: empty input should give empty map\"; passed <- false\nif passed then printfn \"PASS\"\n"
+          withExamples
+            [ "(groupByKey [(\"a\", 1); (\"b\", 2); (\"a\", 3); (\"b\", 4); (\"c\", 5)]).Count = 3"
+              "(groupByKey []).Count = 0" ]
+            (mkProblem "inter-group-by" "Group By Key"
+                "Write a function that groups a list of (key, value) tuples into a Map where each key maps to a list of values."
+                Intermediate DataStructures "let groupByKey (items: (string * int) list) : Map<string, int list>"
+                ["Use List.groupBy or fold with Map"] 30
+                "")
 
-          mkProblem "inter-roman-numerals" "Roman Numeral Converter"
-            "Write a function that converts an integer (1-3999) to its Roman numeral representation."
-            Intermediate Algorithms "let toRoman (n: int) : string"
-            ["Use a lookup table of (value, numeral) pairs and subtract greedily"] 45
-            "let mutable passed = true\nlet check n exp =\n    let got = toRoman n\n    if got <> exp then printfn \"FAIL: toRoman %d = '%s', expected '%s'\" n got exp; passed <- false\ncheck 1 \"I\"\ncheck 4 \"IV\"\ncheck 9 \"IX\"\ncheck 14 \"XIV\"\ncheck 42 \"XLII\"\ncheck 1994 \"MCMXCIV\"\ncheck 3999 \"MMMCMXCIX\"\nif passed then printfn \"PASS\"\n" ]
+          withExamples
+            [ "toRoman 1 = \"I\""
+              "toRoman 4 = \"IV\""
+              "toRoman 9 = \"IX\""
+              "toRoman 14 = \"XIV\""
+              "toRoman 42 = \"XLII\""
+              "toRoman 1994 = \"MCMXCIV\""
+              "toRoman 3999 = \"MMMCMXCIX\"" ]
+            (mkProblem "inter-roman-numerals" "Roman Numeral Converter"
+                "Write a function that converts an integer (1-3999) to its Roman numeral representation."
+                Intermediate Algorithms "let toRoman (n: int) : string"
+                ["Use a lookup table of (value, numeral) pairs and subtract greedily"] 45
+                "") ]
 
     // =========================================================================
     // Advanced
     // =========================================================================
 
     let private advancedProblems =
-        [ mkProblem "adv-merge-sort" "Merge Sort"
-            "Implement merge sort for an integer list. The function should return a new sorted list."
-            Advanced Algorithms "let mergeSort (xs: int list) : int list"
-            ["Split list in half, recursively sort each half, merge the two sorted halves"] 60
-            "let mutable passed = true\nlet check inp exp =\n    let got = mergeSort inp\n    if got <> exp then printfn \"FAIL: mergeSort %A = %A, expected %A\" inp got exp; passed <- false\ncheck [5;3;1;4;2] [1;2;3;4;5]\ncheck [] []\ncheck [1] [1]\ncheck [3;1;2;3;1] [1;1;2;3;3]\ncheck [10;-1;5;0] [-1;0;5;10]\nif passed then printfn \"PASS\"\n"
+        [ withExamples
+            [ "mergeSort [5; 3; 1; 4; 2] = [1; 2; 3; 4; 5]"
+              "mergeSort [] = []"
+              "mergeSort [1] = [1]"
+              "mergeSort [3; 1; 2; 3; 1] = [1; 1; 2; 3; 3]"
+              "mergeSort [10; -1; 5; 0] = [-1; 0; 5; 10]" ]
+            (mkProblem "adv-merge-sort" "Merge Sort"
+                "Implement merge sort for an integer list. The function should return a new sorted list."
+                Advanced Algorithms "let mergeSort (xs: int list) : int list"
+                ["Split list in half, recursively sort each half, merge the two sorted halves"] 60
+                "")
 
-          mkProblem "adv-balanced-parens" "Balanced Parentheses"
-            "Write a function that checks if a string has balanced parentheses, brackets, and braces. Supports (), [], {}."
-            Advanced PatternMatching "let isBalanced (s: string) : bool"
-            ["Use a stack (list). Push on open, pop and check match on close."] 45
-            "let mutable passed = true\nlet check inp exp =\n    let got = isBalanced inp\n    if got <> exp then printfn \"FAIL: isBalanced '%s' = %b, expected %b\" inp got exp; passed <- false\ncheck \"()\" true\ncheck \"()[]{}\" true\ncheck \"(]\" false\ncheck \"([{}])\" true\ncheck \"(((\" false\ncheck \"\" true\ncheck \"({)}\" false\nif passed then printfn \"PASS\"\n"
+          withExamples
+            [ "isBalanced \"()\" = true"
+              "isBalanced \"()[]{}\" = true"
+              "isBalanced \"(]\" = false"
+              "isBalanced \"([{}])\" = true"
+              "isBalanced \"(((\" = false"
+              "isBalanced \"\" = true"
+              "isBalanced \"({)}\" = false" ]
+            (mkProblem "adv-balanced-parens" "Balanced Parentheses"
+                "Write a function that checks if a string has balanced parentheses, brackets, and braces. Supports (), [], {}."
+                Advanced PatternMatching "let isBalanced (s: string) : bool"
+                ["Use a stack (list). Push on open, pop and check match on close."] 45
+                "")
 
-          mkProblem "adv-eval-rpn" "Evaluate RPN Expression"
-            "Write a function that evaluates a Reverse Polish Notation expression. Tokens are integers or operators (+, -, *, /)."
-            Advanced Algorithms "let evalRPN (tokens: string list) : int"
-            ["Use a stack. Push numbers, pop two operands for operators."] 45
-            "let mutable passed = true\nlet check tokens exp =\n    let got = evalRPN tokens\n    if got <> exp then printfn \"FAIL: evalRPN %A = %d, expected %d\" tokens got exp; passed <- false\ncheck [\"2\"; \"3\"; \"+\"] 5\ncheck [\"4\"; \"13\"; \"5\"; \"/\"; \"+\"] 6\ncheck [\"2\"; \"1\"; \"+\"; \"3\"; \"*\"] 9\nif passed then printfn \"PASS\"\n"
+          withExamples
+            [ "evalRPN [\"2\"; \"3\"; \"+\"] = 5"
+              "evalRPN [\"4\"; \"13\"; \"5\"; \"/\"; \"+\"] = 6"
+              "evalRPN [\"2\"; \"1\"; \"+\"; \"3\"; \"*\"] = 9" ]
+            (mkProblem "adv-eval-rpn" "Evaluate RPN Expression"
+                "Write a function that evaluates a Reverse Polish Notation expression. Tokens are integers or operators (+, -, *, /)."
+                Advanced Algorithms "let evalRPN (tokens: string list) : int"
+                ["Use a stack. Push numbers, pop two operands for operators."] 45
+                "")
 
-          mkProblem "adv-matrix-multiply" "Matrix Multiplication"
-            "Implement matrix multiplication for two 2D float arrays. Return the product matrix."
-            Advanced Algorithms "let matMul (a: float[,]) (b: float[,]) : float[,]"
-            ["Result[i,j] = sum of a[i,k] * b[k,j] for all k"] 60
-            "let mutable passed = true\nlet a = array2D [[1.0; 2.0]; [3.0; 4.0]]\nlet b = array2D [[5.0; 6.0]; [7.0; 8.0]]\nlet c = matMul a b\nif abs(c.[0,0] - 19.0) > 0.001 || abs(c.[0,1] - 22.0) > 0.001 then printfn \"FAIL: row 0\"; passed <- false\nif abs(c.[1,0] - 43.0) > 0.001 || abs(c.[1,1] - 50.0) > 0.001 then printfn \"FAIL: row 1\"; passed <- false\nif passed then printfn \"PASS\"\n" ]
+          withExamples
+            [ "(let c = matMul (array2D [[1.0; 2.0]; [3.0; 4.0]]) (array2D [[5.0; 6.0]; [7.0; 8.0]]) in (c.[0, 0], c.[0, 1], c.[1, 0], c.[1, 1])) = (19.0, 22.0, 43.0, 50.0)" ]
+            (mkProblem "adv-matrix-multiply" "Matrix Multiplication"
+                "Implement matrix multiplication for two 2D float arrays. Return the product matrix."
+                Advanced Algorithms "let matMul (a: float[,]) (b: float[,]) : float[,]"
+                ["Result[i,j] = sum of a[i,k] * b[k,j] for all k"] 60
+                "") ]
 
     // =========================================================================
     // Expert
     // =========================================================================
 
     let private expertProblems =
-        [ mkProblem "exp-result-ce" "Result Computation Expression"
-            "Implement a computation expression builder for Result<'T, string> that supports let!, return, and return!. Bind should short-circuit on Error."
-            Expert TypeDesign "type ResultBuilder() = ...\nlet result = ResultBuilder()"
-            ["Implement Bind, Return, ReturnFrom members on the builder class"] 90
-            "let mutable passed = true\nlet divide a b = if b = 0 then Error \"division by zero\" else Ok (a / b)\nlet test1 = result { let! x = divide 10 2 in let! y = divide x 1 in return y + 1 }\nif test1 <> Ok 6 then printfn \"FAIL: test1 = %A, expected Ok 6\" test1; passed <- false\nlet test2 = result { let! x = divide 10 0 in return x + 1 }\nmatch test2 with | Error _ -> () | other -> printfn \"FAIL: test2 = %A, expected Error\" other; passed <- false\nif passed then printfn \"PASS\"\n"
+        [ withExamples
+            [ "result { let! x = Ok 5 in let! y = Ok x in return y + 1 } = Ok 6"
+              "global.Microsoft.FSharp.Core.Result.isError (result { let! x = Error \"division by zero\" in return x + 1 })" ]
+            (mkProblem "exp-result-ce" "Result Computation Expression"
+                "Implement a computation expression builder for Result<'T, string> that supports let!, return, and return!. Bind should short-circuit on Error."
+                Expert TypeDesign "type ResultBuilder() = ...\nlet result = ResultBuilder()"
+                ["Implement Bind, Return, ReturnFrom members on the builder class"] 90
+                "")
 
-          mkProblem "exp-active-pattern" "Active Pattern for Parsing"
-            "Create an active pattern that parses a string as either an Int, a Float, or a Word. Use it in a classify function returning 'int', 'float', or 'word'."
-            Expert PatternMatching "let (|Int|Float|Word|) (s: string) = ...\nlet classify (s: string) : string"
-            ["Try Int32.TryParse, then Double.TryParse, else Word"] 60
-            "let mutable passed = true\nlet check inp exp =\n    let got = classify inp\n    if got <> exp then printfn \"FAIL: classify '%s' = '%s', expected '%s'\" inp got exp; passed <- false\ncheck \"42\" \"int\"\ncheck \"3.14\" \"float\"\ncheck \"hello\" \"word\"\ncheck \"-7\" \"int\"\nif passed then printfn \"PASS\"\n"
+          withExamples
+            [ "classify \"42\" = \"int\""
+              "classify \"3.14\" = \"float\""
+              "classify \"hello\" = \"word\""
+              "classify \"-7\" = \"int\"" ]
+            (mkProblem "exp-active-pattern" "Active Pattern for Parsing"
+                "Create an active pattern that parses a string as either an Int, a Float, or a Word. Use it in a classify function returning 'int', 'float', or 'word'."
+                Expert PatternMatching "let (|Int|Float|Word|) (s: string) = ...\nlet classify (s: string) : string"
+                ["Try Int32.TryParse, then Double.TryParse, else Word"] 60
+                "")
 
-          mkProblem "exp-graph-cycle" "Graph Cycle Detection"
-            "Given an adjacency list representing a directed graph, detect if the graph contains a cycle."
-            Expert Algorithms "let hasCycle (graph: Map<int, int list>) : bool"
-            ["Use DFS with a visiting set (gray nodes) and visited set (black nodes)"] 90
-            "let mutable passed = true\nlet check desc graph exp =\n    let got = hasCycle graph\n    if got <> exp then printfn \"FAIL: hasCycle (%s) = %b, expected %b\" desc got exp; passed <- false\ncheck \"simple cycle\" (Map.ofList [(1, [2]); (2, [3]); (3, [1])]) true\ncheck \"no cycle\" (Map.ofList [(1, [2]); (2, [3]); (3, [])]) false\ncheck \"self loop\" (Map.ofList [(1, [1])]) true\ncheck \"empty\" Map.empty false\nif passed then printfn \"PASS\"\n"
+          withExamples
+            [ "hasCycle (Map.ofList [(1, [2]); (2, [3]); (3, [1])]) = true"
+              "hasCycle (Map.ofList [(1, [2]); (2, [3]); (3, [])]) = false"
+              "hasCycle (Map.ofList [(1, [1])]) = true"
+              "hasCycle Map.empty = false" ]
+            (mkProblem "exp-graph-cycle" "Graph Cycle Detection"
+                "Given an adjacency list representing a directed graph, detect if the graph contains a cycle."
+                Expert Algorithms "let hasCycle (graph: Map<int, int list>) : bool"
+                ["Use DFS with a visiting set (gray nodes) and visited set (black nodes)"] 90
+                "")
 
-          mkProblem "exp-memoize" "Generic Memoization"
-            "Write a generic memoize function that caches results. Use it to memoize a recursive Fibonacci function."
-            Expert TypeDesign "let memoize (f: 'a -> 'b) : ('a -> 'b)\nlet fib : int -> int64"
-            ["Use a Dictionary for the cache. For recursive memoization, use a mutable ref."] 60
-            "let mutable passed = true\nif fib 0 <> 0L then printfn \"FAIL: fib 0\"; passed <- false\nif fib 1 <> 1L then printfn \"FAIL: fib 1\"; passed <- false\nif fib 10 <> 55L then printfn \"FAIL: fib 10 = %d\" (fib 10); passed <- false\nif fib 30 <> 832040L then printfn \"FAIL: fib 30\"; passed <- false\nlet sw = System.Diagnostics.Stopwatch.StartNew()\nlet r = fib 40\nsw.Stop()\nif r <> 102334155L then printfn \"FAIL: fib 40 = %d\" r; passed <- false\nif sw.ElapsedMilliseconds > 1000L then printfn \"FAIL: fib 40 took %dms\" sw.ElapsedMilliseconds; passed <- false\nif passed then printfn \"PASS\"\n" ]
+          withExamples
+            [ "fib 0 = 0L"
+              "fib 1 = 1L"
+              "fib 10 = 55L"
+              "fib 30 = 832040L"
+              // One call of fib 40, its first, is both timed and checked.
+              "(let sw = global.System.Diagnostics.Stopwatch.StartNew() in let r = fib 40 in (r, global.Microsoft.FSharp.Core.Operators.(<=) sw.ElapsedMilliseconds 1000L)) = (102334155L, true)" ]
+            (mkProblem "exp-memoize" "Generic Memoization"
+                "Write a generic memoize function that caches results. Use it to memoize a recursive Fibonacci function."
+                Expert TypeDesign "let memoize (f: 'a -> 'b) : ('a -> 'b)\nlet fib : int -> int64"
+                ["Use a Dictionary for the cache. For recursive memoization, use a mutable ref."] 60
+                "") ]
 
     // =========================================================================
     // Public API
@@ -170,19 +252,17 @@ module ProblemBank =
         + "printfn \"ELAPSED_NS: %d\" (int64 (__median * 1_000_000.0))\n"
 
     let private perfProblems =
-        let sumSquaresValidation =
-            "let mutable passed = true\n"
-            + "let check (xs: float[]) exp =\n"
-            + "    let got = sumSquares xs\n"
-            + "    if abs (got - exp) > 1e-6 then printfn \"FAIL: sumSquares %A = %f, expected %f\" xs got exp; passed <- false\n"
-            + "check [|1.0;2.0;3.0|] 14.0\ncheck [||] 0.0\ncheck [|2.0|] 4.0\ncheck [|-3.0;4.0|] 25.0\n"
-            + "if passed then printfn \"PASS\"\n"
         let baseProblem =
-            mkProblem "inter-perf-sum-squares" "Sum of Squares (timed)"
-                "Write a function that returns the sum of the squares of all elements in a float array. It must be correct AND fast: prefer a single pass with no intermediate allocations."
-                Intermediate Algorithms "let sumSquares (xs: float[]) : float"
-                ["Fold once: Array.fold (fun acc x -> acc + x*x) 0.0 — avoid Array.map (it allocates a second array)."] 45
-                sumSquaresValidation
+            withExamples
+              [ "sumSquares [|1.0; 2.0; 3.0|] = 14.0"
+                "sumSquares [||] = 0.0"
+                "sumSquares [|2.0|] = 4.0"
+                "sumSquares [|-3.0; 4.0|] = 25.0" ]
+              (mkProblem "inter-perf-sum-squares" "Sum of Squares (timed)"
+                  "Write a function that returns the sum of the squares of all elements in a float array. It must be correct AND fast: prefer a single pass with no intermediate allocations."
+                  Intermediate Algorithms "let sumSquares (xs: float[]) : float"
+                  ["Fold once: Array.fold (fun acc x -> acc + x*x) 0.0 — avoid Array.map (it allocates a second array)."] 45
+                  "")
         [ { baseProblem with PerfHarness = Some sumSquaresHarness } ]
 
     // =========================================================================
