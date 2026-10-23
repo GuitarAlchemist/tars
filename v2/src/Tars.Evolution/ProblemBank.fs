@@ -273,159 +273,131 @@ module ProblemBank =
     let private script (lines: string list) : string = String.concat "\n" lines + "\n"
 
     /// Longer problems than the tiers above: each has several rules to get right at once.
+    // An example writes a list of one tuple as `[ (a, b) ]`: the .NET 10.0.402 SDK gives `[ a, b ]` an
+    // info FS3886, and enough of them fill the error text that ExampleCheck reads its type probe from.
     let private hardProblems =
-        [ mkProblem "hard-lru-trace" "LRU Cache Trace"
-            "Simulate a least-recently-used cache that holds at most `capacity` keys. Apply the operations in order. (\"put\", key, value) stores the value and makes the key the most recently used; when the key is new and the cache is full, the least recently used key is evicted first. (\"get\", key, _) gives the stored value, or -1 when the key is absent; a key that is present becomes the most recently used. Return the results of the get operations, in order. A cache of capacity 0 stores nothing."
-            Expert DataStructures "let lruTrace (capacity: int) (ops: (string * int * int) list) : int list"
-            [ "A put on a key that is already present changes its value and its recency, and evicts nothing." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let check (name: string) (capacity: int) (ops: (string * int * int) list) (expected: int list) ="
-                  "    let got = lruTrace capacity ops"
-                  "    if got <> expected then printfn \"FAIL: %s gave %A, expected %A\" name got expected; passed <- false"
-                  "check \"eviction\" 2 [ \"put\", 1, 1; \"put\", 2, 2; \"get\", 1, 0; \"put\", 3, 3; \"get\", 2, 0; \"put\", 4, 4; \"get\", 1, 0; \"get\", 3, 0; \"get\", 4, 0 ] [ 1; -1; -1; 3; 4 ]"
-                  "check \"update refreshes\" 2 [ \"put\", 1, 1; \"put\", 2, 2; \"put\", 1, 10; \"put\", 3, 3; \"get\", 1, 0; \"get\", 2, 0; \"get\", 3, 0 ] [ 10; -1; 3 ]"
-                  "check \"capacity 0\" 0 [ \"put\", 1, 1; \"get\", 1, 0 ] [ -1 ]"
-                  "check \"capacity 1\" 1 [ \"put\", 1, 1; \"put\", 2, 2; \"get\", 1, 0; \"get\", 2, 0 ] [ -1; 2 ]"
-                  "check \"no gets\" 3 [ \"put\", 1, 1; \"put\", 2, 2 ] []"
-                  "check \"a miss changes nothing\" 2 [ \"put\", 1, 1; \"put\", 2, 2; \"get\", 9, 0; \"put\", 3, 3; \"get\", 1, 0; \"get\", 2, 0 ] [ -1; -1; 2 ]"
-                  "check \"update when full evicts nothing\" 2 [ \"put\", 1, 1; \"put\", 2, 2; \"put\", 2, 20; \"get\", 1, 0; \"get\", 2, 0 ] [ 1; 20 ]"
-                  "if passed then printfn \"PASS\"" ])
+        [ withExamples
+            [ "lruTrace 2 [ \"put\", 1, 1; \"put\", 2, 2; \"get\", 1, 0; \"put\", 3, 3; \"get\", 2, 0; \"put\", 4, 4; \"get\", 1, 0; \"get\", 3, 0; \"get\", 4, 0 ] = [ 1; -1; -1; 3; 4 ]"
+              "lruTrace 2 [ \"put\", 1, 1; \"put\", 2, 2; \"put\", 1, 10; \"put\", 3, 3; \"get\", 1, 0; \"get\", 2, 0; \"get\", 3, 0 ] = [ 10; -1; 3 ]"
+              "lruTrace 0 [ \"put\", 1, 1; \"get\", 1, 0 ] = [ -1 ]"
+              "lruTrace 1 [ \"put\", 1, 1; \"put\", 2, 2; \"get\", 1, 0; \"get\", 2, 0 ] = [ -1; 2 ]"
+              "lruTrace 3 [ \"put\", 1, 1; \"put\", 2, 2 ] = []"
+              "lruTrace 2 [ \"put\", 1, 1; \"put\", 2, 2; \"get\", 9, 0; \"put\", 3, 3; \"get\", 1, 0; \"get\", 2, 0 ] = [ -1; -1; 2 ]"
+              "lruTrace 2 [ \"put\", 1, 1; \"put\", 2, 2; \"put\", 2, 20; \"get\", 1, 0; \"get\", 2, 0 ] = [ 1; 20 ]" ]
+            (mkProblem "hard-lru-trace" "LRU Cache Trace"
+                "Simulate a least-recently-used cache that holds at most `capacity` keys. Apply the operations in order. (\"put\", key, value) stores the value and makes the key the most recently used; when the key is new and the cache is full, the least recently used key is evicted first. (\"get\", key, _) gives the stored value, or -1 when the key is absent; a key that is present becomes the most recently used. Return the results of the get operations, in order. A cache of capacity 0 stores nothing."
+                Expert DataStructures "let lruTrace (capacity: int) (ops: (string * int * int) list) : int list"
+                [ "A put on a key that is already present changes its value and its recency, and evicts nothing." ] 30
+                "")
 
-          mkProblem "hard-dijkstra" "Cheapest Path"
-            "Find the cost of the cheapest path in a directed graph. Each edge is (from, to, weight), and weights are never negative. Return Some of the smallest total weight of a path from `source` to `target`, or None when `target` cannot be reached. A node reaches itself at cost 0. Two nodes can be joined by several edges."
-            Expert Algorithms "let shortestPath (edges: (int * int * int) list) (source: int) (target: int) : int option"
-            [ "The path with the fewest edges is not always the cheapest." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let check (name: string) (edges: (int * int * int) list) (source: int) (target: int) (expected: int option) ="
-                  "    let got = shortestPath edges source target"
-                  "    if got <> expected then printfn \"FAIL: %s gave %A, expected %A\" name got expected; passed <- false"
-                  "let g = [ 1, 2, 7; 1, 3, 9; 1, 6, 14; 2, 3, 10; 2, 4, 15; 3, 4, 11; 3, 6, 2; 4, 5, 6; 5, 6, 9 ]"
-                  "check \"1 to 5\" g 1 5 (Some 26)"
-                  "check \"1 to 6\" g 1 6 (Some 11)"
-                  "check \"against the direction\" g 6 1 None"
-                  "check \"a node to itself\" g 4 4 (Some 0)"
-                  "check \"no edges, same node\" [] 1 1 (Some 0)"
-                  "check \"no edges, other node\" [] 1 2 None"
-                  "check \"parallel edges\" [ 1, 2, 5; 1, 2, 3 ] 1 2 (Some 3)"
-                  "check \"more edges but cheaper\" [ 1, 2, 1; 2, 3, 1; 1, 3, 5; 3, 4, 1; 1, 4, 10 ] 1 4 (Some 3)"
-                  "check \"zero weights\" [ 1, 2, 0; 2, 3, 0 ] 1 3 (Some 0)"
-                  "check \"a cycle on the way\" [ 1, 2, 2; 2, 1, 2; 2, 3, 2 ] 1 3 (Some 4)"
-                  "if passed then printfn \"PASS\"" ])
+          withExamples
+            [ "shortestPath [ 1, 2, 7; 1, 3, 9; 1, 6, 14; 2, 3, 10; 2, 4, 15; 3, 4, 11; 3, 6, 2; 4, 5, 6; 5, 6, 9 ] 1 5 = (Some 26)"
+              "shortestPath [ 1, 2, 7; 1, 3, 9; 1, 6, 14; 2, 3, 10; 2, 4, 15; 3, 4, 11; 3, 6, 2; 4, 5, 6; 5, 6, 9 ] 1 6 = (Some 11)"
+              "shortestPath [ 1, 2, 7; 1, 3, 9; 1, 6, 14; 2, 3, 10; 2, 4, 15; 3, 4, 11; 3, 6, 2; 4, 5, 6; 5, 6, 9 ] 6 1 = None"
+              "shortestPath [ 1, 2, 7; 1, 3, 9; 1, 6, 14; 2, 3, 10; 2, 4, 15; 3, 4, 11; 3, 6, 2; 4, 5, 6; 5, 6, 9 ] 4 4 = (Some 0)"
+              "shortestPath [] 1 1 = (Some 0)"
+              "shortestPath [] 1 2 = None"
+              "shortestPath [ 1, 2, 5; 1, 2, 3 ] 1 2 = (Some 3)"
+              "shortestPath [ 1, 2, 1; 2, 3, 1; 1, 3, 5; 3, 4, 1; 1, 4, 10 ] 1 4 = (Some 3)"
+              "shortestPath [ 1, 2, 0; 2, 3, 0 ] 1 3 = (Some 0)"
+              "shortestPath [ 1, 2, 2; 2, 1, 2; 2, 3, 2 ] 1 3 = (Some 4)" ]
+            (mkProblem "hard-dijkstra" "Cheapest Path"
+                "Find the cost of the cheapest path in a directed graph. Each edge is (from, to, weight), and weights are never negative. Return Some of the smallest total weight of a path from `source` to `target`, or None when `target` cannot be reached. A node reaches itself at cost 0. Two nodes can be joined by several edges."
+                Expert Algorithms "let shortestPath (edges: (int * int * int) list) (source: int) (target: int) : int option"
+                [ "The path with the fewest edges is not always the cheapest." ] 30
+                "")
 
-          mkProblem "hard-topo-order" "Smallest-First Task Order"
-            "Order the tasks 0 to n-1 so that every dependency is respected. A pair (a, b) means that task a must come before task b. Whenever several tasks are ready, take the one with the smallest number, so there is exactly one right answer. Return None when the dependencies form a cycle."
-            Expert Algorithms "let topoOrder (n: int) (deps: (int * int) list) : int list option"
-            [ "A task that depends on itself is a cycle." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let check (name: string) (n: int) (deps: (int * int) list) (expected: int list option) ="
-                  "    let got = topoOrder n deps"
-                  "    if got <> expected then printfn \"FAIL: %s gave %A, expected %A\" name got expected; passed <- false"
-                  "check \"diamond\" 4 [ 1, 0; 2, 0; 3, 1; 3, 2 ] (Some [ 3; 1; 2; 0 ])"
-                  "check \"no dependencies\" 3 [] (Some [ 0; 1; 2 ])"
-                  "check \"cycle\" 3 [ 0, 1; 1, 2; 2, 0 ] None"
-                  "check \"smallest ready first\" 5 [ 4, 0; 4, 1; 3, 1 ] (Some [ 2; 3; 4; 0; 1 ])"
-                  "check \"self dependency\" 2 [ 0, 0 ] None"
-                  "check \"no tasks\" 0 [] (Some [])"
-                  "check \"duplicate pairs\" 2 [ 1, 0; 1, 0 ] (Some [ 1; 0 ])"
-                  "check \"one blocked task\" 4 [ 3, 0 ] (Some [ 1; 2; 3; 0 ])"
-                  "check \"a cycle beside free tasks\" 4 [ 1, 2; 2, 1 ] None"
-                  "check \"a chain backwards\" 4 [ 3, 2; 2, 1; 1, 0 ] (Some [ 3; 2; 1; 0 ])"
-                  "if passed then printfn \"PASS\"" ])
+          withExamples
+            [ "topoOrder 4 [ 1, 0; 2, 0; 3, 1; 3, 2 ] = (Some [ 3; 1; 2; 0 ])"
+              "topoOrder 3 [] = (Some [ 0; 1; 2 ])"
+              "topoOrder 3 [ 0, 1; 1, 2; 2, 0 ] = None"
+              "topoOrder 5 [ 4, 0; 4, 1; 3, 1 ] = (Some [ 2; 3; 4; 0; 1 ])"
+              "topoOrder 2 [ (0, 0) ] = None"
+              "topoOrder 0 [] = (Some [])"
+              "topoOrder 2 [ 1, 0; 1, 0 ] = (Some [ 1; 0 ])"
+              "topoOrder 4 [ (3, 0) ] = (Some [ 1; 2; 3; 0 ])"
+              "topoOrder 4 [ 1, 2; 2, 1 ] = None"
+              "topoOrder 4 [ 3, 2; 2, 1; 1, 0 ] = (Some [ 3; 2; 1; 0 ])" ]
+            (mkProblem "hard-topo-order" "Smallest-First Task Order"
+                "Order the tasks 0 to n-1 so that every dependency is respected. A pair (a, b) means that task a must come before task b. Whenever several tasks are ready, take the one with the smallest number, so there is exactly one right answer. Return None when the dependencies form a cycle."
+                Expert Algorithms "let topoOrder (n: int) (deps: (int * int) list) : int list option"
+                [ "A task that depends on itself is a cycle." ] 30
+                "")
 
-          mkProblem "hard-expr-eval" "Arithmetic Expression Evaluator"
-            "Evaluate an integer arithmetic expression. It is made of non-negative integer literals, the binary operators + - * /, a unary minus, parentheses and spaces. * and / bind tighter than + and -, and operators of the same level apply from left to right. Division is integer division and truncates toward zero. Return Error, with any message, for a division by zero and for an expression that is not well formed: empty, unbalanced parentheses, a missing operand or an unknown character."
-            Expert PatternMatching "let evaluate (expr: string) : Result<int, string>"
-            [ "10 - 4 - 3 is 3, and 7 - -2 is 9." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let value (expr: string) (expected: int) ="
-                  "    match evaluate expr with"
-                  "    | Ok v when v = expected -> ()"
-                  "    | other -> printfn \"FAIL: evaluate \\\"%s\\\" gave %A, expected Ok %d\" expr other expected; passed <- false"
-                  "let invalid (expr: string) ="
-                  "    match evaluate expr with"
-                  "    | Error _ -> ()"
-                  "    | other -> printfn \"FAIL: evaluate \\\"%s\\\" gave %A, expected an Error\" expr other; passed <- false"
-                  "value \"1 + 2 * 3\" 7"
-                  "value \"(1 + 2) * 3\" 9"
-                  "value \"10 - 4 - 3\" 3"
-                  "value \"100 / 7 / 2\" 7"
-                  "value \"-7 / 2\" -3"
-                  "value \"2 * -3\" -6"
-                  "value \"-(2 + 3) * 4\" -20"
-                  "value \" 42 \" 42"
-                  "value \"2*(3+(4-1))/3\" 4"
-                  "value \"7 - -2\" 9"
-                  "value \"8 / 3 * 3\" 6"
-                  "value \"1 - (2 - 3) - 4\" -2"
-                  "invalid \"1 / 0\""
-                  "invalid \"1 / (2 - 2)\""
-                  "invalid \"\""
-                  "invalid \"(1 + 2\""
-                  "invalid \"1 + 2)\""
-                  "invalid \"1 +\""
-                  "invalid \"2 $ 3\""
-                  "invalid \"* 3\""
-                  "if passed then printfn \"PASS\"" ])
+          withExamples
+            [ "evaluate \"1 + 2 * 3\" = Ok 7"
+              "evaluate \"(1 + 2) * 3\" = Ok 9"
+              "evaluate \"10 - 4 - 3\" = Ok 3"
+              "evaluate \"100 / 7 / 2\" = Ok 7"
+              "evaluate \"-7 / 2\" = Ok (-3)"
+              "evaluate \"2 * -3\" = Ok (-6)"
+              "evaluate \"-(2 + 3) * 4\" = Ok (-20)"
+              "evaluate \" 42 \" = Ok 42"
+              "evaluate \"2*(3+(4-1))/3\" = Ok 4"
+              "evaluate \"7 - -2\" = Ok 9"
+              "evaluate \"8 / 3 * 3\" = Ok 6"
+              "evaluate \"1 - (2 - 3) - 4\" = Ok (-2)"
+              "global.Microsoft.FSharp.Core.Result.isError (evaluate \"1 / 0\")"
+              "global.Microsoft.FSharp.Core.Result.isError (evaluate \"1 / (2 - 2)\")"
+              "global.Microsoft.FSharp.Core.Result.isError (evaluate \"\")"
+              "global.Microsoft.FSharp.Core.Result.isError (evaluate \"(1 + 2\")"
+              "global.Microsoft.FSharp.Core.Result.isError (evaluate \"1 + 2)\")"
+              "global.Microsoft.FSharp.Core.Result.isError (evaluate \"1 +\")"
+              "global.Microsoft.FSharp.Core.Result.isError (evaluate \"2 $ 3\")"
+              "global.Microsoft.FSharp.Core.Result.isError (evaluate \"* 3\")" ]
+            (mkProblem "hard-expr-eval" "Arithmetic Expression Evaluator"
+                "Evaluate an integer arithmetic expression. It is made of non-negative integer literals, the binary operators + - * /, a unary minus, parentheses and spaces. * and / bind tighter than + and -, and operators of the same level apply from left to right. Division is integer division and truncates toward zero. Return Error, with any message, for a division by zero and for an expression that is not well formed: empty, unbalanced parentheses, a missing operand or an unknown character."
+                Expert PatternMatching "let evaluate (expr: string) : Result<int, string>"
+                [ "10 - 4 - 3 is 3, and 7 - -2 is 9." ] 30
+                "")
 
-          mkProblem "hard-wrap-text" "Word Wrap"
-            "Wrap a text into lines of at most `width` characters. Words are separated by one or more spaces. A line holds as many whole words as fit, joined by single spaces, with no space at either end. A word longer than `width` is cut into pieces of exactly `width` characters, each alone on its line, and its last, shorter piece starts a line that the following words can share. A text with no words gives an empty list. `width` is at least 1."
-            Expert StringManipulation "let wrapText (width: int) (text: string) : string list"
-            [ "Words that exactly fill the width still fit." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let check (width: int) (text: string) (expected: string list) ="
-                  "    let got = wrapText width text"
-                  "    if got <> expected then printfn \"FAIL: wrapText %d \\\"%s\\\" gave %A, expected %A\" width text got expected; passed <- false"
-                  "check 10 \"the quick brown fox jumps\" [ \"the quick\"; \"brown fox\"; \"jumps\" ]"
-                  "check 9 \"the quick brown\" [ \"the quick\"; \"brown\" ]"
-                  "check 5 \"  hello   world  \" [ \"hello\"; \"world\" ]"
-                  "check 4 \"ab abcdefghij z\" [ \"ab\"; \"abcd\"; \"efgh\"; \"ij z\" ]"
-                  "check 7 \"\" []"
-                  "check 7 \"     \" []"
-                  "check 1 \"ab c\" [ \"a\"; \"b\"; \"c\" ]"
-                  "check 3 \"a b c d\" [ \"a b\"; \"c d\" ]"
-                  "check 6 \"abcdefghijkl\" [ \"abcdef\"; \"ghijkl\" ]"
-                  "check 20 \"one\" [ \"one\" ]"
-                  "check 5 \"aaaaa bb ccc\" [ \"aaaaa\"; \"bb\"; \"ccc\" ]"
-                  "if passed then printfn \"PASS\"" ])
+          withExamples
+            [ "wrapText 10 \"the quick brown fox jumps\" = [ \"the quick\"; \"brown fox\"; \"jumps\" ]"
+              "wrapText 9 \"the quick brown\" = [ \"the quick\"; \"brown\" ]"
+              "wrapText 5 \"  hello   world  \" = [ \"hello\"; \"world\" ]"
+              "wrapText 4 \"ab abcdefghij z\" = [ \"ab\"; \"abcd\"; \"efgh\"; \"ij z\" ]"
+              "wrapText 7 \"\" = []"
+              "wrapText 7 \"     \" = []"
+              "wrapText 1 \"ab c\" = [ \"a\"; \"b\"; \"c\" ]"
+              "wrapText 3 \"a b c d\" = [ \"a b\"; \"c d\" ]"
+              "wrapText 6 \"abcdefghijkl\" = [ \"abcdef\"; \"ghijkl\" ]"
+              "wrapText 20 \"one\" = [ \"one\" ]"
+              "wrapText 5 \"aaaaa bb ccc\" = [ \"aaaaa\"; \"bb\"; \"ccc\" ]" ]
+            (mkProblem "hard-wrap-text" "Word Wrap"
+                "Wrap a text into lines of at most `width` characters. Words are separated by one or more spaces. A line holds as many whole words as fit, joined by single spaces, with no space at either end. A word longer than `width` is cut into pieces of exactly `width` characters, each alone on its line, and its last, shorter piece starts a line that the following words can share. A text with no words gives an empty list. `width` is at least 1."
+                Expert StringManipulation "let wrapText (width: int) (text: string) : string list"
+                [ "Words that exactly fill the width still fit." ] 30
+                "")
 
-          mkProblem "hard-roman-parse" "Strict Roman Numeral Parser"
-            "Parse a Roman numeral written in its standard form and return its value, for the values 1 to 3999. Return None for everything else: the empty string, lowercase letters, any other character, and a numeral that is not the standard way to write its value, such as IIII, VV, IC, IXI or MMMM."
-            Expert StringManipulation "let parseRoman (s: string) : int option"
-            [ "Each value from 1 to 3999 has exactly one standard numeral." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let check (s: string) (expected: int option) ="
-                  "    let got = parseRoman s"
-                  "    if got <> expected then printfn \"FAIL: parseRoman \\\"%s\\\" gave %A, expected %A\" s got expected; passed <- false"
-                  "check \"III\" (Some 3)"
-                  "check \"IV\" (Some 4)"
-                  "check \"IX\" (Some 9)"
-                  "check \"XIV\" (Some 14)"
-                  "check \"XLII\" (Some 42)"
-                  "check \"CDXLIV\" (Some 444)"
-                  "check \"MCMXCIV\" (Some 1994)"
-                  "check \"MMMCMXCIX\" (Some 3999)"
-                  "check \"\" None"
-                  "check \"IIII\" None"
-                  "check \"VV\" None"
-                  "check \"IC\" None"
-                  "check \"IL\" None"
-                  "check \"IXI\" None"
-                  "check \"VX\" None"
-                  "check \"IIV\" None"
-                  "check \"XM\" None"
-                  "check \"CMCM\" None"
-                  "check \"LXL\" None"
-                  "check \"MMMM\" None"
-                  "check \"xiv\" None"
-                  "check \"X I\" None"
-                  "check \"12\" None"
-                  "if passed then printfn \"PASS\"" ])
+          withExamples
+            [ "parseRoman \"III\" = (Some 3)"
+              "parseRoman \"IV\" = (Some 4)"
+              "parseRoman \"IX\" = (Some 9)"
+              "parseRoman \"XIV\" = (Some 14)"
+              "parseRoman \"XLII\" = (Some 42)"
+              "parseRoman \"CDXLIV\" = (Some 444)"
+              "parseRoman \"MCMXCIV\" = (Some 1994)"
+              "parseRoman \"MMMCMXCIX\" = (Some 3999)"
+              "parseRoman \"\" = None"
+              "parseRoman \"IIII\" = None"
+              "parseRoman \"VV\" = None"
+              "parseRoman \"IC\" = None"
+              "parseRoman \"IL\" = None"
+              "parseRoman \"IXI\" = None"
+              "parseRoman \"VX\" = None"
+              "parseRoman \"IIV\" = None"
+              "parseRoman \"XM\" = None"
+              "parseRoman \"CMCM\" = None"
+              "parseRoman \"LXL\" = None"
+              "parseRoman \"MMMM\" = None"
+              "parseRoman \"xiv\" = None"
+              "parseRoman \"X I\" = None"
+              "parseRoman \"12\" = None" ]
+            (mkProblem "hard-roman-parse" "Strict Roman Numeral Parser"
+                "Parse a Roman numeral written in its standard form and return its value, for the values 1 to 3999. Return None for everything else: the empty string, lowercase letters, any other character, and a numeral that is not the standard way to write its value, such as IIII, VV, IC, IXI or MMMM."
+                Expert StringManipulation "let parseRoman (s: string) : int option"
+                [ "Each value from 1 to 3999 has exactly one standard numeral." ] 30
+                "")
 
           mkProblem "hard-rational" "Exact Rational Numbers"
             "Define exact fractions. `Rational` is a record with the integer fields `Num` and `Den`. `make n d` gives None when d is 0. Otherwise it gives the fraction in its normal form: lowest terms, a positive denominator, and zero written as 0/1, so that two equal fractions are equal records. `add` and `mul` return their result in that normal form. `show` gives \"Num/Den\", or only the numerator when the denominator is 1."
@@ -455,28 +427,24 @@ module ProblemBank =
                   "expect \"show 1/-2\" (show (r 1 -2)) \"-1/2\""
                   "if passed then printfn \"PASS\"" ])
 
-          mkProblem "hard-ledger" "Account Ledger"
-            "Apply transactions to account balances, in order. `Deposit (account, amount)` adds to an account and creates it when it does not exist. `Withdraw (account, amount)` takes from an account. `Transfer (source, target, amount)` moves money and creates the target account when needed. Stop at the first transaction that cannot be applied and return Error with exactly one of these texts, where N is the position of the transaction, starting at 1. \"tx N: invalid amount\" when the amount is not positive; this is checked first. \"tx N: unknown account\" when the account money is taken from does not exist. \"tx N: insufficient funds\" when that account holds less than the amount. When every transaction applies, return Ok with the final balances."
-            Expert ErrorHandling "type Tx =\n    | Deposit of string * int\n    | Withdraw of string * int\n    | Transfer of string * string * int\nlet settle (start: Map<string, int>) (txs: Tx list) : Result<Map<string, int>, string>"
-            [ "Taking an account's whole balance is allowed and leaves it at 0." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let check (name: string) (start: (string * int) list) (txs: Tx list) (expected: Result<(string * int) list, string>) ="
-                  "    let got = settle (Map.ofList start) txs |> Result.map Map.toList"
-                  "    if got <> expected then printfn \"FAIL: %s gave %A, expected %A\" name got expected; passed <- false"
-                  "check \"all apply\" [ \"a\", 100 ] [ Deposit (\"a\", 50); Withdraw (\"a\", 30); Transfer (\"a\", \"b\", 70) ] (Ok [ \"a\", 50; \"b\", 70 ])"
-                  "check \"unknown account\" [] [ Withdraw (\"x\", 10) ] (Error \"tx 1: unknown account\")"
-                  "check \"insufficient funds\" [ \"a\", 10 ] [ Deposit (\"a\", 5); Withdraw (\"a\", 20) ] (Error \"tx 2: insufficient funds\")"
-                  "check \"zero amount\" [] [ Deposit (\"a\", 0) ] (Error \"tx 1: invalid amount\")"
-                  "check \"amount checked first\" [] [ Withdraw (\"nobody\", -5) ] (Error \"tx 1: invalid amount\")"
-                  "check \"transfer to itself\" [ \"a\", 10 ] [ Transfer (\"a\", \"a\", 4) ] (Ok [ \"a\", 10 ])"
-                  "check \"whole balance\" [ \"a\", 10 ] [ Withdraw (\"a\", 10) ] (Ok [ \"a\", 0 ])"
-                  "check \"stops at the first error\" [ \"a\", 10 ] [ Withdraw (\"a\", 20); Deposit (\"a\", 100) ] (Error \"tx 1: insufficient funds\")"
-                  "check \"no transactions\" [ \"a\", 1 ] [] (Ok [ \"a\", 1 ])"
-                  "check \"transfer from unknown\" [ \"b\", 5 ] [ Deposit (\"b\", 1); Deposit (\"b\", 1); Transfer (\"a\", \"b\", 1) ] (Error \"tx 3: unknown account\")"
-                  "check \"transfer too large\" [ \"a\", 5; \"b\", 0 ] [ Transfer (\"a\", \"b\", 6) ] (Error \"tx 1: insufficient funds\")"
-                  "check \"deposit creates\" [] [ Deposit (\"new\", 3); Transfer (\"new\", \"other\", 3) ] (Ok [ \"new\", 0; \"other\", 3 ])"
-                  "if passed then printfn \"PASS\"" ])
+          withExamples
+            [ "settle (Map.ofList [ (\"a\", 100) ]) [ Deposit (\"a\", 50); Withdraw (\"a\", 30); Transfer (\"a\", \"b\", 70) ] |> Result.map Map.toList = (Ok [ \"a\", 50; \"b\", 70 ])"
+              "settle (Map.ofList []) [ Withdraw (\"x\", 10) ] |> Result.map Map.toList = (Error \"tx 1: unknown account\")"
+              "settle (Map.ofList [ (\"a\", 10) ]) [ Deposit (\"a\", 5); Withdraw (\"a\", 20) ] |> Result.map Map.toList = (Error \"tx 2: insufficient funds\")"
+              "settle (Map.ofList []) [ Deposit (\"a\", 0) ] |> Result.map Map.toList = (Error \"tx 1: invalid amount\")"
+              "settle (Map.ofList []) [ Withdraw (\"nobody\", -5) ] |> Result.map Map.toList = (Error \"tx 1: invalid amount\")"
+              "settle (Map.ofList [ (\"a\", 10) ]) [ Transfer (\"a\", \"a\", 4) ] |> Result.map Map.toList = (Ok [ (\"a\", 10) ])"
+              "settle (Map.ofList [ (\"a\", 10) ]) [ Withdraw (\"a\", 10) ] |> Result.map Map.toList = (Ok [ (\"a\", 0) ])"
+              "settle (Map.ofList [ (\"a\", 10) ]) [ Withdraw (\"a\", 20); Deposit (\"a\", 100) ] |> Result.map Map.toList = (Error \"tx 1: insufficient funds\")"
+              "settle (Map.ofList [ (\"a\", 1) ]) [] |> Result.map Map.toList = (Ok [ (\"a\", 1) ])"
+              "settle (Map.ofList [ (\"b\", 5) ]) [ Deposit (\"b\", 1); Deposit (\"b\", 1); Transfer (\"a\", \"b\", 1) ] |> Result.map Map.toList = (Error \"tx 3: unknown account\")"
+              "settle (Map.ofList [ \"a\", 5; \"b\", 0 ]) [ Transfer (\"a\", \"b\", 6) ] |> Result.map Map.toList = (Error \"tx 1: insufficient funds\")"
+              "settle (Map.ofList []) [ Deposit (\"new\", 3); Transfer (\"new\", \"other\", 3) ] |> Result.map Map.toList = (Ok [ \"new\", 0; \"other\", 3 ])" ]
+            (mkProblem "hard-ledger" "Account Ledger"
+                "Apply transactions to account balances, in order. `Deposit (account, amount)` adds to an account and creates it when it does not exist. `Withdraw (account, amount)` takes from an account. `Transfer (source, target, amount)` moves money and creates the target account when needed. Stop at the first transaction that cannot be applied and return Error with exactly one of these texts, where N is the position of the transaction, starting at 1. \"tx N: invalid amount\" when the amount is not positive; this is checked first. \"tx N: unknown account\" when the account money is taken from does not exist. \"tx N: insufficient funds\" when that account holds less than the amount. When every transaction applies, return Ok with the final balances."
+                Expert ErrorHandling "type Tx =\n    | Deposit of string * int\n    | Withdraw of string * int\n    | Transfer of string * string * int\nlet settle (start: Map<string, int>) (txs: Tx list) : Result<Map<string, int>, string>"
+                [ "Taking an account's whole balance is allowed and leaves it at 0." ] 30
+                "")
 
           mkProblem "hard-throttled-map" "Throttled Parallel Map"
             "Apply an asynchronous function to every item of a list, with at most `maxParallel` calls running at the same time, and return the results in the order of the items. The calls must really overlap: when `maxParallel` is greater than 1 and there are several items, more than one call runs at a time."
@@ -514,81 +482,69 @@ module ProblemBank =
                   "if peakWide > 3 then printfn \"FAIL: %d calls ran at once for 3 items\" peakWide; passed <- false"
                   "if passed then printfn \"PASS\"" ])
 
-          mkProblem "hard-min-window" "Smallest Covering Substring"
-            "Return the shortest substring of `s` that contains every character of `t`, repeats included: when `t` has the same character twice, the substring needs it twice. When several substrings have that shortest length, return the leftmost. Return the empty string when there is no such substring, and when `t` is empty. Upper and lower case are different characters."
-            Expert Algorithms "let minWindow (s: string) (t: string) : string"
-            [ "The characters of `t` can appear in any order in the substring." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let check (s: string) (t: string) (expected: string) ="
-                  "    let got = minWindow s t"
-                  "    if got <> expected then printfn \"FAIL: minWindow \\\"%s\\\" \\\"%s\\\" gave \\\"%s\\\", expected \\\"%s\\\"\" s t got expected; passed <- false"
-                  "check \"ADOBECODEBANC\" \"ABC\" \"BANC\""
-                  "check \"a\" \"a\" \"a\""
-                  "check \"a\" \"aa\" \"\""
-                  "check \"aa\" \"aa\" \"aa\""
-                  "check \"abc\" \"\" \"\""
-                  "check \"\" \"a\" \"\""
-                  "check \"xaybzbxa\" \"ab\" \"ayb\""
-                  "check \"aA\" \"A\" \"A\""
-                  "check \"aabdcab\" \"aab\" \"aab\""
-                  "check \"cabwefgewcwaefgcf\" \"cae\" \"cwae\""
-                  "check \"abcdef\" \"fa\" \"abcdef\""
-                  "check \"abab\" \"ba\" \"ab\""
-                  "check \"hello\" \"xyz\" \"\""
-                  "if passed then printfn \"PASS\"" ])
+          withExamples
+            [ "minWindow \"ADOBECODEBANC\" \"ABC\" = \"BANC\""
+              "minWindow \"a\" \"a\" = \"a\""
+              "minWindow \"a\" \"aa\" = \"\""
+              "minWindow \"aa\" \"aa\" = \"aa\""
+              "minWindow \"abc\" \"\" = \"\""
+              "minWindow \"\" \"a\" = \"\""
+              "minWindow \"xaybzbxa\" \"ab\" = \"ayb\""
+              "minWindow \"aA\" \"A\" = \"A\""
+              "minWindow \"aabdcab\" \"aab\" = \"aab\""
+              "minWindow \"cabwefgewcwaefgcf\" \"cae\" = \"cwae\""
+              "minWindow \"abcdef\" \"fa\" = \"abcdef\""
+              "minWindow \"abab\" \"ba\" = \"ab\""
+              "minWindow \"hello\" \"xyz\" = \"\"" ]
+            (mkProblem "hard-min-window" "Smallest Covering Substring"
+                "Return the shortest substring of `s` that contains every character of `t`, repeats included: when `t` has the same character twice, the substring needs it twice. When several substrings have that shortest length, return the leftmost. Return the empty string when there is no such substring, and when `t` is empty. Upper and lower case are different characters."
+                Expert Algorithms "let minWindow (s: string) (t: string) : string"
+                [ "The characters of `t` can appear in any order in the substring." ] 30
+                "")
 
-          mkProblem "hard-regex-match" "Pattern Matching with . and *"
-            "Decide whether a pattern matches a whole text, from its first character to its last. In the pattern, '.' matches any one character, and '*' means zero or more of the character or '.' that comes just before it. Every other character matches itself. The pattern is well formed: '*' is never first and never follows another '*'."
-            Expert PatternMatching "let isMatch (text: string) (pattern: string) : bool"
-            [ "A starred character can match nothing at all." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let check (text: string) (pattern: string) (expected: bool) ="
-                  "    let got = isMatch text pattern"
-                  "    if got <> expected then printfn \"FAIL: isMatch \\\"%s\\\" \\\"%s\\\" gave %b, expected %b\" text pattern got expected; passed <- false"
-                  "check \"aa\" \"a\" false"
-                  "check \"aa\" \"a*\" true"
-                  "check \"ab\" \".*\" true"
-                  "check \"aab\" \"c*a*b\" true"
-                  "check \"mississippi\" \"mis*is*p*.\" false"
-                  "check \"mississippi\" \"mis*is*ip*.\" true"
-                  "check \"\" \"\" true"
-                  "check \"\" \"a*\" true"
-                  "check \"\" \"a\" false"
-                  "check \"a\" \"\" false"
-                  "check \"abc\" \"a.c\" true"
-                  "check \"abc\" \"a.\" false"
-                  "check \"aaa\" \"a*a\" true"
-                  "check \"ab\" \".*c\" false"
-                  "check \"a\" \"ab*\" true"
-                  "check \"bbbba\" \".*a*a\" true"
-                  "check \"abcd\" \"d*\" false"
-                  "check \"a*b\" \"a.b\" true"
-                  "if passed then printfn \"PASS\"" ])
+          withExamples
+            [ "isMatch \"aa\" \"a\" = false"
+              "isMatch \"aa\" \"a*\" = true"
+              "isMatch \"ab\" \".*\" = true"
+              "isMatch \"aab\" \"c*a*b\" = true"
+              "isMatch \"mississippi\" \"mis*is*p*.\" = false"
+              "isMatch \"mississippi\" \"mis*is*ip*.\" = true"
+              "isMatch \"\" \"\" = true"
+              "isMatch \"\" \"a*\" = true"
+              "isMatch \"\" \"a\" = false"
+              "isMatch \"a\" \"\" = false"
+              "isMatch \"abc\" \"a.c\" = true"
+              "isMatch \"abc\" \"a.\" = false"
+              "isMatch \"aaa\" \"a*a\" = true"
+              "isMatch \"ab\" \".*c\" = false"
+              "isMatch \"a\" \"ab*\" = true"
+              "isMatch \"bbbba\" \".*a*a\" = true"
+              "isMatch \"abcd\" \"d*\" = false"
+              "isMatch \"a*b\" \"a.b\" = true" ]
+            (mkProblem "hard-regex-match" "Pattern Matching with . and *"
+                "Decide whether a pattern matches a whole text, from its first character to its last. In the pattern, '.' matches any one character, and '*' means zero or more of the character or '.' that comes just before it. Every other character matches itself. The pattern is well formed: '*' is never first and never follows another '*'."
+                Expert PatternMatching "let isMatch (text: string) (pattern: string) : bool"
+                [ "A starred character can match nothing at all." ] 30
+                "")
 
-          mkProblem "hard-csv-line" "CSV Line Parser"
-            "Split one line of CSV into its fields. Commas separate the fields. A field can be wrapped in double quotes: inside the quotes a comma is ordinary text, and two double quotes in a row stand for one double quote. The quotes that wrap a field are not part of its value. A field without quotes is taken as it is, spaces included. An empty line is one empty field."
-            Expert StringManipulation "let parseCsvLine (line: string) : string list"
-            [ "Two commas in a row hold an empty field between them." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let check (line: string) (expected: string list) ="
-                  "    let got = parseCsvLine line"
-                  "    if got <> expected then printfn \"FAIL: parseCsvLine %A gave %A, expected %A\" line got expected; passed <- false"
-                  "check \"a,b,c\" [ \"a\"; \"b\"; \"c\" ]"
-                  "check \"\" [ \"\" ]"
-                  "check \"a,,c\" [ \"a\"; \"\"; \"c\" ]"
-                  "check \",,\" [ \"\"; \"\"; \"\" ]"
-                  "check \"\\\"a,b\\\",c\" [ \"a,b\"; \"c\" ]"
-                  "check \"\\\"he said \\\"\\\"hi\\\"\\\"\\\",x\" [ \"he said \\\"hi\\\"\"; \"x\" ]"
-                  "check \" a , b \" [ \" a \"; \" b \" ]"
-                  "check \"\\\"\\\"\" [ \"\" ]"
-                  "check \"\\\"\\\",\\\"\\\"\" [ \"\"; \"\" ]"
-                  "check \"x,\\\"\\\"\\\"\\\"\" [ \"x\"; \"\\\"\" ]"
-                  "check \"one\" [ \"one\" ]"
-                  "check \"\\\"a\\\",\\\"b,c\\\",d,\" [ \"a\"; \"b,c\"; \"d\"; \"\" ]"
-                  "if passed then printfn \"PASS\"" ])
+          withExamples
+            [ "parseCsvLine \"a,b,c\" = [ \"a\"; \"b\"; \"c\" ]"
+              "parseCsvLine \"\" = [ \"\" ]"
+              "parseCsvLine \"a,,c\" = [ \"a\"; \"\"; \"c\" ]"
+              "parseCsvLine \",,\" = [ \"\"; \"\"; \"\" ]"
+              "parseCsvLine \"\\\"a,b\\\",c\" = [ \"a,b\"; \"c\" ]"
+              "parseCsvLine \"\\\"he said \\\"\\\"hi\\\"\\\"\\\",x\" = [ \"he said \\\"hi\\\"\"; \"x\" ]"
+              "parseCsvLine \" a , b \" = [ \" a \"; \" b \" ]"
+              "parseCsvLine \"\\\"\\\"\" = [ \"\" ]"
+              "parseCsvLine \"\\\"\\\",\\\"\\\"\" = [ \"\"; \"\" ]"
+              "parseCsvLine \"x,\\\"\\\"\\\"\\\"\" = [ \"x\"; \"\\\"\" ]"
+              "parseCsvLine \"one\" = [ \"one\" ]"
+              "parseCsvLine \"\\\"a\\\",\\\"b,c\\\",d,\" = [ \"a\"; \"b,c\"; \"d\"; \"\" ]" ]
+            (mkProblem "hard-csv-line" "CSV Line Parser"
+                "Split one line of CSV into its fields. Commas separate the fields. A field can be wrapped in double quotes: inside the quotes a comma is ordinary text, and two double quotes in a row stand for one double quote. The quotes that wrap a field are not part of its value. A field without quotes is taken as it is, spaces included. An empty line is one empty field."
+                Expert StringManipulation "let parseCsvLine (line: string) : string list"
+                [ "Two commas in a row hold an empty field between them." ] 30
+                "")
 
           mkProblem "hard-huffman" "Optimal Prefix Code"
             "Build a binary code that makes the encoded text as short as possible. The input gives each character with the number of times it occurs; the characters are distinct and the counts positive. Return a map from every character to its code, a non-empty string of '0' and '1'. No code can be the start of another one, and the sum over all characters of count times code length must be the smallest possible. A single character gets the code \"0\". An empty input gives an empty map."
@@ -684,27 +640,22 @@ module ProblemBank =
                   "expect \"return leaves the state\" (runState constant 5) (\"k\", 5)"
                   "if passed then printfn \"PASS\"" ])
 
-          mkProblem "hard-life-step" "Game of Life on an Unbounded Grid"
-            "Compute the next generation of Conway's Game of Life on a grid with no edges. The input is the set of live cells, as (x, y) pairs that can be negative. A live cell with 2 or 3 live neighbours stays alive. A dead cell with exactly 3 live neighbours becomes alive. Every other cell is dead in the next generation. A cell's neighbours are the 8 cells around it."
-            Expert DataStructures "let lifeStep (alive: Set<int * int>) : Set<int * int>"
-            [ "A cell that is dead now can be alive next, so the live cells alone are not enough to look at." ] 30
-            (script
-                [ "let mutable passed = true"
-                  "let check (name: string) (alive: (int * int) list) (expected: (int * int) list) ="
-                  "    let got = lifeStep (Set.ofList alive)"
-                  "    if got <> Set.ofList expected then printfn \"FAIL: %s gave %A, expected %A\" name (Set.toList got) (List.sort expected); passed <- false"
-                  "check \"blinker\" [ 1, 0; 1, 1; 1, 2 ] [ 0, 1; 1, 1; 2, 1 ]"
-                  "check \"block\" [ 0, 0; 0, 1; 1, 0; 1, 1 ] [ 0, 0; 0, 1; 1, 0; 1, 1 ]"
-                  "check \"nothing\" [] []"
-                  "check \"one cell\" [ 5, 5 ] []"
-                  "check \"two cells\" [ 0, 0; 1, 0 ] []"
-                  "check \"glider\" [ 1, 0; 2, 1; 0, 2; 1, 2; 2, 2 ] [ 0, 1; 2, 1; 1, 2; 2, 2; 1, 3 ]"
-                  "check \"blinker below zero\" [ -1, -1; -1, 0; -1, 1 ] [ -2, 0; -1, 0; 0, 0 ]"
-                  "check \"corner birth\" [ 0, 0; 1, 0; 0, 1 ] [ 0, 0; 1, 0; 0, 1; 1, 1 ]"
-                  "check \"crowded centre\" [ 0, 0; 1, 0; 2, 0; 0, 1; 1, 1; 2, 1; 0, 2; 1, 2; 2, 2 ] [ 0, 0; 2, 0; 0, 2; 2, 2; 1, -1; -1, 1; 3, 1; 1, 3 ]"
-                  "let twoSteps = lifeStep (lifeStep (Set.ofList [ 1, 0; 1, 1; 1, 2 ]))"
-                  "if twoSteps <> Set.ofList [ 1, 0; 1, 1; 1, 2 ] then printfn \"FAIL: two steps of a blinker gave %A\" (Set.toList twoSteps); passed <- false"
-                  "if passed then printfn \"PASS\"" ]) ]
+          withExamples
+            [ "lifeStep (Set.ofList [ 1, 0; 1, 1; 1, 2 ]) = Set.ofList [ 0, 1; 1, 1; 2, 1 ]"
+              "lifeStep (Set.ofList [ 0, 0; 0, 1; 1, 0; 1, 1 ]) = Set.ofList [ 0, 0; 0, 1; 1, 0; 1, 1 ]"
+              "lifeStep (Set.ofList []) = Set.ofList []"
+              "lifeStep (Set.ofList [ (5, 5) ]) = Set.ofList []"
+              "lifeStep (Set.ofList [ 0, 0; 1, 0 ]) = Set.ofList []"
+              "lifeStep (Set.ofList [ 1, 0; 2, 1; 0, 2; 1, 2; 2, 2 ]) = Set.ofList [ 0, 1; 2, 1; 1, 2; 2, 2; 1, 3 ]"
+              "lifeStep (Set.ofList [ -1, -1; -1, 0; -1, 1 ]) = Set.ofList [ -2, 0; -1, 0; 0, 0 ]"
+              "lifeStep (Set.ofList [ 0, 0; 1, 0; 0, 1 ]) = Set.ofList [ 0, 0; 1, 0; 0, 1; 1, 1 ]"
+              "lifeStep (Set.ofList [ 0, 0; 1, 0; 2, 0; 0, 1; 1, 1; 2, 1; 0, 2; 1, 2; 2, 2 ]) = Set.ofList [ 0, 0; 2, 0; 0, 2; 2, 2; 1, -1; -1, 1; 3, 1; 1, 3 ]"
+              "lifeStep (lifeStep (Set.ofList [ 1, 0; 1, 1; 1, 2 ])) = Set.ofList [ 1, 0; 1, 1; 1, 2 ]" ]
+            (mkProblem "hard-life-step" "Game of Life on an Unbounded Grid"
+                "Compute the next generation of Conway's Game of Life on a grid with no edges. The input is the set of live cells, as (x, y) pairs that can be negative. A live cell with 2 or 3 live neighbours stays alive. A dead cell with exactly 3 live neighbours becomes alive. Every other cell is dead in the next generation. A cell's neighbours are the 8 cells around it."
+                Expert DataStructures "let lifeStep (alive: Set<int * int>) : Set<int * int>"
+                [ "A cell that is dead now can be alive next, so the live cells alone are not enough to look at." ] 30
+                "") ]
 
     /// All curated benchmark problems.
     let all () : BenchmarkProblem list =
