@@ -273,6 +273,8 @@ module ProblemBank =
     let private script (lines: string list) : string = String.concat "\n" lines + "\n"
 
     /// Longer problems than the tiers above: each has several rules to get right at once.
+    // An example writes a list of one tuple as `[ (a, b) ]`: the .NET 10.0.402 SDK gives `[ a, b ]` an
+    // info FS3886, and enough of them fill the error text that ExampleCheck reads its type probe from.
     let private hardProblems =
         [ withExamples
             [ "lruTrace 2 [ \"put\", 1, 1; \"put\", 2, 2; \"get\", 1, 0; \"put\", 3, 3; \"get\", 2, 0; \"put\", 4, 4; \"get\", 1, 0; \"get\", 3, 0; \"get\", 4, 0 ] = [ 1; -1; -1; 3; 4 ]"
@@ -310,10 +312,10 @@ module ProblemBank =
               "topoOrder 3 [] = (Some [ 0; 1; 2 ])"
               "topoOrder 3 [ 0, 1; 1, 2; 2, 0 ] = None"
               "topoOrder 5 [ 4, 0; 4, 1; 3, 1 ] = (Some [ 2; 3; 4; 0; 1 ])"
-              "topoOrder 2 [ 0, 0 ] = None"
+              "topoOrder 2 [ (0, 0) ] = None"
               "topoOrder 0 [] = (Some [])"
               "topoOrder 2 [ 1, 0; 1, 0 ] = (Some [ 1; 0 ])"
-              "topoOrder 4 [ 3, 0 ] = (Some [ 1; 2; 3; 0 ])"
+              "topoOrder 4 [ (3, 0) ] = (Some [ 1; 2; 3; 0 ])"
               "topoOrder 4 [ 1, 2; 2, 1 ] = None"
               "topoOrder 4 [ 3, 2; 2, 1; 1, 0 ] = (Some [ 3; 2; 1; 0 ])" ]
             (mkProblem "hard-topo-order" "Smallest-First Task Order"
@@ -426,16 +428,16 @@ module ProblemBank =
                   "if passed then printfn \"PASS\"" ])
 
           withExamples
-            [ "settle (Map.ofList [ \"a\", 100 ]) [ Deposit (\"a\", 50); Withdraw (\"a\", 30); Transfer (\"a\", \"b\", 70) ] |> Result.map Map.toList = (Ok [ \"a\", 50; \"b\", 70 ])"
+            [ "settle (Map.ofList [ (\"a\", 100) ]) [ Deposit (\"a\", 50); Withdraw (\"a\", 30); Transfer (\"a\", \"b\", 70) ] |> Result.map Map.toList = (Ok [ \"a\", 50; \"b\", 70 ])"
               "settle (Map.ofList []) [ Withdraw (\"x\", 10) ] |> Result.map Map.toList = (Error \"tx 1: unknown account\")"
-              "settle (Map.ofList [ \"a\", 10 ]) [ Deposit (\"a\", 5); Withdraw (\"a\", 20) ] |> Result.map Map.toList = (Error \"tx 2: insufficient funds\")"
+              "settle (Map.ofList [ (\"a\", 10) ]) [ Deposit (\"a\", 5); Withdraw (\"a\", 20) ] |> Result.map Map.toList = (Error \"tx 2: insufficient funds\")"
               "settle (Map.ofList []) [ Deposit (\"a\", 0) ] |> Result.map Map.toList = (Error \"tx 1: invalid amount\")"
               "settle (Map.ofList []) [ Withdraw (\"nobody\", -5) ] |> Result.map Map.toList = (Error \"tx 1: invalid amount\")"
-              "settle (Map.ofList [ \"a\", 10 ]) [ Transfer (\"a\", \"a\", 4) ] |> Result.map Map.toList = (Ok [ \"a\", 10 ])"
-              "settle (Map.ofList [ \"a\", 10 ]) [ Withdraw (\"a\", 10) ] |> Result.map Map.toList = (Ok [ \"a\", 0 ])"
-              "settle (Map.ofList [ \"a\", 10 ]) [ Withdraw (\"a\", 20); Deposit (\"a\", 100) ] |> Result.map Map.toList = (Error \"tx 1: insufficient funds\")"
-              "settle (Map.ofList [ \"a\", 1 ]) [] |> Result.map Map.toList = (Ok [ \"a\", 1 ])"
-              "settle (Map.ofList [ \"b\", 5 ]) [ Deposit (\"b\", 1); Deposit (\"b\", 1); Transfer (\"a\", \"b\", 1) ] |> Result.map Map.toList = (Error \"tx 3: unknown account\")"
+              "settle (Map.ofList [ (\"a\", 10) ]) [ Transfer (\"a\", \"a\", 4) ] |> Result.map Map.toList = (Ok [ (\"a\", 10) ])"
+              "settle (Map.ofList [ (\"a\", 10) ]) [ Withdraw (\"a\", 10) ] |> Result.map Map.toList = (Ok [ (\"a\", 0) ])"
+              "settle (Map.ofList [ (\"a\", 10) ]) [ Withdraw (\"a\", 20); Deposit (\"a\", 100) ] |> Result.map Map.toList = (Error \"tx 1: insufficient funds\")"
+              "settle (Map.ofList [ (\"a\", 1) ]) [] |> Result.map Map.toList = (Ok [ (\"a\", 1) ])"
+              "settle (Map.ofList [ (\"b\", 5) ]) [ Deposit (\"b\", 1); Deposit (\"b\", 1); Transfer (\"a\", \"b\", 1) ] |> Result.map Map.toList = (Error \"tx 3: unknown account\")"
               "settle (Map.ofList [ \"a\", 5; \"b\", 0 ]) [ Transfer (\"a\", \"b\", 6) ] |> Result.map Map.toList = (Error \"tx 1: insufficient funds\")"
               "settle (Map.ofList []) [ Deposit (\"new\", 3); Transfer (\"new\", \"other\", 3) ] |> Result.map Map.toList = (Ok [ \"new\", 0; \"other\", 3 ])" ]
             (mkProblem "hard-ledger" "Account Ledger"
@@ -642,7 +644,7 @@ module ProblemBank =
             [ "lifeStep (Set.ofList [ 1, 0; 1, 1; 1, 2 ]) = Set.ofList [ 0, 1; 1, 1; 2, 1 ]"
               "lifeStep (Set.ofList [ 0, 0; 0, 1; 1, 0; 1, 1 ]) = Set.ofList [ 0, 0; 0, 1; 1, 0; 1, 1 ]"
               "lifeStep (Set.ofList []) = Set.ofList []"
-              "lifeStep (Set.ofList [ 5, 5 ]) = Set.ofList []"
+              "lifeStep (Set.ofList [ (5, 5) ]) = Set.ofList []"
               "lifeStep (Set.ofList [ 0, 0; 1, 0 ]) = Set.ofList []"
               "lifeStep (Set.ofList [ 1, 0; 2, 1; 0, 2; 1, 2; 2, 2 ]) = Set.ofList [ 0, 1; 2, 1; 1, 2; 2, 2; 1, 3 ]"
               "lifeStep (Set.ofList [ -1, -1; -1, 0; -1, 1 ]) = Set.ofList [ -2, 0; -1, 0; 0, 0 ]"
