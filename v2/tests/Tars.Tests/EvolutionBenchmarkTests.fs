@@ -793,3 +793,23 @@ let lifeStep (alive: Set<int * int>) : Set<int * int> =
 
             Assert.Empty rejected
         }
+
+    // #394: these compare one value per case, so the parent process compares them. The other five keep
+    // their ValidationCode: rational and state-ce return types the solution defines, huffman and lcs
+    // accept several answers, and throttled-map measures its own concurrency.
+    [<Theory>]
+    [<InlineData("hard-lru-trace")>]
+    [<InlineData("hard-dijkstra")>]
+    [<InlineData("hard-topo-order")>]
+    [<InlineData("hard-expr-eval")>]
+    [<InlineData("hard-wrap-text")>]
+    [<InlineData("hard-roman-parse")>]
+    [<InlineData("hard-ledger")>]
+    [<InlineData("hard-min-window")>]
+    [<InlineData("hard-regex-match")>]
+    [<InlineData("hard-csv-line")>]
+    [<InlineData("hard-life-step")>]
+    let ``a hard problem that compares one value per case is checked by examples`` (id: string) =
+        let problem = ProblemBank.hard () |> List.find (fun p -> p.Id = id)
+        Assert.False(problem.Examples.IsEmpty, $"{id} has no examples")
+        Assert.Equal("", problem.ValidationCode)
