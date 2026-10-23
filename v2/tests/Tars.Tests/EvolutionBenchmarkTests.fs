@@ -813,3 +813,38 @@ let lifeStep (alive: Set<int * int>) : Set<int * int> =
         let problem = ProblemBank.hard () |> List.find (fun p -> p.Id = id)
         Assert.False(problem.Examples.IsEmpty, $"{id} has no examples")
         Assert.Equal("", problem.ValidationCode)
+
+    // Each is well typed and wrong on at least one case, so the examples compile against it and
+    // reject it by comparing values, not by failing to compile.
+    let private wrongSolutions =
+        Map.ofList
+            [ "hard-lru-trace", "let lruTrace (capacity: int) (ops: (string * int * int) list) : int list = []"
+              "hard-dijkstra", "let shortestPath (edges: (int * int * int) list) (source: int) (target: int) : int option = None"
+              "hard-topo-order", "let topoOrder (n: int) (deps: (int * int) list) : int list option = None"
+              "hard-expr-eval", "let evaluate (expr: string) : Result<int, string> = Error \"wrong\""
+              "hard-wrap-text", "let wrapText (width: int) (text: string) : string list = [ text ]"
+              "hard-roman-parse", "let parseRoman (s: string) : int option = None"
+              "hard-ledger", "type Tx =\n    | Deposit of string * int\n    | Withdraw of string * int\n    | Transfer of string * string * int\nlet settle (start: Map<string, int>) (txs: Tx list) : Result<Map<string, int>, string> = Ok start"
+              "hard-min-window", "let minWindow (s: string) (t: string) : string = \"\""
+              "hard-regex-match", "let isMatch (text: string) (pattern: string) : bool = text = pattern"
+              "hard-csv-line", "let parseCsvLine (line: string) : string list = [ line ]"
+              "hard-life-step", "let lifeStep (alive: Set<int * int>) : Set<int * int> = alive" ]
+
+    [<Theory>]
+    [<InlineData("hard-lru-trace")>]
+    [<InlineData("hard-dijkstra")>]
+    [<InlineData("hard-topo-order")>]
+    [<InlineData("hard-expr-eval")>]
+    [<InlineData("hard-wrap-text")>]
+    [<InlineData("hard-roman-parse")>]
+    [<InlineData("hard-ledger")>]
+    [<InlineData("hard-min-window")>]
+    [<InlineData("hard-regex-match")>]
+    [<InlineData("hard-csv-line")>]
+    [<InlineData("hard-life-step")>]
+    let ``a hard problem's examples reject a wrong solution by its values`` (id: string) =
+        let problem = ProblemBank.hard () |> List.find (fun p -> p.Id = id)
+        let llm = EvolutionBenchmarkTests.BenchmarkLlm wrongSolutions.[id]
+        let attempt = (BenchmarkRunner.runProblem llm problem false ignore).Result
+        Assert.False(attempt.Validated, $"{id}: {attempt.ValidationOutput}")
+        Assert.StartsWith("Example failed:", attempt.ValidationOutput)
