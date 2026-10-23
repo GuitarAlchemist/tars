@@ -914,3 +914,47 @@ let ``the task prompt shows every constraint`` () =
 
     for rule in constraints do
         Assert.Contains(rule, prompt)
+
+[<Fact>]
+let ``a constraint that names code exactly is checked against the code, outside comments and strings`` () =
+    let broken (rule: string) (code: string) = Engine.brokenConstraints [ rule ] code
+
+    let loop =
+        "let fact n =\n    let mutable acc = 1\n    for i in 2 .. n do acc <- acc * i\n    acc"
+
+    // Forbidden, and the code uses it.
+    for rule, code in
+        [ "Do not use mutable variables", loop
+          "Must be a pure function with no mutable state", loop
+          "Use an accumulator, not List.rev", "let rev xs = xs |> List.rev"
+          "Do not use List.groupBy or Seq.groupBy", "let g xs = Seq.groupBy id xs"
+          "Do not use regular expressions", "let clean (s: string) = Text.RegularExpressions.Regex.Replace(s, \"x\", \"\")"
+          "Implement it without using List.max", "let m xs = List.max xs" ] do
+        let found = broken rule code
+        Assert.True(found.Length = 1, $"{rule}: %A{found}")
+        Assert.Contains(rule, found.Head)
+
+    // A name used with its namespace is still the name.
+    Assert.Equal(1, (broken "Do not use Math.Abs" "let distance (a: float) b = System.Math.Abs(a - b)").Length)
+    Assert.Equal(1, (broken "Do not use List.rev" "let r xs = Microsoft.FSharp.Collections.List.rev xs").Length)
+
+    // "Do not use" forbids what its own sentence names, not what the next one asks for.
+    Assert.Empty(broken "Do not use recursion. Use List.fold to sum the values." "let sum xs = List.fold (+) 0 xs")
+
+    // A word in a comment or a string is not code.
+    Assert.Empty(
+        broken "Do not use mutable variables" "// no mutable state here\n(* not mutable either *)\nlet s = \"mutable\"\nlet f x = x"
+    )
+
+    // What the code must use is left to the evaluator, which can tell an equivalent from it.
+    // So is a choice, an example, a rule with a scope, or a rule that names no code.
+    for rule in
+        [ "Use List.fold to sum the values"
+          "Use List.fold (or Seq.fold) with Map.add and Map.tryFind"
+          "Use a recursive function or List.fold over the tokens"
+          "Use only core library functions such as String.filter"
+          "Use List.fold, Seq.groupBy-free logic such as recursion over a char list, or a fold"
+          "Do not use any external libraries"
+          "Do not use mutable variables outside the loop"
+          "No mutable state except for the accumulator" ] do
+        Assert.Empty(broken rule loop)
