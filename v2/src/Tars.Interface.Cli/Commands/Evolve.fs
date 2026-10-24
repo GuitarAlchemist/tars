@@ -26,6 +26,10 @@ type EvolveOptions =
       DemoMode: bool
       Verbose: bool
       Model: string option
+      /// The model that writes the curriculum and judges the answers (`--teacher claude:sonnet`),
+      /// while `Model` answers them. None: `Model` does all three. It takes the names `Model`
+      /// takes: a local model, or `claude:<model>` for Claude Code.
+      Teacher: string option
       Trace: bool
       Budget: decimal option
       DisableGraphiti: bool
@@ -39,7 +43,151 @@ type EvolveOptions =
       BenchmarkDomain: string
       /// Run a parallel grammar-mesh sweep each cycle and record the winning
       /// derivation as a pattern outcome (ADR 0001). Off by default.
-      GrammarMesh: bool }
+      GrammarMesh: bool
+      /// Run the F# code in the executor's answers with dotnet fsi, and send failures back to
+      /// it once. The code runs with the user's rights, outside any sandbox. Off by default.
+      RunCode: bool }
+
+/// The executor's service and the teacher's, each traced into `recorder` when `--trace` is on,
+/// so the trace also holds the curriculum's and the judge's calls. With a teacher, each call's
+/// metadata says which of the two answered it.
+let tracedServices
+    (trace: bool)
+    (recorder: TraceRecorder)
+    (executor: ILlmService)
+    (teacher: ILlmService option)
+    : ILlmService * ILlmService option =
+    let traced (role: string option) (llm: ILlmService) =
+        if trace then TracingLlmService(llm, recorder, ?role = role) :> ILlmService else llm
+
+    match teacher with
+    | Some teacher -> traced (Some "executor") executor, Some(traced (Some "teacher") teacher)
+    | None -> traced None executor, None
+
+/// The service for a `--model` or `--teacher` name. A `claude:<model>` sends its requests to
+/// Claude Code (`claude -p`), on the user's own Claude login; embeddings still come from the
+/// configured backend. A local model answers every request, whatever its hint: the executor's
+/// requests carry its model's name as their hint, which sends a coder model (`qwen2.5-coder:14b`)
+/// to the configured CodingModel, and the curriculum's and the judge's carry "reasoning", which
+/// would go to the configured ReasoningModel.
+let llmFor (logger: ILogger) (model: string) : ILlmService =
+    match LlmFactory.claudeCodeModel model with
+    | Some claudeModel ->
+        LlmFactory.createClaudeCode (Some claudeModel)
+        |> LlmFactory.withEmbeddings (LlmFactory.create logger)
+    | None -> LlmFactory.createPinnedTo logger model
+
+/// The Claude calls of an evolve run, by role. A call is a completion, streamed or not: one
+/// `claude -p` process. Embeddings and routes are not calls to Claude.
+type ClaudeCalls() =
+    let counts = System.Collections.Concurrent.ConcurrentDictionary<string, int>()
+
+    let add role =
+        counts.AddOrUpdate(role, 1, (fun _ n -> n + 1)) |> ignore
+
+    /// `llm`, with its completions counted as `role`'s when `model` is a Claude Code name
+    /// (`claude:<model>`). Another model's service is returned as it is.
+    member _.Count (role: string) (model: string option) (llm: ILlmService) : ILlmService =
+        match model |> Option.bind LlmFactory.claudeCodeModel with
+        | None -> llm
+        | Some _ ->
+            counts.TryAdd(role, 0) |> ignore
+
+            { new ILlmService with
+                member _.CompleteAsync req =
+                    add role
+                    llm.CompleteAsync req
+
+                member _.CompleteStreamAsync(req, onChunk) =
+                    add role
+                    llm.CompleteStreamAsync(req, onChunk)
+
+                member _.EmbedAsync text = llm.EmbedAsync text
+                member _.RouteAsync req = llm.RouteAsync req
+              interface ICancellableLlmService with
+                member _.CompleteAsync(req, token) =
+                    add role
+
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.CompleteAsync(req, token)
+                    | _ -> llm.CompleteAsync req
+
+                member _.EmbedAsync(text, token) =
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.EmbedAsync(text, token)
+                    | _ -> llm.EmbedAsync text
+
+                member _.CompleteStreamAsync(req, onChunk, token) =
+                    add role
+
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.CompleteStreamAsync(req, onChunk, token)
+                    | _ -> llm.CompleteStreamAsync(req, onChunk)
+
+                member _.RouteAsync(req, token) =
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.RouteAsync(req, token)
+                    | _ -> llm.RouteAsync req }
+
+    /// Each role on Claude Code, with its calls so far, by role name.
+    member _.ByRole: (string * int) list =
+        counts |> Seq.map (fun kv -> kv.Key, kv.Value) |> Seq.sortBy fst |> List.ofSeq
+
+    member this.Total = this.ByRole |> List.sumBy snd
+
+/// ADR 0005 (D3) budgets about 30 Claude calls per 10-task evolve run.
+let claudeCallBudget (tasks: int) = 3 * tasks
+
+/// How an evolve run's Claude calls compare with ADR 0005's budget for the tasks it finished:
+/// whether they went over it, and the line that says so. A task that failed, timed out or threw
+/// is finished, since `run` records it. A step whose curriculum gave no task finishes none, so its
+/// calls get no budget. None when no role is on Claude Code.
+let claudeCallsReport (calls: ClaudeCalls) (finished: int) : (bool * string) option =
+    match calls.ByRole with
+    | [] -> None
+    | roles ->
+        let budget = claudeCallBudget finished
+        let over = calls.Total > budget
+        let byRole = roles |> List.map (fun (role, n) -> $"{role} {n}") |> String.concat ", "
+        let verdict = if over then "over" else "within"
+        let noun = if finished = 1 then "task" else "tasks"
+
+        Some(over, $"Claude calls: {calls.Total} ({byRole}), {verdict} ADR 0005's budget of {budget} for {finished} {noun} finished")
+
+/// Appends `record` to the JSON lines file at `path`, with the evolve run and the executor's model:
+/// one line per task, so the answers whose examples passed can be found after the run. A file
+/// that cannot be written is logged, and the run goes on.
+let recordTo (logger: ILogger) (path: string) (run: string) (model: string) (record: Engine.TaskRecord) =
+    try
+        Directory.CreateDirectory(Path.GetDirectoryName path) |> ignore
+
+        let line =
+            System.Text.Json.JsonSerializer.Serialize
+                {| run = run
+                   model = model
+                   taskId = record.Definition.Id
+                   goal = record.Definition.Goal
+                   constraints = record.Definition.Constraints
+                   criteria = record.Definition.ValidationCriteria
+                   // null when the examples did not run (no --run-code).
+                   examplesPassed = record.Examples |> Option.map (fun e -> e.Passed) |> Option.toNullable
+                   // true when the examples passed, which since #394 needs this process to compare the
+                   // code's values with expected values computed without the code; null otherwise. Rows
+                   // written before #394 lack it: their examples were checked only in the code's process.
+                   examplesComparedOutside =
+                       record.Examples
+                       |> Option.filter (fun e -> e.Passed)
+                       |> Option.map (fun _ -> true)
+                       |> Option.toNullable
+                   success = record.Result.Success
+                   verdict = record.Result.Evaluation |> Option.map (fun e -> e.Summary) |> Option.toObj
+                   output = record.Result.Output
+                   durationMs = int64 record.Result.Duration.TotalMilliseconds
+                   finishedAt = DateTime.UtcNow |}
+
+        File.AppendAllText(path, line + "\n")
+    with ex ->
+        logger.Warning("Could not record the task in {Path}: {Message}", path, ex.Message)
 
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
@@ -125,7 +273,6 @@ let run (logger: ILogger) (options: EvolveOptions) =
               "read_code"
               "patch_code"
               "write_code"
-              "git_commit"
               "git_status"
               "git_diff"
               "think_step_by_step"
@@ -217,7 +364,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 "Executor"
                 "0.1.0"
                 model
-                "You are a coding assistant that solves programming tasks step by step. Use the provided tools to explore, modify, and save code. Use write_code to save your solutions and git_commit to commit changes."
+                "You are a coding assistant that solves programming tasks. When a task gives everything you need, write the code directly; use tools only for what it needs from the project. Your final answer contains the complete code in a ```fsharp block; you may also save it with write_code."
                 semanticTools
                 executorCapabilities
 
@@ -258,20 +405,35 @@ let run (logger: ILogger) (options: EvolveOptions) =
         // Initialize LLM Service
         let baseLlmService =
             match options.Model with
-            | Some m -> LlmFactory.createWithModel logger m
+            | Some m -> llmFor logger m
             | None -> LlmFactory.create logger
+
+        // `--teacher` writes the curriculum and judges the answers; `--model` answers them.
+        let teacherLlm = options.Teacher |> Option.map (llmFor logger)
+
+        if not options.Quiet then
+            options.Teacher |> Option.iter (fun t -> RichOutput.info $"Teacher (curriculum and judge): {t}")
 
         // Setup Tracing if enabled
         let traceRecorder = TraceRecorder()
 
-        let llmService =
-            if options.Trace then
-                if not options.Quiet then
-                    RichOutput.info "🔍 Tracing enabled"
+        if options.Trace && not options.Quiet then
+            RichOutput.info "🔍 Tracing enabled"
 
-                TracingLlmService(baseLlmService, traceRecorder) :> ILlmService
-            else
-                baseLlmService
+        let llmService, teacherLlm =
+            tracedServices options.Trace traceRecorder baseLlmService teacherLlm
+
+        // The run's Claude calls, by role, for ADR 0005's budget. The teacher, or the executor's
+        // model without one, writes the curriculum, judges, and runs the epistemic governor.
+        // "executor" counts every call on `--model`'s service: the intent classifier's, the
+        // memory's and the benchmark's too.
+        let claudeCalls = ClaudeCalls()
+        let teacherService = teacherLlm |> Option.defaultValue llmService
+        let teacherModel = options.Teacher |> Option.orElse options.Model
+        let curriculumLlm = claudeCalls.Count "curriculum" teacherModel teacherService
+        let judgeLlm = claudeCalls.Count "judge" teacherModel teacherService
+        let governorLlm = claudeCalls.Count "governor" teacherModel teacherService
+        let llmService = claudeCalls.Count "executor" options.Model llmService
 
         if options.Trace then
             let! traceId = (traceRecorder :> ITraceRecorder).StartTraceAsync() |> Async.StartAsTask
@@ -288,7 +450,9 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 let vecDim =
                     match config.Llm.EmbeddingModel.ToLowerInvariant() with
                     | m when m.Contains("nomic") -> 768
-                    | m when m.Contains("mxbai") -> 512
+                    // mxbai-embed-large returns 1024. At 512, SaveAsync's length check
+                    // rejected every vector it produced.
+                    | m when m.Contains("mxbai") -> 1024
                     | m when m.Contains("text-embedding-3-large") -> 3072
                     | m when m.Contains("text-embedding-3-small") -> 1536
                     | _ -> 1536
@@ -379,6 +543,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
             | Some _ -> RichOutput.info "🧠 Capability index: Postgres (agent_capabilities)"
             | None -> RichOutput.info $"🧠 Capability index: {config.Memory.VectorStorePath} (agent_capabilities)"
 
+        // The tasks finished so far, kept out of the try below: a run that fails still reports
+        // the Claude calls it made.
+        let tasksFinished = ref 0
+
+        let reportClaudeCalls () =
+            match claudeCallsReport claudeCalls tasksFinished.Value with
+            | Some(true, line) -> logger.Warning("{ClaudeCalls}", line)
+            | Some(false, line) -> logger.Information("{ClaudeCalls}", line)
+            | None -> ()
+
         try
             let! ledgerAndStoreOpt =
                 task {
@@ -438,8 +612,13 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 if options.DemoMode then
                     None
                 else
+                    // It suggests the curriculum's focus and verifies the answers: the teacher's job.
                     Some(
-                        Tars.Cortex.EpistemicGovernor(llmService, Some knowledgeGraph, Some budget)
+                        Tars.Cortex.EpistemicGovernor(
+                            governorLlm,
+                            Some knowledgeGraph,
+                            Some budget
+                        )
                         :> IEpistemicGovernor
                     )
 
@@ -448,7 +627,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             let evaluator =
                 SemanticEvaluation(
-                    llmService,
+                    judgeLlm,
                     minConfidence = 0.6,
                     logger = fun msg -> logger.Information("{Evaluation}", msg)
                 )
@@ -509,7 +688,23 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             let entropyMonitor = EntropyMonitor()
             let compressor = ContextCompressor(llmService, entropyMonitor)
-            let summarizerStage = ContextSummarizerStage(compressor) :> IPreLlmStage
+            // A task prompt is summarized only when it cannot be sent as is: after the
+            // executor's own instructions and tool list, with the 1024 tokens it keeps
+            // for its answer (GraphRuntime.handleThinking).
+            let executorPreambleBytes =
+                System.Text.Encoding.UTF8.GetByteCount(Tars.Graph.PromptBuilder.buildSystemPrompt executorAgent [])
+
+            let taskPromptLimit =
+                ContextSummarizerStage.PromptLimit(config.Llm.ContextWindow, executorPreambleBytes, 1024)
+
+            if taskPromptLimit = 0 then
+                logger.Warning(
+                    "Context window of {Window} tokens leaves no room for a task after the executor's instructions; tasks will be blocked. Use 16384.",
+                    config.Llm.ContextWindow
+                )
+
+            let summarizerStage =
+                ContextSummarizerStage(compressor, taskPromptLimit) :> IPreLlmStage
 
             let preLlmPipeline = PreLlmPipeline([ policyStage; intentStage; summarizerStage ])
 
@@ -526,9 +721,26 @@ let run (logger: ILogger) (options: EvolveOptions) =
             let memoryBuffer =
                 BufferAgent<Engine.MemoryItem>(10, TimeSpan.FromSeconds(5.0), onFlush)
 
+            // Names this evolve run, so each cycle's benchmark results can be told
+            // apart on disk ("<run>/<cycle>").
+            let evolveRun = Guid.NewGuid().ToString("N").Substring(0, 8)
+
+            // The run's results.jsonl, one line per task, and the executor's workspace.
+            let runDir =
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".tars",
+                    "evolve",
+                    "runs",
+                    evolveRun
+                )
+
+            let resultsPath = Path.Combine(runDir, "results.jsonl")
+
             let evoCtx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = llmService
+                  CurriculumLlm = Some curriculumLlm
                   VectorStore = vectorStore
                   Logger =
                     fun s ->
@@ -570,7 +782,9 @@ let run (logger: ILogger) (options: EvolveOptions) =
                       Focus = options.Focus
                       ToolRegistry = Some toolRegistry
                       ResearchEnhanced = options.ResearchEnhanced
-                      SelfImprovement = options.SelfImprovement } }
+                      SelfImprovement = options.SelfImprovement
+                      RunCode = options.RunCode
+                      RecordTask = recordTo logger resultsPath evolveRun model } }
 
             // Load Plan if provided
             let initialTasks =
@@ -627,6 +841,19 @@ let run (logger: ILogger) (options: EvolveOptions) =
             let mutable currentState =
                 { evoState with
                     TaskQueue = initialTasks }
+
+            // The executor's write_code and patch_code land here, not in the repository.
+            let executorWorkspace = Path.Combine(runDir, "workspace")
+
+            Tars.Tools.ToolWorkspace.set (Some executorWorkspace)
+
+            if not options.Quiet then
+                RichOutput.info $"Executor workspace: {executorWorkspace}"
+                RichOutput.info $"Results: {resultsPath}"
+
+            if options.RunCode then
+                RichOutput.warning
+                    "--run-code: the executor's F# answers are run with dotnet fsi, with your user rights, outside any sandbox."
 
             for cycle in 1 .. options.LoopCount do
                 if options.LoopCount > 1 && not options.Quiet then
@@ -743,6 +970,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                                     CurrentTask = None }
 
                     currentState <- nextState
+                    tasksFinished.Value <- currentState.CompletedTasks.Length
 
                     try
                         knowledgeGraph.Save(knowledgeGraphPath)
@@ -780,10 +1008,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         match options.BenchmarkDomain.ToLowerInvariant() with
                         | "ga" | "music" -> GaProblemBank.all ()
                         | "all" -> ProblemBank.all () @ GaProblemBank.all ()
+                        | "hard" -> ProblemBank.hard ()
                         | _ -> ProblemBank.all ()
 
                     let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
-                    let! benchSummary =
+                    let! benchRun =
                         BenchmarkRunner.runSuiteFromProblems
                             llmService
                             benchSource
@@ -792,6 +1021,8 @@ let run (logger: ILogger) (options: EvolveOptions) =
                             None    // no limit
                             true    // retry on failure
                             benchLogger
+
+                    let benchSummary = { benchRun with CycleId = Some $"{evolveRun}/{cycle}" }
 
                     BenchmarkRunner.recordOutcomes selector benchSummary
                     let benchPath = BenchmarkRunner.saveResults benchSummary
@@ -929,9 +1160,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
             with ex ->
                 logger.Warning("Failed to save knowledge graph: {Message}", ex.Message)
 
+            reportClaudeCalls ()
             return 0
         with ex ->
             RichOutput.error $"Evolution failed: {ex.Message}"
             logger.Error(ex, "Evolution Engine Failed")
+            reportClaudeCalls ()
             return 1
     }

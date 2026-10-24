@@ -69,6 +69,7 @@ module SelfTrainCommand =
             match domain.ToLowerInvariant() with
             | "ga" | "music" -> GaProblemBank.all ()
             | "all" -> ProblemBank.all () @ GaProblemBank.all ()
+            | "hard" -> ProblemBank.hard ()
             | _ -> ProblemBank.all ()
         match idFilter with
         | Some id -> s |> List.filter (fun p -> p.Id = id)

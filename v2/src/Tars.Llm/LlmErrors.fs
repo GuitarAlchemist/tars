@@ -14,10 +14,26 @@ type LlmError =
     | InsufficientContext of required: int * available: int
     | UnknownError of exn
 
+/// A provider answered that it has no such model. Carries the name so the
+/// functional path can report `ModelNotFound` instead of an opaque failure — a
+/// plain `failwith` reaches `fromException` as `UnknownError`, which callers can
+/// only log.
+type ModelNotFoundException(model: string, detail: string) =
+    inherit exn(detail)
+    /// The model name the provider did not recognise.
+    member _.Model = model
+
 module LlmError =
     /// Convert exception to LlmError
-    let fromException (ex: exn) : LlmError =
+    let rec fromException (ex: exn) : LlmError =
         match ex with
+        | :? System.AggregateException as aggregate ->
+            // Anything raised inside a Task arrives wrapped, so classifying the
+            // wrapper turns every typed answer underneath it into UnknownError.
+            match aggregate.Flatten().InnerExceptions |> Seq.tryHead with
+            | Some inner -> fromException inner
+            | None -> UnknownError ex
+        | :? ModelNotFoundException as notFound -> ModelNotFound notFound.Model
         | :? System.Net.Http.HttpRequestException as httpEx ->
             if httpEx.Message.Contains("timeout") then
                 ApiTimeout "unknown"

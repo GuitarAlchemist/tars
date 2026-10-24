@@ -60,9 +60,28 @@ module CodeAnalysisTools =
 
         Seq.append types modules |> Seq.toList
 
-    /// Count lines of code (excluding blanks and comments)
+    /// Split into lines, keeping the blank ones.
+    ///
+    /// `Split([| '\n'; '\r' |], RemoveEmptyEntries)` — which is what this used to do —
+    /// deletes every empty line before anything is counted. Two numbers in the report
+    /// were wrong as a result: "Total Lines" was the count of *non-empty* lines, and
+    /// "Blank Lines" could only ever match a line of spaces or tabs, because a line
+    /// that was genuinely empty had already been removed. A file with 200 blank lines
+    /// in 1000 reported 800 total and 0 blank.
+    let private splitLines (text: string) =
+        let normalized = text.Replace("\r\n", "\n").Replace('\r', '\n')
+        let lines = normalized.Split('\n')
+
+        // A file ending in a newline yields one trailing empty entry. That is the end
+        // of the last line, not a line of its own.
+        if lines.Length > 1 && lines.[lines.Length - 1] = "" then
+            lines.[.. lines.Length - 2]
+        else
+            lines
+
+    /// Total lines, blank lines, comment lines, and what is left over as code.
     let private countLoc (code: string) =
-        let lines = code.Split([| '\n'; '\r' |], StringSplitOptions.RemoveEmptyEntries)
+        let lines = splitLines code
         let total = lines.Length
         let blank = lines |> Array.filter String.IsNullOrWhiteSpace |> Array.length
 

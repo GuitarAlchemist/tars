@@ -27,14 +27,27 @@ via `LlmFactory.create(logger)`, never `DefaultLlmService` directly.
   compiled by `Tars.DSL`). **Metascript is frozen** — no new features go there.
 - **Cortex** — the agent brain / orchestrator (`Tars.Cortex`) that drives
   multi-agent reasoning over the WoT engine.
-- **Evolution / promotion pipeline** — the closed self-improvement loop
+- **Evolution / promotion pipeline** — the pattern-promotion loop
   (`Tars.Evolution`): 7 steps, **Inspect → Extract → Classify → Propose → Validate
   → Persist → Govern**. Patterns climb *Implementation → Helper → Builder →
   DslClause → GrammarRule*; the Bayesian-weighted index persists to
-  `~/.tars/promotion/index.json`.
+  `~/.tars/promotion/index.json`. **Parked** by ADR 0005: its weights learn from
+  the governor's approvals, which a round-trip check tests for form only, not from
+  a verified signal.
+- **Verified signal** vs **judged signal** — a verified signal comes from running
+  something: examples run with the code, `dotnet test`, benchmark PASS, or a
+  mechanical check of the answer's code against its task's constraints. A check
+  of form alone, such as the promotion pipeline's round-trip check, is not one.
+  A judged signal is an LLM's verdict. New self-improvement work learns only from
+  verified signals (ADR 0005). A judge may reject an answer and say why, but its
+  verdict alone is not training data. The loops ADR 0005 parks still run when
+  called, and still write state from signals that are self-reported or circular
+  rather than judged (promotion and grammar weights, Darwin's improvement log, the
+  pattern selector's outcomes and golden traces): treat that state as unverified.
 - **Probabilistic grammar** — EBNF grammars (`v2/grammars/`) with Bayesian-updated
   weights for constrained decoding; managed via `grammar_weights` / `grammar_evolve`
-  / `grammar_search`.
+  / `grammar_search`. The replicator behind `grammar_evolve` is parked by ADR 0005;
+  constrained decoding is not.
 - **GA Trace Bridge** — discovers patterns from ga orchestrator traces
   (`~/.ga/traces/`) and chatbot skill-routing claims, promoting them through the
   evolution pipeline for cross-model validation (`ingest_ga_traces`,

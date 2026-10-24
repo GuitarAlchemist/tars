@@ -55,7 +55,11 @@ module ClaudeCodeBridge =
           PatternKind: PatternKind
           StartedAt: DateTime
           StepOutputs: ConcurrentDictionary<string, string>
-          StepStatuses: ConcurrentDictionary<string, bool> }
+          StepStatuses: ConcurrentDictionary<string, bool>
+          /// Nodes that were run, checked or recorded at least once. A status alone
+          /// cannot say this: a node the gate refused has status `false` without
+          /// anything having been attempted.
+          Ran: ConcurrentDictionary<string, unit> }
 
     let private activePlans = ConcurrentDictionary<string, ActivePlan>()
 
@@ -186,7 +190,8 @@ module ClaudeCodeBridge =
                   PatternKind = patternKind
                   StartedAt = DateTime.UtcNow
                   StepOutputs = ConcurrentDictionary<string, string>()
-                  StepStatuses = ConcurrentDictionary<string, bool>() }
+                  StepStatuses = ConcurrentDictionary<string, bool>()
+                  Ran = ConcurrentDictionary<string, unit>() }
 
             // Build manifest
             let manifest =
@@ -206,9 +211,27 @@ module ClaudeCodeBridge =
     // =========================================================================
 
     /// Execute a single step in an active plan.
-    /// Input JSON: { "plan_id": "...", "node_id": "...", "input": "..." }
-    /// For Tool nodes, runs the tool via the registry.
-    /// For other node kinds, records the provided input as output.
+    ///
+    /// Input JSON: `{ "plan_id", "node_id", "input", "approve": ["node_id", ...] }`.
+    /// For Tool nodes, runs the tool via the registry. A Validate node is refused:
+    /// `validateStep` checks it. For other node kinds, records the provided input as
+    /// output.
+    ///
+    /// **The gate, and what it does not cover.** Until `ToolGate` existed this ran any
+    /// tool a compiled plan named, with nothing asked and nothing said - the graph
+    /// editor had a gate only because that is where the gate happened to get written.
+    /// It now asks `ToolGate.inspect`, and refuses a tool whose descriptor says it
+    /// changes something or leaves the machine unless `approve` names this node.
+    ///
+    /// An **undescribed** tool still runs. That is this surface's posture and it is
+    /// deliberately the opposite of the graph editor's, which refuses one: the editor
+    /// offers a catalog of six described tools and a graph naming anything else was not
+    /// built from that catalog, while this bridge drives the whole registry - some two
+    /// hundred tools - and failing closed would refuse every plan it runs today.
+    ///
+    /// So the gate's reach here is exactly the descriptor backfill's reach, and it
+    /// grows as that does. That is a real limit, not a hidden one, and it is the reason
+    /// this is not the same posture on both sides of a shared decision.
     let executeStep
         (toolRegistry: Tars.Core.IToolRegistry)
         (input: string)
@@ -228,6 +251,21 @@ module ClaudeCodeBridge =
                 let stepInput =
                     tryGetString "input" root |> Option.defaultValue ""
 
+                // Node ids, not tool names, so that this field means the same thing as
+                // `approve` on `tars_plan_run`. Naming the node the call already names
+                // looks redundant and is the point: a caller has to restate what it is
+                // allowing, which is a thing a person can be shown, where `true` is not.
+                let approved =
+                    let mutable value = JsonElement()
+
+                    if root.TryGetProperty("approve", &value) && value.ValueKind = JsonValueKind.Array then
+                        value.EnumerateArray()
+                        |> Seq.filter (fun e -> e.ValueKind = JsonValueKind.String)
+                        |> Seq.map (fun e -> e.GetString())
+                        |> Set.ofSeq
+                    else
+                        Set.empty
+
                 match activePlans.TryGetValue(planId) with
                 | false, _ -> return Error "Plan not found"
                 | true, activePlan ->
@@ -242,10 +280,34 @@ module ClaudeCodeBridge =
                         | Tool ->
                             match node.Payload with
                             | :? ToolPayload as payload ->
-                                let tool = toolRegistry.Get(payload.Tool)
+                                let gated =
+                                    match Tars.Core.ToolGate.inspect toolRegistry payload.Tool with
+                                    | Tars.Core.ToolGate.Allowed(t, _) -> Ok t
+                                    | Tars.Core.ToolGate.Undescribed(t, _) -> Ok t // see the note on executeStep
+                                    | Tars.Core.ToolGate.NeedsApproval(t, descriptor) ->
+                                        if approved.Contains nodeId then
+                                            Ok t
+                                        else
+                                            Error(
+                                                Tars.Core.ToolGate.refusalMessage t descriptor
+                                                + $". Send this step again with \"approve\": [\"{nodeId}\"] to allow it."
+                                            )
+                                    | Tars.Core.ToolGate.Unresolved(Tars.Core.ToolGate.Ambiguous names) ->
+                                        Error(
+                                            $"'{payload.Tool}' matches more than one registered tool, differing only by case: "
+                                            + String.concat ", " names
+                                            + ". Name one of them exactly."
+                                        )
+                                    | Tars.Core.ToolGate.Unresolved _ ->
+                                        Error $"Tool '{payload.Tool}' not found in registry"
 
-                                match tool with
-                                | Some t ->
+                                match gated with
+                                | Error refusal ->
+                                    // The plan has not done this node - unless an earlier
+                                    // run did, and then that run's result stands.
+                                    activePlan.StepStatuses.TryAdd(nodeId, false) |> ignore
+                                    return Error refusal
+                                | Ok t ->
                                     let sw = System.Diagnostics.Stopwatch.StartNew()
 
                                     let toolInput =
@@ -254,6 +316,7 @@ module ClaudeCodeBridge =
 
                                     let! result = Tars.Core.ToolExecution.runDefault t toolInput
                                     sw.Stop()
+                                    activePlan.Ran.[nodeId] <- ()
 
                                     match result with
                                     | Ok output ->
@@ -272,14 +335,20 @@ module ClaudeCodeBridge =
                                     | Error err ->
                                         activePlan.StepStatuses.[nodeId] <- false
                                         return Error $"Tool '{payload.Tool}' failed: {err}"
-                                | None ->
-                                    return Error $"Tool '{payload.Tool}' not found in registry"
                             | _ ->
                                 return Error "Tool node has invalid payload type"
+                        | Validate ->
+                            // Recording this node would mark it passed with none of its
+                            // invariants checked - and would turn a failed
+                            // tars_validate_step on the same node into a pass.
+                            return
+                                Error
+                                    $"'{nodeId}' is a Validate node: its invariants are checked by tars_validate_step. Nothing was recorded."
                         | _ ->
                             // For non-tool nodes, record the input as output
                             activePlan.StepOutputs.[nodeId] <- stepInput
                             activePlan.StepStatuses.[nodeId] <- true
+                            activePlan.Ran.[nodeId] <- ()
                             let nextNodes = nextNodesFor activePlan.Plan.Edges nodeId
 
                             let stepResult =
@@ -297,9 +366,30 @@ module ClaudeCodeBridge =
     // validateStep
     // =========================================================================
 
+    /// What `tars_validate_step` makes of each invariant: `Ok true` verified, `Ok false`
+    /// failed, `Error` not checked - and not checked is never counted as a pass.
+    ///
+    /// The checks are `Verification.verify`'s, the same ones the executor runs. This
+    /// used to keep its own copy of the simple ones and answer `true // placeholder`
+    /// for the rest, so a `Schema` or `CustomOp` invariant passed every payload, and a
+    /// `ToolCheck` passed without the tool being run (#284).
+    let checkInvariants (content: string) (invariants: WoTInvariant list) : (string * Result<bool, string>) list =
+        let noTools _name _args =
+            async { return Result.Error "tars_validate_step does not execute tools" }
+
+        invariants
+        |> List.map (fun inv ->
+            let outcome =
+                match inv.Op with
+                // Running a tool is not validation: it can have effects, and this
+                // entry point has no approval to run anything under.
+                | ToolCheck(tool, _) -> Result.Error $"tool check '{tool}' was not run: tars_validate_step does not execute tools"
+                | op -> Verification.verify content op noTools |> Async.RunSynchronously
+
+            inv.Name, outcome)
+
     /// Validate content against a Validate node's invariants.
     /// Input JSON: { "plan_id": "...", "node_id": "...", "content": "..." }
-    /// Uses synchronous subset of Verification (Contains, Regex, JsonPath, Schema, CustomOp).
     let validateStep (input: string) : Result<string, string> =
         try
             let doc = JsonDocument.Parse(input)
@@ -331,43 +421,39 @@ module ClaudeCodeBridge =
                     | Validate ->
                         match node.Payload with
                         | :? ValidatePayload as payload ->
-                            // Perform synchronous verification for simple ops
-                            let results =
-                                payload.Invariants
-                                |> List.map (fun inv ->
-                                    let passed =
-                                        match inv.Op with
-                                        | Contains substring ->
-                                            content.Contains(substring, StringComparison.OrdinalIgnoreCase)
-                                        | VerificationOp.Regex pattern ->
-                                            System.Text.RegularExpressions.Regex.IsMatch(
-                                                content, pattern,
-                                                System.Text.RegularExpressions.RegexOptions.IgnoreCase)
-                                        | JsonPath path ->
-                                            content.Contains(path) || content.Contains($"\"{path}\"")
-                                        | Schema _ -> true // placeholder
-                                        | CustomOp _ -> true // placeholder
-                                        | ToolCheck _ -> true // skip tool checks in sync validate
-                                    inv.Name, passed)
+                            let results = checkInvariants content payload.Invariants
 
-                            let allPassed = results |> List.forall snd
+                            let verified (_, outcome) = outcome = Result.Ok true
+
+                            let allPassed = results |> List.forall verified
 
                             let failed =
                                 results
-                                |> List.filter (fun (_, p) -> not p)
+                                |> List.filter (verified >> not)
                                 |> List.map fst
+
+                            // Why an invariant in `failed` was never checked, so a caller
+                            // can tell "the content is wrong" from "nothing looked at it".
+                            let notVerified =
+                                results
+                                |> List.choose (fun (name, outcome) ->
+                                    match outcome with
+                                    | Result.Error reason -> Some $"{name}: {reason}"
+                                    | Result.Ok _ -> None)
 
                             activePlan.StepOutputs.[nodeId] <-
                                 if allPassed then "PASS"
                                 else sprintf "FAIL: %s" (String.Join(", ", failed))
 
                             activePlan.StepStatuses.[nodeId] <- allPassed
+                            activePlan.Ran.[nodeId] <- ()
 
                             let nextNodes = nextNodesFor activePlan.Plan.Edges nodeId
 
                             let result =
                                 {| passed = allPassed
                                    failed_invariants = failed
+                                   not_verified = notVerified
                                    next_nodes = nextNodes |}
 
                             Ok(JsonSerializer.Serialize(result, jsonOptions))
@@ -380,8 +466,8 @@ module ClaudeCodeBridge =
     // completePlan
     // =========================================================================
 
-    /// Complete an active plan, record outcome for pattern learning, and check
-    /// for golden trace regression.
+    /// Complete an active plan, record its outcome for pattern learning, and say
+    /// whether a golden trace exists for its goal (nothing here compares against it).
     /// Input JSON: { "plan_id": "...", "final_output": "..." }
     let completePlan
         (selector: IPatternSelector)
@@ -408,21 +494,31 @@ module ClaudeCodeBridge =
                 let failedSteps =
                     activePlan.StepStatuses.Values |> Seq.filter (not) |> Seq.length
 
-                let success = failedSteps = 0
+                // A plan in which no step ran did not succeed. A step the gate refused
+                // was declined, not run.
+                let ran = not activePlan.Ran.IsEmpty
+
+                let success = ran && failedSteps = 0
 
                 let duration =
                     (DateTime.UtcNow - activePlan.StartedAt).TotalMilliseconds |> int64
 
-                // Record outcome for pattern learning
-                selector.RecordOutcome(
-                    PatternOutcome.Create(activePlan.PatternKind, activePlan.Goal, success, duration))
+                // Record outcome for pattern learning - unless nothing ran, which says
+                // nothing about the pattern either way.
+                if ran then
+                    selector.RecordOutcome(
+                        PatternOutcome.Create(activePlan.PatternKind, activePlan.Goal, success, duration))
 
                 // Check golden regression (best-effort)
                 let regressionMsg =
                     let goldenName = RegressionChecker.goalToGoldenName activePlan.Goal
 
                     match GoldenTraceStore.load goldenName with
-                    | Ok _ -> Some "PASS (golden trace exists)"
+                    // Nothing here compares the run against it. This used to say
+                    // "PASS", for a comparison that never happened.
+                    | Ok _ ->
+                        Some
+                            "not compared: a golden trace exists for this goal, but completing a plan does not compare against it"
                     | Error _ -> None
 
                 let result =

@@ -10,8 +10,15 @@ open Tars.Llm.Routing // For Ollama case
 module EvolutionTests =
 
     type EvolutionStubLlm(responseText: string) =
+        let prompts = ResizeArray<string>()
+
+        /// The content of every message the service was asked to complete.
+        member _.Prompts = prompts
+
         interface Tars.Llm.ILlmService with
-            member _.CompleteAsync(_req) =
+            member _.CompleteAsync(req) =
+                prompts.AddRange(req.Messages |> List.map (fun m -> m.Content))
+
                 task {
                     return
                         { Text = responseText
@@ -148,8 +155,11 @@ module EvolutionTests =
 
 
     [<Fact>]
-    let ``Evolution generation uses epistemic suggestions`` () =
+    let ``The curriculum reads the run's principles itself, with no governor call`` () =
         if not (TestHelpers.requireTools()) then () else
+        // The governor turned the principles into a one-sentence suggestion for the curriculum:
+        // one more call per cycle, against ADR 0005's budget, for what the curriculum can read.
+        let principle = "Thread an immutable accumulator through a fold."
         let stubEpistemic = StubEpistemic()
 
         let llmJson =
@@ -164,7 +174,7 @@ module EvolutionTests =
               CompletedTasks = []
               CurrentTask = None
               TaskQueue = []
-              ActiveBeliefs = [] }
+              ActiveBeliefs = [ principle ] }
 
         let curriculumAgent =
             let (AgentId id) = state.CurriculumAgentId
@@ -177,6 +187,7 @@ module EvolutionTests =
         let evoCtx: Engine.EvolutionContext =
             { Registry = registry
               Llm = llm :> Tars.Llm.ILlmService
+              CurriculumLlm = None
               VectorStore = StubVectorStore() :> IVectorStore
               Logger = (fun _ -> ())
               Memory =
@@ -200,10 +211,12 @@ module EvolutionTests =
                   Focus = None
                   ToolRegistry = None
                   ResearchEnhanced = false
+                  RunCode = false
+                  RecordTask = ignore
                   SelfImprovement = false } }
 
         let _nextState =
             Engine.step evoCtx state |> Async.AwaitTask |> Async.RunSynchronously
 
-        // Verify the epistemic governor was consulted
-        Assert.True(stubEpistemic.Called, "Epistemic governor SuggestCurriculum should be invoked")
+        Assert.False(stubEpistemic.Called, "The governor's SuggestCurriculum should not be called")
+        Assert.Contains(llm.Prompts, (fun (p: string) -> p.Contains principle))

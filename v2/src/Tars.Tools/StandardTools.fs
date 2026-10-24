@@ -88,8 +88,11 @@ module StandardTools =
                     return $"Directory not found: {fullPath}"
                 else
                     let entries =
+                        // At most 200. `Seq.take` threw for fewer, so a directory with
+                        // fewer than 200 entries - most of them - answered "list_dir
+                        // error: The input sequence has an insufficient number of elements."
                         Directory.EnumerateFileSystemEntries(fullPath)
-                        |> Seq.take 200
+                        |> Seq.truncate 200
                         |> Seq.map (fun p -> Path.GetFileName p)
                         |> String.concat "\n"
 

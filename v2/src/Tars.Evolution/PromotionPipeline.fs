@@ -238,11 +238,14 @@ let persist (candidate: PromotionCandidate) (decision: GovernanceDecision) : Lin
     persistInto defaultStore candidate decision
 
 // ─────────────────────────────────────────────────────────────────────
-// Step 7: GOVERN — Grammar Governor makes final decision
+// Step 7: GOVERN — decided by `PromotionGate.decide`, inside `run`
 // ─────────────────────────────────────────────────────────────────────
-
-let govern (existing: RecurrenceRecord list) (candidate: PromotionCandidate) : GovernanceDecision =
-    GrammarGovernor.evaluate existing candidate
+//
+// There used to be a `govern` here that called `GrammarGovernor.evaluate` and
+// nothing else. `run` stopped calling it when the verdict moved into
+// `PromotionGate.decide` - the Governor's decision and the round-trip override,
+// made in one place so the pipeline cannot second-guess it - and nothing else
+// ever called it (#310).
 
 // ─────────────────────────────────────────────────────────────────────
 // FULL PIPELINE — Run all 7 steps
@@ -293,7 +296,7 @@ let run (store: IPromotionStore) (minOccurrences: int) (artifacts: TraceArtifact
     // Step 3: Classify with weighted ranking (higher-weight candidates first)
     let candidates = classifyWeighted minOccurrences weights records
 
-    // Steps 4-7: propose → validate → govern → persist for each candidate
+    // Steps 4-7: propose → validate → gate (step 7, govern) → persist, for each candidate
     let results =
         candidates
         |> List.map (fun candidate ->

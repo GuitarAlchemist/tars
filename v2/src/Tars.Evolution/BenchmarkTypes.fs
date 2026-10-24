@@ -27,6 +27,11 @@ type BenchmarkProblem =
       ExpectedSignature: string
       /// F# code appended after the solution. Must print "PASS" or "FAIL: reason".
       ValidationCode: string
+      /// Examples, `call = expected` as in evolve, compared outside the solution's process
+      /// (ExampleCheck): the solution prints only the calls' values, and their expected values are
+      /// computed without it, so it cannot print its own verdict (#394). A problem that has them
+      /// has no ValidationCode.
+      Examples: string list
       /// Optional hints for the LLM prompt
       Hints: string list
       /// Time limit for LLM generation in seconds
@@ -68,7 +73,12 @@ type BenchmarkAttempt =
 type BenchmarkRunSummary =
     { RunId: Guid
       Timestamp: DateTime
+      /// "<provider>/<model>" of the backend that served the solver, or "unknown".
+      /// Runs saved before this was recorded say "default".
       ModelUsed: string
+      /// The evolve cycle the run belongs to ("<evolve run>/<cycle>"); None outside
+      /// `tars evolve`, and in runs saved before cycles were recorded.
+      CycleId: string option
       TotalProblems: int
       Compiled: int
       Validated: int

@@ -100,7 +100,8 @@ let run (logger: ILogger) =
                 DefaultOpenAIModel = "gpt-3.5-turbo"
                 DefaultGoogleGeminiModel = "gemini-pro"
                 DefaultAnthropicModel = "claude-2"
-                DefaultEmbeddingModel = "nomic-embed-text" }
+                DefaultEmbeddingModel = "nomic-embed-text"
+                EmbeddingProvider = None }
 
         let svcCfg = { LlmServiceConfig.Routing = routingCfg }
 

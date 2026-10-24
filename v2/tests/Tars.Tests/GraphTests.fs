@@ -316,3 +316,38 @@ type GraphTests(output: ITestOutputHelper) =
         Assert.Contains("Performs arithmetic calculations", prompt)
         Assert.Contains("Available Tools", prompt)
         output.WriteLine("Tools correctly included in system prompt")
+
+    [<Fact>]
+    member _.``PromptBuilder: Asks for JSON only in tool calls, not in answers``() =
+        // "Respond ONLY with a JSON object... No prose." made the evolve executor answer with
+        // tool calls (think_step_by_step, plan_task) instead of its code.
+        let tool: Tars.Core.Tool =
+            { Name = "Calculator"
+              Description = "Performs arithmetic calculations"
+              Version = "1.0.0"
+              ParentVersion = None
+              CreatedAt = DateTime.UtcNow
+              Execute = fun _ -> async { return Ok "4" } }
+
+        let agent: Tars.Core.Agent =
+            { Id = Tars.Core.AgentId(Guid.NewGuid())
+              Name = "TestAgent"
+              Version = "1.0.0"
+              ParentVersion = None
+              CreatedAt = DateTime.UtcNow
+              Model = "test-model"
+              SystemPrompt = "You are a helpful assistant."
+              Tools = [ tool ]
+              Capabilities = []
+              Memory = []
+              State = Tars.Core.Idle
+              Fitness = 0.0
+              Drives = { Accuracy = 0.5; Speed = 0.5; Creativity = 0.5; Safety = 0.5 }
+              Constitution = Tars.Core.AgentConstitution.Create(Tars.Core.AgentId(Guid.NewGuid()), Tars.Core.NeuralRole.GeneralReasoning) }
+
+        let prompt = PromptBuilder.buildSystemPrompt agent []
+
+        Assert.DoesNotContain("No prose", prompt)
+        Assert.DoesNotContain("Respond ONLY with a JSON object", prompt)
+        Assert.Contains("When you call a tool", prompt)
+        Assert.Contains("```tool", prompt)

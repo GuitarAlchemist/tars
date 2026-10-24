@@ -78,3 +78,53 @@ module ToolHelpers =
             match System.Int32.TryParse(args.Trim()) with
             | true, v -> Some v
             | _ -> None
+
+    /// Why a search was not run, or None when the service ran it. Both search
+    /// services answer a search they ran with 200. Anything else (Semantic
+    /// Scholar's 429, DuckDuckGo's 202 challenge page) used to be parsed like a
+    /// result page, found nothing in it, and came back as "No results found".
+    let searchNotRun (service: string) (status: System.Net.HttpStatusCode) =
+        if status = System.Net.HttpStatusCode.OK then
+            None
+        else
+            Some
+                $"{service} answered {int status} ({status}), so nothing was searched. This says nothing about whether results exist."
+
+/// Where write_code and patch_code write. Evolve gives its executor a workspace so its
+/// answers stay out of the repository it runs from. With none set, paths resolve as before.
+module ToolWorkspace =
+
+    open System.IO
+
+    // Async-local, so a workspace set by one evolve run (or test) does not leak into another.
+    let private root = System.Threading.AsyncLocal<string option>()
+
+    let set (dir: string option) =
+        root.Value <- dir |> Option.map Path.GetFullPath
+
+    /// The full path a tool writes `path` to. In a workspace, an absolute path or one
+    /// that leaves the workspace is refused.
+    let resolveWrite (path: string) : Result<string, string> =
+        match root.Value with
+        | None -> Ok(Path.GetFullPath path)
+        | Some dir ->
+            let full = Path.GetFullPath(Path.Combine(dir, path))
+            let relative = Path.GetRelativePath(dir, full)
+
+            if Path.IsPathRooted path then
+                Error $"'{path}' is an absolute path. Write inside the workspace {dir} with a relative path."
+            elif
+                relative = ".."
+                || relative.StartsWith(".." + string Path.DirectorySeparatorChar)
+                || Path.IsPathRooted relative
+            then
+                Error $"'{path}' leaves the workspace {dir}."
+            else
+                Ok full
+
+    /// The file a tool reads for `path`: the workspace copy if there is one, otherwise
+    /// `path` as before. Reading outside the workspace stays allowed.
+    let resolveRead (path: string) =
+        match resolveWrite path with
+        | Ok target when File.Exists target -> target
+        | _ -> Path.GetFullPath path

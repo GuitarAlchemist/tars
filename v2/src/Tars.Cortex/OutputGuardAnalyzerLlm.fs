@@ -136,6 +136,7 @@ module OutputGuardAnalyzerFactory =
               DefaultGoogleGeminiModel = "gemini-pro"
               DefaultAnthropicModel = "claude-3-opus-20240229"
               DefaultEmbeddingModel = "nomic-embed-text"
+              EmbeddingProvider = None
 
               ReasoningModel = None
               CodingModel = None

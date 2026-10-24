@@ -216,33 +216,15 @@ tags: custom
         }
 
     [<TarsToolAttribute("search_skills_registry",
-                        "Searches the Agent Skills registry for available skills. Input: search query")>]
-    let searchSkillsRegistry (args: string) : Task<string> =
+                        "Cannot search a skills registry: none is connected. It says so. list_skills shows the skills installed here. Input: search query")>]
+    let searchSkillsRegistry (args: string) : Task<Result<string, string>> =
         task {
-            let query = (ToolHelpers.parseStringArg args "query").ToLower()
+            let query = ToolHelpers.parseStringArg args "query"
 
-            // Curated list of available skills from the ecosystem
-            // In production, this would query agentskills.io or a similar registry
-            let registeredSkills =
-                [ ("code-review", "Canva", "Review code for quality, bugs, and style")
-                  ("stripe-payments", "Stripe", "Handle Stripe payment integrations")
-                  ("notion-docs", "Notion", "Create and manage Notion documents")
-                  ("figma-design", "Figma", "Generate and modify Figma designs")
-                  ("github-pr", "GitHub", "Manage GitHub pull requests and reviews")
-                  ("slack-notify", "Slack", "Send notifications to Slack channels")
-                  ("zapier-automation", "Zapier", "Create automation workflows")
-                  ("jira-tickets", "Atlassian", "Create and manage Jira tickets") ]
-
-            let matches =
-                registeredSkills
-                |> List.filter (fun (name, _, desc) -> name.Contains(query) || desc.ToLower().Contains(query))
-                |> List.map (fun (name, author, desc) -> $"- {name} by {author}: {desc}")
-
-            if matches.IsEmpty then
-                return "No skills found matching query. Try: 'code', 'payment', 'github', or 'slack'."
-            else
-                return
-                    "Found Skills in Registry:\n"
-                    + (String.Join("\n", matches))
-                    + "\n\nUse install_skill to add a skill to TARS."
+            // This used to answer from eight entries written in advance - "stripe-payments
+            // by Stripe", "jira-tickets by Atlassian" - as "Found Skills in Registry", and
+            // point to an `install_skill` tool that does not exist.
+            return
+                Result.Error
+                    $"Not searched: no skills registry is connected, so nothing was searched for \"%s{query}\". list_skills shows the skills installed here."
         }

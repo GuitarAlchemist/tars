@@ -18,6 +18,7 @@
     <Compile Include="PatternSelector.fs" />
     <Compile Include="RalphBridge.fs" />
     <Compile Include="ClaudeCodeBridge.fs" />
+    <Compile Include="GraphEditorBridge.fs" />
     <Compile Include="CognitiveStateManager.fs" />
     <Compile Include="WoTExecutor.fs" />
     <Compile Include="TarsWoTAgent.fs" />

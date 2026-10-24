@@ -103,12 +103,20 @@ module MetascriptTools =
 
                             output.Add("PRINT: " + resolved)
                             printfn $"   %s{resolved}"
-                        | "EXECUTE" -> output.Add("EXECUTE " + name)
+                        // This runner does not call tools. It used to list the step and
+                        // then report "Metascript execution complete".
+                        | "EXECUTE" -> output.Add("EXECUTE " + name + ": not run - this runner does not call tools")
                         | _ -> output.Add("Unknown: " + op)
 
                     let result = String.concat "\n" output
                     printfn "Metascript complete"
-                    return $"Metascript execution complete (%d{steps.Length} steps):\n%s{result}"
+                    let notRun = steps |> Seq.filter (fun (op, _, _) -> op = "EXECUTE") |> Seq.length
+
+                    if notRun = 0 then
+                        return $"Metascript execution complete (%d{steps.Length} steps):\n%s{result}"
+                    else
+                        return
+                            $"Metascript not fully run: %d{notRun} of %d{steps.Length} steps are EXECUTE, which this runner does not carry out.\n%s{result}"
             with ex ->
                 return "run_metascript error: " + ex.Message
         }

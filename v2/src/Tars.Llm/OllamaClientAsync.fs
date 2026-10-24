@@ -107,17 +107,19 @@ module OllamaClientAsync =
         (req: LlmRequest)
         : AsyncResult<LlmResponse, LlmError> =
 
-        // Validate model name
-        if
-            not (
-                model.StartsWith("tars-")
-                || model.StartsWith("llama")
-                || model.StartsWith("mistral")
-                || model.StartsWith("qwen")
-                || model.Contains("magistral")
-            )
-        then
-            AsyncResult.ofResult (Result.Error(ModelNotFound $"Unknown model: {model}"))
+        // The model name used to be checked against a five-entry allow-list — `tars-`,
+        // `llama`, `mistral`, `qwen`, `magistral` — and anything else was refused as
+        // "Unknown model" before a request was ever made. `gemma3`, `deepseek-r1`,
+        // `phi4`, `gpt-oss`, `codellama` and `nomic-embed-text` are all ordinary
+        // `ollama pull` models that fail it, and the configured reasoning default is
+        // `deepseek-r1:8b`, so this path refused the repository's own defaults.
+        //
+        // It is the local server that knows which models are pulled, and it already
+        // says so: an unknown name comes back 404, which `sendChatAsync` reports with
+        // the model and the URI it tried. Guessing the answer here could only be wrong
+        // in the direction of refusing models that exist.
+        if String.IsNullOrWhiteSpace model then
+            AsyncResult.ofResult (Result.Error(ModelNotFound "No model configured"))
         // Validate messages
         elif req.Messages |> List.exists (fun m -> String.IsNullOrWhiteSpace m.Content) then
             AsyncResult.ofResult (Result.Error(InvalidPrompt "Message with empty content"))

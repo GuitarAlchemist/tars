@@ -222,6 +222,33 @@ module PatternSelector =
             else []
         with _ -> []
 
+    /// The six kinds this selector scores, in the spelling `kindToString` writes.
+    let scoredKinds =
+        [ ChainOfThought
+          ReAct
+          PlanAndExecute
+          GraphOfThoughts
+          TreeOfThoughts
+          WorkflowOfThought ]
+
+    /// Read an id back into the kind that wrote it.
+    ///
+    /// Matching is on the whole name, not a substring. `Contains "plan"` is also
+    /// true of `Custom "explanation"`, and `GoldenTraceStore` persists
+    /// `PatternKind.ToString()`, so custom names do reach this parser — an
+    /// unrelated custom pattern would have collected PlanAndExecute's history.
+    /// Anything that is not one of the six scored kinds is None, as a Custom kind
+    /// has no score of its own.
+    let keyToKind (s: string) : PatternKind option =
+        if String.IsNullOrWhiteSpace s then
+            None
+        else
+            let name = s.Trim()
+
+            scoredKinds
+            |> List.tryFind (fun k ->
+                String.Equals(PatternOutcomeStore.kindToString k, name, StringComparison.OrdinalIgnoreCase))
+
     /// <summary>
     /// A pattern selector that uses golden trace history, recorded pattern
     /// outcomes, AND the promotion index (from cross-repo pattern discovery)
@@ -255,25 +282,12 @@ module PatternSelector =
         /// canonical codec so Custom kinds never send multi-line ids over the wire.
         let kindKey (k: PatternKind) = PatternOutcomeStore.kindToString k
 
-        let keyToKind (s: string) : PatternKind option =
-            match s.ToLowerInvariant() with
-            | s when s.Contains("chain") -> Some ChainOfThought
-            | s when s.Contains("react") -> Some ReAct
-            | s when s.Contains("planandexecute") || s.Contains("plan") -> Some PlanAndExecute
-            | s when s.Contains("graph") -> Some GraphOfThoughts
-            | s when s.Contains("tree") -> Some TreeOfThoughts
-            | s when s.Contains("workflow") -> Some WorkflowOfThought
-            | _ -> None
-
+        /// Golden-run history is read with the same mapping as the bandit ids.
+        /// These were two separate matches, and only one of them knew about
+        /// PlanAndExecute — so every golden run of that kind was silently dropped
+        /// from the history while the bandit counted it.
         let parsePatternKind (s: string) =
-            if isNull s then None else
-            match s.ToLowerInvariant() with
-            | s when s.Contains("chain") -> Some ChainOfThought
-            | s when s.Contains("react") -> Some ReAct
-            | s when s.Contains("graph") -> Some GraphOfThoughts
-            | s when s.Contains("tree") -> Some TreeOfThoughts
-            | s when s.Contains("workflow") -> Some WorkflowOfThought
-            | _ -> None
+            if isNull s then None else keyToKind s
 
         let goldenScores () =
             goldenHistory.Value

@@ -158,8 +158,8 @@ module WoTExecutor =
         else
             JsonSerializer.Serialize(args)
 
-    /// Execute an Act node â€” invokes the real tool if registered, otherwise
-    /// falls back to asking the LLM to simulate the tool call.
+    /// Execute an Act node: invokes the tool if it is registered. A tool that is not
+    /// registered fails the node - it is never stood in for.
     let private executeAct
         (ctx: ExecutionContext)
         (id: string)
@@ -189,36 +189,14 @@ module WoTExecutor =
                     return Result.Error err
 
             | None ->
-                // Tool not registered â€” fall back to LLM simulation
-                ctx.Logger $"[WoT] Tool '%s{toolName}' not found, falling back to LLM simulation"
-
-                let argsDesc =
-                    if args.IsEmpty then "no arguments"
-                    else
-                        args
-                        |> Map.toList
-                        |> List.map (fun (k, v) -> $"%s{k}=%O{v}")
-                        |> String.concat ", "
-
-                let prompt =
-                    $"You are simulating the tool '%s{toolName}' with arguments: %s{argsDesc}.\n\
-                      Produce a plausible output for this tool call. Be concise and factual."
-
-                try
-                    let! response =
-                        Prompt.ask prompt
-                        |> Prompt.withSystem "You are TARS, an autonomous reasoning agent simulating a tool call."
-                        |> Prompt.withMaxTokens 512
-                        |> Prompt.withTemp 0.3
-                        |> Prompt.complete ctx.Llm
-                        |> Async.AwaitTask
-
-                    ctx.Logger $"[WoT] LLM fallback for '%s{toolName}': %d{response.Text.Length} chars"
-                    return Result.Ok response.Text
-                with ex ->
-                    let err = $"Tool '%s{toolName}' not found and LLM fallback failed: %s{ex.Message}"
-                    ctx.Logger $"[WoT] %s{err}"
-                    return Result.Error err
+                // Nothing ran. This used to ask the LLM to "produce a plausible output
+                // for this tool call" and return it as the tool's result: an invented
+                // observation, recorded as a completed step and handed to every node
+                // downstream as if the tool had run. Separating Reason nodes from Work
+                // nodes exists to stop exactly that (WotTypes.fs).
+                let err = $"Tool '%s{toolName}' is not registered, so it was not run"
+                ctx.Logger $"[WoT] %s{err}"
+                return Result.Error err
         }
 
     /// Execute an Observe node
@@ -656,21 +634,73 @@ Respond with ONLY the number of your choice."""
             // Track per-node outputs for progressive context disclosure
             let mutable stepOutputs: Map<string, string> = Map.empty
 
+            // Nodes that did not complete: the ones that failed, and - transitively -
+            // the ones skipped because something they depend on is in here (tars#335).
+            //
+            // Before this, a `Failed` step appended an error and the loop carried on. A
+            // graph written as "check the file exists -> write to it" ran the write even
+            // when the check failed, and a reason node after a failure was handed the
+            // previous node's output labelled as its own input, so it reasoned over the
+            // wrong text and produced an answer that read exactly like a normal one.
+            //
+            // The edges already say what depends on what, so a node whose predecessor
+            // fell is now skipped, and independent branches keep running. A node skipped
+            // by its *condition* is not in here: that is the graph working as written,
+            // and what comes after it may legitimately run.
+            let mutable fallen: Set<string> = Set.empty
+
+            let fallenPredecessor (node: WoTNode) =
+                plan.Edges
+                |> List.tryFind (fun e -> e.To = node.Id && fallen.Contains e.From)
+                |> Option.map (fun e -> e.From)
+
+            let skipBecauseFallen (node: WoTNode) (cause: string) =
+                let skipStep =
+                    { NodeId = node.Id
+                      NodeType = node.Kind.ToString()
+                      StartedAt = DateTime.UtcNow
+                      Status = Skipped $"'{cause}', which it depends on, did not complete"
+                      Input = None
+                      Output = None
+                      Confidence = None
+                      TokensUsed = None }
+
+                ctx.OnProgress(skipStep)
+                steps <- steps @ [ skipStep ]
+                fallen <- fallen.Add node.Id
+
             // Helper: process a single executed node result (KG recording, tracking)
             let recordNodeResult (node: WoTNode) (step: WoTTraceStep) (output: string) =
                 async {
                     let nodeId = PatternCompiler.nodeId node
-                    stepOutputs <- stepOutputs |> Map.add nodeId output
+
+                    let completed =
+                        match step.Status with
+                        | Failed _ -> false
+                        | _ -> true
+
+                    // A failed node has no output. `executeNode` hands back the previous
+                    // one in its place so the loop has a string to thread through, and
+                    // recording that as *this* node's output is what let a later node read
+                    // it as if the failed step had produced it.
+                    if completed then
+                        stepOutputs <- stepOutputs |> Map.add nodeId output
+                    else
+                        fallen <- fallen.Add node.Id
 
                     // Record step in KG
                     match ctx.KnowledgeGraph with
                     | Some kg ->
+                        // `step.Output`, not `output`: for a failed step they differ, and
+                        // `output` is the predecessor's. The graph is insert-only for a
+                        // step id, so whatever is written here stays attributed to this
+                        // step for good.
                         let stepE =
                             StepE
                                 { RunId = runId
                                   StepId = node.Id
                                   NodeType = node.Kind.ToString()
-                                  Content = output
+                                  Content = step.Output |> Option.defaultValue ""
                                   Timestamp = DateTime.UtcNow }
 
                         let! _ = kg.AddNodeAsync(stepE) |> Async.AwaitTask
@@ -702,7 +732,9 @@ Respond with ONLY the number of your choice."""
                     | None -> ()
 
                     steps <- steps @ [ step ]
-                    currentOutput <- output
+
+                    if completed then
+                        currentOutput <- output
 
                     match node.Kind with
                     | Tool ->
@@ -726,11 +758,13 @@ Respond with ONLY the number of your choice."""
                 if not ctx.CancellationToken.IsCancellationRequested then
                     match segment with
                     | Single node ->
+                        match fallenPredecessor node with
+                        | Some cause -> skipBecauseFallen node cause
                         // Check condition before executing
-                        if evaluateCondition ctx node stepOutputs then
+                        | None when evaluateCondition ctx node stepOutputs ->
                             let! (step, output) = executeNode ctx node currentOutput plan.Edges stepOutputs
                             do! recordNodeResult node step output
-                        else
+                        | None ->
                             // Skip node: record a Skipped trace step
                             let skipStep =
                                 { NodeId = node.Id
@@ -747,11 +781,22 @@ Respond with ONLY the number of your choice."""
                     | ParallelGroup(groupId, nodes) ->
                         ctx.Logger $"[WoT] Executing parallel group '%s{groupId}' with %d{nodes.Length} nodes"
 
+                        // A member whose predecessor fell is skipped first, for the same
+                        // reason as a single node; the rest go through their conditions.
+                        let reachable =
+                            nodes
+                            |> List.filter (fun n ->
+                                match fallenPredecessor n with
+                                | Some cause ->
+                                    skipBecauseFallen n cause
+                                    false
+                                | None -> true)
+
                         // Filter nodes by condition, skip those that don't pass
                         let executableNodes =
-                            nodes |> List.filter (fun n -> evaluateCondition ctx n stepOutputs)
+                            reachable |> List.filter (fun n -> evaluateCondition ctx n stepOutputs)
                         let skippedNodes =
-                            nodes |> List.filter (fun n -> not (evaluateCondition ctx n stepOutputs))
+                            reachable |> List.filter (fun n -> not (evaluateCondition ctx n stepOutputs))
 
                         // Record skipped nodes
                         for skipped in skippedNodes do
@@ -777,15 +822,10 @@ Respond with ONLY the number of your choice."""
 
                             // Record results from all parallel nodes
                             for (node, (step, output)) in List.zip executableNodes (Array.toList parallelResults) do
+                                // `recordNodeResult` moves `currentOutput` on for each member
+                                // that completed, in order, so it ends on the last one that
+                                // did - not on a failed member's stand-in for an output.
                                 do! recordNodeResult node step output
-
-                            // Set currentOutput to the combined output of the last parallel node
-                            let lastOutput =
-                                parallelResults
-                                |> Array.toList
-                                |> List.map snd
-                                |> List.last
-                            currentOutput <- lastOutput
 
             if ctx.CancellationToken.IsCancellationRequested then
                 warnings <- "Execution cancelled" :: warnings

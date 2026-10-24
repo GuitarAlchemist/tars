@@ -60,12 +60,9 @@ module LlmService =
                 asyncResult {
                     let model = cfg.Routing.DefaultEmbeddingModel
 
-                    if
-                        model.Contains("nomic")
-                        || model.Contains("mxbai")
-                        || model.Contains("llama")
-                        || model.Contains("qwen")
-                    then
+                    // One rule, in one place: the same substring list lived here and
+                    // in `Embedder`, and both sent local models' text to OpenAI.
+                    if not (Embedder.usesOpenAi cfg.Routing) then
                         return! OllamaClientAsync.getEmbeddingsAsync httpClient cfg.Routing.OllamaBaseUri model text
                     else
                         try

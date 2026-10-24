@@ -16,6 +16,7 @@
     <Compile Include="AgentDefinition.fs" />
     <Compile Include="AgentConstitution.fs" />
     <Compile Include="Domain.fs" />
+    <Compile Include="ToolMetadata.fs" />
     <Compile Include="SymbolicTypes.fs" />
     <Compile Include="ContractEnforcement.fs" />
     <Compile Include="GovernanceGeneration.fs" />
@@ -35,6 +36,7 @@
     <Compile Include="WorkflowOfThought\AgentRegistry.fs" />
     <Compile Include="WorkflowOfThought\TraceTypes.fs" />
     <Compile Include="Abstractions.fs" />
+    <Compile Include="ToolGate.fs" />
     <Compile Include="Critique.fs" />
     <Compile Include="Tracing.fs" />
     <Compile Include="TraceRecorder.fs" />
@@ -112,6 +114,7 @@
     <Compile Include="MetaCognition\GapDetection.fs" />
     <Compile Include="MetaCognition\AdaptiveSignals.fs" />
   </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="FSharp.SystemTextJson" Version="1.3.13" />

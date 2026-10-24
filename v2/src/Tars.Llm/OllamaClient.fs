@@ -73,8 +73,12 @@ module OllamaClient =
           tools: obj[] option }
 
     /// <summary>DTO for tool call function response.</summary>
+    ///
+    /// `arguments` is whatever JSON the server sent. Ollama sends an object; typed as
+    /// a string, every reply that asked for a tool failed to deserialize, so the
+    /// non-streaming path threw on exactly the replies the tool loop exists for.
     [<CLIMutable>]
-    type ToolCallFunctionDto = { name: string; arguments: string }
+    type ToolCallFunctionDto = { name: string; arguments: JsonElement }
 
     /// <summary>DTO for tool call in response.</summary>
     [<CLIMutable>]
@@ -221,11 +225,19 @@ module OllamaClient =
             use! resp = http.SendAsync(requestMessage)
 
             if resp.StatusCode = System.Net.HttpStatusCode.NotFound then
+                // This used to return an empty, successful response, so a model that
+                // was never pulled - or an API path wrong for this host, since the
+                // OpenWebUI prefix is chosen by hostname above - made every
+                // completion in the process come back as the empty string, with
+                // nothing raised and nothing logged. Downstream that reads as "the
+                // model answered nothing", and the evolution loop blames the model.
                 return
-                    { Text = ""
-                      FinishReason = Some "model_not_found"
-                      Usage = None
-                      Raw = Some "404 Not Found - Check if model exists" }
+                    raise (
+                        ModelNotFoundException(
+                            model,
+                            $"Ollama returned 404 for model '%s{model}' at %O{uri}. The model may not be pulled, or the API path may be wrong for this host."
+                        )
+                    )
             else
                 if not resp.IsSuccessStatusCode then
                     let! err = resp.Content.ReadAsStringAsync()
@@ -403,12 +415,28 @@ module OllamaClient =
             let mutable completionTokens = 0
             let mutable isDone = false
 
+            // Ollama streams each tool call whole, in the `message.tool_calls` of some
+            // chunk before the last. Kept as the JSON it arrived as (#317).
+            let toolCalls = ResizeArray<string>()
+
             while not isDone && not reader.EndOfStream do
                 let! line = reader.ReadLineAsync()
 
                 if not (String.IsNullOrWhiteSpace(line)) then
                     try
                         let chunk = JsonSerializer.Deserialize<OllamaResponseDto>(line, jsonOptions)
+
+                        if line.Contains "\"tool_calls\"" then
+                            use doc = JsonDocument.Parse line
+
+                            match doc.RootElement.TryGetProperty "message" with
+                            | true, message ->
+                                match message.TryGetProperty "tool_calls" with
+                                | true, calls when calls.ValueKind = JsonValueKind.Array ->
+                                    for call in calls.EnumerateArray() do
+                                        toolCalls.Add(call.GetRawText())
+                                | _ -> ()
+                            | _ -> ()
 
                         if not (isNull (box chunk)) then
                             if not (isNull (box chunk.message)) && not (isNull chunk.message.content) then
@@ -438,9 +466,21 @@ module OllamaClient =
                 else
                     None
 
+            // The calls have to reach the caller, and `LlmResponse` carries them only in
+            // `Raw` - which is where `ChatClientMapping.toolCallsOf` reads them from on
+            // the non-streaming path. So the reply is written back in the shape that
+            // path receives, holding what the stream said and nothing else.
+            let raw =
+                if toolCalls.Count = 0 then
+                    None
+                else
+                    Some(
+                        $"""{{"message":{{"role":"assistant","content":{JsonSerializer.Serialize fullText},"tool_calls":[{String.Join(",", toolCalls)}]}},"done":true}}"""
+                    )
+
             return
                 { Text = fullText
                   FinishReason = Some "done"
                   Usage = usage
-                  Raw = None }
+                  Raw = raw }
         }

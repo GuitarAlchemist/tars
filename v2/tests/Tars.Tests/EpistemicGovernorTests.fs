@@ -84,3 +84,33 @@ Context: When data structure is hierarchical."""
 
             Assert.Equal("No knowledge graph available.", context)
         }
+
+    [<Fact>]
+    let ``GetRelatedCodeContext does not show past tasks as code structure`` () =
+        // Evolve stores every finished task as a "Task: <goal>" concept. Matched on common words
+        // ("write", "list"), they filled "Related Code Structure"; in a live run an old
+        // list_fsharp_files task made the executor build that tool instead of filterOddNumbers.
+        task {
+            let graph = TemporalKnowledgeGraph.TemporalGraph()
+
+            for name in
+                [ "Task: Create a new dynamic tool named 'list_fsharp_files' that lists all .fs files in a specified directory."
+                  "Task: Write `isEven : int -> bool` in F#" ] do
+                graph.AddNode(
+                    TarsEntity.ConceptE
+                        { Name = name
+                          Description = name
+                          RelatedConcepts = [] }
+                )
+                |> ignore
+
+            graph.AddNode(TarsEntity.FunctionE "filterList") |> ignore
+
+            let governor =
+                EpistemicGovernor(createMockLlm (fun _ -> ""), Some graph, None) :> IEpistemicGovernor
+
+            let! context = governor.GetRelatedCodeContext("Write `filterOddNumbers : int list -> int list` in F#")
+
+            Assert.DoesNotContain("Task:", context)
+            Assert.Contains("- Function: filterList", context)
+        }

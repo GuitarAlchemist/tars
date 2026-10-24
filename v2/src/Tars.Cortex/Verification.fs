@@ -66,9 +66,18 @@ module Verification =
                             | true, reqProp when reqProp.ValueKind = JsonValueKind.Array ->
                                 for reqField in reqProp.EnumerateArray() do
                                     let fieldName = reqField.GetString()
-                                    match root.TryGetProperty(fieldName) with
-                                    | true, _ -> ()
-                                    | false, _ -> errors <- $"Missing required field '%s{fieldName}'" :: errors
+
+                                    // `TryGetProperty` throws on an array or a scalar, and the
+                                    // catch below reports that as a broken schema - which
+                                    // turned "the content is the wrong shape" into "nothing
+                                    // was checked". Content that is not an object has none of
+                                    // the required fields.
+                                    if root.ValueKind <> JsonValueKind.Object then
+                                        errors <- $"Missing required field '%s{fieldName}': the content is not an object" :: errors
+                                    else
+                                        match root.TryGetProperty(fieldName) with
+                                        | true, _ -> ()
+                                        | false, _ -> errors <- $"Missing required field '%s{fieldName}'" :: errors
                             | _ -> ()
 
                             // Check "properties" field types
@@ -99,8 +108,13 @@ module Verification =
                             else
                                 return Result.Ok false
                         with _ ->
-                            // If schema isn't valid JSON, fallback to checking if content is valid JSON
-                            return Result.Ok true
+                            // This used to return `Ok true`, despite the comment
+                            // promising a fallback check that was never written: a
+                            // schema with a typo in it passed every payload, and a
+                            // gate that cannot be parsed reported everything verified.
+                            // A broken schema is the plan author's error, so it is
+                            // reported as one rather than dressed up as a pass.
+                            return Result.Error "schema is not valid JSON, so nothing was verified against it"
                     with _ ->
                         return Result.Ok false
 
@@ -127,7 +141,12 @@ module Verification =
                         else
                             return Result.Ok false
                     | _ ->
-                        return Result.Ok true
+                        // This used to be `Ok true`: a misspelt or invented check passed
+                        // every payload, and the gate reported it verified (#284). The
+                        // DSL only ever produces the two above.
+                        return
+                            Result.Error
+                                $"'{name}' is not a check this runner knows (non_empty, threshold:<metric>:<value>), so nothing was verified"
             with ex ->
                 return Result.Error ex.Message
         }

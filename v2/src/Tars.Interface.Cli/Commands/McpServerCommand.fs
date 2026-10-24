@@ -171,13 +171,13 @@ module McpServerCommand =
                       CreatedAt = DateTime.UtcNow
                       Execute = fun input -> async { return ClaudeCodeBridge.compilePlan compiler selector toolRegistry input } }
                     { Name = "tars_execute_step"
-                      Description = "Execute a Tool/Validate node in an active plan. Input: {\"plan_id\": \"...\", \"node_id\": \"...\", \"input\": \"...\"}. Returns step result with next nodes."
+                      Description = "Execute a Tool node in an active plan, or record the output of a Reason or Control node you ran yourself. A Validate node is refused - check it with tars_validate_step - so it is never recorded as passed unchecked. Input: {\"plan_id\": \"...\", \"node_id\": \"...\", \"input\": \"...\", \"approve\": [\"node_id\", ...]}. Returns step result with next nodes. A tool whose description says it changes something or leaves the machine is refused unless this node is named in `approve`; the refusal says what running it would do. A tool nothing describes still runs, so the gate reaches exactly as far as the descriptor backfill does — use tars_node_catalog to see how far that is."
                       Version = "1.0.0"
                       ParentVersion = None
                       CreatedAt = DateTime.UtcNow
                       Execute = fun input -> ClaudeCodeBridge.executeStep toolRegistry input }
                     { Name = "tars_validate_step"
-                      Description = "Validate content against a Validate node's invariants. Input: {\"plan_id\": \"...\", \"node_id\": \"...\", \"content\": \"...\"}. Returns pass/fail."
+                      Description = "Validate content against a Validate node's invariants. Input: {\"plan_id\": \"...\", \"node_id\": \"...\", \"content\": \"...\"}. Returns {\"passed\": bool, \"failed_invariants\": [...], \"not_verified\": [\"name: reason\", ...], \"next_nodes\": [...]}. An invariant that could not be checked here - a tool check, which this does not run, or a check it does not know - is in both `failed_invariants` and `not_verified`: it is never counted as a pass."
                       Version = "1.0.0"
                       ParentVersion = None
                       CreatedAt = DateTime.UtcNow
@@ -189,7 +189,7 @@ module McpServerCommand =
                       CreatedAt = DateTime.UtcNow
                       Execute = fun input -> ClaudeCodeBridge.memoryOp ledger input }
                     { Name = "tars_complete_plan"
-                      Description = "Complete an active plan. Records outcome for learning, checks golden trace regression. Input: {\"plan_id\": \"...\", \"final_output\": \"...\"}."
+                      Description = "Complete an active plan. Records its outcome for pattern learning - unless no step ran, in which case it is reported as not successful and teaches nothing. Says whether a golden trace exists for the goal; it does not compare against one. Input: {\"plan_id\": \"...\", \"final_output\": \"...\"}."
                       Version = "1.0.0"
                       ParentVersion = None
                       CreatedAt = DateTime.UtcNow
@@ -200,6 +200,71 @@ module McpServerCommand =
                     registry.Register(tool)
 
                 logger.Information("Registered {Count} Claude Code bridge tools", bridgeTools.Length)
+
+                // --- Register graph editor tools ---
+                //
+                // The catalog answers "what can I put in a graph", and it answers it from
+                // `ToolMetadata`, so a tool nobody has described is simply absent rather
+                // than offered without its schema. `registerBuiltIn` is what puts the first
+                // descriptions there; without it the catalog is honestly empty.
+                // Unqualified: `Tars` on its own resolves to a `TargetRepo` case that is in
+                // scope here, so `Tars.Tools.ToolDescriptors` does not compile.
+                ToolDescriptors.registerBuiltIn ()
+
+                // Built once, on first use. Construction reaches the LLM configuration,
+                // and a server whose only graph traffic is `tars_node_catalog` and
+                // `tars_plan_validate` — neither of which calls a model — should not pay
+                // for it or fail to start without it.
+                let graphExecutor =
+                    lazy
+                        // `global.` below because `Tars` on its own resolves to a
+                        // `TargetRepo` case that is in scope here.
+                        (let llm = LlmFactory.create logger
+
+                         let executor =
+                             global.Tars.Cortex.WoTExecutor.DefaultWoTExecutor(llm, toolRegistry) :> IWoTExecutor
+
+                         let context = AgentHelpers.createAgentContext ignore llm None
+                         fun (plan: WoTPlan) -> executor.Execute(plan, context))
+
+                let graphEditorTools : Tool list = [
+                    { Name = "tars_node_catalog"
+                      Description = "List what can go in a WoT graph: every described tool plus the reasoning node, each with its JSON Schema and what running it does. Takes no arguments. Returns {\"nodes\": [...], \"described_tools\": N, \"total_tools\": M} — the two counts say how much of the registry is described."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute = fun _ -> async { return Result.Ok(GraphEditorBridge.catalogJson toolRegistry) } }
+                    { Name = "tars_plan_validate"
+                      Description = "Check a WoT graph before running it. Input: {\"goal\": \"...\", \"nodes\": [...], \"edges\": [...], \"entry_node\": \"...\"}. Returns {\"valid\": bool, \"errors\": [...], \"execution_order\": [...], \"unsupported\": [...], \"needs_approval\": [...]} — `needs_approval` is what a person has to say yes to before tars_plan_run will do anything. Changes nothing."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute = fun input -> async { return Result.Ok(GraphEditorBridge.validateJson toolRegistry input) } }
+                    { Name = "tars_plan_run"
+                      Description = "Run a WoT graph. Same input as tars_plan_validate, plus {\"approve\": [\"node_id\", ...]} naming the nodes the caller allows. A node that is not auto-approved and is not named there stops the whole run before anything happens. Returns {\"success\": bool, \"output\": \"...\", \"errors\": [...], \"warnings\": [...], \"steps_run\": N, \"tools_used\": [...]}. Two things worth knowing: a `policy` (known words: no-writes, no-network) is checked against the tier each node declares before anything runs, not enforced during the run, and an unknown word is refused rather than ignored; and a node that fails stops everything that depends on it — those are skipped and named in `warnings` — while branches that do not depend on it keep running (tars#335)."
+                      Version = "1.0.0"
+                      ParentVersion = None
+                      CreatedAt = DateTime.UtcNow
+                      Execute =
+                        fun input ->
+                            async {
+                                // The thunk, not `.Value`: forcing it here would build the
+                                // executor before the graph is even parsed.
+                                let! answer =
+                                    GraphEditorBridge.runJson (fun () -> graphExecutor.Value) toolRegistry input
+                                return Result.Ok answer
+                            } }
+                ]
+
+                for tool in graphEditorTools do
+                    registry.Register(tool)
+
+                logger.Information(
+                    "Registered {Count} graph editor tools ({Described} of {Total} tools described)",
+                    graphEditorTools.Length,
+                    ToolMetadata.describedCount (),
+                    toolRegistry.GetAll().Length
+                )
 
                 // --- Register probabilistic grammar tools ---
                 let grammarTools = Tars.Evolution.McpGrammarTools.createTools ()

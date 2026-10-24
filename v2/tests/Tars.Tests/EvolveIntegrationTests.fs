@@ -98,6 +98,7 @@ module EvolveIntegrationTests =
             let context: Engine.EvolutionContext =
                 { Registry = registry :> IAgentRegistry
                   Llm = ContradictionLlm() :> ILlmService
+                  CurriculumLlm = None
                   VectorStore = NoOpVectorStore() :> IVectorStore
                   Logger = fun _ -> ()
                   Memory =
@@ -121,6 +122,8 @@ module EvolveIntegrationTests =
                       Focus = None
                       ToolRegistry = None
                       ResearchEnhanced = false
+                      RunCode = false
+                      RecordTask = ignore
                       SelfImprovement = false } }
 
             let! nextState = Engine.step context state |> Async.AwaitTask

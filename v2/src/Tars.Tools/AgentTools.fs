@@ -1,6 +1,7 @@
 namespace Tars.Tools.Standard
 
 open System
+open System.Threading.Tasks
 open Tars.Tools
 open Tars.Core
 
@@ -13,8 +14,11 @@ module AgentTools =
     let setRegistry (registry: IAgentRegistry) = agentRegistry <- Some registry
 
     [<TarsToolAttribute("delegate_task",
-                        "Delegates a task to another agent. Input JSON: { \"agent\": \"Reviewer\", \"task\": \"Review this code for bugs\", \"context\": \"optional context\" }")>]
-    let delegateTask (args: string) =
+                        "Looks up an agent to hand a task to. It cannot run another agent: it says whether the agent is registered, and that nothing was started. Input JSON: { \"agent\": \"Reviewer\", \"task\": \"Review this code for bugs\", \"context\": \"optional context\" }")>]
+    // Both of these only ever fail, so without the annotation F# makes the success
+    // type generic - and reflection, which is how the registry calls a tool, cannot
+    // invoke a generic method.
+    let delegateTask (args: string) : Task<Result<string, string>> =
         task {
             try
                 let doc = System.Text.Json.JsonDocument.Parse(args)
@@ -42,17 +46,23 @@ module AgentTools =
 
                     match target with
                     | Some a ->
+                        // Nothing here can run another agent. This used to answer "Task
+                        // delegated ... Agent-to-agent execution initiated via registry",
+                        // and the caller moved on as if someone were doing the task.
                         return
-                            $"✅ Task delegated to Agent %s{a.Name} (%s{a.Version}).\nTask: %s{taskDesc}\n\nNote: Agent-to-agent execution initiated via registry."
+                            Result.Error
+                                $"Not delegated: %s{a.Name} (%s{a.Version}) is registered, but this tool cannot run another agent, so nothing was started.\nTask: %s{taskDesc}"
                     | None ->
-                        return $"❌ Agent '%s{agent}' not found in registry. Use list_agents to see available targets."
-                | None -> return "Error: AgentRegistry not initialized."
+                        return
+                            Result.Error
+                                $"Agent '%s{agent}' not found in registry. Use list_agents to see available targets."
+                | None -> return Result.Error "AgentRegistry not initialized."
             with ex ->
-                return "delegate_task error: " + ex.Message
+                return Result.Error("delegate_task error: " + ex.Message)
         }
 
     [<TarsToolAttribute("request_review",
-                        "Requests code review from the Reviewer agent. Input JSON: { \"code\": \"code to review\", \"focus\": \"bugs|style|performance\" }")>]
+                        "Returns a code review checklist for the given code. No reviewer is asked. Input JSON: { \"code\": \"code to review\", \"focus\": \"bugs|style|performance\" }")>]
     let requestReview (args: string) =
         task {
             try
@@ -77,9 +87,9 @@ module AgentTools =
                     else
                         code
 
-                // Simulate a review response
+                // No reviewer is asked: this is a checklist for the caller to work through.
                 let review =
-                    "Code Review Request:\n"
+                    "Review checklist (no reviewer was asked):\n"
                     + "  Focus: "
                     + focus
                     + "\n"
@@ -100,8 +110,8 @@ module AgentTools =
         }
 
     [<TarsToolAttribute("query_agent",
-                        "Queries another agent for information. Input JSON: { \"agent\": \"Curriculum\", \"question\": \"What tasks are pending?\" }")>]
-    let queryAgent (args: string) =
+                        "Cannot reach another agent: it says the question was not asked. Use list_agents to see what is registered. Input JSON: { \"agent\": \"Curriculum\", \"question\": \"What tasks are pending?\" }")>]
+    let queryAgent (args: string) : Task<Result<string, string>> =
         task {
             try
                 let doc = System.Text.Json.JsonDocument.Parse(args)
@@ -112,29 +122,14 @@ module AgentTools =
 
                 printfn $"❓ QUERYING %s{agent}: %s{question.Substring(0, min 40 question.Length)}"
 
-                // Provide agent-specific responses
-                let response =
-                    match agent.ToLower() with
-                    | "curriculum" ->
-                        "Curriculum Agent Status:\n"
-                        + "  - Generates coding tasks for skill improvement\n"
-                        + "  - Tracks task difficulty progression\n"
-                        + "  - Adapts based on completion success"
-                    | "reviewer" ->
-                        "Reviewer Agent Status:\n"
-                        + "  - Reviews code for quality and correctness\n"
-                        + "  - Tools: read_code, git_diff, git_status\n"
-                        + "  - Can approve or request changes"
-                    | "executor" ->
-                        "Executor Agent Status:\n"
-                        + "  - Executes coding tasks\n"
-                        + "  - Has 28+ tools available\n"
-                        + "  - Can write and commit code"
-                    | _ -> $"Unknown agent: %s{agent}. Available agents: Curriculum, Executor, Reviewer"
-
-                return $"Query to %s{agent}:\n  Q: %s{question}\n\n%s{response}"
+                // Nothing here can reach another agent. The answers used to be written
+                // in advance, one per agent name, and returned whatever the question was
+                // - presented as that agent's reply.
+                return
+                    Result.Error
+                        $"Not asked: this tool cannot reach another agent, so %s{agent} was not asked \"%s{question}\". Use list_agents to see what is registered."
             with ex ->
-                return "query_agent error: " + ex.Message
+                return Result.Error("query_agent error: " + ex.Message)
         }
 
     [<TarsToolAttribute("list_agents", "Lists all available agents and their capabilities. No input required.")>]

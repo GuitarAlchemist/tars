@@ -51,31 +51,119 @@ module Chunking =
           MinChunkSize = 100
           Strategy = SlidingWindow }
 
+    /// <summary>
+    /// The smallest chunk this config can actually ask for.
+    ///
+    /// A minimum larger than the chunk size would reject every chunk, so it is read
+    /// as "no minimum" rather than "produce nothing".
+    /// </summary>
+    let private effectiveMinimum (config: ChunkingConfig) (chunkSize: int) =
+        min config.MinChunkSize chunkSize
+
+    /// <summary>
+    /// Record <c>[startChar, endChar)</c> as a chunk, or fold it into the one before it.
+    ///
+    /// Only the last piece of a document can come out shorter than the chunk size.
+    /// Dropping it — which is what this used to do — deleted the tail of every
+    /// document whose length did not divide evenly, and the whole of any document
+    /// shorter than <c>MinChunkSize</c>, which is 100 characters by default. The text
+    /// was gone from the index with nothing said about it.
+    ///
+    /// Folding the short piece into the previous chunk keeps the text while keeping
+    /// every emitted chunk at or above the minimum. When there is no previous chunk,
+    /// the piece is emitted short, because a short document is still a document and
+    /// returning nothing for it is never the useful answer.
+    /// </summary>
+    let private addOrFold
+        (chunks: ResizeArray<Chunk>)
+        (minSize: int)
+        (docId: string)
+        (strategy: string)
+        (text: string)
+        (startChar: int)
+        (endChar: int)
+        =
+        let length = endChar - startChar
+
+        if length <= 0 then
+            ()
+        elif length >= minSize || chunks.Count = 0 then
+            chunks.Add(
+                { Id = $"{docId}_chunk_{chunks.Count}"
+                  Content = text.Substring(startChar, length)
+                  Metadata =
+                    { Index = chunks.Count
+                      StartChar = startChar
+                      EndChar = endChar
+                      ParentId = Some docId
+                      Strategy = strategy } }
+            )
+        else
+            // The previous chunk is re-cut from the text rather than having this
+            // piece appended to it: under a sliding window the two already overlap,
+            // so appending would repeat the overlapping region.
+            let previous = chunks.[chunks.Count - 1]
+
+            if endChar > previous.Metadata.EndChar then
+                chunks.[chunks.Count - 1] <-
+                    { previous with
+                        Content = text.Substring(previous.Metadata.StartChar, endChar - previous.Metadata.StartChar)
+                        Metadata =
+                            { previous.Metadata with
+                                EndChar = endChar } }
+
+    /// <summary>
+    /// Record an accumulated chunk, or fold it into the one before it.
+    ///
+    /// The same rule as <c>addOrFold</c>, for the strategies that build a chunk by
+    /// accumulating pieces instead of cutting offsets out of the source. Those never
+    /// overlap, so a short tail is appended with the separator it would have carried.
+    /// </summary>
+    let private addOrAppend
+        (chunks: ResizeArray<Chunk>)
+        (minSize: int)
+        (docId: string)
+        (strategy: string)
+        (separator: string)
+        (content: string)
+        (startChar: int)
+        (endChar: int)
+        =
+        let trimmed = content.Trim()
+
+        if trimmed.Length = 0 then
+            ()
+        elif trimmed.Length >= minSize || chunks.Count = 0 then
+            chunks.Add(
+                { Id = $"{docId}_chunk_{chunks.Count}"
+                  Content = trimmed
+                  Metadata =
+                    { Index = chunks.Count
+                      StartChar = startChar
+                      EndChar = endChar
+                      ParentId = Some docId
+                      Strategy = strategy } }
+            )
+        else
+            let previous = chunks.[chunks.Count - 1]
+
+            chunks.[chunks.Count - 1] <-
+                { previous with
+                    Content = previous.Content + separator + trimmed
+                    Metadata =
+                        { previous.Metadata with
+                            EndChar = max endChar previous.Metadata.EndChar } }
+
     /// <summary>Split text into fixed-size chunks</summary>
     let fixedSizeChunk (config: ChunkingConfig) (docId: string) (text: string) : Chunk list =
         let chunks = ResizeArray<Chunk>()
         let chunkSize = max 1 config.ChunkSize
+        let minSize = effectiveMinimum config chunkSize
         let mutable pos = 0
-        let mutable idx = 0
 
         while pos < text.Length do
             let endPos = min (pos + chunkSize) text.Length
-            let content = text.Substring(pos, endPos - pos)
-
-            if content.Length >= config.MinChunkSize then
-                chunks.Add(
-                    { Id = $"{docId}_chunk_{idx}"
-                      Content = content
-                      Metadata =
-                        { Index = idx
-                          StartChar = pos
-                          EndChar = endPos
-                          ParentId = Some docId
-                          Strategy = "FixedSize" } }
-                )
-
-                idx <- idx + 1
-
+            addOrFold chunks minSize docId "FixedSize" text pos endPos
             pos <- pos + chunkSize
 
         chunks |> Seq.toList
@@ -86,26 +174,12 @@ module Chunking =
         let chunkSize = max 1 config.ChunkSize
         let overlap = min config.ChunkOverlap (chunkSize - 1)
         let step = max 1 (chunkSize - overlap)
+        let minSize = effectiveMinimum config chunkSize
         let mutable pos = 0
-        let mutable idx = 0
 
         while pos < text.Length do
             let endPos = min (pos + chunkSize) text.Length
-            let content = text.Substring(pos, endPos - pos)
-
-            if content.Length >= config.MinChunkSize then
-                chunks.Add(
-                    { Id = $"{docId}_chunk_{idx}"
-                      Content = content
-                      Metadata =
-                        { Index = idx
-                          StartChar = pos
-                          EndChar = endPos
-                          ParentId = Some docId
-                          Strategy = "SlidingWindow" } }
-                )
-
-                idx <- idx + 1
+            addOrFold chunks minSize docId "SlidingWindow" text pos endPos
 
             pos <- pos + step
 
@@ -152,17 +226,7 @@ module Chunking =
 
             charPos <- charPos + sentence.Length + 1
 
-        if currentChunk.Trim().Length >= config.MinChunkSize then
-            chunks.Add(
-                { Id = $"{docId}_chunk_{idx}"
-                  Content = currentChunk.Trim()
-                  Metadata =
-                    { Index = idx
-                      StartChar = startPos
-                      EndChar = text.Length
-                      ParentId = Some docId
-                      Strategy = "Sentence" } }
-            )
+        addOrAppend chunks config.MinChunkSize docId "Sentence" " " currentChunk startPos text.Length
 
         chunks |> Seq.toList
 
@@ -207,17 +271,7 @@ module Chunking =
 
             charPos <- charPos + para.Length + 2
 
-        if currentChunk.Trim().Length >= config.MinChunkSize then
-            chunks.Add(
-                { Id = $"{docId}_chunk_{idx}"
-                  Content = currentChunk.Trim()
-                  Metadata =
-                    { Index = idx
-                      StartChar = startPos
-                      EndChar = text.Length
-                      ParentId = Some docId
-                      Strategy = "Paragraph" } }
-            )
+        addOrAppend chunks config.MinChunkSize docId "Paragraph" "\n\n" currentChunk startPos text.Length
 
         chunks |> Seq.toList
 
@@ -249,20 +303,18 @@ module Chunking =
 
         let parts = splitRecursive text 0
 
-        parts
-        |> List.mapi (fun idx content ->
-            let startPos = parts |> List.take idx |> List.sumBy (fun c -> c.Length)
-            let endPos = startPos + content.Length
+        // Short parts are folded into the part before them rather than filtered out.
+        // Filtering deleted them: splitting on " " as a last resort turns a long word
+        // into several pieces, and every piece under the minimum simply vanished.
+        let chunks = ResizeArray<Chunk>()
+        let mutable startPos = 0
 
-            { Id = $"{docId}_chunk_{idx}"
-              Content = content.Trim()
-              Metadata =
-                { Index = idx
-                  StartChar = startPos
-                  EndChar = endPos
-                  ParentId = Some docId
-                  Strategy = "Recursive" } })
-        |> List.filter (fun c -> c.Content.Length >= config.MinChunkSize)
+        for content in parts do
+            let endPos = startPos + content.Length
+            addOrAppend chunks config.MinChunkSize docId "Recursive" " " content startPos endPos
+            startPos <- endPos
+
+        chunks |> Seq.toList
 
     // F# Compiler Service Checker
     let private checker = lazy (FSharpChecker.Create())
