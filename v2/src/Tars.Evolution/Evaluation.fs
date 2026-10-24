@@ -236,15 +236,7 @@ module ExampleCheck =
                     if proc.ExitCode = 0 then
                         return Result.Ok output
                     else
-                        let errors = errors.Replace(dir + string System.IO.Path.DirectorySeparatorChar, "").Trim()
-
-                        return
-                            Result.Error(
-                                if errors.Length > 2000 then
-                                    errors.Substring(0, 2000) + "\n..."
-                                else
-                                    errors
-                            )
+                        return Result.Error(errors.Replace(dir + string System.IO.Path.DirectorySeparatorChar, "").Trim())
                 with :? OperationCanceledException ->
                     try
                         proc.Kill true
@@ -261,6 +253,14 @@ module ExampleCheck =
 
     let private runFsi timeout script = runFsiWith true "" timeout script
 
+    /// The first 2000 characters of a run's errors, for what leaves this module. The checks here read
+    /// them whole: an answer's own warnings can fill the first 2000 and push out the error they look for.
+    let private cut (errors: string) =
+        if errors.Length > 2000 then
+            errors.Substring(0, 2000) + "\n..."
+        else
+            errors
+
     /// Whether a run's errors say that it did not finish in time.
     let timedOut (errors: string) =
         errors.StartsWith(notFinished, StringComparison.Ordinal)
@@ -269,7 +269,7 @@ module ExampleCheck =
     let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
         task {
             let! run = runFsi timeout script
-            return run |> Result.map ignore
+            return run |> Result.map ignore |> Result.mapError cut
         }
 
     /// Indices of the characters of `text` outside brackets, strings and chars.
@@ -640,10 +640,10 @@ let tarsValueLine (mark: string) (index: int) (value: 'T) =
             let fromErrors (errors: string) =
                 let failed = System.Text.RegularExpressions.Regex.Match(errors, @"Example failed: [^\r\n]*")
 
-                if compileErrorIn "answer.fsx" errors then CodeFailed errors
+                if compileErrorIn "answer.fsx" errors then CodeFailed(cut errors)
                 elif compileErrorIn "examples.fsx" errors then ExamplesUnusable
                 elif failed.Success then ExampleFailed failed.Value
-                else CodeFailed errors
+                else CodeFailed(cut errors)
 
             let printer = valuePrinter mark
             let beforeAnswer = "#line 1 \"values.fsx\"\n" + printer + "\n#line 1 \"answer.fsx\"\n"
