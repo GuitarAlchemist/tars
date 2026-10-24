@@ -27,7 +27,9 @@ Risk policy: [`agent-blackbox.policy.json`](./agent-blackbox.policy.json) (risk 
 
 **Blocked paths** (never edited by an autonomous loop — they must go through human PR review): `.github/workflows/**`, `infra/production/**`, `billing/**`, `legal/**`, `security/**`.
 
-**One-way doors** (changes require explicit sign-off because they're hard to reverse): `schemas/**`, `contracts/**`, `migrations/**`, `**/*.sln`, `**/*.fsproj`, `Directory.Build.props`.
+**One-way doors** (hard to reverse, because something outside the diff has already consumed the change — a migrated database, a client matching a schema — or because they change what every build accepts): `schemas/**`, `contracts/**`, `migrations/**`, `**/*.sln`, `**/*.slnx`, `**/Directory.Build.props`, `governance/demerzel/policies/**`, `governance/demerzel/schemas/**`. Touching one adds a `high` factor to the risk report, so whoever reviews the PR sees it named. On its own that factor gives a `warn` verdict, which does not fail the PR. Nothing records a separate sign-off: the `agent-blackbox-reviewed` label only overrides a `block` verdict, and it is applied by a human, never by an agent.
+
+Project files (`*.fsproj`, `*.csproj`) are not one-way doors. In F# every new source file needs a `<Compile Include>` in its `.fsproj`, and a `git revert` undoes that like any other line. What a project file *can* change that matters — a `TargetFramework` bump, a new `PackageReference` — is left to ordinary review; the repo-wide switches such as `TreatWarningsAsErrors` live in `Directory.Build.props`, which is on the list above (tars#331).
 
 The PR workflow at [`.github/workflows/agent-blackbox.yml`](./.github/workflows/agent-blackbox.yml) runs `analyze`, emits a risk report + harness audit + response-quality report, comments them on the PR, uploads artifacts, and calls `enforce --report` to fail PRs whose verdict is `block` unless the `agent-blackbox-reviewed` label has been applied by a human reviewer.
 
