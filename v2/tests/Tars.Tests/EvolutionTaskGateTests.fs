@@ -914,3 +914,21 @@ let ``the task prompt shows every constraint`` () =
 
     for rule in constraints do
         Assert.Contains(rule, prompt)
+
+[<Fact>]
+let ``an answer whose own warnings fill fsi's error text still passes its examples`` () =
+    task {
+        // fsi's errors were cut at 2000 characters before they were read, so 30 incomplete matches
+        // in the answer pushed the type probe's error past the cut, and a right answer read as failing.
+        let warnings =
+            [ for i in 1..30 -> $"let partial{i} (x: int) = match x with 1 -> 0" ] |> String.concat "\n"
+
+        let answer =
+            warnings + "\nlet reverse (s: string) : string = System.String(Array.rev (s.ToCharArray()))"
+
+        let! run = Engine.runWithExamples (TimeSpan.FromSeconds 60.0) answer [ "reverse \"abc\" = \"cba\"" ]
+
+        match run with
+        | ExampleCheck.ExamplesPassed -> ()
+        | other -> Assert.Fail $"%A{other}"
+    }
