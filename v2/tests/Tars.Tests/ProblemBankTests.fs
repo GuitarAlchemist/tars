@@ -35,9 +35,12 @@ type ProblemBankTests(output: ITestOutputHelper) =
             Assert.False(System.String.IsNullOrWhiteSpace(p.ExpectedSignature), $"Problem '{p.Id}' has empty ExpectedSignature")
 
     [<Fact>]
-    let ``all problems have non-empty ValidationCode`` () =
+    let ``all problems have a ValidationCode or examples`` () =
         for p in ProblemBank.all () do
-            Assert.False(System.String.IsNullOrWhiteSpace(p.ValidationCode), $"Problem '{p.Id}' has empty ValidationCode")
+            Assert.False(
+                System.String.IsNullOrWhiteSpace(p.ValidationCode) && p.Examples.IsEmpty,
+                $"Problem '{p.Id}' has neither ValidationCode nor examples"
+            )
 
     [<Fact>]
     let ``summary total matches all length`` () =

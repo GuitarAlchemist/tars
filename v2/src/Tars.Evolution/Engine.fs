@@ -13,6 +13,7 @@ open Tars.Cortex
 open Tars.Connectors.EpisodeIngestion
 open Tars.Knowledge
 open Tars.Core.WorkflowOfThought
+open Tars.Evolution.ExampleCheck
 
 module Engine =
 
@@ -429,234 +430,12 @@ module Engine =
         else
             Some script
 
-    /// Runs an F# script with dotnet fsi, in a temporary directory, with no input, for at most
-    /// `timeout`. Ok with what it printed when it exits with 0; otherwise Error with what went wrong.
-    /// System is opened first: the model writes Char or String.IsNullOrEmpty without opening it.
-    /// A leading namespace or top-level module cannot follow that open, but fsi rejects both
-    /// anyway, and scriptOfAnswer has already dropped the first and turned the second into
-    /// `module X =`, which can. The #line directive keeps error positions on the lines of the
-    /// script itself.
-    let private runFsi (timeout: TimeSpan) (script: string) : Task<Result<string, string>> =
-        task {
-            let dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "tars-evolve-run", Guid.NewGuid().ToString("N"))
-            System.IO.Directory.CreateDirectory dir |> ignore
-            let path = System.IO.Path.Combine(dir, "answer.fsx")
-
-            try
-                System.IO.File.WriteAllText(path, "open System\n#line 1 \"answer.fsx\"\n" + script)
-                let psi = System.Diagnostics.ProcessStartInfo("dotnet", $"fsi \"{path}\"")
-                psi.WorkingDirectory <- dir
-                psi.RedirectStandardInput <- true
-                psi.RedirectStandardOutput <- true
-                psi.RedirectStandardError <- true
-                psi.UseShellExecute <- false
-                psi.CreateNoWindow <- true
-
-                use proc = System.Diagnostics.Process.Start psi
-                proc.StandardInput.Close()
-                // Both streams are read while the script runs, so a full pipe cannot block it.
-                let stdout = proc.StandardOutput.ReadToEndAsync()
-                let stderr = proc.StandardError.ReadToEndAsync()
-                use cts = new CancellationTokenSource(timeout)
-
-                try
-                    do! proc.WaitForExitAsync(cts.Token)
-                    let! output = stdout
-                    let! errors = stderr
-
-                    if proc.ExitCode = 0 then
-                        return Result.Ok output
-                    else
-                        let errors = errors.Replace(dir + string System.IO.Path.DirectorySeparatorChar, "").Trim()
-
-                        return
-                            Result.Error(
-                                if errors.Length > 2000 then
-                                    errors.Substring(0, 2000) + "\n..."
-                                else
-                                    errors
-                            )
-                with :? OperationCanceledException ->
-                    try
-                        proc.Kill true
-                    with _ ->
-                        ()
-
-                    return Result.Error $"It did not finish within {timeout.TotalSeconds:F0} s."
-            finally
-                try
-                    System.IO.Directory.Delete(dir, true)
-                with _ ->
-                    ()
-        }
-
-    /// Runs an F# script as runFsi does: Ok when it exits with 0; otherwise Error with what went wrong.
-    let runScript (timeout: TimeSpan) (script: string) : Task<Result<unit, string>> =
-        task {
-            let! run = runFsi timeout script
-            return run |> Result.map ignore
-        }
-
-    /// Indices of the characters of `text` outside brackets, strings and chars.
-    let private topLevel (text: string) : int list =
-        let found = ResizeArray<int>()
-        let mutable depth = 0
-        let mutable i = 0
-
-        while i < text.Length do
-            match text.[i] with
-            | '"' ->
-                i <- i + 1
-
-                while i < text.Length && text.[i] <> '"' do
-                    if text.[i] = '\\' then
-                        i <- i + 1
-
-                    i <- i + 1
-            | '\'' when i + 2 < text.Length && text.[i + 2] = '\'' -> i <- i + 2
-            | '(' | '[' | '{' -> depth <- depth + 1
-            | ')' | ']' | '}' -> depth <- max 0 (depth - 1)
-            | _ ->
-                if depth = 0 then
-                    found.Add i
-
-            i <- i + 1
-
-        List.ofSeq found
-
-    /// The examples in a task's validation criteria: the parts, split on a `;` or a new line
-    /// outside brackets, strings and chars, that call a function the goal names: with its
-    /// signature (`isEven : int -> bool`), in the code a refactor gives (`let sign x = ...`), or
-    /// quoted after "named" (a function named `countVowels`, a tool named 'StringAnalyzer'). The
-    /// curriculum writes them as `isEven 4 = true; isEven 5 = false`.
-    let examplesOf (goal: string) (criteria: string) : string list =
-        let names =
-            System.Text.RegularExpressions.Regex.Matches(
-                goal,
-                @"`\s*([A-Za-z_]\w*)\s*`?\s*:|`let\s+(?:rec\s+)?([A-Za-z_]\w*)|\bnamed\s+['""`]([A-Za-z_]\w*)['""`]"
-            )
-            |> Seq.map (fun m ->
-                [ 1; 2; 3 ]
-                |> List.map (fun i -> m.Groups.[i])
-                |> List.find (fun g -> g.Success)
-                |> fun g -> g.Value)
-            |> Seq.distinct
-            |> List.ofSeq
-
-        if names.IsEmpty then
-            []
-        else
-            let cuts =
-                topLevel criteria
-                |> List.filter (fun i -> criteria.[i] = ';' || criteria.[i] = '\n')
-
-            (-1 :: cuts) @ [ criteria.Length ]
-            |> List.pairwise
-            |> List.map (fun (a, b) -> criteria.Substring(a + 1, b - a - 1).Trim().Trim('`').Trim())
-            |> List.filter (fun part ->
-                names
-                |> List.exists (fun name ->
-                    System.Text.RegularExpressions.Regex.IsMatch(
-                        part,
-                        "^" + System.Text.RegularExpressions.Regex.Escape name + @"(\s|\(|$)"
-                    )))
-
-    /// The F# line that checks one example. For `call = expected` it reports the value it got.
-    let private exampleCheck (example: string) =
-        let quoted =
-            "\"" + example.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\""
-
-        let equals =
-            topLevel example
-            |> List.tryFind (fun i ->
-                example.[i] = '='
-                && (i = 0 || not ("<>=!:".Contains example.[i - 1]))
-                && (i + 1 >= example.Length || not ("=>".Contains example.[i + 1])))
-
-        match equals with
-        | Some at ->
-            let call = example.Substring(0, at).Trim()
-            let expected = example.Substring(at + 1).Trim()
-            // A match, not a let: a let of `reverse []` would not compile (value restriction).
-            $"match ({call}) with actual when actual <> ({expected}) -> failwithf \"Example failed: %%s, got %%A\" {quoted} actual | _ -> ()"
-        | None -> $"if not ({example}) then failwithf \"Example failed: %%s\" {quoted}"
-
-    /// What running an answer's code followed by checks of its examples showed.
-    type ExampleRun =
-        /// Every example gave the expected value.
-        | ExamplesPassed
-        /// The code ran and an example gave another value: "Example failed: <example>, got <value>".
-        | ExampleFailed of failure: string
-        /// The code did not compile, threw, did not finish or ended the script: what went wrong.
-        | CodeFailed of errors: string
-        /// The examples do not compile against the code (a name or a signature it does not have),
-        /// so nothing ran: they say nothing about it.
-        | ExamplesUnusable
-
-    /// Runs `script` followed by one check per example, in one dotnet fsi process. The checks end
-    /// by printing a mark the code cannot know: fsi also exits with 0 when the code calls `exit 0`,
-    /// and then no example ran.
-    let runWithExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<ExampleRun> =
-        task {
-            let mark = Guid.NewGuid().ToString("N")
-            let checks = examples |> List.map exampleCheck |> String.concat "\n"
-            let! run = runFsi timeout (script + "\n#line 1 \"examples.fsx\"\n" + checks + $"\nprintfn \"{mark}\"")
-
-            match run with
-            | Result.Ok output when output.Contains mark -> return ExamplesPassed
-            | Result.Ok _ ->
-                return
-                    CodeFailed "The script ended inside the code, so the examples after it never ran (does the code call exit?)."
-            | Result.Error errors ->
-                let compileErrorIn (file: string) =
-                    System.Text.RegularExpressions.Regex.IsMatch(
-                        errors,
-                        System.Text.RegularExpressions.Regex.Escape file + @"\(\d+,\d+\): error"
-                    )
-
-                let failed = System.Text.RegularExpressions.Regex.Match(errors, @"Example failed: [^\r\n]*")
-
-                if compileErrorIn "answer.fsx" then return CodeFailed errors
-                elif compileErrorIn "examples.fsx" then return ExamplesUnusable
-                elif failed.Success then return ExampleFailed failed.Value
-                else return CodeFailed errors
-        }
-
-    /// The evaluation an examples run gives: None when the examples say nothing about the code.
-    let verdictOfExamples (count: int) (run: ExampleRun) : EvaluationResult option =
-        let verdict passed (summary: string) =
-            Some
-                { Passed = passed
-                  Confidence = 1.0
-                  Summary = summary
-                  Issues = (if passed then [] else [ summary ])
-                  SuggestedFixes = []
-                  EvaluatedAt = DateTime.UtcNow }
-
-        match run with
-        | ExamplesPassed -> verdict true $"The code ran and gave the expected value for all {count} examples."
-        | ExampleFailed failure -> verdict false failure
-        | CodeFailed errors ->
-            let firstLine =
-                errors.Split('\n')
-                |> Array.map (fun l -> l.Trim())
-                |> Array.tryFind (fun l -> l <> "")
-                |> Option.defaultValue errors
-
-            verdict false $"The code did not run: {firstLine}"
-        | ExamplesUnusable -> None
-
-    /// Runs `script` and then checks `examples`. Some verdict when they ran: passed when each gave
-    /// the expected value; failed when one did not, or the code did not compile or run. None when
-    /// there are no examples, or they do not compile against the code.
-    let checkExamples (timeout: TimeSpan) (script: string) (examples: string list) : Task<EvaluationResult option> =
-        task {
-            if examples.IsEmpty then
-                return None
-            else
-                let! run = runWithExamples timeout script examples
-                return verdictOfExamples examples.Length run
-        }
+    // The examples' check is ExampleCheck's (Evaluation.fs), which the benchmark shares.
+    let runScript = ExampleCheck.runScript
+    let examplesOf = ExampleCheck.examplesOf
+    let runWithExamples = ExampleCheck.runWithExamples
+    let verdictOfExamples = ExampleCheck.verdictOfExamples
+    let checkExamples = ExampleCheck.checkExamples
 
     /// What `script` uses that the task's constraints forbid by name, one line each: "Do not use
     /// mutable variables", "Do not use List.groupBy or Seq.groupBy", "Use an accumulator, not
@@ -946,23 +725,22 @@ Do any of the known beliefs contradict executing this task? Respond in JSON: {{"
                 | Some b -> b.IsCritical(0.1) // Less than 10% remaining
                 | None -> false
 
-            // Epistemic Governor: Get Curriculum Suggestions
-            let! suggestion =
+            // The curriculum reads the run's principles itself, under [ACQUIRED PRINCIPLES]. The
+            // epistemic governor used to turn them into a one-sentence suggestion first: one more
+            // call per cycle, against ADR 0005's call budget.
+            let suggestion =
                 match ctx.Governance.Epistemic with
-                | Some governor ->
-                    task {
-                        try
-                            let recentOutputs =
-                                state.CompletedTasks
-                                |> List.truncate 5
-                                |> List.map (fun t -> t.Output.Substring(0, Math.Min(t.Output.Length, 100)) + "...")
+                | Some _ ->
+                    "Choose the next learning focus: a gap in what the run has learned, or an area that needs reinforcement."
+                | None -> "Focus on basic coding tasks."
 
-                            return! governor.SuggestCurriculum(recentOutputs, state.ActiveBeliefs, isCritical)
-                        with ex ->
-                            ctx.Logger($"[Epistemic] SuggestCurriculum failed: {ex.Message}")
-                            return "Focus on basic coding tasks."
-                    }
-                | None -> Task.FromResult "Focus on basic coding tasks."
+            let principles =
+                if state.ActiveBeliefs.IsEmpty then
+                    ""
+                else
+                    "\n[ACQUIRED PRINCIPLES]\n"
+                    + (state.ActiveBeliefs |> List.map (fun b -> "- " + b) |> String.concat "\n")
+                    + "\n"
 
             let guidance =
                 if isCritical then
@@ -1007,7 +785,7 @@ Generation: %d{state.Generation}. Completed tasks: %d{state.CompletedTasks.Lengt
 
 [RECENT FAILURES]
 {lastFailedTask}
-
+{principles}
 [GUIDANCE]
 %s{if String.IsNullOrWhiteSpace(guidance) then
        "Focus on exploring the codebase and maintaining core invariants."
@@ -1512,7 +1290,9 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                         // gave the right values, and the verifier answered VERIFIED to every answer, right or
                         // wrong. When they pass, the evaluator judges only what they do not check (see step).
                         // Without examples, or when they do not compile against the code, the code runs alone
-                        // and the evaluator decides, as before.
+                        // and the evaluator decides, as before. The examples' expected values come from a process
+                        // without the code, and this process compares (#394); when they do not compute without
+                        // the code, the examples check themselves in its process, and only a failure counts.
                         let examples = examplesOf taskDef.Goal taskDef.ValidationCriteria
 
                         let logVerdict (verdict: EvaluationResult option) =
@@ -1561,6 +1341,11 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
                                             else
                                                 return Some(String.concat "\n" broken), None
                                         | Result.Error errors -> return Some errors, None
+                                    | Some(ExamplesNotCompared reason) ->
+                                        ctx.Logger
+                                            $"[Executor] The examples passed in the code's process, but their expected values could not be computed outside it ({reason}), so they were not compared there; the evaluation decides."
+
+                                        return None, None
                                     | Some run ->
                                         let errors =
                                             match run with
@@ -2385,50 +2170,15 @@ RESPOND WITH THIS EXACT JSON FORMAT (no other text):
 
                     SpeechActBridge.logSpeechAct ctx.Logger responseMsg
 
-                    // Feature C: Epistemic Verification Checkpoint
-                    let! isVerified =
-                        match ctx.Governance.Epistemic, resultWithEvaluation.Success with
-                        | Some governor, true ->
-                            task {
-                                try
-                                    let statement =
-                                        sprintf
-                                            "Task '%s' was completed with output: %s"
-                                            (taskDef.Goal.Substring(0, min 50 taskDef.Goal.Length))
-                                            (resultWithEvaluation.Output.Substring(
-                                                0,
-                                                min 100 resultWithEvaluation.Output.Length
-                                            ))
-
-                                    let! verified = governor.Verify(statement)
-
-                                    if not verified then
-                                        ctx.Logger("[Epistemic] ⚠️ Output verification FAILED - possible quality issue")
-                                    else
-                                        ctx.Logger("[Epistemic] ✓ Output verified")
-
-                                    return verified
-                                with ex ->
-                                    ctx.Logger($"[Epistemic] Verification skipped: {ex.Message}")
-                                    return true // Skip on error, don't block
-                            }
-                        | _ -> Task.FromResult(true)
-
-                    // Adjust result based on verification (add metadata)
-                    let verifiedResult =
-                        let baseResult = resultForDisplay
-
-                        if isVerified then
-                            baseResult
-                        else
-                            { baseResult with
-                                Output = baseResult.Output + "\n[UNVERIFIED - Review Recommended]" }
+                    // The governor no longer verifies a finished task here. It was given the goal cut
+                    // to 50 characters and the output cut to 100, which no model can check, and its
+                    // verdict only tagged the output shown below. The evaluator, when set, judges the whole answer.
 
                     // Display task completion with generated solution
                     DemoVisualization.showTaskComplete
-                        verifiedResult.Success
-                        verifiedResult.Output
-                        verifiedResult.Duration
+                        resultForDisplay.Success
+                        resultForDisplay.Output
+                        resultForDisplay.Duration
 
                     // Capture episode to Graphiti knowledge graph
                     match ctx.Memory.EpisodeService with
