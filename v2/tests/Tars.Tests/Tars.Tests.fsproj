@@ -142,6 +142,7 @@
     <Compile Include="AgentDefinitionTests.fs" />
     <Compile Include="ResearchCycleTests.fs" />
     <Compile Include="AskCommandTests.fs" />
+    <Compile Include="TarsReviewerTests.fs" />
     <Compile Include="RoutingClassifierTests.fs" />
     <Compile Include="LocalModelPoolTests.fs" />
     <Compile Include="ToolInvokerTests.fs" />

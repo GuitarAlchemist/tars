@@ -83,3 +83,852 @@ let ``formatMemoryContext summarises episodes and defaults missing logical memor
         "\nLessons Learned from Past Episodes:\n- [failure] Parser dropped trailing comments\n- [unknown] Unknown Task\n",
         Engine.formatMemoryContext [ episode (Some learned); episode None ]
     )
+
+// In every cycle of the 2026-10-01 evolve baseline the curriculum agent answered in
+// prose ("Please provide the current context..."), and each prose answer was replaced by
+// a canned task: the schema-constrained call only ran when the agent said nothing.
+
+[<Fact>]
+let ``a prose curriculum answer holds no task list, so it gets the schema-constrained call`` () =
+    Assert.False(
+        Engine.curriculumAnswerHasTasks
+            "Please provide the current context or any specific areas where you need assistance, and I will generate the next F# coding task accordingly."
+    )
+
+    Assert.False(Engine.curriculumAnswerHasTasks "")
+    Assert.False(Engine.curriculumAnswerHasTasks "   ")
+
+[<Fact>]
+let ``JSON of another shape holds no task list either`` () =
+    // Each of these parses as JSON, but the task parser would find no task in it, or
+    // throw reading one, and fall back to a canned task.
+    Assert.False(Engine.curriculumAnswerHasTasks """{"message":"Please provide the current context"}""")
+    Assert.False(Engine.curriculumAnswerHasTasks """{"tasks":[]}""")
+    Assert.False(Engine.curriculumAnswerHasTasks """{"tasks":[{"goal":"Write a parser in F#"}]}""")
+
+    Assert.False(
+        Engine.curriculumAnswerHasTasks
+            """{"tasks":[{"goal":"Write a parser in F#","constraints":[1],"validation_criteria":"tests pass"}]}"""
+    )
+
+[<Fact>]
+let ``a task list answer, bare, wrapped or fenced, is used as it is`` () =
+    let task =
+        """{"goal":"Write a parser in F#","constraints":["pure"],"validation_criteria":"tests pass"}"""
+
+    let tasks = $"""{{"tasks":[{task}]}}"""
+    Assert.True(Engine.curriculumAnswerHasTasks tasks)
+    Assert.True(Engine.curriculumAnswerHasTasks $"[{task}]")
+    Assert.True(Engine.curriculumAnswerHasTasks("Here are the tasks:\n```json\n" + tasks + "\n```"))
+
+[<Fact>]
+let ``the task prompt states the task and leaves the tool list to the executor`` () =
+    // In evolve, the task prompt listed the whole tool registry: 17.7 KB of its 22 KB,
+    // past the 4k context window. It was summarized, and the executor never saw its goal.
+    let taskDef =
+        { Id = Guid.NewGuid()
+          DifficultyLevel = 1
+          Goal = "Write a function in F# that checks if a given string is a palindrome."
+          Constraints = [ "Use recursion" ]
+          ValidationCriteria = "racecar is a palindrome, tars is not"
+          Timeout = TimeSpan.FromMinutes 1.0
+          Score = 0.0 }
+
+    let prompt = Engine.buildTaskPrompt taskDef "Related Code Structure: none" "" ""
+
+    Assert.Contains(taskDef.Goal, prompt)
+    Assert.Contains("Use recursion", prompt)
+    Assert.Contains(taskDef.ValidationCriteria, prompt)
+    Assert.Contains("Related Code Structure: none", prompt)
+    Assert.DoesNotContain("[AVAILABLE TOOLS]", prompt)
+
+[<Fact>]
+let ``an answer that only talks about the code shows no code`` () =
+    // Answers the evolve executor gave in place of a solution.
+    Assert.False(Engine.answerHasCode "ACT: REQUEST: Please provide the current project structure so I can understand the file paths.")
+    Assert.False(Engine.answerHasCode "ACT: INFORM: I will create a function to reverse a string in F# using immutable data structures.")
+    Assert.False(Engine.answerHasCode "")
+    // A tool call is not code shown in the answer.
+    Assert.False(Engine.answerHasCode "```tool\n{\"name\": \"plan_task\", \"arguments\": {}}\n```")
+
+[<Fact>]
+let ``an answer with a fenced code block shows code`` () =
+    Assert.True(Engine.answerHasCode "Here it is:\n```fsharp\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\n```")
+    Assert.True(Engine.answerHasCode "```\nlet x = 1\n```")
+    Assert.True(Engine.answerHasCode "```tool\n{}\n```\nDone:\n```fsharp\nlet x = 1\n```")
+
+[<Fact>]
+let ``a task that makes code asks for code`` () =
+    // Goals the curriculum generated in evolve runs, and the one canned task that builds something.
+    for goal in
+        [ "Implement a function to calculate the nth Fibonacci number in F#."
+          "Write a function in F# that checks if a given string is a palindrome."
+          "Refactor the existing `fibonacci` function to use memoization for improved performance."
+          "Create a tool for analyzing F# code quality using a static code analysis library."
+          "Failed to generate novel tasks. Refactor the existing code for better maintainability."
+          "Create a new dynamic tool named 'check_todo' that searches the project for 'TODO' comments and returns a formatted list." ] do
+        Assert.True(Engine.taskAsksForCode goal, goal)
+
+[<Fact>]
+let ``a task that analyzes or summarizes does not ask for code`` () =
+    // The other canned tasks, and a topic the epistemic governor proposed: prose is the answer.
+    for goal in
+        [ "Scan the src/Tars.Tools directory and identify 2 tools that lack proper error handling in their JSON parsing logic."
+          "Analyze the current Evolution Engine loop in src/Tars.Evolution/Engine.fs and suggest a way to implement better task pivoting after 3 failures."
+          "Read src/Tars.Core/Domain.fs and write a summary of the 'AgentIntent' discriminated union."
+          "List all files in src/Tars.Evolution and summarize the responsibility of each file."
+          "Explore the foundational principles of epistemology." ] do
+        Assert.False(Engine.taskAsksForCode goal, goal)
+
+[<Fact>]
+let ``the script of an answer is its F# code and nothing else`` () =
+    Assert.Equal(None, Engine.scriptOfAnswer "I will write a recursive factorial function in F#.")
+    Assert.Equal(None, Engine.scriptOfAnswer "```tool\n{\"name\": \"write_code\", \"arguments\": {}}\n```")
+    // An unlabeled block may be program output rather than code.
+    Assert.Equal(None, Engine.scriptOfAnswer "Output:\n```\n[1; 2; 3]\n```")
+    // A tool call the executor put in an F# block, from a live evolve run.
+    Assert.Equal(
+        None,
+        Engine.scriptOfAnswer "ACT: INFORM: ```fsharp\n{\n  \"name\": \"read_code\",\n  \"arguments\": {\n    \"path\": \"Program.fs\"\n  }\n}\n```"
+    )
+
+    Assert.Equal(
+        Some "let x = 1\n\nprintfn \"%d\" x",
+        Engine.scriptOfAnswer "```tool\n{}\n```\n```fsharp\nlet x = 1\n```\nThen:\n```fsharp\nprintfn \"%d\" x\n```"
+    )
+
+[<Fact>]
+let ``code that uses TARS's own projects is not run as a script`` () =
+    Assert.Equal(None, Engine.scriptOfAnswer "```fsharp\nopen Tars.Core\nlet x = 1\n```")
+    Assert.Equal(None, Engine.scriptOfAnswer "```fsharp\nlet run = Tars.Evolution.Engine.step\n```")
+    // Mentioning TARS in a comment does not make the code need it.
+    Assert.Equal(
+        Some "// Like Tars.Core.Domain, but on its own.\nlet x = 1",
+        Engine.scriptOfAnswer "```fsharp\n// Like Tars.Core.Domain, but on its own.\nlet x = 1\n```"
+    )
+
+[<Fact>]
+let ``an answer written as a .fs file runs as a script`` () =
+    task {
+        // dotnet fsi rejects a namespace line and a top-level module declaration, which
+        // are valid, and common, at the top of a .fs file.
+        let answer =
+            "```fsharp\nnamespace Demo\n\nmodule Fact\n\nlet rec fact n = if n <= 1 then 1 else n * fact (n - 1)\nprintfn \"%d\" (fact 5)\n```\n"
+            + "```fsharp\nprintfn \"%d\" (Fact.fact 6)\n```"
+
+        let! run = Engine.runScript (TimeSpan.FromSeconds 60.0) (Engine.scriptOfAnswer answer).Value
+
+        Assert.Equal(Result.Ok(), run)
+    }
+
+[<Fact>]
+let ``a script that does not compile, throws or never ends fails with what went wrong`` () =
+    task {
+        let! notCompiling = Engine.runScript (TimeSpan.FromSeconds 60.0) "let x: int = \"a\""
+        let! throwing =
+            Engine.runScript
+                (TimeSpan.FromSeconds 60.0)
+                "let f n = if n < 0 then failwith \"Negative input not allowed\" else n\nprintfn \"%d\" (f -1)"
+        let! endless = Engine.runScript (TimeSpan.FromSeconds 3.0) "while true do ()"
+
+        match notCompiling, throwing, endless with
+        | Result.Error compile, Result.Error thrown, Result.Error timedOut ->
+            Assert.Contains("error FS0001", compile)
+            Assert.Contains("Negative input not allowed", thrown)
+            Assert.Contains("did not finish", timedOut)
+        | other -> Assert.Fail $"%A{other}"
+    }
+
+[<Fact>]
+let ``a script can use System without opening it, and its errors keep their line numbers`` () =
+    task {
+        // The model writes Char.IsLetter or String.IsNullOrEmpty without `open System`: in a
+        // live run that was 3 of the 5 answers that did not compile.
+        let! usingSystem =
+            Engine.runScript
+                (TimeSpan.FromSeconds 60.0)
+                "let letters (s: string) = s |> Seq.filter Char.IsLetter |> Seq.length\nif letters \"a1b\" <> 2 || not (String.IsNullOrEmpty \"\") then failwith \"wrong\""
+
+        // An answer that starts with a module, as a .fs file does, still runs after the open.
+        let! moduleFirst =
+            Engine.runScript
+                (TimeSpan.FromSeconds 60.0)
+                (Engine.scriptOfAnswer
+                    "```fsharp\nmodule Text\n\nlet letters (s: string) = s |> Seq.filter Char.IsLetter |> Seq.length\nprintfn \"%d\" (letters \"a1\")\n```")
+                    .Value
+
+        let! notCompiling = Engine.runScript (TimeSpan.FromSeconds 60.0) "let x = 1\nlet y: int = \"a\""
+
+        Assert.Equal(Result.Ok(), usingSystem)
+        Assert.Equal(Result.Ok(), moduleFirst)
+
+        match notCompiling with
+        | Result.Error compile ->
+            // The error points at line 2 of the code the executor wrote, not of the script.
+            Assert.Contains("answer.fsx(2,", compile)
+            Assert.DoesNotContain("tars-evolve-run", compile)
+        | other -> Assert.Fail $"%A{other}"
+    }
+
+[<Fact>]
+let ``the examples are the calls in the validation criteria`` () =
+    // Criteria from live runs. A list literal, a string or a char keeps its ';'.
+    Assert.Equal<string>(
+        [ "sumOfList [1; 2; 3; 4] = 10"; "sumOfList [] = 0"; "sumOfList [-1; -2; -3] = -6" ],
+        Engine.examplesOf
+            "Write `sumOfList : int list -> int` in F#"
+            "sumOfList [1; 2; 3; 4] = 10; sumOfList [] = 0; sumOfList [-1; -2; -3] = -6"
+    )
+
+    Assert.Equal<string>(
+        [ "findLongestSubstring \"aabbcc\" 2 = \"aabb\""; "findLongestSubstring \"bbbbb\" 1 = \"bbbbb\"" ],
+        Engine.examplesOf
+            "Write `findLongestSubstring` : string -> string in F# that finds the longest substring with at most k distinct characters."
+            "findLongestSubstring \"aabbcc\" 2 = \"aabb\"; findLongestSubstring \"bbbbb\" 1 = \"bbbbb\""
+    )
+
+    Assert.Equal<string>(
+        [ "splitOn ';' \"a;b\" = [\"a\"; \"b\"]"; "splitOn ',' \"\" = [\"\"]" ],
+        Engine.examplesOf
+            "Write `splitOn : char -> string -> string list` in F#."
+            "splitOn ';' \"a;b\" = [\"a\"; \"b\"]\nsplitOn ',' \"\" = [\"\"]"
+    )
+
+    // Prose is not an example, and a goal that names no function has none.
+    Assert.Equal<string>(
+        [ "isEven 4 = true" ],
+        Engine.examplesOf "Write `isEven : int -> bool` in F#" "It returns true for even numbers; isEven 4 = true"
+    )
+
+    Assert.Empty(Engine.examplesOf "Write a recursive factorial function in F#" "fact 5 = 120")
+
+    // Every function the goal names is checked, not only the first.
+    Assert.Equal<string>(
+        [ "encode \"ab\" = \"ba\""; "decode \"ba\" = \"ab\"" ],
+        Engine.examplesOf
+            "Write `encode : string -> string` and `decode : string -> string` in F#."
+            "encode \"ab\" = \"ba\"; decode \"ba\" = \"ab\""
+    )
+
+    // Live goals that name the function or the tool, with no signature.
+    Assert.Equal<string>(
+        [ "countVowels \"hello\" = 2"; "countVowels \"sky\" = 1" ],
+        Engine.examplesOf
+            "Create a function named `countVowels` that takes a string as input and returns the number of vowels it contains."
+            "countVowels \"hello\" = 2; countVowels \"sky\" = 1"
+    )
+
+    Assert.Equal<string>(
+        [ "StringLengthChecker \"hello\" = 5"; "StringLengthChecker \"\" = 0" ],
+        Engine.examplesOf "Create a tool named 'StringLengthChecker'" "StringLengthChecker \"hello\" = 5; StringLengthChecker \"\" = 0"
+    )
+
+    Assert.Equal<string>(
+        [ "wordLength \"abc\" = 3" ],
+        Engine.examplesOf "Create a tool named \"wordLength\" in F#." "wordLength \"abc\" = 3"
+    )
+
+[<Fact>]
+let ``the examples run after the code and decide`` () =
+    task {
+        let examples = [ "isEven 4 = true"; "isEven 5 = false" ]
+        let check code = Engine.checkExamples (TimeSpan.FromSeconds 60.0) code examples
+        let! right = check "let isEven n = n % 2 = 0"
+        let! wrong = check "let isEven n = n % 2 = 1"
+        let! notCompiling = check "let isEven n = n % 2 = \"0\""
+        // A name the code does not define: the examples say nothing about this code.
+        let! otherName = check "let isEvenNumber n = n % 2 = 0"
+
+        match right, wrong, notCompiling, otherName with
+        | Some passed, Some failed, Some broken, None ->
+            Assert.True(passed.Passed)
+            Assert.False(failed.Passed)
+            Assert.Contains("isEven 4 = true, got false", failed.Summary)
+            Assert.False(broken.Passed)
+        | other -> Assert.Fail $"%A{other}"
+    }
+
+[<Fact>]
+let ``an answer that ends the script before its examples does not pass them`` () =
+    task {
+        // dotnet fsi exits with 0 on `exit 0`, so the examples after the code never ran.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let isEven n = n % 2 = 1\nexit 0" [ "isEven 4 = true" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``an answer that prints the examples' mark itself does not pass them`` () =
+    task {
+        // #394's third form: the code reads the last line of its script, where the mark is,
+        // prints it and exits before any example runs. It passed on main; now it prints no value,
+        // and the next test forges one.
+        let answer =
+            "let reverse (xs: int list) = xs\n"
+            + "let last = Array.last (System.IO.File.ReadAllLines \"answer.fsx\")\n"
+            + "printfn \"%s\" (last.Substring(last.IndexOf(\"tarsValueLine \\\"\") + 15, 32))\n"
+            + "exit 0"
+
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "reverse [1; 2; 3] = [3; 2; 1]" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``a value line forged with the mark read from the script is compared like any other`` () =
+    task {
+        // The code reads the mark from its script and prints a well-formed value line for the
+        // example, with a value of its choice, before the real one could run. The expected value is
+        // not in the script, so the forged value is only a guess, and this one is wrong.
+        let answer =
+            "let reverse (xs: int list) = xs\n"
+            + "let script = System.IO.File.ReadAllText \"answer.fsx\"\n"
+            + "let mark = script.Substring(script.LastIndexOf(\"tarsValueLine \\\"\") + 15, 32)\n"
+            + "let forged = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes \"[1; 2; 3]\")\n"
+            + "printfn \"\\n%s 0 %s %s false\" mark forged forged\n"
+            + "exit 0"
+
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "reverse [1; 2; 3] = [3; 2; 1]" ]
+
+        match verdict with
+        | Some v ->
+            Assert.False(v.Passed)
+            // The forged line was read: its value is the one reported.
+            Assert.Contains("got [1; 2; 3]", v.Summary)
+        | None -> Assert.Fail "no verdict"
+    }
+
+[<Fact>]
+let ``equal values pass outside the code's process, over several lines or of no element type`` () =
+    task {
+        // %A prints a list of 40 numbers over several lines, and `[]` alone as a list of objects.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let countUp n = [ 1..n ]"
+                [ "countUp 40 = [ 1..40 ]"; "countUp 0 = []" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``values that differ past what %A prints do not pass`` () =
+    task {
+        // %A prints the first 100 items of a list: these two differ only in the 150th.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let countUp n = [ 1 .. n - 1 ] @ [ 0 ]"
+                [ "countUp 150 = [ 1..150 ]" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``arrays of another shape, or dates a few milliseconds apart, do not pass`` () =
+    task {
+        // Their items in order are the same, and %A prints both dates to the second.
+        let answer =
+            "let grid () = array2D [ [ 1; 2; 3; 4 ] ]\n"
+            + "let stamp () = System.DateTime(2026, 1, 1, 0, 0, 0, 5)"
+
+        for example in
+            [ "grid () = array2D [ [ 1; 2 ]; [ 3; 4 ] ]"
+              "stamp () = System.DateTime(2026, 1, 1)" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict |> Option.exists (fun v -> not v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``values that F# equality would not compare, or not hold equal, do not pass`` () =
+    task {
+        // An int is not a big integer, NaN equals nothing, and `=` compares a ResizeArray by
+        // reference.
+        let answer =
+            "let big () = 2\nlet ratio () = nan\nlet items () = ResizeArray [ 1; 2 ]"
+
+        for example in [ "big () = 2I"; "ratio () = nan"; "items () = ResizeArray [ 1; 2 ]" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``values that F# equality holds equal pass: a widened int, either zero, one instant at two offsets`` () =
+    task {
+        // `=` widens the int 2 to a float here, holds -0.0 = 0.0, and compares instants.
+        let answer =
+            "let half (n: int) = float n / 2.0\n"
+            + "let negZero () = -0.0\n"
+            + "let midnight () = System.DateTimeOffset(2026, 1, 1, 0, 0, 0, System.TimeSpan.Zero)"
+
+        for example in
+            [ "half 4 = 2"
+              "negZero () = 0.0"
+              "midnight () = System.DateTimeOffset(2026, 1, 1, 1, 0, 0, System.TimeSpan.FromHours 1.0)" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``an empty collection of another element type does not pass`` () =
+    task {
+        // Both are written `[||]`: only their types differ, and `=` did not compile across them.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let empties () = Array.empty<int>"
+                [ "empties () = Array.empty<string>" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``values typed with an abstract class are compared with their runtime types`` () =
+    task {
+        // Typed System.Array, `=` compares the items as objects: a 1 is not a 1L.
+        let answer = "let f () : System.Array = [| 1 |]"
+
+        let! long = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "f () = ([| 1L |] :> System.Array)" ]
+        let! same = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "f () = ([| 1 |] :> System.Array)" ]
+        Assert.False(long |> Option.exists (fun v -> v.Passed), $"%A{long}")
+        Assert.True(same |> Option.exists (fun v -> v.Passed), $"%A{same}")
+    }
+
+[<Fact>]
+let ``a call typed only by its expected value is compared at that type`` () =
+    task {
+        // `make ()` is an int and `reverse []` an int list only because the example compares them
+        // with one; alone, each would hold obj.
+        let make = "let make<'T> () : 'T = Unchecked.defaultof<'T>"
+        let! zero = Engine.checkExamples (TimeSpan.FromSeconds 60.0) make [ "make () = 0" ]
+        let! one = Engine.checkExamples (TimeSpan.FromSeconds 60.0) make [ "make () = 1" ]
+
+        let! empty =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let reverse xs = List.rev xs" [ "reverse [] = ([]: int list)" ]
+
+        Assert.True(zero |> Option.exists (fun v -> v.Passed), $"%A{zero}")
+        Assert.False(one |> Option.exists (fun v -> v.Passed), $"%A{one}")
+        Assert.True(empty |> Option.exists (fun v -> v.Passed), $"%A{empty}")
+    }
+
+[<Fact>]
+let ``an expected value typed only by its call is computed at the call's type`` () =
+    task {
+        // Against `f ()`, Unchecked.defaultof<_> is an int, 0, and GenericOne / (GenericOne +
+        // GenericOne) a float, 0.5. Alone, the first holds obj and is null, the second is an int, 0.
+        let defaulted = "f () = Unchecked.defaultof<_>"
+
+        let half =
+            "f () = LanguagePrimitives.GenericOne / (LanguagePrimitives.GenericOne + LanguagePrimitives.GenericOne)"
+
+        let check answer example =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+
+        let! zero = check "let f () : int = 0" defaulted
+        let! one = check "let f () : int = 1" defaulted
+        let! right = check "let f () = 0.5" half
+        let! wrong = check "let f () = 0.0" half
+        Assert.True(zero |> Option.exists (fun v -> v.Passed), $"%A{zero}")
+        Assert.False(one |> Option.exists (fun v -> v.Passed), $"%A{one}")
+        Assert.True(right |> Option.exists (fun v -> v.Passed), $"%A{right}")
+        Assert.False(wrong |> Option.exists (fun v -> v.Passed), $"%A{wrong}")
+    }
+
+[<Fact>]
+let ``an answer that redefines <> does not loosen the examples' type check`` () =
+    task {
+        // The checks the type check reads would otherwise use it, and it accepts any two types.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let (<>) (_: 'a) (_: 'b) = false\nlet empties () = Array.empty<int>"
+                [ "empties () = Array.empty<string>" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``values typed obj are equal only as F# equality has them, with their runtime types`` () =
+    task {
+        // Under obj, `=` holds a boxed 2 apart from a boxed 2L, also inside a tuple, but a boxed 2
+        // equal to 2, and two empty arrays equal whatever their element types.
+        let answer =
+            "let two () : obj = box 2\n"
+            + "let pair () = (1, box 2)\n"
+            + "let empties () : obj = box Array.empty<int>"
+
+        for example in [ "two () = box 2L"; "pair () = (1, box 2L)" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+
+        for example in [ "two () = 2"; "empties () = box Array.empty<string>" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``an answer that redefines = does not change how its values are written`` () =
+    task {
+        // Written after this answer, `if f = 0.0 then "0"` would write any float as 0.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let (=) _ _ = true\nlet f () = 1.0" [ "f () = 0.0" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``an answer that defines tarsValueLine is checked like any other`` () =
+    task {
+        // The value lines call the printer by a name of their own, which the answer cannot hide.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let tarsValueLine x = x + 1" [ "tarsValueLine 1 = 2" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``a failed type check does not wait for the expected values`` () =
+    task {
+        // The call does not exist, so the type check fails at once; the expected value would take
+        // ten minutes.
+        let started = Diagnostics.Stopwatch.StartNew()
+
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let f x = x"
+                [ "undefinedCall 1 = (System.Threading.Thread.Sleep 600000; 2)" ]
+
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+        Assert.True(started.Elapsed < TimeSpan.FromSeconds 30.0, $"took {started.Elapsed}")
+    }
+
+[<Fact>]
+let ``a failed type check stops the processes computing the expected values`` () =
+    task {
+        // Each process computing the expected value names a file after its id, then would run
+        // ten minutes. The call does not exist, so the type check fails at once.
+        let dir = IO.Path.Combine(IO.Path.GetTempPath(), "tars-expected-stopped", Guid.NewGuid().ToString("N"))
+        IO.Directory.CreateDirectory dir |> ignore
+        let named = dir.Replace("\\", "/")
+
+        try
+            let! verdict =
+                Engine.checkExamples
+                    (TimeSpan.FromSeconds 60.0)
+                    "let f x = x"
+                    [ $"undefinedCall 1 = (System.IO.File.WriteAllText(\"{named}/\" + string System.Environment.ProcessId, \"\"); System.Threading.Thread.Sleep 600000; 2)" ]
+
+            Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+
+            let running () =
+                IO.Directory.GetFiles dir
+                |> Array.map IO.Path.GetFileName
+                |> Array.filter (fun pid ->
+                    try
+                        not (Diagnostics.Process.GetProcessById(int pid).HasExited)
+                    with _ ->
+                        false)
+
+            // A process left running names its file within seconds of starting.
+            let watch = Diagnostics.Stopwatch.StartNew()
+
+            while watch.Elapsed < TimeSpan.FromSeconds 15.0 && Array.isEmpty (running ()) do
+                do! Threading.Tasks.Task.Delay 500
+
+            Assert.Empty(running ())
+        finally
+            try
+                IO.Directory.Delete(dir, true)
+            with _ ->
+                ()
+    }
+
+[<Fact>]
+let ``expected values bound to their process give no verdict rather than a failure`` () =
+    task {
+        // Each holds in the code's own process, but another process has another id and another
+        // working directory.
+        let answer =
+            "let pid () = System.Environment.ProcessId\n"
+            + "let cwd () = System.IO.Directory.GetCurrentDirectory()"
+
+        for example in
+            [ "pid () = System.Environment.ProcessId"
+              "cwd () = System.IO.Directory.GetCurrentDirectory()" ] do
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ example ]
+            Assert.True(verdict.IsNone, $"{example}: %A{verdict}")
+    }
+
+[<Fact>]
+let ``an answer that redefines not does not loosen a condition's type check`` () =
+    task {
+        // The union case is written `true`, as the Boolean a condition is expected to be.
+        let answer =
+            "[<RequireQualifiedAccess>]\n"
+            + "type Flag = | ``true``\n"
+            + "let not (_: Flag) = false\n"
+            + "let flag () = Flag.``true``"
+
+        let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "flag ()" ]
+        Assert.False(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``the expected values do not use the answer's definitions`` () =
+    task {
+        // The answer redefines abs, but the example means F#'s: abs (-1) is 1.
+        let check answer =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer [ "f () = abs (-1)" ]
+
+        let! wrong = check "let abs (_: int) = 0\nlet f () = 0"
+        let! right = check "let abs (_: int) = 0\nlet f () = 1"
+        Assert.True(wrong |> Option.exists (fun v -> not v.Passed), $"%A{wrong}")
+        Assert.True(right |> Option.exists (fun v -> v.Passed), $"%A{right}")
+    }
+
+[<Fact>]
+let ``decimals of another scale are equal`` () =
+    task {
+        // 1.00M = 1.0M, though %A writes them apart.
+        let! verdict =
+            Engine.checkExamples (TimeSpan.FromSeconds 60.0) "let price () = 1.00M" [ "price () = 1.0M" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``a value is read after output that has no line end`` () =
+    task {
+        // The call prints without a line end, just before its value is printed.
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                "let shout (s: string) =\n    printf \"%s\" s\n    s.ToUpper()"
+                [ "shout \"a\" = \"A\"" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``examples whose expected values need the code's own types give no verdict`` () =
+    task {
+        // `Square 2.0` does not compute without the code, so it cannot be compared outside the
+        // code's process: the evaluation decides.
+        let answer =
+            "type Shape =\n    | Circle of float\n    | Square of float\n\n"
+            + "let largest (shapes: Shape list) =\n"
+            + "    shapes |> List.maxBy (function Circle r -> 3.14 * r * r | Square s -> s * s)"
+
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                answer
+                [ "largest [ Circle 1.0; Square 2.0 ] = Square 2.0" ]
+
+        Assert.True(verdict.IsNone, $"%A{verdict}")
+
+        // Why they were not compared: the error of the process without the code, which computes
+        // them at the code's type.
+        let! run =
+            Engine.runWithExamples
+                (TimeSpan.FromSeconds 60.0)
+                answer
+                [ "largest [ Circle 1.0; Square 2.0 ] = Square 2.0" ]
+
+        match run with
+        | ExampleCheck.ExamplesNotCompared reason -> Assert.Contains("Shape", reason)
+        | other -> Assert.Fail $"%A{other}"
+    }
+
+[<Fact>]
+let ``a function in the answer's module is seen by the next block and by the examples`` () =
+    task {
+        // A live answer put composeFunctions in `module ComposeFunctions`, then called it from a
+        // second block: the call did not compile, and the examples would not either.
+        let answer =
+            "```fsharp\nmodule ComposeFunctions\n\nlet composeFunctions f g x = f (g x)\n```\n"
+            + "```fsharp\nprintfn \"%d\" (composeFunctions ((+) 1) ((*) 2) 3)\n```"
+
+        let script = (Engine.scriptOfAnswer answer).Value
+        let! run = Engine.runScript (TimeSpan.FromSeconds 60.0) script
+
+        let! examples =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                script
+                [ "composeFunctions (fun x -> x * 2) (fun x -> x + 1) 3 = 8" ]
+
+        Assert.Equal(Result.Ok(), run)
+        Assert.True(examples |> Option.exists (fun v -> v.Passed), $"%A{examples}")
+    }
+
+[<Fact>]
+let ``a multi-line string in the answer's module keeps its text`` () =
+    task {
+        // The module's lines are indented under `module Banner =`, but not those that continue
+        // a string: the examples compare its text.
+        let answer =
+            "```fsharp\nmodule Banner\n\nlet banner () = \"\"\"a\nb\"\"\"\nlet path = @\"c:\\x\ny\"\n```"
+
+        let script = (Engine.scriptOfAnswer answer).Value
+
+        let! verdict =
+            Engine.checkExamples
+                (TimeSpan.FromSeconds 60.0)
+                script
+                [ "banner () = \"a\\nb\""; "path = \"c:\\\\x\\ny\"" ]
+
+        Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"%A{verdict}")
+    }
+
+[<Fact>]
+let ``the refactor tasks' examples check the function their goal gives`` () =
+    task {
+        // Their goals give the function as backticked code (`let sign x = ...`), not as
+        // `name : signature`.
+        let answers =
+            [ "let sign x =\n    match x with\n    | x when x > 0 -> 1\n    | x when x < 0 -> -1\n    | _ -> 0"
+              "let sumTo (n: int64) =\n    let rec go acc n = if n <= 0L then acc else go (acc + n) (n - 1L)\n    go 0L n" ]
+
+        let refactors = Engine.concreteTasks |> List.filter (fun (goal, _) -> goal.StartsWith "Refactor")
+
+        for (goal, criteria), answer in List.zip refactors answers do
+            let examples = Engine.examplesOf goal criteria
+            let! verdict = Engine.checkExamples (TimeSpan.FromSeconds 60.0) answer examples
+            Assert.True(verdict |> Option.exists (fun v -> v.Passed), $"{goal}: %A{examples} %A{verdict}")
+    }
+
+let private taskWith goal constraints =
+    { Id = Guid.NewGuid()
+      DifficultyLevel = 1
+      Goal = goal
+      Constraints = constraints
+      ValidationCriteria = ""
+      Timeout = TimeSpan.FromMinutes 1.0
+      Score = 0.0 }
+
+[<Fact>]
+let ``a task about code it does not include, or about an unnamed tool, is not specified`` () =
+    // Goals the curriculum generated, or fell back to, in live evolve runs. All of them failed:
+    // the executor asked for the code or the specification, or refused.
+    for goal in
+        [ "Failed to generate novel tasks. Refactor the existing code for better readability."
+          "Refactor an existing F# codebase to use pattern matching instead of if-else statements."
+          "Refactor the provided F# code to use pattern matching instead of traditional conditional statements wherever possible."
+          "Refactor the prime number checking function to use a different algorithm for better performance"
+          "Refactor a given piece of code to use immutable data structures in F#"
+          "Create a tool to analyze the performance of F# code snippets"
+          "Create a tool for analyzing F# code complexity."
+          "Create a tool for analyzing and refactoring F# code to improve readability." ] do
+        Assert.False(Engine.taskIsSpecified (taskWith goal []), goal)
+
+[<Fact>]
+let ``a self-contained task, a refactor that includes its code, or a named tool is specified`` () =
+    for goal in
+        [ "Implement a function in F# that calculates the nth Fibonacci number using recursion."
+          "Write a function in F# that checks if a given string is a palindrome."
+          "Refactor this F# function to use pattern matching: `let sign x = if x > 0 then 1 elif x < 0 then -1 else 0`"
+          "Create a new dynamic tool named 'check_todo' that searches the project for 'TODO' comments and returns a formatted list." ] do
+        Assert.True(Engine.taskIsSpecified (taskWith goal []), goal)
+
+    // The code to refactor may come in a constraint.
+    Assert.True(
+        Engine.taskIsSpecified (
+            taskWith
+                "Refactor this function to use pattern matching in F#."
+                [ "The function: `let sign x = if x > 0 then 1 elif x < 0 then -1 else 0`" ]
+        )
+    )
+
+[<Fact>]
+let ``the concrete tasks are specified coding tasks with examples`` () =
+    Assert.True(Engine.concreteTasks.Length >= 10)
+
+    for goal, criteria in Engine.concreteTasks do
+        Assert.True(Engine.taskIsSpecified (taskWith goal []), goal)
+        Assert.True(Engine.taskAsksForCode goal, goal)
+        Assert.Contains("in F#", goal)
+        Assert.Contains(" = ", criteria)
+        Assert.NotEmpty(Engine.examplesOf goal criteria)
+
+[<Fact>]
+let ``the next concrete task is the first one not done yet`` () =
+    let first, _ = Engine.concreteTasks.[0]
+    let second, _ = Engine.concreteTasks.[1]
+    let all = Engine.concreteTasks |> List.map fst
+
+    Assert.Equal(first, fst (Engine.nextConcreteTask []))
+    Assert.Equal(second, fst (Engine.nextConcreteTask [ first.ToUpperInvariant() ]))
+    // When every one is done, it still gives one.
+    Assert.Contains(fst (Engine.nextConcreteTask all), all)
+
+[<Fact>]
+let ``the task prompt asks for the code in the answer, not for exploring the project`` () =
+    // In live runs the executor asked for the project structure, tried to read Engine.fs or
+    // Program.fs, or saved its code and answered "saved to src/Program.fs", for tasks that
+    // gave everything it needed. The evaluation reads only the answer.
+    let prompt =
+        Engine.buildTaskPrompt (taskWith "Write `isPrime : int -> bool` in F#." []) "Related Code Structure: none" "" ""
+
+    Assert.Contains("write the code directly", prompt)
+    Assert.Contains("complete code in a fenced block", prompt)
+    Assert.Contains("The evaluation reads only your answer", prompt)
+
+    for pushToExplore in
+        [ "read_file"
+          "list_files"
+          "FULL FILE SYSTEM ACCESS"
+          "is NOT enough"
+          "execute_workflow"
+          "[DYNAMIC TOOL EXAMPLE]" ] do
+        Assert.DoesNotContain(pushToExplore, prompt)
+
+[<Fact>]
+let ``the task prompt shows the dynamic tool pattern only for a tool task`` () =
+    let prompt =
+        Engine.buildTaskPrompt
+            (taskWith "Create a dynamic tool named 'count_words' in F# that prints the number of words in its input." [])
+            ""
+            ""
+            ""
+
+    Assert.Contains("[DYNAMIC TOOL EXAMPLE]", prompt)
+    Assert.Contains("fsi.CommandLineArgs", prompt)
+
+[<Fact>]
+let ``the task prompt shows every constraint`` () =
+    // A list prints its first 3 items, then "; ... ]": in live runs the executor never saw
+    // a task's 4th constraint, and the judge, who saw them all, rejected its answers for it.
+    let constraints =
+        [ "Define the type Tree = Leaf | Node of Tree * int * Tree"
+          "The helper must be tail-recursive"
+          "Do not use mutable variables"
+          "Use an accumulator, not List.rev" ]
+
+    let prompt =
+        Engine.buildTaskPrompt (taskWith "Write `depth : Tree -> int` in F#." constraints) "" "" ""
+
+    for rule in constraints do
+        Assert.Contains(rule, prompt)
+
+[<Fact>]
+let ``an answer whose own warnings fill fsi's error text still passes its examples`` () =
+    task {
+        // fsi's errors were cut at 2000 characters before they were read, so 30 incomplete matches
+        // in the answer pushed the type probe's error past the cut, and a right answer read as failing.
+        let warnings =
+            [ for i in 1..30 -> $"let partial{i} (x: int) = match x with 1 -> 0" ] |> String.concat "\n"
+
+        let answer =
+            warnings + "\nlet reverse (s: string) : string = System.String(Array.rev (s.ToCharArray()))"
+
+        let! run = Engine.runWithExamples (TimeSpan.FromSeconds 60.0) answer [ "reverse \"abc\" = \"cba\"" ]
+
+        match run with
+        | ExampleCheck.ExamplesPassed -> ()
+        | other -> Assert.Fail $"%A{other}"
+    }

@@ -106,3 +106,65 @@ module ToolGate =
     let refusalMessage (tool: Tool) (descriptor: ToolMetadata.ToolDescriptor) =
         $"'{tool.Name}' {descriptor.Approval.Effect} ({descriptor.Approval.Tier.Wire}), "
         + "so it needs approving before it runs"
+
+    /// What a graph may say it must not do, and how that is checked (tars#334).
+    ///
+    /// Before this, `WoTPlan.Policy` was copied through the whole pipeline and read by
+    /// nothing, so a graph carrying `no-network` reached the network and nobody said
+    /// so. Inert metadata that *looks* enforced is worse than no field at all, because
+    /// it invites a caller to rely on it.
+    ///
+    /// Each restriction is defined as a ceiling on the approval tier, because the tier
+    /// is the one thing already known about every node before anything runs:
+    ///
+    /// - `no-writes`  - only `read_only` nodes;
+    /// - `no-network` - nothing that `escapes`, which includes every reason node,
+    ///   since a model call sends the prompt to a remote service.
+    ///
+    /// The tiers are ordered by reach, so the ceilings compose by taking the lower one.
+    ///
+    /// **This is static, and it is honest about what that means.** It checks what each
+    /// node's descriptor declares, before the run. It does not watch the run. It trusts
+    /// the descriptors, and it says nothing about what a `read_only` tool may *read* -
+    /// see the note on `ApprovalTier`. What it does guarantee: no node whose declared
+    /// reach exceeds the policy is allowed to start.
+    ///
+    /// `run_shell` is `escapes`, so every restriction refuses it. That is correct rather
+    /// than conservative: a shell command can do anything, so no policy short of "no
+    /// shell" can be enforced against it, and this vocabulary does not pretend one can.
+    module Policy =
+
+        type Restriction =
+            | NoWrites
+            | NoNetwork
+
+            /// The spelling a graph uses.
+            member this.Word =
+                match this with
+                | NoWrites -> "no-writes"
+                | NoNetwork -> "no-network"
+
+            /// The highest tier a node may have under this restriction.
+            member this.Ceiling =
+                match this with
+                | NoWrites -> ToolMetadata.ReadOnly
+                | NoNetwork -> ToolMetadata.Mutates
+
+        let all = [ NoWrites; NoNetwork ]
+
+        /// A policy word, or `None` for one this vocabulary does not know. The caller
+        /// has to refuse the `None`: ignoring an unrecognised restriction is the entire
+        /// defect this module replaces.
+        let parse (word: string) =
+            all |> List.tryFind (fun r -> r.Word = word.Trim().ToLowerInvariant())
+
+        let private rank tier =
+            match tier with
+            | ToolMetadata.ReadOnly -> 0
+            | ToolMetadata.Mutates -> 1
+            | ToolMetadata.Escapes -> 2
+
+        /// Does a node of this tier fit under the restriction?
+        let permits (restriction: Restriction) (tier: ToolMetadata.ApprovalTier) =
+            rank tier <= rank restriction.Ceiling
+
