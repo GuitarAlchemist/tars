@@ -26,8 +26,31 @@ module ToolMetadata =
     ///
     /// The question each tier answers is "what is the worst this can do", not "how
     /// useful is it": a tool is placed by its reach, not by how likely the damage is.
+    ///
+    /// **These tiers are about integrity, not confidentiality.** They say what a tool
+    /// can *change* and how far that reaches. They say nothing about what it can
+    /// *see*, and the gate reads only these tiers, so:
+    ///
+    /// - a `ReadOnly` tool runs without anyone being asked, and can read every file
+    ///   the TARS process can read - `read_file` on an id_rsa, a .env, a password
+    ///   manager's export, is `ReadOnly` and auto-approved, correctly by this scale;
+    /// - what stops that today is not the tier but the catalog: `read_file` is one of
+    ///   six described tools, and whoever draws the graph is the person whose files
+    ///   they are.
+    ///
+    /// That holds while the editor and the files share an owner. It stops holding the
+    /// moment a graph arrives from somewhere its author does not own - a shared
+    /// editor, a plan pasted in, a model writing the graph. At that point reading is
+    /// exfiltration and `ReadOnly` is the wrong answer, and the fix is a second axis
+    /// on `Approval` rather than a new tier, because reach and sensitivity are
+    /// genuinely independent.
+    ///
+    /// This is written down rather than fixed because nothing in TARS has that shape
+    /// yet, and a dimension added before there is a case to test it against would be
+    /// guessed rather than designed.
     type ApprovalTier =
-        /// Observes without changing anything: reads a file, parses, computes.
+        /// Observes without changing anything: reads a file, parses, computes. Says
+        /// nothing about *what* it may observe - see the note on the type.
         | ReadOnly
         /// Changes state this machine owns: writes files, commits, installs, runs a
         /// shell command, alters configuration.
@@ -51,37 +74,32 @@ module ToolMetadata =
             /// One plain sentence naming the effect, for a human deciding whether to
             /// allow it: "writes files under the working directory", not "file I/O".
             Effect: string
-            /// May a graph run this without asking first?
-            ///
-            /// Separate from the tier because the two answer different questions: the
-            /// tier is how far the effects reach, this is whether a person should be
-            /// asked. A tool can reach nothing and still be slow or irreversible
-            /// enough to confirm, and anything above ReadOnly needs confirming anyway.
-            ///
-            /// An LLM call is not the example here: a model call sends the prompt to a
-            /// remote service, so it is `Escapes`, not a ReadOnly tool that happens to
-            /// cost money. Getting that backwards is what made the reasoning node's
-            /// tier wrong in the first place.
-            AutoApproved: bool
         }
 
-        /// Observes, costs nothing, reaches nothing: safe to run unasked.
-        static member observes(effect: string) =
-            { Tier = ReadOnly
-              Effect = effect
-              AutoApproved = true }
+        /// May a graph run this without asking first?
+        ///
+        /// Derived from the tier, not stored beside it. An earlier version carried this
+        /// as a field, arguing that "how far do the effects reach" and "should a person
+        /// be asked" are different questions. They are — but no tool answers them
+        /// differently, and the gate reads only this one. Two fields for one fact means
+        /// the gate can be told `true` by a descriptor whose tier says `Escapes`, and the
+        /// field it reads is the weaker of the two.
+        ///
+        /// If a tool ever needs to be observed-only and still confirmed, give it a tier
+        /// that says so. Do not put back a field the gate can disagree with.
+        member this.AutoApproved = (this.Tier = ReadOnly)
+
+        /// Observes, costs nothing, changes nothing: safe to run unasked.
+        ///
+        /// "Reaches nothing" would be the wrong word: a reader reaches whatever the
+        /// process can read. See the note on `ApprovalTier`.
+        static member observes(effect: string) = { Tier = ReadOnly; Effect = effect }
 
         /// Changes something this machine owns.
-        static member mutates(effect: string) =
-            { Tier = Mutates
-              Effect = effect
-              AutoApproved = false }
+        static member mutates(effect: string) = { Tier = Mutates; Effect = effect }
 
         /// Leaves the machine or spends money.
-        static member escapes(effect: string) =
-            { Tier = Escapes
-              Effect = effect
-              AutoApproved = false }
+        static member escapes(effect: string) = { Tier = Escapes; Effect = effect }
 
     /// Everything the editor needs about one tool, beyond its name and description.
     type ToolDescriptor =
@@ -107,8 +125,14 @@ module ToolMetadata =
         ConcurrentDictionary<string, ToolDescriptor>(StringComparer.OrdinalIgnoreCase)
 
     /// Describe a tool, replacing any previous description of the same name.
+    ///
+    /// The name is trimmed going in because `tryFind` trims coming out. Without this, a
+    /// descriptor stored under `" read_file"` is unfindable, and the editor reports the
+    /// tool as *undescribed* rather than as misnamed — the one failure mode this sidecar
+    /// exists to stop happening quietly.
     let describe (descriptor: ToolDescriptor) =
-        descriptors.[descriptor.Name] <- descriptor
+        let name = if isNull descriptor.Name then "" else descriptor.Name.Trim()
+        descriptors.[name] <- { descriptor with Name = name }
 
     /// Describe several at once.
     let describeAll (all: ToolDescriptor seq) = all |> Seq.iter describe
@@ -133,8 +157,24 @@ module ToolMetadata =
     /// "N of M tools described" an editor shows while the backfill is incomplete.
     let describedCount () = descriptors.Count
 
-    /// Forget every description. For tests; nothing in the running system calls it.
-    let internal clear () = descriptors.Clear()
+    /// The one thing only a test needs.
+    ///
+    /// Public, and under a module that says who it is for, because the alternative was
+    /// `InternalsVisibleTo Tars.Tests` on `Tars.Core.fsproj`: opening *every* internal
+    /// of this assembly to the test project in order to reach one function. `AGENTS.md`
+    /// counts a `.fsproj` change as a one-way door, and that was a wide one bought for
+    /// a narrow need.
+    ///
+    /// One public function names its own purpose; an assembly-wide attribute names
+    /// nothing. What the attribute did buy was the compiler refusing to let production
+    /// code call this. `ToolMetadataTests.nothing in the running system resets the
+    /// registry` now enforces that instead, by reading the source tree - a weaker
+    /// guarantee than the type system, honestly weaker, and traded for a much smaller
+    /// hole.
+    module Testing =
+
+        /// Forget every description, so a test can state the whole world it expects.
+        let reset () = descriptors.Clear()
 
     // =========================================================================
     // Schema helpers

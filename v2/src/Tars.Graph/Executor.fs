@@ -113,7 +113,8 @@ type GraphExecutor
 
                 let warnings = [ Timeout("AgentLoop", TimeSpan.Zero) ]
                 return PartialSuccess((currentAgent, resultOutput, trace), warnings)
-            elif isError then
+            elif isError || not success then
+                // A failed step ends the loop with its error as resultOutput; it is not an answer.
                 return Failure [ PartialFailure.Error resultOutput ]
             else
                 return Success(currentAgent, resultOutput, trace)

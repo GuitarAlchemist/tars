@@ -97,9 +97,12 @@ module TestingTools =
 
                 printfn $"📝 GENERATING TEST for {moduleName}.{funcName}"
 
+                // Both tests are skipped until someone writes them. The edge-case test
+                // used to be `Assert.True(true) // TODO: Implement`: saved as generated,
+                // it passed while testing nothing.
                 let testTemplate =
                     $"""
-[<Fact>]
+[<Fact(Skip = "Template: set the input and assert on the result, then remove Skip")>]
 let ``{funcName} should work correctly`` () =
     // Arrange
     let input = () // TODO: Set up test input
@@ -111,14 +114,14 @@ let ``{funcName} should work correctly`` () =
     Assert.NotNull(result)
     // TODO: Add specific assertions
 
-[<Fact>]
+[<Fact(Skip = "Template: write the edge cases, then remove Skip")>]
 let ``{funcName} handles edge cases`` () =
     // Test edge cases like empty input, null, etc.
-    Assert.True(true) // TODO: Implement
+    failwith "TODO: write the edge cases"
 """
 
                 return
-                    $"Generated test template for {funcName}:\n```fsharp{testTemplate}```\n\nUse write_code to save this to a test file."
+                    $"Generated test template for {funcName}:\n```fsharp{testTemplate}```\n\nBoth tests are skipped until they are written. Use write_code to save this to a test file."
             with ex ->
                 return $"generate_test error: {ex.Message}"
         }

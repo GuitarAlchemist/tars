@@ -324,6 +324,7 @@ let main argv =
                   DemoMode = false
                   Verbose = false
                   Model = None
+                  Teacher = None
                   Trace = false
                   Budget = None
                   DisableGraphiti = false
@@ -333,7 +334,8 @@ let main argv =
                   SelfImprovement = false
                   Benchmark = false
                   BenchmarkDomain = "code"
-                  GrammarMesh = false }
+                  GrammarMesh = false
+                  RunCode = false }
 
             let mutable i = 1
 
@@ -379,6 +381,10 @@ let main argv =
                 | "--self-improve" -> options <- { options with SelfImprovement = true }
                 | "--benchmark" -> options <- { options with Benchmark = true }
                 | "--grammar-mesh" -> options <- { options with GrammarMesh = true }
+                | "--run-code" -> options <- { options with RunCode = true }
+                | "--teacher" when i + 1 < args.Length ->
+                    i <- i + 1
+                    options <- { options with Teacher = Some args.[i] }
                 | "--benchmark-domain" when i + 1 < args.Length ->
                     i <- i + 1
                     options <- { options with BenchmarkDomain = args.[i] }
@@ -491,6 +497,10 @@ let main argv =
         | args when args.Length > 0 && args.[0] = "promote" ->
             let subArgs = args |> Array.skip 1 |> Array.toList
             return PromoteCommand.run subArgs
+
+        // TARS Review - TARS's vote in the cross-review of a pull request
+        | args when args.Length > 0 && args.[0] = "review" ->
+            return! ReviewCommand.run (TarsRuntime.production logger) (args |> Array.skip 1 |> Array.toList)
 
         | args when args.Length > 0 && args.[0] = "wot" ->
             return! WotCommand.execute (args |> Array.skip 1 |> Array.toList)
@@ -623,6 +633,8 @@ let main argv =
             printfn "  tars evolve [options]            Run the evolution engine"
             printfn "       --max-iterations N          Set max generations (default 5)"
             printfn "       --loop N                    Run N full evolution cycles back-to-back (default 1)"
+            printfn "       --teacher M                 Model that writes the tasks and judges the answers:"
+            printfn "                                   an Ollama model or claude:<model> (Claude Code)"
             printfn "       --budget USD                Maximum monetary budget in USD"
             printfn "       --quiet                     Suppress splash screen"
             printfn "  tars knowledge <command>         Manage TARS knowledge base"
@@ -662,6 +674,7 @@ let main argv =
             printfn "       lineage                     Show promotion history"
             printfn "       run [--min N]               Run pipeline on test data"
             printfn "       report                      Generate JSON audit report"
+            printfn "  tars review <diff> --sha S --out F [--model M]  Cross-review vote on a PR diff"
             printfn "  tars know <command>              TARS Knowledge Ledger (Phase 9)"
             printfn "       status [--pg]               Show ledger statistics"
             printfn "       assert <s> <p> <o> [--pg]   Add a belief triple"

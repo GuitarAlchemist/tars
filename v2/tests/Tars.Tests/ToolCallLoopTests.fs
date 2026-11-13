@@ -293,10 +293,13 @@ let ``streamed tokens all arrive, and the reply closes the stream`` () =
     Assert.Contains(updates, fun u -> u.FinishReason.HasValue)
 
 [<Fact>]
-let ``a streaming caller offering tools still gets the call`` () =
-    // Providers put tool calls in the final message, not in the token stream, so this
-    // path takes the buffered reply rather than losing them.
-    let service = StreamingService([], asking ollamaToolCall) :> ILlmService
+let ``a streaming caller offering tools gets its tokens as they come, and then the call`` () =
+    // This path used to take the buffered reply whenever tools were offered, because
+    // the providers' streaming paths dropped `tool_calls`: the call arrived, and every
+    // token arrived at once, after the model had finished (#317). The providers now
+    // reassemble the calls, so the tokens can stream.
+    let service =
+        StreamingService([ "Let me "; "check." ], asking ollamaToolCall) :> ILlmService
 
     let options = ToolAwareChatClient.optionsWithTools [ weatherTool () ]
 
@@ -304,6 +307,16 @@ let ``a streaming caller offering tools still gets the call`` () =
         drain (new LlmServiceChatClient(service) :> IChatClient) options
         |> Async.AwaitTask
         |> Async.RunSynchronously
+
+    let texts =
+        updates
+        |> List.choose (fun u ->
+            match List.ofSeq u.Contents with
+            | [ :? TextContent as t ] -> Some t.Text
+            | _ -> None)
+
+    // One update per token, not one update holding the whole answer.
+    Assert.Equal<string>([ "Let me "; "check." ], texts)
 
     let calls =
         updates
@@ -314,6 +327,82 @@ let ``a streaming caller offering tools still gets the call`` () =
             | _ -> None)
 
     Assert.Equal<string>("GetWeather", String.concat "," calls)
+    Assert.Contains(updates, fun u -> u.FinishReason = Nullable ChatFinishReason.ToolCalls)
+
+/// Streams each scripted reply in turn: its tokens, then the reply itself.
+type private ScriptedStreamingService(replies: (string list * LlmResponse) list) =
+    let mutable remaining = replies
+    let seen = ResizeArray<LlmRequest>()
+
+    member _.Requests = List.ofSeq seen
+
+    interface ILlmService with
+        member _.CompleteAsync(_req) = raise (NotImplementedException "this caller streams")
+
+        member _.CompleteStreamAsync(req, onToken) =
+            task {
+                seen.Add req
+
+                match remaining with
+                | (tokens, reply) :: rest ->
+                    remaining <- rest
+
+                    for token in tokens do
+                        onToken token
+
+                    return reply
+                | [] -> return failwith "asked for more replies than were scripted"
+            }
+
+        member _.EmbedAsync(_text) = Task.FromResult(Array.empty<float32>)
+
+        member _.RouteAsync(_) =
+            task {
+                return
+                    { Backend = Ollama "mock"
+                      Endpoint = Uri "http://localhost:11434"
+                      ApiKey = None }
+            }
+
+[<Fact>]
+let ``a streaming caller runs the whole loop: the call, the tool, then the answer as it comes`` () =
+    calls.Clear()
+
+    let service =
+        ScriptedStreamingService(
+            [ [], asking ollamaToolCall
+              [ "It is "; "sunny in Montreal." ], answering "It is sunny in Montreal." ]
+        )
+
+    let client = ToolAwareChatClient.build (service :> ILlmService)
+    let options = ToolAwareChatClient.optionsWithTools [ weatherTool () ]
+
+    let updates = drain client options |> Async.AwaitTask |> Async.RunSynchronously
+
+    // The tool ran, with the argument the model named, off a streamed reply.
+    Assert.Equal<string>("Montreal", String.concat "," calls)
+
+    let texts =
+        updates
+        |> List.collect (fun u -> List.ofSeq u.Contents)
+        |> List.choose (fun c ->
+            match c with
+            | :? TextContent as t -> Some t.Text
+            | _ -> None)
+
+    Assert.Contains("sunny in Montreal.", texts)
+
+    // And the second request carried the result back, as on the buffered path.
+    match service.Requests with
+    | [ _; second ] ->
+        Assert.Contains(
+            second.Messages,
+            fun m ->
+                match m.Role with
+                | Role.Tool _ -> m.Content.Contains "sunny in Montreal"
+                | _ -> false
+        )
+    | other -> failwith $"expected two requests, got {List.length other}"
 
 [<Fact>]
 let ``a provider failure ends the stream loudly, not quietly`` () =
@@ -338,3 +427,118 @@ let ``a provider failure ends the stream loudly, not quietly`` () =
         | _ -> error.Message :: messages error.InnerException
 
     Assert.Contains(messages failure, fun (m: string) -> m.Contains "provider exploded")
+
+// --------------------------------------------------------------- the providers' own parsing
+
+/// Answers every request with one canned body, and keeps what it was sent.
+type private CannedHandler(body: string, contentType: string) =
+    inherit Net.Http.HttpMessageHandler()
+
+    member val Sent = "" with get, set
+
+    override this.SendAsync(request, _cancellationToken) =
+        task {
+            let! sent = request.Content.ReadAsStringAsync()
+            this.Sent <- sent
+            let response = new Net.Http.HttpResponseMessage(Net.HttpStatusCode.OK)
+            response.Content <- new Net.Http.StringContent(body, Text.Encoding.UTF8, contentType)
+            return response
+        }
+
+let private toolRequest () =
+    { Prompt.ofMessages [ { Role = Role.User; Content = "weather in Montreal?" } ] with
+        Tools = ChatClientMapping.toolsOf (ToolAwareChatClient.optionsWithTools [ weatherTool () ]) }
+
+let private callsIn (response: LlmResponse) =
+    ChatClientMapping.toolCallsOf response.Raw
+    |> List.map (fun call -> call.CallId, call.Name, string call.Arguments["city"])
+
+[<Fact>]
+let ``an Ollama reply that asks for a tool is read, not thrown on`` () =
+    // Ollama sends `arguments` as an object. The response DTO typed it as a string, so
+    // deserializing any reply that asked for a tool threw before `toolCallsOf` was
+    // ever reached - the offline loop tests above never saw it, because they hand the
+    // adapter a recorded body rather than going through the client.
+    let handler = new CannedHandler(ollamaToolCall, "application/json")
+    use http = new Net.Http.HttpClient(handler)
+
+    let response =
+        OllamaClient.sendChatAsync http (Uri "http://localhost:11434/") "qwen3-coder:30b" None (toolRequest ())
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    Assert.Equal<(string * string * string) list>([ "call_0", "GetWeather", "Montreal" ], callsIn response)
+
+[<Fact>]
+let ``Ollama streamed tool calls come back with the reply`` () =
+    let chunks =
+        [ """{"model":"m","message":{"role":"assistant","content":"Let me "},"done":false}"""
+          """{"model":"m","message":{"role":"assistant","content":"check."},"done":false}"""
+          """{"model":"m","message":{"role":"assistant","content":"","tool_calls":[{"function":{"name":"GetWeather","arguments":{"city":"Montreal"}}}]},"done":false}"""
+          """{"model":"m","message":{"role":"assistant","content":""},"done":true,"prompt_eval_count":3,"eval_count":5}""" ]
+
+    let handler = new CannedHandler(String.concat "\n" chunks + "\n", "application/x-ndjson")
+    use http = new Net.Http.HttpClient(handler)
+    let tokens = ResizeArray<string>()
+
+    let response =
+        OllamaClient.sendChatStreamAsync http (Uri "http://localhost:11434/") "m" None (toolRequest ()) tokens.Add
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    Assert.Contains("\"tools\"", handler.Sent)
+    Assert.Equal("Let me check.", String.concat "" tokens)
+    Assert.Equal("Let me check.", response.Text)
+    Assert.Equal<(string * string * string) list>([ "call_0", "GetWeather", "Montreal" ], callsIn response)
+    // The chunk after the call still counts: it carries the usage.
+    Assert.Equal(Some 8, response.Usage |> Option.map (fun u -> u.TotalTokens))
+
+[<Fact>]
+let ``OpenAI streamed tool-call fragments are put back together`` () =
+    // The OpenAI family streams a call in pieces: id and name first, then the
+    // arguments split at arbitrary points, with an `index` saying which call each
+    // piece belongs to - and two calls may interleave.
+    let events =
+        [ """{"id":"1","choices":[{"index":0,"delta":{"role":"assistant","content":null,"tool_calls":[{"index":0,"id":"call_a","type":"function","function":{"name":"GetWeather","arguments":""}}]}}]}"""
+          """{"id":"1","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"id":"call_b","type":"function","function":{"name":"GetWeather","arguments":"{\"ci"}}]}}]}"""
+          """{"id":"1","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"city\":"}}]}}]}"""
+          """{"id":"1","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"Montreal\"}"}}]}}]}"""
+          """{"id":"1","choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":"ty\":\"Paris\"}"}}]}}]}"""
+          """{"id":"1","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}"""
+          "[DONE]" ]
+
+    let body = events |> List.map (fun e -> "data: " + e + "\n\n") |> String.concat ""
+    let handler = new CannedHandler(body, "text/event-stream")
+    use http = new Net.Http.HttpClient(handler)
+
+    let response =
+        OpenAiCompatibleClient.sendChatStreamAsync http (Uri "http://localhost:8000/") "m" None (toolRequest ()) ignore
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    Assert.Contains("\"tools\"", handler.Sent)
+    Assert.Equal(Some "tool_calls", response.FinishReason)
+
+    Assert.Equal<(string * string * string) list>(
+        [ "call_a", "GetWeather", "Montreal"; "call_b", "GetWeather", "Paris" ],
+        callsIn response
+    )
+
+[<Fact>]
+let ``a streamed reply that asks for nothing has nothing reassembled into it`` () =
+    let events =
+        [ """{"id":"1","choices":[{"index":0,"delta":{"content":"Hi"}}]}"""
+          """{"id":"1","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}"""
+          "[DONE]" ]
+
+    let body = events |> List.map (fun e -> "data: " + e + "\n\n") |> String.concat ""
+    use http = new Net.Http.HttpClient(new CannedHandler(body, "text/event-stream"))
+
+    let response =
+        OpenAiCompatibleClient.sendChatStreamAsync http (Uri "http://localhost:8000/") "m" None (toolRequest ()) ignore
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
+
+    Assert.Equal("Hi", response.Text)
+    Assert.Empty(callsIn response)
+

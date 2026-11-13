@@ -48,13 +48,20 @@ module ToolDescriptors =
 
           // Directory only: `WorkflowTools.countLines` calls `Directory.GetFiles` on
           // whatever it is given, so a file path errors rather than being counted.
+          //
+          // Nothing is required. The tool reads `path` and `pattern` off the JSON
+          // itself and defaults them to "." and "*.fs", so both are genuinely
+          // optional — unlike `list_dir`, where `ToolHelpers.parseStringArg` falls back
+          // to the raw input and makes the optional case unusable. A descriptor
+          // describes its tool; requiring a field the tool defaults would have the
+          // editor refuse a call the tool accepts.
           { Name = "count_lines"
             InputSchema =
               objectSchema
-                  [ "path", "string", "Directory to count, searched recursively."
+                  [ "path", "string", "Directory to count, searched recursively. Defaults to the working directory."
                     "pattern", "string", "Glob for which files to include. Defaults to *.fs." ]
-                  [ "path" ]
-            Required = [ "path" ]
+                  []
+            Required = []
             Approval = Approval.observes "counts lines in the files under a directory without changing them" }
 
           // ------------------------------------------------ changes this machine

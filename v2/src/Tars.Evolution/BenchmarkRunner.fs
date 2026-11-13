@@ -72,33 +72,72 @@ Output ONLY the F# code. No explanations, no markdown, no module declarations.
 The code must define the function(s) with exactly the required signature(s).
 Do not use 'open' statements — write self-contained code."""
 
+    let private solverRequest (prompt: string) : LlmRequest =
+        { ModelHint = None
+          Model = None
+          SystemPrompt = Some solverSystemPrompt
+          MaxTokens = Some 800
+          Temperature = Some 0.2
+          Stop = []
+          Messages = [ { Role = Role.User; Content = prompt } ]
+          Tools = []
+          ToolChoice = None
+          ResponseFormat = None
+          Stream = false
+          JsonMode = false
+          Seed = None
+          ContextWindow = None }
+
+    /// "<provider>/<model>" for a routed backend, or "unknown" when the backend
+    /// names no model: some services route every request to a placeholder, such as
+    /// `Ollama "unknown"` or Claude Code's `Anthropic "claude-code"` when no model
+    /// was given, and that is not a model a result can be credited to.
+    let private modelId (backend: LlmBackend) =
+        let provider, model =
+            match backend with
+            | Ollama m -> "ollama", m
+            | Vllm m -> "vllm", m
+            | OpenAI m -> "openai", m
+            | GoogleGemini m -> "gemini", m
+            | Anthropic m -> "anthropic", m
+            | DockerModelRunner m -> "docker", m
+            | LlamaCpp(m, _) -> "llamacpp", m
+            | LlamaSharp path -> "llamasharp", Path.GetFileName path
+
+        if String.IsNullOrWhiteSpace model || model = "unknown" || model = "claude-code" then
+            "unknown"
+        else
+            $"{provider}/{model}"
+
+    /// The model that serves the solver's requests, as the router chooses it.
+    /// "unknown" when the backend cannot be resolved: a run is never credited to a
+    /// model it cannot name.
+    let private solverModel (llm: ILlmService) : Task<string> =
+        task {
+            try
+                let! routed = llm.RouteAsync(solverRequest "")
+                return modelId routed.Backend
+            with _ ->
+                return "unknown"
+        }
+
     /// Generate a solution via LLM.
     let private solveWithLlm (llm: ILlmService) (problem: BenchmarkProblem) : Task<string * int64> =
         task {
             let prompt = buildSolverPrompt problem
 
             let sw = Stopwatch.StartNew()
-            let! response =
-                llm.CompleteAsync(
-                    { ModelHint = None
-                      Model = None
-                      SystemPrompt = Some solverSystemPrompt
-                      MaxTokens = Some 800
-                      Temperature = Some 0.2
-                      Stop = []
-                      Messages = [ { Role = Role.User; Content = prompt } ]
-                      Tools = []
-                      ToolChoice = None
-                      ResponseFormat = None
-                      Stream = false
-                      JsonMode = false
-                      Seed = None
-                      ContextWindow = None })
+            let! response = llm.CompleteAsync(solverRequest prompt)
             sw.Stop()
             return extractCode response.Text, sw.ElapsedMilliseconds
         }
 
-    /// Compile and validate a solution via dotnet fsi.
+    /// Compile and validate a solution via dotnet fsi. The solution runs first, in the same
+    /// process as the validation, so what it prints proves nothing. The validation ends by
+    /// printing a mark made for this run, and the process must exit with 0: without both, a
+    /// solution that printed PASS and left (`exit 0`, an exception) was validated.
+    /// That stops a solution that leaves early. It does not stop one written to cheat, which
+    /// can read the mark from the script or rewrite what the validation prints (#394).
     let private compileAndValidate (solutionCode: string) (validationCode: string) : Task<bool * bool * string list * string> =
         task {
             let tmpDir = Path.Combine(Path.GetTempPath(), "tars-benchmark")
@@ -106,7 +145,9 @@ Do not use 'open' statements — write self-contained code."""
                 Directory.CreateDirectory tmpDir |> ignore
 
             let scriptPath = Path.Combine(tmpDir, $"bench_{Guid.NewGuid():N}.fsx")
-            let fullScript = solutionCode + "\n\n// === VALIDATION ===\n" + validationCode
+            let mark = Guid.NewGuid().ToString("N")
+            let fullScript =
+                solutionCode + "\n\n// === VALIDATION ===\n" + validationCode + $"\nprintfn \"{mark}\"\n"
 
             try
                 File.WriteAllText(scriptPath, fullScript)
@@ -135,7 +176,8 @@ Do not use 'open' statements — write self-contained code."""
                     stderr <- "error FS0000: Process timed out after 30 seconds"
 
                 let compiled = not timedOut && not (stderr.Contains("error FS"))
-                let validated = stdout.Contains("PASS") && not (stdout.Contains("FAIL"))
+                let ranToTheEnd = not timedOut && proc.ExitCode = 0 && stdout.Contains mark
+                let validated = ranToTheEnd && stdout.Contains("PASS") && not (stdout.Contains("FAIL"))
 
                 let errors =
                     if compiled then []
@@ -144,7 +186,7 @@ Do not use 'open' statements — write self-contained code."""
                         |> Array.filter (fun l -> l.Contains("error FS"))
                         |> Array.toList
 
-                return compiled, validated, errors, stdout.Trim()
+                return compiled, validated, errors, stdout.Replace(mark, "").Trim()
             finally
                 try File.Delete(scriptPath) with _ -> ()
         }
@@ -215,6 +257,47 @@ Do not use 'open' statements — write self-contained code."""
                 try File.Delete(scriptPath) with _ -> ()
         }
 
+    /// Compiles and validates a solution. A problem's examples are compared outside the solution's
+    /// process (ExampleCheck.runWithExamples): the solution prints only the calls' values, and
+    /// their expected values are computed without it. A problem without examples runs its
+    /// ValidationCode in the solution's process (compileAndValidate). Examples that do not compile
+    /// against the solution count as a compile failure, as that ValidationCode would, so the
+    /// solver is retried. Examples that could not be compared do not validate it. The solution's
+    /// process has 30 s, as in compileAndValidate, of the 60 s the examples' processes share, and
+    /// System is not opened for it, as compileAndValidate did not. A timeout counts as a compile
+    /// failure, as there, so the solver is retried.
+    let private validate (solutionCode: string) (problem: BenchmarkProblem) : Task<bool * bool * string list * string> =
+        if problem.Examples.IsEmpty then
+            compileAndValidate solutionCode problem.ValidationCode
+        else
+            task {
+                let! run =
+                    ExampleCheck.runWithExamplesWithin
+                        (TimeSpan.FromSeconds 60.0)
+                        (TimeSpan.FromSeconds 30.0)
+                        false
+                        solutionCode
+                        problem.Examples
+
+                match run with
+                | ExampleCheck.ExamplesPassed -> return true, true, [], "PASS"
+                | ExampleCheck.ExampleFailed failure -> return true, false, [], failure
+                | ExampleCheck.CodeFailed errors when ExampleCheck.timedOut errors ->
+                    return false, false, [ "error FS0000: Process timed out after 30 seconds" ], errors
+                | ExampleCheck.CodeFailed errors ->
+                    let compileErrors =
+                        errors.Split([| '\n' |])
+                        |> Array.map (fun l -> l.Trim())
+                        |> Array.filter (fun l -> l.Contains("error FS"))
+                        |> Array.toList
+
+                    return compileErrors.IsEmpty, false, compileErrors, errors
+                | ExampleCheck.ExamplesUnusable ->
+                    return false, false, [ $"The code does not define {problem.ExpectedSignature}." ], "The examples do not compile against the code."
+                | ExampleCheck.ExamplesNotCompared reason ->
+                    return true, false, [], $"The examples were not compared outside the code's process: {reason}"
+            }
+
     /// Run a single benchmark problem.
     let runProblem (llm: ILlmService) (problem: BenchmarkProblem) (retryOnFail: bool) (logger: string -> unit) : Task<BenchmarkAttempt> =
         task {
@@ -223,7 +306,7 @@ Do not use 'open' statements — write self-contained code."""
             let! code, genMs = solveWithLlm llm problem
 
             let sw = Stopwatch.StartNew()
-            let! compiled, validated, errors, output = compileAndValidate code problem.ValidationCode
+            let! compiled, validated, errors, output = validate code problem
             sw.Stop()
 
             // Retry once with error feedback if compilation failed
@@ -253,7 +336,7 @@ Do not use 'open' statements — write self-contained code."""
 
                 let retryCode = extractCode retryResponse.Text
                 let valSw = Stopwatch.StartNew()
-                let! compiled2, validated2, errors2, output2 = compileAndValidate retryCode problem.ValidationCode
+                let! compiled2, validated2, errors2, output2 = validate retryCode problem
                 valSw.Stop()
 
                 let status = if validated2 then "PASS" elif compiled2 then "FAIL (validation)" else "FAIL (compile)"
@@ -351,7 +434,8 @@ Do not use 'open' statements — write self-contained code."""
                     | Some n -> ps |> List.truncate n
                     | None -> ps
 
-            logger $"Running {problems.Length} benchmark problems..."
+            let! model = solverModel llm
+            logger $"Running {problems.Length} benchmark problems on {model}..."
             let sw = Stopwatch.StartNew()
 
             let mutable attempts = []
@@ -367,7 +451,8 @@ Do not use 'open' statements — write self-contained code."""
             return
                 { RunId = Guid.NewGuid()
                   Timestamp = DateTime.UtcNow
-                  ModelUsed = "default"
+                  ModelUsed = model
+                  CycleId = None
                   TotalProblems = attempts.Length
                   Compiled = compiled
                   Validated = validated
@@ -388,17 +473,24 @@ Do not use 'open' statements — write self-contained code."""
         : Task<BenchmarkRunSummary> =
         runSuiteFromProblems llm (ProblemBank.all ()) difficulty category maxProblems retryOnFail logger
 
-    /// Record benchmark results into PatternOutcomeStore for self-improvement feedback.
+    /// Record benchmark results into PatternOutcomeStore for self-improvement feedback. An attempt
+    /// succeeds when it validated and its property tests, if any ran, held: like SelfTrain, which
+    /// leaves out a solution whose properties failed.
     let recordOutcomes (selector: IPatternSelector) (summary: BenchmarkRunSummary) : unit =
         for attempt in summary.Attempts do
             selector.RecordOutcome
                 { PatternOutcome.Create(
                     Custom $"benchmark:{attempt.Category}",
                     attempt.ProblemId,
-                    attempt.Validated,
+                    attempt.Validated && attempt.PropertiesValidated <> Some false,
                     attempt.GenerationTimeMs + attempt.ValidationTimeMs) with
                     Timestamp = attempt.Timestamp
-                    ModelId = (if summary.ModelUsed = "default" then None else Some summary.ModelUsed) }
+                    CycleId = summary.CycleId
+                    ModelId =
+                        match summary.ModelUsed with
+                        | "default"
+                        | "unknown" -> None
+                        | model -> Some model }
 
     /// Persist results to ~/.tars/benchmark_results/.
     let saveResults (summary: BenchmarkRunSummary) : string =

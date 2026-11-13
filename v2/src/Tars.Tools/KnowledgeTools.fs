@@ -241,9 +241,14 @@ module KnowledgeTools =
                         let fact = Tars.Tools.ToolHelpers.parseStringArg args "fact"
                         let ep = Tars.Core.BeliefUpdate("User", fact, 1.0, DateTime.UtcNow)
                         ingestionService.Queue(ep)
-                        // Flush to ensure it persists
-                        let! _ = ingestionService.FlushAsync()
-                        return Result.Ok $"Memory saved: {fact}"
+
+                        // The flush is what persists it. Its result used to be dropped, and a
+                        // failed flush still answered "Memory saved". A failed flush does not
+                        // prove the opposite either - a send that timed out may have arrived -
+                        // so the answer is only that the save was not confirmed.
+                        match! ingestionService.FlushAsync() with
+                        | Result.Ok _ -> return Result.Ok $"Memory saved: {fact}"
+                        | Result.Error err -> return Result.Error $"Save not confirmed: {err}"
                     with ex ->
                         return Result.Error $"Error saving memory: {ex.Message}"
                 }

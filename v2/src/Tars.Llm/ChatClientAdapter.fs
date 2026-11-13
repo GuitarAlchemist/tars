@@ -527,14 +527,12 @@ type LlmServiceChatClient(inner: ILlmService) =
                                 Tools = ChatClientMapping.toolsOf options }
                             |> ChatClientMapping.applyFormat options
 
-                    // Tool calls do not survive being flattened into a token stream:
-                    // providers put them in the final message, and our streaming path
-                    // forwards content only. Offering tools therefore takes the
-                    // buffered call and yields it as one update, which keeps the loop
-                    // working for a streaming caller at the cost of the tokens
-                    // arriving together. Reassembling calls from deltas is #317.
-                    let offersTools = not req.Tools.IsEmpty
-
+                    // Tool calls do not travel in the token stream. The providers that
+                    // offer tools (Ollama and the OpenAI family) reassemble them while
+                    // streaming and hand them back in `Raw`, the same place the
+                    // non-streaming path finds them, so the closing update can carry
+                    // them. Until #317 this path fell back to the buffered call whenever
+                    // tools were offered, and every token arrived at once.
                     let pending = System.Collections.Concurrent.ConcurrentQueue<ChatResponseUpdate>()
                     let mutable current = ChatResponseUpdate()
                     let mutable completion: Task<LlmResponse> = null
@@ -551,9 +549,6 @@ type LlmServiceChatClient(inner: ILlmService) =
                     let closingUpdate (response: LlmResponse) =
                         let update = ChatResponseUpdate()
                         update.Role <- Nullable ChatRole.Assistant
-
-                        if offersTools && not (String.IsNullOrEmpty response.Text) then
-                            update.Contents.Add(TextContent(response.Text))
 
                         let calls = ChatClientMapping.toolCallsOf response.Raw
 
@@ -583,10 +578,7 @@ type LlmServiceChatClient(inner: ILlmService) =
                         member _.MoveNextAsync() =
                             if isNull completion then
                                 completion <-
-                                    if offersTools then
-                                        inner.CompleteAsync(req)
-                                    else
-                                        inner.CompleteStreamAsync(req, (fun token -> pending.Enqueue(textUpdate token)))
+                                    inner.CompleteStreamAsync(req, (fun token -> pending.Enqueue(textUpdate token)))
 
                             // One task that loops, not a task per poll: recursing
                             // here left every 10 ms wait awaiting the next one, so a
