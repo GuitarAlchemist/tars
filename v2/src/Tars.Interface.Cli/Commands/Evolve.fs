@@ -70,6 +70,131 @@ let tracedServices
     | Some teacher -> traced (Some "executor") executor, Some(traced (Some "teacher") teacher)
     | None -> traced None executor, None
 
+/// The service for a `--model` or `--teacher` name. A `claude:<model>` sends its requests to
+/// Claude Code (`claude -p`), on the user's own Claude login; embeddings still come from the
+/// configured backend. A local model answers every request, whatever its hint: the executor's
+/// requests carry its model's name as their hint, which sends a coder model (`qwen2.5-coder:14b`)
+/// to the configured CodingModel, and the curriculum's and the judge's carry "reasoning", which
+/// would go to the configured ReasoningModel.
+let llmFor (logger: ILogger) (model: string) : ILlmService =
+    match LlmFactory.claudeCodeModel model with
+    | Some claudeModel ->
+        LlmFactory.createClaudeCode (Some claudeModel)
+        |> LlmFactory.withEmbeddings (LlmFactory.create logger)
+    | None -> LlmFactory.createPinnedTo logger model
+
+/// The Claude calls of an evolve run, by role. A call is a completion, streamed or not: one
+/// `claude -p` process. Embeddings and routes are not calls to Claude.
+type ClaudeCalls() =
+    let counts = System.Collections.Concurrent.ConcurrentDictionary<string, int>()
+
+    let add role =
+        counts.AddOrUpdate(role, 1, (fun _ n -> n + 1)) |> ignore
+
+    /// `llm`, with its completions counted as `role`'s when `model` is a Claude Code name
+    /// (`claude:<model>`). Another model's service is returned as it is.
+    member _.Count (role: string) (model: string option) (llm: ILlmService) : ILlmService =
+        match model |> Option.bind LlmFactory.claudeCodeModel with
+        | None -> llm
+        | Some _ ->
+            counts.TryAdd(role, 0) |> ignore
+
+            { new ILlmService with
+                member _.CompleteAsync req =
+                    add role
+                    llm.CompleteAsync req
+
+                member _.CompleteStreamAsync(req, onChunk) =
+                    add role
+                    llm.CompleteStreamAsync(req, onChunk)
+
+                member _.EmbedAsync text = llm.EmbedAsync text
+                member _.RouteAsync req = llm.RouteAsync req
+              interface ICancellableLlmService with
+                member _.CompleteAsync(req, token) =
+                    add role
+
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.CompleteAsync(req, token)
+                    | _ -> llm.CompleteAsync req
+
+                member _.EmbedAsync(text, token) =
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.EmbedAsync(text, token)
+                    | _ -> llm.EmbedAsync text
+
+                member _.CompleteStreamAsync(req, onChunk, token) =
+                    add role
+
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.CompleteStreamAsync(req, onChunk, token)
+                    | _ -> llm.CompleteStreamAsync(req, onChunk)
+
+                member _.RouteAsync(req, token) =
+                    match llm with
+                    | :? ICancellableLlmService as cancellable -> cancellable.RouteAsync(req, token)
+                    | _ -> llm.RouteAsync req }
+
+    /// Each role on Claude Code, with its calls so far, by role name.
+    member _.ByRole: (string * int) list =
+        counts |> Seq.map (fun kv -> kv.Key, kv.Value) |> Seq.sortBy fst |> List.ofSeq
+
+    member this.Total = this.ByRole |> List.sumBy snd
+
+/// ADR 0005 (D3) budgets about 30 Claude calls per 10-task evolve run.
+let claudeCallBudget (tasks: int) = 3 * tasks
+
+/// How an evolve run's Claude calls compare with ADR 0005's budget for the tasks it finished:
+/// whether they went over it, and the line that says so. A task that failed, timed out or threw
+/// is finished, since `run` records it. A step whose curriculum gave no task finishes none, so its
+/// calls get no budget. None when no role is on Claude Code.
+let claudeCallsReport (calls: ClaudeCalls) (finished: int) : (bool * string) option =
+    match calls.ByRole with
+    | [] -> None
+    | roles ->
+        let budget = claudeCallBudget finished
+        let over = calls.Total > budget
+        let byRole = roles |> List.map (fun (role, n) -> $"{role} {n}") |> String.concat ", "
+        let verdict = if over then "over" else "within"
+        let noun = if finished = 1 then "task" else "tasks"
+
+        Some(over, $"Claude calls: {calls.Total} ({byRole}), {verdict} ADR 0005's budget of {budget} for {finished} {noun} finished")
+
+/// Appends `record` to the JSON lines file at `path`, with the evolve run and the executor's model:
+/// one line per task, so the answers whose examples passed can be found after the run. A file
+/// that cannot be written is logged, and the run goes on.
+let recordTo (logger: ILogger) (path: string) (run: string) (model: string) (record: Engine.TaskRecord) =
+    try
+        Directory.CreateDirectory(Path.GetDirectoryName path) |> ignore
+
+        let line =
+            System.Text.Json.JsonSerializer.Serialize
+                {| run = run
+                   model = model
+                   taskId = record.Definition.Id
+                   goal = record.Definition.Goal
+                   constraints = record.Definition.Constraints
+                   criteria = record.Definition.ValidationCriteria
+                   // null when the examples did not run (no --run-code).
+                   examplesPassed = record.Examples |> Option.map (fun e -> e.Passed) |> Option.toNullable
+                   // true when the examples passed, which since #394 needs this process to compare the
+                   // code's values with expected values computed without the code; null otherwise. Rows
+                   // written before #394 lack it: their examples were checked only in the code's process.
+                   examplesComparedOutside =
+                       record.Examples
+                       |> Option.filter (fun e -> e.Passed)
+                       |> Option.map (fun _ -> true)
+                       |> Option.toNullable
+                   success = record.Result.Success
+                   verdict = record.Result.Evaluation |> Option.map (fun e -> e.Summary) |> Option.toObj
+                   output = record.Result.Output
+                   durationMs = int64 record.Result.Duration.TotalMilliseconds
+                   finishedAt = DateTime.UtcNow |}
+
+        File.AppendAllText(path, line + "\n")
+    with ex ->
+        logger.Warning("Could not record the task in {Path}: {Message}", path, ex.Message)
+
 let run (logger: ILogger) (options: EvolveOptions) =
     task {
         // Load configuration
@@ -306,34 +431,20 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         $"{m} is billed per token: give its price with {priceOption} IN/OUT (USD per million input and output tokens, e.g. 2.5/10), so the budget can count it.")
 
         // Initialize LLM Service
-        // A `claude:<model>` sends its requests to Claude Code (`claude -p`), on the user's own
-        // Claude login. Embeddings still come from the configured backend. `openai:<model>`,
-        // `gemini:<model>` and `anthropic:<model>` send them to that provider's API.
-        let createLlm (m: string) =
-            match LlmFactory.claudeCodeModel m with
-            | Some claudeModel ->
-                LlmFactory.createClaudeCode (Some claudeModel)
-                |> LlmFactory.withEmbeddings (LlmFactory.create logger)
-            | None ->
-                paidOnApi m options.ModelPrice "--model-price"
-                |> Option.defaultWith (fun () -> LlmFactory.createWithModel logger m)
+        // `claude:<model>` and local models: see `llmFor`. `openai:<model>`, `gemini:<model>` and
+        // `anthropic:<model>` send their requests to that provider's API, charged to the budget.
+        let createLlm (m: string) (price: string option) (priceOption: string) =
+            paidOnApi m price priceOption |> Option.defaultWith (fun () -> llmFor logger m)
 
         let baseLlmService =
             match options.Model with
-            | Some m -> createLlm m
+            | Some m -> createLlm m options.ModelPrice "--model-price"
             | None -> LlmFactory.create logger
 
         // `--teacher` writes the curriculum and judges the answers; `--model` answers them.
-        // A local teacher answers every request: the curriculum and the judge ask for
-        // "reasoning", which would otherwise go to the configured ReasoningModel.
         let teacherLlm =
             options.Teacher
-            |> Option.map (fun m ->
-                match LlmFactory.claudeCodeModel m with
-                | Some _ -> createLlm m
-                | None ->
-                    paidOnApi m options.TeacherPrice "--teacher-price"
-                    |> Option.defaultWith (fun () -> LlmFactory.createPinnedTo logger m))
+            |> Option.map (fun m -> createLlm m options.TeacherPrice "--teacher-price")
 
         if not options.Quiet then
             options.Teacher |> Option.iter (fun t -> RichOutput.info $"Teacher (curriculum and judge): {t}")
@@ -346,6 +457,18 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
         let llmService, teacherLlm =
             tracedServices options.Trace traceRecorder baseLlmService teacherLlm
+
+        // The run's Claude calls, by role, for ADR 0005's budget. The teacher, or the executor's
+        // model without one, writes the curriculum, judges, and runs the epistemic governor.
+        // "executor" counts every call on `--model`'s service: the intent classifier's, the
+        // memory's and the benchmark's too.
+        let claudeCalls = ClaudeCalls()
+        let teacherService = teacherLlm |> Option.defaultValue llmService
+        let teacherModel = options.Teacher |> Option.orElse options.Model
+        let curriculumLlm = claudeCalls.Count "curriculum" teacherModel teacherService
+        let judgeLlm = claudeCalls.Count "judge" teacherModel teacherService
+        let governorLlm = claudeCalls.Count "governor" teacherModel teacherService
+        let llmService = claudeCalls.Count "executor" options.Model llmService
 
         if options.Trace then
             let! traceId = (traceRecorder :> ITraceRecorder).StartTraceAsync() |> Async.StartAsTask
@@ -455,6 +578,16 @@ let run (logger: ILogger) (options: EvolveOptions) =
             | Some _ -> RichOutput.info "🧠 Capability index: Postgres (agent_capabilities)"
             | None -> RichOutput.info $"🧠 Capability index: {config.Memory.VectorStorePath} (agent_capabilities)"
 
+        // The tasks finished so far, kept out of the try below: a run that fails still reports
+        // the Claude calls it made.
+        let tasksFinished = ref 0
+
+        let reportClaudeCalls () =
+            match claudeCallsReport claudeCalls tasksFinished.Value with
+            | Some(true, line) -> logger.Warning("{ClaudeCalls}", line)
+            | Some(false, line) -> logger.Information("{ClaudeCalls}", line)
+            | None -> ()
+
         try
             let! ledgerAndStoreOpt =
                 task {
@@ -506,7 +639,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                     // It suggests the curriculum's focus and verifies the answers: the teacher's job.
                     Some(
                         Tars.Cortex.EpistemicGovernor(
-                            teacherLlm |> Option.defaultValue llmService,
+                            governorLlm,
                             Some knowledgeGraph,
                             Some budget
                         )
@@ -518,7 +651,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
 
             let evaluator =
                 SemanticEvaluation(
-                    teacherLlm |> Option.defaultValue llmService,
+                    judgeLlm,
                     minConfidence = 0.6,
                     logger = fun msg -> logger.Information("{Evaluation}", msg)
                 )
@@ -612,10 +745,26 @@ let run (logger: ILogger) (options: EvolveOptions) =
             let memoryBuffer =
                 BufferAgent<Engine.MemoryItem>(10, TimeSpan.FromSeconds(5.0), onFlush)
 
+            // Names this evolve run, so each cycle's benchmark results can be told
+            // apart on disk ("<run>/<cycle>").
+            let evolveRun = Guid.NewGuid().ToString("N").Substring(0, 8)
+
+            // The run's results.jsonl, one line per task, and the executor's workspace.
+            let runDir =
+                Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".tars",
+                    "evolve",
+                    "runs",
+                    evolveRun
+                )
+
+            let resultsPath = Path.Combine(runDir, "results.jsonl")
+
             let evoCtx: Engine.EvolutionContext =
                 { Registry = registry
                   Llm = llmService
-                  CurriculumLlm = teacherLlm
+                  CurriculumLlm = Some curriculumLlm
                   VectorStore = vectorStore
                   Logger =
                     fun s ->
@@ -658,7 +807,8 @@ let run (logger: ILogger) (options: EvolveOptions) =
                       ToolRegistry = Some toolRegistry
                       ResearchEnhanced = options.ResearchEnhanced
                       SelfImprovement = options.SelfImprovement
-                      RunCode = options.RunCode } }
+                      RunCode = options.RunCode
+                      RecordTask = recordTo logger resultsPath evolveRun model } }
 
             // Load Plan if provided
             let initialTasks =
@@ -716,25 +866,14 @@ let run (logger: ILogger) (options: EvolveOptions) =
                 { evoState with
                     TaskQueue = initialTasks }
 
-            // Names this evolve run, so each cycle's benchmark results can be told
-            // apart on disk ("<run>/<cycle>").
-            let evolveRun = Guid.NewGuid().ToString("N").Substring(0, 8)
-
             // The executor's write_code and patch_code land here, not in the repository.
-            let executorWorkspace =
-                Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".tars",
-                    "evolve",
-                    "runs",
-                    evolveRun,
-                    "workspace"
-                )
+            let executorWorkspace = Path.Combine(runDir, "workspace")
 
             Tars.Tools.ToolWorkspace.set (Some executorWorkspace)
 
             if not options.Quiet then
                 RichOutput.info $"Executor workspace: {executorWorkspace}"
+                RichOutput.info $"Results: {resultsPath}"
 
             if options.RunCode then
                 RichOutput.warning
@@ -855,6 +994,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                                     CurrentTask = None }
 
                     currentState <- nextState
+                    tasksFinished.Value <- currentState.CompletedTasks.Length
 
                     try
                         knowledgeGraph.Save(knowledgeGraphPath)
@@ -892,6 +1032,7 @@ let run (logger: ILogger) (options: EvolveOptions) =
                         match options.BenchmarkDomain.ToLowerInvariant() with
                         | "ga" | "music" -> GaProblemBank.all ()
                         | "all" -> ProblemBank.all () @ GaProblemBank.all ()
+                        | "hard" -> ProblemBank.hard ()
                         | _ -> ProblemBank.all ()
 
                     let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
@@ -1046,9 +1187,11 @@ let run (logger: ILogger) (options: EvolveOptions) =
             with ex ->
                 logger.Warning("Failed to save knowledge graph: {Message}", ex.Message)
 
+            reportClaudeCalls ()
             return 0
         with ex ->
             RichOutput.error $"Evolution failed: {ex.Message}"
             logger.Error(ex, "Evolution Engine Failed")
+            reportClaudeCalls ()
             return 1
     }

@@ -49,6 +49,17 @@ let private makeRegistry () =
           Execute = fun input -> async { return Result.Ok $"SEARCH_RESULT: {input}" } })
     reg
 
+/// Keeps outcomes in memory. The real selector writes them to the user's outcome
+/// store, which is also what a pattern learns from.
+type private RecordingSelector() =
+    let recorded = ResizeArray<PatternOutcome>()
+    member _.Recorded = List.ofSeq recorded
+
+    interface IPatternSelector with
+        member _.Recommend(_, _) = PatternKind.ChainOfThought
+        member _.Score(_) = Map.empty
+        member _.RecordOutcome(outcome) = recorded.Add outcome
+
 let private compile goal maxSteps =
     let reg = makeRegistry ()
     let compiler = PatternCompiler.DefaultPatternCompiler() :> IPatternCompiler
@@ -177,7 +188,7 @@ let ``full round-trip compile execute complete`` () =
     let completeInput =
         sprintf """{"plan_id": "%s", "final_output": "The document summary is..."}""" planId
 
-    let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
+    let selector = RecordingSelector()
     let completeResult = completePlan selector completeInput
 
     match completeResult with
@@ -189,6 +200,12 @@ let ``full round-trip compile execute complete`` () =
         Assert.Equal(0, root.GetProperty("failedSteps").GetInt32())
     | Result.Error err ->
         Assert.Fail $"completePlan failed: {err}"
+
+    // The outcome goes to the selector it is given, which keeps it in memory: with the real
+    // one, every test run appended this plan to the user's outcome store (353 rows by Oct 2026).
+    let outcome = List.exactlyOne selector.Recorded
+    Assert.Equal("Summarize a document", outcome.Goal)
+    Assert.True(outcome.Success)
 
 // =========================================================================
 // validateStep tests
@@ -228,7 +245,7 @@ let ``completePlan removes plan from active list`` () =
     let planId = doc.RootElement.GetProperty("planId").GetString()
 
     // Complete it
-    let selector = PatternSelector.HistoryAwareSelector() :> IPatternSelector
+    let selector = RecordingSelector()
     let _ = completePlan selector (sprintf """{"plan_id": "%s", "final_output": "done"}""" planId)
 
     // Try again - should fail
@@ -455,17 +472,6 @@ let ``an undescribed tool still runs here, which is the opposite of the graph ed
 // =========================================================================
 // Nothing counted as passed that nobody checked
 // =========================================================================
-
-/// Keeps outcomes in memory. The real selector writes them to the user's outcome
-/// store, which is also what a pattern learns from.
-type private RecordingSelector() =
-    let recorded = ResizeArray<PatternOutcome>()
-    member _.Recorded = List.ofSeq recorded
-
-    interface IPatternSelector with
-        member _.Recommend(_, _) = PatternKind.ChainOfThought
-        member _.Score(_) = Map.empty
-        member _.RecordOutcome(outcome) = recorded.Add outcome
 
 /// An active plan of one Validate node, "check", whose invariant "nope" does not meet.
 let private planWithAValidateNode (reg: StubToolRegistry) =

@@ -34,11 +34,12 @@ module CodeBenchmark =
 
     /// Resolve the fitness domain (problem source) for a run.
     /// code = curated F# puzzles (default); ga = Guitar Alchemist music theory;
-    /// all = both.
+    /// all = both; hard = the hard bank, which `all` leaves out.
     let private problemSource (domain: string) : BenchmarkProblem list =
         match domain.ToLowerInvariant() with
         | "ga" | "music" -> GaProblemBank.all ()
         | "all" -> ProblemBank.all () @ GaProblemBank.all ()
+        | "hard" -> ProblemBank.hard ()
         | _ -> ProblemBank.all ()
 
     let private showStatus () =
@@ -154,7 +155,8 @@ module CodeBenchmark =
             printfn "Usage: tars benchmark code [run|status|report]"
             printfn ""
             printfn "  run [options]   Run benchmark suite"
-            printfn "    --domain code|ga|all   Fitness domain (code = F# puzzles, ga = Guitar Alchemist music theory)"
+            printfn "    --domain code|ga|all|hard   Fitness domain (code = F# puzzles, ga = Guitar Alchemist music theory,"
+            printfn "                                all = code + ga, hard = the hard bank)"
             printfn "    --difficulty basic|intermediate|advanced|expert"
             printfn "    --category algorithms|strings|data|error|type|pattern|music"
             printfn "    --model NAME  Override the LLM (e.g. qwen2.5-coder:7b)"
