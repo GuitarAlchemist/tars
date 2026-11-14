@@ -9,9 +9,9 @@ karpathy_rules: [R1-think-before-coding, R4-goal-driven-execution]
 # /digest
 
 Captures the **meaningful state of the current session** to
-`state/digests/latest.md`. The `.claude/hooks/sessionstart-digest.ps1` hook
+`state/digests/latest.md`. The `session-start` hook (`go/claudehooks`, see `.claude/hooks/README.md`)
 reads it on the next session start and emits it as `additionalContext` for
-the model. Pairs with `.claude/hooks/precompact-digest.ps1` which provides
+the model. Pairs with the `precompact-digest` hook, which provides
 a metadata-only fallback when /digest isn't invoked before auto-compaction.
 
 ## When to run
@@ -102,7 +102,7 @@ When a prior digest exists, this section reports the status delta:
    ```
 7. **Validate** against the schema (Karpathy R11):
    ```bash
-   pwsh -NoProfile -File .claude/hooks/digest-validate.ps1
+   .claude/hooks/bin/tars-hooks digest-validate
    ```
    Non-zero exit = malformed; fix and rewrite.
 8. **Report**:
@@ -139,6 +139,6 @@ evidence.
 
 - `/learnings` — captures surprises into `docs/solutions/` (different artifact).
 - `/correct` — captures user corrections as permanent CLAUDE.md rules.
-- `.claude/hooks/precompact-digest.ps1` — automatic fallback.
-- `.claude/hooks/sessionstart-digest.ps1` — reads `latest.md` back.
+- `tars-hooks precompact-digest` (`go/claudehooks`) — automatic fallback.
+- `tars-hooks session-start` (`go/claudehooks`) — reads `latest.md` back.
 - `state/digests/README.md` — directory layout.
