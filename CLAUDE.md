@@ -67,7 +67,7 @@ Self-improvement reflex: when the user corrects you, invoke `/correct` so the ru
 
 ## Session continuity (Cherny pattern)
 
-- `/digest` — captures meaningful session state (cursor, in-flight, hypotheses, success criteria) to `state/digests/latest.md`. Auto-fallback via `.claude/hooks/precompact-digest.ps1`; auto-injected on next session via `.claude/hooks/sessionstart-digest.ps1`. See `.claude/skills/digest/SKILL.md`.
+- `/digest` — captures meaningful session state (cursor, in-flight, hypotheses, success criteria) to `state/digests/latest.md`. Auto-fallback via the `precompact-digest` hook; auto-injected on next session by the `session-start` hook (both in `go/claudehooks`, see `.claude/hooks/README.md`). See `.claude/skills/digest/SKILL.md`.
 - Learnings — surprises (non-obvious facts worth grep-finding later) are captured into `docs/solutions/<category>/<date>-<topic>.md`. Convention only: no `/learnings` skill is installed — write the file directly.
 - `/correct` — turns user corrections into permanent rules in this CLAUDE.md.
 

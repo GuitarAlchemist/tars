@@ -11,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File $CLAUDE_PROJECT_DIR/.claude/hooks/precompact-digest.ps1"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bin/tars-hooks\" precompact-digest"
           }
         ]
       }
@@ -21,7 +21,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File $CLAUDE_PROJECT_DIR/.claude/hooks/sessionstart-digest.ps1"
+            "command": "go -C \"$CLAUDE_PROJECT_DIR/go/claudehooks\" run ./cmd/tars-hooks session-start",
+            "timeout": 120
           }
         ]
       }
@@ -31,11 +32,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File $CLAUDE_PROJECT_DIR/.claude/hooks/digest-staleness-nudge.ps1"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bin/tars-hooks\" digest-staleness-nudge"
           },
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File $CLAUDE_PROJECT_DIR/.claude/hooks/correction-detector.ps1"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bin/tars-hooks\" correction-detector"
           }
         ]
       }
@@ -46,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File $CLAUDE_PROJECT_DIR/.claude/hooks/digest-activity-tracker.ps1"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bin/tars-hooks\" digest-activity-tracker"
           }
         ]
       },
@@ -55,7 +56,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File $CLAUDE_PROJECT_DIR/.claude/hooks/pr-rationale-capture.ps1"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bin/tars-hooks\" pr-rationale-capture"
           }
         ]
       },
@@ -64,11 +65,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/fsharp-check.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bin/tars-hooks\" fsharp-check"
           },
           {
             "type": "command",
-            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/fsharp-format.sh"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bin/tars-hooks\" fsharp-format"
           }
         ]
       }
@@ -78,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File $CLAUDE_PROJECT_DIR/.claude/hooks/digest-stop-finalize.ps1"
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/bin/tars-hooks\" digest-stop-finalize"
           }
         ]
       }

@@ -78,6 +78,9 @@ internal-nlog.txt
 state/digests/*
 !state/digests/README.md
 
+# The hooks binary, built from go/claudehooks by the session-start hook.
+.claude/hooks/bin/
+
 ## Docker backups
 docker/backups/
 **/docker/backups/

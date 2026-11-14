@@ -168,7 +168,7 @@ The AFK (Away From Keyboard) issue delegation loop is governed by a halt marker 
 
 Every code-touching turn applies four rules: **think before coding · simplicity first · surgical changes · goal-driven execution**. Session continuity uses the Cherny pattern:
 
-- `/digest` — captures session state (cursor, in-flight work, hypotheses, success criteria) to `state/digests/latest.md`. Auto-fallback via `.claude/hooks/precompact-digest.ps1`; auto-injected on next session via `.claude/hooks/sessionstart-digest.ps1`.
+- `/digest` — captures session state (cursor, in-flight work, hypotheses, success criteria) to `state/digests/latest.md`. Auto-fallback via the `precompact-digest` hook; auto-injected on next session by the `session-start` hook (both in `go/claudehooks`, see `.claude/hooks/README.md`).
 - `/learnings` — captures surprises to `docs/solutions/<category>/<date>-<topic>.md`.
 - `/correct` — turns user corrections into permanent rules in [`CLAUDE.md`](./CLAUDE.md)'s **Session-learned rules**.
 
