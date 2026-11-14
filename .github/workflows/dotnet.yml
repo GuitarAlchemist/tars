@@ -6,8 +6,16 @@ name: .NET
 on:
   push:
     branches: [ "main" ]
+  # No `branches:` filter here, on purpose. The `build` job below is the required
+  # check in branch protection, and a filter on the *base* branch means the workflow
+  # never runs on a pull request stacked on another feature branch. The check that
+  # has to pass before merging is then the one check that cannot run: #332 and #333
+  # sat blocked, every other check green, until each was retargeted to main by hand.
+  #
+  # A base change emits `edited`, which is not in the default event types, so even
+  # retargeting did not start it — both PRs had to be closed and reopened. Dropping
+  # the filter means a stacked PR gets the check from the moment it is opened.
   pull_request:
-    branches: [ "main" ]
 
 jobs:
   # Required gate (branch protection requires this `build` check). GitHub-hosted
